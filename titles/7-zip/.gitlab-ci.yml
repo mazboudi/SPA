@@ -1,0 +1,12 @@
+include:
+  - project: 'yourgroup/gitlab-ci-templates'   # TODO: set your real GitLab group path
+    ref: 'v1.0.0'                               # TODO: pin to desired template release
+    file:
+      - 'templates/metadata-validate.yml'
+      - 'templates/windows-build.yml'
+      - 'templates/windows-deploy-intune.yml'
+
+variables:
+  WINDOWS_ENABLED: "true"
+  MACOS_ENABLED:   "false"        # Windows-only title
+  PSADT_FRAMEWORK_VERSION: "4.1.0"

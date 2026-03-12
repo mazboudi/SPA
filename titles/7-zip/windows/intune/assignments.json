@@ -1,0 +1,12 @@
+[
+    {
+        "intent": "required",
+        "groupId": "TODO-AAD-GROUP-OBJECT-ID-FOR-REQUIRED",
+        "filterMode": "none"
+    },
+    {
+        "intent": "available",
+        "groupId": "TODO-AAD-GROUP-OBJECT-ID-FOR-SELFSERVICE",
+        "filterMode": "none"
+    }
+]

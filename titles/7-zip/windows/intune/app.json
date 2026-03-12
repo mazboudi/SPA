@@ -1,0 +1,17 @@
+{
+    "displayName": "7-Zip 24.08",
+    "description": "Open-source file archiver with a high compression ratio. Supports 7z, ZIP, CAB, RAR, ARJ, LZH, CHM, GZIP, BZIP2, Z, TAR, CPIO, ISO, and RPM formats.",
+    "publisher": "Igor Pavlov",
+    "appVersion": "24.08",
+    "informationUrl": "https://www.7-zip.org/",
+    "isFeatured": false,
+    "privacyInformationUrl": "",
+    "notes": "Managed by SPA pipeline. MSI silent install.",
+    "owner": "EUC Packaging",
+    "installCommandLine": "msiexec.exe /i \"Files\\7z2408-x64.msi\" /qn /norestart",
+    "uninstallCommandLine": "msiexec.exe /x \"{23170F69-40C1-2702-2408-000001000000}\" /qn /norestart",
+    "applicableArchitectures": "x64",
+    "minimumSupportedWindowsRelease": "1903",
+    "displayVersion": "24.08",
+    "allowAvailableUninstall": true
+}

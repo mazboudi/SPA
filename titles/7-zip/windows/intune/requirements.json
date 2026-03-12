@@ -1,0 +1,6 @@
+{
+    "minimumOs": "1903",
+    "architecture": "x64",
+    "minimumFreeDiskSpaceInMB": 10,
+    "minimumMemoryInMB": 1024
+}

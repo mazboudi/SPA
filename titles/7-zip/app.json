@@ -1,0 +1,27 @@
+{
+    "title": "7-Zip",
+    "publisher": "Igor Pavlov",
+    "package_id": "7-zip",
+    "version": "24.08",
+    "owners": {
+        "team": "euc-packaging",
+        "contact_email": "euc-packaging@yourorg.com"
+    },
+    "lifecycle": "active",
+    "platforms": {
+        "windows": {
+            "enabled": true,
+            "framework": "psadt-enterprise",
+            "framework_version": "4.1.0"
+        },
+        "macos": {
+            "enabled": false,
+            "framework": "macos-packaging-framework",
+            "framework_version": "1.0.0"
+        }
+    },
+    "deployment": {
+        "windows": "intune",
+        "macos": "jamf"
+    }
+}

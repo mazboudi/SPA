@@ -1,0 +1,8 @@
+dist/
+out/
+*.intunewin
+psadt-framework-*/
+tools/
+intune-modules/
+.DS_Store
+.vscode/
