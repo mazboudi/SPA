@@ -1,9 +1,159 @@
-stages:
-  - deploy
+##=============================================================================
+## macos-deploy-jamf.yml — macOS Jamf Pro deploy via Terraform CI template
+## Include: project: <group>/gitlab-ci-templates, file: templates/macos-deploy-jamf.yml
+##
+## Variables consumed:
+##   MACOS_ENABLED                — Must be 'true'
+##   JAMF_URL                     — Jamf Pro base URL (e.g. https://yourorg.jamfcloud.com)
+##   JAMF_CLIENT_ID               — Jamf API client ID (OAuth)
+##   JAMF_CLIENT_SECRET           — Jamf API client secret (protected CI var)
+##   TF_JAMF_MODULES_PROJECT_ID   — GitLab project ID of terraform-jamf-modules
+##   TF_JAMF_MODULES_REF          — ref/tag for terraform-jamf-modules (default: main)
+##   GITLAB_READ_TOKEN            — Token to clone Terraform modules
+##   TF_STATE_NAME                — GitLab Terraform state name (default: <package_id>)
+##
+## Needs: macos_build job (consumes out/build.env via dotenv artifact)
+##=============================================================================
+
+.macos_deploy_jamf:
+  stage: deploy
+  tags: [macOS]
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  variables:
+    TF_JAMF_MODULES_REF: "main"
+    TF_IN_AUTOMATION: "true"
+  needs:
+    - job: macos_build
+      artifacts: true
+  before_script:
+    - |
+      ## Install required tools
+      apk add --no-cache curl jq python3 2>/dev/null || apt-get -qq install -y curl jq python3 2>/dev/null || true
+
+      ## Read package_id from app.json for state naming
+      PACKAGE_ID=$(python3 -c "import json; d=json.load(open('app.json')); print(d['package_id'])")
+      export TF_STATE_NAME="${TF_STATE_NAME:-$PACKAGE_ID}"
+
+      ## Clone terraform-jamf-modules
+      TF_MODULES_DIR="terraform-jamf-modules"
+      if [[ ! -d "$TF_MODULES_DIR" ]]; then
+        git clone \
+          --depth 1 \
+          --branch "$TF_JAMF_MODULES_REF" \
+          "https://gitlab-ci-token:${GITLAB_READ_TOKEN}@gitlab.example.com/your-group/terraform-jamf-modules.git" \
+          "$TF_MODULES_DIR"
+      fi
+
+      ## Build a root Terraform config (.tf) from title inputs
+      PACKAGE_NAME=$(python3 -c "import json; d=json.load(open('macos/jamf/package-inputs.json')); print(d.get('package_name',''))")
+      CATEGORY=$(python3 -c "import json; d=json.load(open('macos/jamf/package-inputs.json')); print(d.get('category','No category'))")
+      POLICY_NAME=$(python3 -c "import json; d=json.load(open('macos/jamf/policy-inputs.json')); print(d.get('policy_name',''))" 2>/dev/null || echo "$PACKAGE_NAME Install")
+      SCOPE_GROUPS=$(python3 -c "import json; d=json.load(open('macos/jamf/scope-inputs.json')); print(d.get('scope_groups',{}).get('computer_groups',[]))" 2>/dev/null || echo "[]")
+
+      mkdir -p tf-deploy
+
+      cat > tf-deploy/main.tf <<TFEOF
+terraform {
+  required_providers {
+    jamfpro = {
+      source  = "danjamf/jamfpro"
+      version = "~> 0.16"
+    }
+  }
+  backend "http" {}
+}
+
+provider "jamfpro" {
+  jamfpro_url          = var.jamf_url
+  client_id            = var.jamf_client_id
+  client_secret        = var.jamf_client_secret
+  enable_cookie_jar    = true
+  mandatory_request_delay_milliseconds = 100
+}
+
+module "category" {
+  source   = "../terraform-jamf-modules/modules/category"
+  name     = var.category
+  priority = 9
+}
+
+module "package" {
+  source        = "../terraform-jamf-modules/modules/package"
+  display_name  = var.package_name
+  pkg_path      = var.pkg_path
+  category_id   = module.category.id
+  depends_on    = [module.category]
+}
+
+module "policy" {
+  source         = "../terraform-jamf-modules/modules/policy"
+  policy_name    = var.policy_name
+  package_id     = module.package.id
+  scope_groups   = var.scope_groups
+  trigger        = "RECURRING_CHECK_IN"
+  frequency      = "Once per computer"
+  depends_on     = [module.package]
+}
+TFEOF
+
+      cat > tf-deploy/variables.tf <<TFEOF
+variable "jamf_url"          { type = string }
+variable "jamf_client_id"    { type = string }
+variable "jamf_client_secret"{ type = string; sensitive = true }
+variable "package_name"      { type = string }
+variable "pkg_path"          { type = string }
+variable "category"          { type = string; default = "No category" }
+variable "policy_name"       { type = string }
+variable "scope_groups"      { type = list(string); default = [] }
+TFEOF
+
+      cat > tf-deploy/terraform.tfvars <<TFEOF
+package_name  = "$PACKAGE_NAME"
+pkg_path      = "$PKG_PATH"
+category      = "$CATEGORY"
+policy_name   = "$POLICY_NAME"
+scope_groups  = $(python3 -c "import sys,json; print(json.dumps($SCOPE_GROUPS))" 2>/dev/null || echo '[]')
+TFEOF
+
+  script:
+    - |
+      cd tf-deploy
+
+      ## Init with GitLab-managed state (HTTP backend)
+      terraform init \
+        -backend-config="address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}" \
+        -backend-config="lock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock" \
+        -backend-config="unlock_address=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TF_STATE_NAME}/lock" \
+        -backend-config="username=gitlab-ci-token" \
+        -backend-config="password=${CI_JOB_TOKEN}" \
+        -backend-config="lock_method=POST" \
+        -backend-config="unlock_method=DELETE" \
+        -backend-config="retry_wait_min=5"
+
+      terraform validate
+
+      ## Plan
+      terraform plan \
+        -var="jamf_url=${JAMF_URL}" \
+        -var="jamf_client_id=${JAMF_CLIENT_ID}" \
+        -var="jamf_client_secret=${JAMF_CLIENT_SECRET}" \
+        -out=tfplan
+
+      ## Apply
+      terraform apply -auto-approve tfplan
+
+      echo "✅ Jamf deployment applied."
+
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - tf-deploy/tfplan
+      - tf-deploy/terraform.tfstate*
 
 macos_deploy_jamf:
-  stage: deploy
+  extends: .macos_deploy_jamf
   rules:
-    - if: '$MACOS_ENABLED == "true"'
-  script:
-    - echo "Deploy Jamf objects"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $MACOS_ENABLED == "true"

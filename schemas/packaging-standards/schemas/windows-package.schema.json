@@ -1,16 +1,199 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/windows-package.schema.json",
   "title": "Windows Package Metadata",
+  "description": "Platform-specific packaging metadata for Windows titles. Located at windows/package.yaml in each title repo.",
   "type": "object",
-  "required": ["vendor_version", "packaging_version", "installer_type", "source_filename"],
+  "required": [
+    "vendor_version",
+    "packaging_version",
+    "installer_type",
+    "source_filename",
+    "install_command",
+    "uninstall_command",
+    "detection"
+  ],
+  "additionalProperties": false,
   "properties": {
-    "vendor_version": { "type": "string" },
-    "packaging_version": { "type": "string" },
-    "installer_type": { "type": "string", "enum": ["msi", "exe", "msix", "zip"] },
-    "source_filename": { "type": "string" },
-    "install_command": { "type": "string" },
-    "uninstall_command": { "type": "string" },
-    "detection_mode": { "type": "string" }
-  },
-  "additionalProperties": true
+    "vendor_version": {
+      "type": "string",
+      "description": "The installer's vendor version string (e.g. '134.0.6998.89')."
+    },
+    "packaging_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Internal packaging iteration. Increment when re-packaging without a vendor version change."
+    },
+    "installer_type": {
+      "type": "string",
+      "enum": [
+        "msi",
+        "exe",
+        "msix",
+        "ps1"
+      ],
+      "description": "Type of installer file."
+    },
+    "source_filename": {
+      "type": "string",
+      "description": "Installer filename expected in windows/src/Files/ (e.g. 'GoogleChromeEnterprise64.msi')."
+    },
+    "install_command": {
+      "type": "string",
+      "description": "Silent install command line relative to the PSADT staging root (e.g. 'msiexec /i GoogleChromeEnterprise64.msi /qn')."
+    },
+    "uninstall_command": {
+      "type": "string",
+      "description": "Silent uninstall command line."
+    },
+    "detection_mode": {
+      "type": "string",
+      "enum": [
+        "registry-marker",
+        "file",
+        "msi-product-code",
+        "script"
+      ],
+      "description": "Detection method used when building Intune detection rules.",
+      "default": "registry-marker"
+    },
+    "detection": {
+      "type": "object",
+      "description": "Detection parameters. Required keys vary by detection_mode.",
+      "additionalProperties": true,
+      "properties": {
+        "registry": {
+          "type": "object",
+          "description": "Used when detection_mode is 'registry-marker'.",
+          "required": [
+            "hive",
+            "key_path",
+            "value_name"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "hive": {
+              "type": "string",
+              "enum": [
+                "HKLM",
+                "HKCU",
+                "HKCR"
+              ],
+              "description": "Registry hive."
+            },
+            "key_path": {
+              "type": "string",
+              "description": "Registry key path (without hive prefix)."
+            },
+            "value_name": {
+              "type": "string",
+              "description": "Registry value name to check."
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "exists",
+                "notExists",
+                "equal",
+                "notEqual",
+                "greaterThanOrEqual"
+              ],
+              "default": "exists"
+            },
+            "value": {
+              "type": "string",
+              "description": "Expected value (used with operator 'equal' or 'greaterThanOrEqual')."
+            }
+          }
+        },
+        "file": {
+          "type": "object",
+          "description": "Used when detection_mode is 'file'.",
+          "required": [
+            "path",
+            "file_or_folder"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "file_or_folder": {
+              "type": "string"
+            },
+            "operator": {
+              "type": "string",
+              "enum": [
+                "exists",
+                "notExists",
+                "equal",
+                "greaterThanOrEqual"
+              ],
+              "default": "exists"
+            },
+            "version": {
+              "type": "string"
+            },
+            "check32BitOn64System": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "msi": {
+          "type": "object",
+          "description": "Used when detection_mode is 'msi-product-code'.",
+          "required": [
+            "product_code"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "product_code": {
+              "type": "string",
+              "pattern": "^\\{[A-Fa-f0-9\\-]{36}\\}$",
+              "description": "MSI product code GUID."
+            },
+            "version_operator": {
+              "type": "string",
+              "enum": [
+                "greaterThanOrEqual",
+                "equal"
+              ],
+              "default": "greaterThanOrEqual"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "max_runtime_minutes": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1440,
+      "default": 60,
+      "description": "Intune maximum install runtime in minutes."
+    },
+    "restart_behavior": {
+      "type": "string",
+      "enum": [
+        "basedOnReturnCode",
+        "allow",
+        "suppress",
+        "force"
+      ],
+      "default": "suppress",
+      "description": "Intune restart behavior after install."
+    },
+    "install_experience": {
+      "type": "string",
+      "enum": [
+        "system",
+        "user"
+      ],
+      "default": "system",
+      "description": "Whether the install runs in system or user context."
+    }
+  }
 }

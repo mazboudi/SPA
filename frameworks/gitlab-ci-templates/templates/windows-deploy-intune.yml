@@ -1,9 +1,161 @@
-stages:
-  - deploy
+##=============================================================================
+## windows-deploy-intune.yml — Windows Intune publish + assign CI template
+## Include: project: <group>/gitlab-ci-templates, file: templates/windows-deploy-intune.yml
+##
+## Variables consumed:
+##   WINDOWS_ENABLED       — Must be 'true'
+##   AZURE_TENANT_ID       — Microsoft Entra (AAD) tenant ID
+##   AZURE_CLIENT_ID       — App registration client ID
+##   AZURE_CLIENT_SECRET   — App registration client secret (protected CI var)
+##   INTUNE_DRY_RUN        — 'true' to skip actual Graph writes (default: false)
+##   INTUNE_MODULES_REF    — ref/tag for intune-deployment-modules scripts
+##   INTUNE_MODULES_PROJECT_ID — project ID for intune-deployment-modules repo
+##   GITLAB_READ_TOKEN     — Token to download scripts from the modules repo
+##
+## Needs: windows_build job (consumes out/build.env via dotenv artifact)
+##=============================================================================
 
-windows_deploy_intune:
-  stage: deploy
-  rules:
-    - if: '$WINDOWS_ENABLED == "true"'
+## ---------------------------------------------------------------------------
+## Shared helper: download intune-deployment-modules scripts
+## ---------------------------------------------------------------------------
+.download_intune_modules: &download_intune_modules |
+  $ErrorActionPreference = "Stop"
+  $modulesDir = 'intune-modules'
+  if (!(Test-Path $modulesDir)) {
+    New-Item -ItemType Directory -Path $modulesDir | Out-Null
+  }
+  $headers = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
+  $scripts = @(
+    'Publish-Win32App.ps1',
+    'Update-Win32App.ps1',
+    'Resolve-DetectionRules.ps1',
+    'Resolve-Requirements.ps1',
+    'Set-Win32Assignments.ps1',
+    'Set-Win32Supersedence.ps1',
+    'IntuneDeployment.psm1'
+  )
+  $ref = $env:INTUNE_MODULES_REF ?? 'main'
+  foreach ($s in $scripts) {
+    $encoded = [uri]::EscapeDataString("scripts/$s")
+    $uri = "$($env:CI_API_V4_URL)/projects/$($env:INTUNE_MODULES_PROJECT_ID)/repository/files/$encoded/raw?ref=$ref"
+    $dest = Join-Path $modulesDir $s
+    try {
+      Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $dest -ErrorAction Stop
+    } catch {
+      Write-Warning "Could not download $s from intune-deployment-modules. Skipping."
+    }
+  }
+  Write-Host "Intune modules ready in: $modulesDir"
+
+## ---------------------------------------------------------------------------
+## publish_intune — Create / update the Win32 app in Intune
+## ---------------------------------------------------------------------------
+.windows_publish_intune:
+  stage: publish
+  tags: [Windows]
+  variables:
+    INTUNE_DRY_RUN: "false"
+    INTUNE_MODULES_REF: "main"
+  needs:
+    - job: windows_build
+      artifacts: true
   script:
-    - echo "Publish and assign Intune app"
+    - *download_intune_modules
+    - |
+      $ErrorActionPreference = "Stop"
+      if (-not $env:INTUNEWIN_PATH) { throw "INTUNEWIN_PATH not set. Check build.env." }
+
+      # Import shared module
+      if (Test-Path 'intune-modules/IntuneDeployment.psm1') {
+        Import-Module (Resolve-Path 'intune-deployment/IntuneDeployment.psm1') -Force
+      }
+
+      # Build detection rules from windows/package.yaml
+      $detectionRules = & 'intune-modules/Resolve-DetectionRules.ps1' `
+        -PackageYamlPath 'windows/package.yaml'
+
+      # Build requirement rules from windows/intune/requirements.json
+      $requirementRules = $null
+      if (Test-Path 'windows/intune/requirements.json') {
+        $requirementRules = & 'intune-modules/Resolve-Requirements.ps1' `
+          -RequirementsPath 'windows/intune/requirements.json'
+      }
+
+      # Publish (creates or updates) the Win32 app
+      & 'intune-modules/Publish-Win32App.ps1' `
+        -IntuneWinPath      $env:INTUNEWIN_PATH `
+        -AppJsonPath        'windows/intune/app.json' `
+        -PackageYamlPath    'windows/package.yaml' `
+        -DetectionRules     $detectionRules `
+        -RequirementRules   $requirementRules `
+        -TenantId           $env:AZURE_TENANT_ID `
+        -ClientId           $env:AZURE_CLIENT_ID `
+        -ClientSecret       $env:AZURE_CLIENT_SECRET `
+        -DryRun:([bool]::Parse($env:INTUNE_DRY_RUN))
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths:
+      - out/app.env
+      - out/publish-logs/*
+    reports:
+      dotenv: out/app.env
+
+## ---------------------------------------------------------------------------
+## assign_intune — Assign the Win32 app to AAD groups
+## ---------------------------------------------------------------------------
+.windows_assign_intune:
+  stage: assign
+  tags: [Windows]
+  variables:
+    INTUNE_DRY_RUN: "false"
+  needs:
+    - job: windows_publish_intune
+      artifacts: true
+  script:
+    - *download_intune_modules
+    - |
+      $ErrorActionPreference = "Stop"
+      if (-not $env:APP_ID) { throw "APP_ID not set. Check out/app.env from publish job." }
+
+      if (!(Test-Path 'windows/intune/assignments.json')) {
+        Write-Warning "windows/intune/assignments.json not found — skipping assignments."
+        exit 0
+      }
+
+      & 'intune-modules/Set-Win32Assignments.ps1' `
+        -AppId            $env:APP_ID `
+        -AssignmentsPath  'windows/intune/assignments.json' `
+        -TenantId         $env:AZURE_TENANT_ID `
+        -ClientId         $env:AZURE_CLIENT_ID `
+        -ClientSecret     $env:AZURE_CLIENT_SECRET `
+        -DryRun:([bool]::Parse($env:INTUNE_DRY_RUN))
+
+      # Optional: set supersedence
+      if (Test-Path 'windows/intune/supersedence.json') {
+        & 'intune-modules/Set-Win32Supersedence.ps1' `
+          -AppId              $env:APP_ID `
+          -SupersedencePath   'windows/intune/supersedence.json' `
+          -TenantId           $env:AZURE_TENANT_ID `
+          -ClientId           $env:AZURE_CLIENT_ID `
+          -ClientSecret       $env:AZURE_CLIENT_SECRET
+      }
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths:
+      - out/assign-logs/*
+
+## ---------------------------------------------------------------------------
+## Concrete jobs (extending the hidden templates)
+## ---------------------------------------------------------------------------
+windows_publish_intune:
+  extends: .windows_publish_intune
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $WINDOWS_ENABLED == "true"
+
+windows_assign_intune:
+  extends: .windows_assign_intune
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $WINDOWS_ENABLED == "true"
+      when: manual

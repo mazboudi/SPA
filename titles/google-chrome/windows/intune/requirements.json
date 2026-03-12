@@ -1,3 +1,7 @@
 {
-  "minimumSupportedWindowsRelease": "Windows11_23H2"
+  "minWindowsVersion": "10.0.19041.0",
+  "architecture": "x64",
+  "minDiskSpaceInMB": 500,
+  "minRamInMB": 4096,
+  "minCpuSpeedInMHz": null
 }

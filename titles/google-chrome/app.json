@@ -1,15 +1,18 @@
 {
   "title": "Google Chrome",
-  "publisher": "Google",
+  "publisher": "Google LLC",
   "package_id": "google-chrome",
+  "version": "134.0.6998.89",
   "owners": {
-    "team": "euc-packaging"
+    "team": "euc-packaging",
+    "contact_email": "euc-packaging@yourorg.com"
   },
+  "lifecycle": "active",
   "platforms": {
     "windows": {
       "enabled": true,
-      "framework": "psadt",
-      "framework_version": "4.1.0-enterprise.1"
+      "framework": "psadt-enterprise",
+      "framework_version": "4.1.0"
     },
     "macos": {
       "enabled": true,

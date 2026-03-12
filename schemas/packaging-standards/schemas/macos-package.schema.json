@@ -1,15 +1,87 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/macos-package.schema.json",
   "title": "macOS Package Metadata",
+  "description": "Platform-specific packaging metadata for macOS titles. Located at macos/package.yaml in each title repo.",
   "type": "object",
-  "required": ["vendor_version", "packaging_version", "source_type"],
+  "required": [
+    "vendor_version",
+    "packaging_version",
+    "source_type",
+    "source_filename",
+    "receipt_id",
+    "bundle_id",
+    "minimum_os"
+  ],
+  "additionalProperties": false,
   "properties": {
-    "vendor_version": { "type": "string" },
-    "packaging_version": { "type": "string" },
-    "source_type": { "type": "string", "enum": ["pkg", "dmg", "zip"] },
-    "receipt_id": { "type": "string" },
-    "bundle_id": { "type": "string" },
-    "minimum_os": { "type": "string" }
-  },
-  "additionalProperties": true
+    "vendor_version": {
+      "type": "string",
+      "description": "The installer's vendor version string (e.g. '134.0.6998.89')."
+    },
+    "packaging_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Internal packaging iteration. Increment when re-packaging without a vendor version change."
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "pkg",
+        "dmg",
+        "zip",
+        "app"
+      ],
+      "description": "Type of macOS installer artifact."
+    },
+    "source_filename": {
+      "type": "string",
+      "description": "Installer filename expected in macos/src/Files/ (e.g. 'GoogleChrome.pkg')."
+    },
+    "receipt_id": {
+      "type": "string",
+      "description": "macOS installer receipt identifier used for detection and uninstall (e.g. 'com.google.chrome').",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9.\\-]+$"
+    },
+    "bundle_id": {
+      "type": "string",
+      "description": "macOS application bundle identifier (e.g. 'com.google.Chrome').",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9.\\-]+$"
+    },
+    "minimum_os": {
+      "type": "string",
+      "description": "Minimum macOS version required (e.g. '13.0').",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "architecture": {
+      "type": "string",
+      "enum": [
+        "universal",
+        "arm64",
+        "x86_64"
+      ],
+      "default": "universal",
+      "description": "Supported CPU architecture."
+    },
+    "install_script": {
+      "type": "string",
+      "description": "Optional override for the install script path (relative to macos/src/). Default uses the framework build-pkg.sh."
+    },
+    "uninstall_script": {
+      "type": "string",
+      "description": "Optional path to a custom uninstall script (relative to macos/src/)."
+    },
+    "jamf_category": {
+      "type": "string",
+      "description": "Default Jamf category for this title (e.g. 'Browsers'). Can be overridden in jamf/package-inputs.json."
+    },
+    "pre_install_script": {
+      "type": "string",
+      "description": "Optional preinstall script filename in macos/src/ (runs before the pkg install)."
+    },
+    "post_install_script": {
+      "type": "string",
+      "description": "Optional postinstall script filename in macos/src/ (runs after the pkg install)."
+    }
+  }
 }

@@ -1,7 +1,20 @@
-vendor_version: 134.0.6998.89
+vendor_version: "134.0.6998.89"
 packaging_version: 1
 installer_type: msi
 source_filename: GoogleChromeEnterprise64.msi
-install_command: msiexec /i GoogleChromeEnterprise64.msi /qn
-uninstall_command: msiexec /x {PRODUCT-CODE-HERE} /qn
+install_command: msiexec /i GoogleChromeEnterprise64.msi /qn REBOOT=ReallySuppress
+uninstall_command: msiexec /x {8A69D345-D564-463C-AFF1-A69D9E530F96} /qn
 detection_mode: registry-marker
+
+# Registry detection marker — written by Deploy-Application.ps1 via Invoke-RegistryDetection
+detection:
+  registry:
+    hive: HKLM
+    key_path: SOFTWARE\YourOrg\InstalledApps\GoogleChrome
+    value_name: Version
+    operator: exists
+
+# Intune behaviour
+max_runtime_minutes: 30
+restart_behavior: suppress
+install_experience: system

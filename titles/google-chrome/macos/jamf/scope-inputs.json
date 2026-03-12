@@ -1,3 +1,9 @@
 {
-  "smart_group": "All Managed Macs"
+  "_comment": "Replace computer_groups values with real Jamf smart group IDs",
+  "scope_groups": {
+    "computer_groups": [
+      1001,
+      1002
+    ]
+  }
 }

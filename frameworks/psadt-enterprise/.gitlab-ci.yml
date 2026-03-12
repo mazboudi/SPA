@@ -1,0 +1,102 @@
+##=============================================================================
+## psadt-enterprise — GitLab CI Pipeline
+##=============================================================================
+## Triggered by a tag in the format vX.Y.Z.
+## Stages:
+##   test   — smoke-test the template scripts
+##   build  — zip the versioned bundle and compute checksum
+##   publish — upload to GitLab Package Registry and create a release
+##=============================================================================
+
+stages:
+  - test
+  - build
+  - publish
+
+variables:
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+  FF_USE_FASTZIP: "true"
+
+## ---------------------------------------------------------------------------
+## Derive the semantic version from the vX.Y.Z tag
+## ---------------------------------------------------------------------------
+.derive_version: &derive_version |
+  $VERSION = $CI_COMMIT_TAG -replace '^v', ''
+  Write-Host "Framework version: $VERSION"
+
+## ---------------------------------------------------------------------------
+## test — validate PSADT template syntax
+## ---------------------------------------------------------------------------
+test_template_syntax:
+  stage: test
+  tags: [Windows]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      # PowerShell syntax check (parse only, no execution)
+      *: &derive_version
+      $versionDir = "versions\$VERSION"
+      if (!(Test-Path $versionDir)) {
+        throw "Version directory not found: $versionDir"
+      }
+      $scripts = Get-ChildItem -Path $versionDir -Filter '*.ps1' -Recurse
+      $errors = @()
+      foreach ($s in $scripts) {
+        $null = [System.Management.Automation.Language.Parser]::ParseFile(
+          $s.FullName, [ref]$null, [ref]$pErrors
+        )
+        if ($pErrors.Count -gt 0) {
+          $errors += "$($s.FullName): $($pErrors -join ', ')"
+        }
+      }
+      if ($errors.Count -gt 0) {
+        throw "Syntax errors found:`n$($errors -join "`n")"
+      }
+      Write-Host "✅ All .ps1 files pass syntax check."
+
+## ---------------------------------------------------------------------------
+## build — create the versioned zip bundle
+## ---------------------------------------------------------------------------
+build_bundle:
+  stage: build
+  tags: [Windows]
+  needs: [test_template_syntax]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  script:
+    - *derive_version
+    - pwsh -NoProfile -ExecutionPolicy Bypass
+        -File scripts/build-framework-bundle.ps1
+        -Version $VERSION
+  artifacts:
+    when: always
+    expire_in: 90 days
+    paths:
+      - dist/*.zip
+      - dist/checksums.json
+      - dist/bundle.env
+    reports:
+      dotenv: dist/bundle.env
+
+## ---------------------------------------------------------------------------
+## publish — upload bundle to Package Registry and create GitLab release
+## ---------------------------------------------------------------------------
+publish_bundle:
+  stage: publish
+  tags: [Windows]
+  needs: [build_bundle]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: manual
+  script:
+    - *derive_version
+    - pwsh -NoProfile -ExecutionPolicy Bypass
+        -File scripts/New-FrameworkRelease.ps1
+        -Version $VERSION
+        -GitLabApiUrl "$CI_API_V4_URL"
+        -ProjectId "$CI_PROJECT_ID"
+  environment:
+    name: production

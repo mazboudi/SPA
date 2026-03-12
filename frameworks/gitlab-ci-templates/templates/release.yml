@@ -1,7 +1,73 @@
-stages:
-  - release
+##=============================================================================
+## release.yml — Master pipeline entry-point template
+## Include this in your title repo's .gitlab-ci.yml via:
+##
+##   include:
+##     - project: '<group>/gitlab-ci-templates'
+##       ref: 'v1.0.0'                          # pin to a specific release
+##       file: 'templates/release.yml'
+##
+## This template:
+##   1. Defines the full pipeline stage order
+##   2. Includes per-platform job templates conditionally
+##   3. Enforces the vX.Y.Z tag trigger rule globally
+##
+## Variables your title repo MUST supply:
+##   WINDOWS_ENABLED              — 'true' / 'false'
+##   MACOS_ENABLED                — 'true' / 'false'
+##   PSADT_FRAMEWORK_VERSION      — e.g. '4.1.0'
+##   PSADT_PROJECT_ID             — GitLab project ID for psadt-enterprise
+##   MACOS_FRAMEWORK_VERSION      — e.g. '1.0.0'
+##   MACOS_FRAMEWORK_PROJECT_ID   — GitLab project ID for macos-packaging-framework
+##   INTUNE_MODULES_PROJECT_ID    — GitLab project ID for intune-deployment-modules
+##   TF_JAMF_MODULES_PROJECT_ID   — GitLab project ID for terraform-jamf-modules
+##   SCHEMAS_PROJECT_ID           — GitLab project ID for packaging-standards
+##   GITLAB_READ_TOKEN            — Token with read_api, read_registry scope (group-level CI var)
+##   AZURE_TENANT_ID              — (Windows) Microsoft Entra tenant ID
+##   AZURE_CLIENT_ID              — (Windows) App registration client ID
+##   AZURE_CLIENT_SECRET          — (Windows) App registration secret  [PROTECTED]
+##   JAMF_URL                     — (macOS) Jamf Pro base URL
+##   JAMF_CLIENT_ID               — (macOS) Jamf API client ID
+##   JAMF_CLIENT_SECRET           — (macOS) Jamf API client secret     [PROTECTED]
+##=============================================================================
 
-release_artifacts:
-  stage: release
-  script:
-    - echo "Release artifacts"
+stages:
+  - validate
+  - build
+  - publish
+  - assign
+  - deploy
+
+## Global variables (defaults — override in title .gitlab-ci.yml as needed)
+variables:
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+  INTUNE_DRY_RUN: "false"
+  SCHEMA_VERSION: "main"
+  TF_JAMF_MODULES_REF: "main"
+  INTUNE_MODULES_REF: "main"
+  FF_USE_FASTZIP: "true"
+
+## ── Include platform job templates ──────────────────────────────────────────
+include:
+  - local: '/templates/metadata-validate.yml'
+  - local: '/templates/windows-build.yml'
+  - local: '/templates/windows-deploy-intune.yml'
+  - local: '/templates/macos-build.yml'
+  - local: '/templates/macos-deploy-jamf.yml'
+
+##
+## NOTE for title repos:
+## When you include THIS file from a separate title repo, replace the 'local:'
+## includes above with 'project:' references to each template file in the
+## gitlab-ci-templates repo. Example:
+##
+##   include:
+##     - project: 'yourgroup/gitlab-ci-templates'
+##       ref: 'v1.0.0'
+##       file:
+##         - 'templates/metadata-validate.yml'
+##         - 'templates/windows-build.yml'
+##         - 'templates/windows-deploy-intune.yml'
+##         - 'templates/macos-build.yml'
+##         - 'templates/macos-deploy-jamf.yml'
+##

@@ -1,11 +1,73 @@
-stages:
-  - build
+##=============================================================================
+## macos-build.yml — macOS .pkg build CI template
+## Include: project: <group>/gitlab-ci-templates, file: templates/macos-build.yml
+##
+## Variables consumed:
+##   MACOS_ENABLED                — Must be 'true'
+##   MACOS_FRAMEWORK_VERSION      — e.g. '1.0.0'
+##   MACOS_FRAMEWORK_PROJECT_ID   — GitLab project ID of macos-packaging-framework
+##   GITLAB_READ_TOKEN            — Token with read_api scope
+##
+## Produces artifacts:
+##   out/*.pkg
+##   out/build.env  (dotenv: PKG_PATH, PKG_FILENAME, PKG_SHA256, ...)
+##=============================================================================
+
+.macos_build:
+  stage: build
+  tags: [macOS]
+  variables:
+    MACOS_FRAMEWORK_VERSION: "1.0.0"
+  script:
+    - |
+      set -euo pipefail
+
+      echo "=== macOS Build: $CI_PROJECT_NAME ==="
+      echo "Framework version : $MACOS_FRAMEWORK_VERSION"
+      echo "Pipeline tag      : $CI_COMMIT_TAG"
+
+      ## 1 — Verify title files
+      [[ -f 'app.json' ]] || { echo "ERROR: app.json not found"; exit 1; }
+      [[ -f 'macos/package.yaml' ]] || { echo "ERROR: macos/package.yaml not found"; exit 1; }
+
+      ## 2 — Download macos-packaging-framework bundle
+      FRAMEWORK_DIR="macos-framework-${MACOS_FRAMEWORK_VERSION}"
+      if [[ ! -d "$FRAMEWORK_DIR" ]]; then
+        BUNDLE_NAME="macos-packaging-framework-${MACOS_FRAMEWORK_VERSION}.tar.gz"
+        PKG_URI="${CI_API_V4_URL}/projects/${MACOS_FRAMEWORK_PROJECT_ID}/packages/generic/macos-packaging-framework/${MACOS_FRAMEWORK_VERSION}/${BUNDLE_NAME}"
+        echo "Downloading framework bundle: $PKG_URI"
+        curl --fail --silent --show-error \
+          --header "PRIVATE-TOKEN: ${GITLAB_READ_TOKEN}" \
+          --output "${BUNDLE_NAME}" \
+          "$PKG_URI"
+        mkdir -p "$FRAMEWORK_DIR"
+        tar -xzf "$BUNDLE_NAME" -C "$FRAMEWORK_DIR"
+        rm "$BUNDLE_NAME"
+        chmod +x "$FRAMEWORK_DIR"/*.sh "$FRAMEWORK_DIR"/helpers/*.sh "$FRAMEWORK_DIR"/templates/*.sh 2>/dev/null || true
+        echo "Framework extracted to: $FRAMEWORK_DIR"
+      fi
+
+      ## 3 — Validate inputs
+      bash "$FRAMEWORK_DIR/helpers/validate-inputs.sh" --title-path macos
+
+      ## 4 — Build the .pkg
+      mkdir -p out
+      bash "$FRAMEWORK_DIR/build-pkg.sh" \
+        --title-path macos \
+        --out-dir    out
+
+      echo "✅ macOS build complete."
+
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths:
+      - out/*.pkg
+      - out/build.env
+    reports:
+      dotenv: out/build.env
 
 macos_build:
-  stage: build
+  extends: .macos_build
   rules:
-    - if: '$MACOS_ENABLED == "true"'
-  script:
-    - echo "Fetch macOS framework"
-    - echo "Overlay macOS title content"
-    - echo "Build .pkg"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $MACOS_ENABLED == "true"

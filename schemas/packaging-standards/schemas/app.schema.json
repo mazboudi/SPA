@@ -1,51 +1,118 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/app.schema.json",
   "title": "Software Title Metadata",
+  "description": "Root metadata for a software title, consumed by the CI pipeline to drive build and deployment.",
   "type": "object",
-  "required": ["title", "publisher", "package_id", "platforms", "deployment"],
+  "required": ["title", "publisher", "package_id", "version", "platforms", "deployment"],
+  "additionalProperties": false,
   "properties": {
-    "title": { "type": "string" },
-    "publisher": { "type": "string" },
-    "package_id": { "type": "string" },
+    "title": {
+      "type": "string",
+      "description": "Human-readable software name (e.g. 'Google Chrome')."
+    },
+    "publisher": {
+      "type": "string",
+      "description": "Software vendor or publisher name."
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Unique, kebab-case identifier used as the folder name and artifact prefix.",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Application vendor version (e.g. '134.0.6998.89'). Distinct from the packaging_version in platform schemas."
+    },
     "owners": {
       "type": "object",
+      "description": "Ownership information for this title.",
       "properties": {
-        "team": { "type": "string" }
-      },
-      "additionalProperties": true
-    },
-    "platforms": {
-      "type": "object",
-      "properties": {
-        "windows": {
-          "type": "object",
-          "properties": {
-            "enabled": { "type": "boolean" },
-            "framework": { "type": "string" },
-            "framework_version": { "type": "string" }
-          },
-          "additionalProperties": true
+        "team": {
+          "type": "string",
+          "description": "Responsible packaging team (e.g. 'euc-packaging')."
         },
-        "macos": {
-          "type": "object",
-          "properties": {
-            "enabled": { "type": "boolean" },
-            "framework": { "type": "string" },
-            "framework_version": { "type": "string" }
-          },
-          "additionalProperties": true
+        "contact_email": {
+          "type": "string",
+          "format": "email",
+          "description": "Contact address for this title's packaging owner."
         }
       },
       "additionalProperties": false
     },
+    "lifecycle": {
+      "type": "string",
+      "enum": ["active", "deprecated", "retired"],
+      "default": "active",
+      "description": "Lifecycle state of this title. Retired titles will not be built."
+    },
+    "platforms": {
+      "type": "object",
+      "description": "Per-platform enablement and framework pinning.",
+      "additionalProperties": false,
+      "properties": {
+        "windows": {
+          "type": "object",
+          "description": "Windows platform configuration.",
+          "required": ["enabled"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Set to true to activate Windows build and deploy jobs."
+            },
+            "framework": {
+              "type": "string",
+              "description": "Name of the build framework repo (default: psadt-enterprise).",
+              "default": "psadt-enterprise"
+            },
+            "framework_version": {
+              "type": "string",
+              "description": "Pinned framework version to use (e.g. '4.1.0').",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            }
+          }
+        },
+        "macos": {
+          "type": "object",
+          "description": "macOS platform configuration.",
+          "required": ["enabled"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Set to true to activate macOS build and deploy jobs."
+            },
+            "framework": {
+              "type": "string",
+              "description": "Name of the build framework repo (default: macos-packaging-framework).",
+              "default": "macos-packaging-framework"
+            },
+            "framework_version": {
+              "type": "string",
+              "description": "Pinned framework version to use (e.g. '1.0.0').",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            }
+          }
+        }
+      }
+    },
     "deployment": {
       "type": "object",
+      "description": "Target MDM platform per OS. Values: 'intune' or 'jamf'.",
+      "additionalProperties": false,
       "properties": {
-        "windows": { "type": "string" },
-        "macos": { "type": "string" }
-      },
-      "additionalProperties": false
+        "windows": {
+          "type": "string",
+          "enum": ["intune"],
+          "description": "Windows deployment target. Currently only 'intune' is supported."
+        },
+        "macos": {
+          "type": "string",
+          "enum": ["jamf"],
+          "description": "macOS deployment target. Currently only 'jamf' is supported."
+        }
+      }
     }
-  },
-  "additionalProperties": false
+  }
 }

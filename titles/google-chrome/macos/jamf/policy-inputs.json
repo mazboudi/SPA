@@ -1,4 +1,7 @@
 {
-  "policy_name": "Install Google Chrome",
-  "trigger": "self_service"
+  "policy_name": "SPA - Install Google Chrome",
+  "trigger": "RECURRING_CHECK_IN",
+  "frequency": "Once per computer",
+  "run_recon_after_install": true,
+  "self_service_enabled": false
 }

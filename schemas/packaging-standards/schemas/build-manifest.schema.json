@@ -1,17 +1,78 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/build-manifest.schema.json",
   "title": "Build Manifest",
+  "description": "Machine-generated artifact descriptor written by the build job and consumed by deploy jobs. Passed as a GitLab dotenv artifact.",
   "type": "object",
-  "required": ["title", "platform", "vendor_version", "packaging_version", "framework_version", "artifact_name"],
+  "required": [
+    "package_id",
+    "vendor_version",
+    "packaging_version",
+    "platform",
+    "artifact_path",
+    "artifact_sha256",
+    "built_at",
+    "pipeline_id"
+  ],
+  "additionalProperties": false,
   "properties": {
-    "title": { "type": "string" },
-    "platform": { "type": "string", "enum": ["windows", "macos"] },
-    "vendor_version": { "type": "string" },
-    "packaging_version": { "type": "string" },
-    "framework_version": { "type": "string" },
-    "artifact_name": { "type": "string" },
-    "git_commit": { "type": "string" },
-    "pipeline_id": { "type": "string" }
-  },
-  "additionalProperties": true
+    "package_id": {
+      "type": "string",
+      "description": "The title's package_id from app.json."
+    },
+    "vendor_version": {
+      "type": "string",
+      "description": "Vendor version of the packaged software."
+    },
+    "packaging_version": {
+      "type": "integer",
+      "description": "Packaging iteration number."
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "windows",
+        "macos"
+      ],
+      "description": "Target platform."
+    },
+    "artifact_type": {
+      "type": "string",
+      "enum": [
+        "intunewin",
+        "pkg"
+      ],
+      "description": "File type of the produced artifact."
+    },
+    "artifact_path": {
+      "type": "string",
+      "description": "Relative path to the produced artifact within the CI workspace."
+    },
+    "artifact_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "description": "SHA-256 hex digest of the artifact file."
+    },
+    "framework": {
+      "type": "string",
+      "description": "Framework repo name used to build this artifact."
+    },
+    "framework_version": {
+      "type": "string",
+      "description": "Pinned framework version used."
+    },
+    "built_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the build completed."
+    },
+    "pipeline_id": {
+      "type": "string",
+      "description": "GitLab CI_PIPELINE_ID, for traceability."
+    },
+    "commit_tag": {
+      "type": "string",
+      "description": "The vX.Y.Z tag that triggered this pipeline."
+    }
+  }
 }

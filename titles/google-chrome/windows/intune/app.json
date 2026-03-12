@@ -1,6 +1,13 @@
 {
   "displayName": "Google Chrome",
-  "publisher": "Google",
+  "description": "Google Chrome browser — enterprise MSI, system context, silent install.",
+  "publisher": "Google LLC",
+  "displayVersion": "134.0.6998.89",
+  "informationUrl": "https://www.google.com/chrome/enterprise/",
+  "privacyUrl": "https://policies.google.com/privacy",
   "installContext": "system",
-  "restartBehavior": "suppress"
+  "restartBehavior": "suppress",
+  "maxRuntimeMinutes": 30,
+  "minimumWindowsRelease": "1903",
+  "notes": "Managed by SPA pipeline. Do not modify directly in Intune."
 }

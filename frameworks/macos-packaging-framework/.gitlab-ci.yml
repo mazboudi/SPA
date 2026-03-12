@@ -1,0 +1,90 @@
+##=============================================================================
+## macos-packaging-framework — GitLab CI Pipeline
+##=============================================================================
+## Triggered by a vX.Y.Z tag.
+## Stages:
+##   test    — validate shell script syntax
+##   build   — produce the tar.gz bundle
+##   publish — upload to Package Registry and create release
+##=============================================================================
+
+stages:
+  - test
+  - build
+  - publish
+
+variables:
+  FF_USE_FASTZIP: "true"
+
+## ---------------------------------------------------------------------------
+## test — syntax check all shell scripts
+## ---------------------------------------------------------------------------
+test_shell_syntax:
+  stage: test
+  tags: [macOS]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      VERSION="${CI_COMMIT_TAG#v}"
+      VERSION_DIR="versions/$VERSION"
+      if [[ ! -d "$VERSION_DIR" ]]; then
+        echo "Version directory not found: $VERSION_DIR"
+        exit 1
+      fi
+
+      ERRORS=0
+      while IFS= read -r -d '' f; do
+        if ! bash -n "$f" 2>&1; then
+          echo "Syntax error in: $f"
+          ERRORS=$((ERRORS+1))
+        fi
+      done < <(find "$VERSION_DIR" scripts/ -name '*.sh' -print0)
+
+      if [[ $ERRORS -gt 0 ]]; then
+        echo "❌ $ERRORS shell script(s) have syntax errors."
+        exit 1
+      fi
+      echo "✅ All shell scripts pass syntax check."
+
+## ---------------------------------------------------------------------------
+## build — create the versioned tar.gz bundle
+## ---------------------------------------------------------------------------
+build_bundle:
+  stage: build
+  tags: [macOS]
+  needs: [test_shell_syntax]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  script:
+    - |
+      VERSION="${CI_COMMIT_TAG#v}"
+      bash scripts/build-framework-bundle.sh "$VERSION"
+  artifacts:
+    when: always
+    expire_in: 90 days
+    paths:
+      - dist/*.tar.gz
+      - dist/checksums.json
+      - dist/bundle.env
+    reports:
+      dotenv: dist/bundle.env
+
+## ---------------------------------------------------------------------------
+## publish — upload to Package Registry and create GitLab release
+## ---------------------------------------------------------------------------
+publish_bundle:
+  stage: publish
+  tags: [macOS]
+  needs: [build_bundle]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: manual
+  script:
+    - |
+      VERSION="${CI_COMMIT_TAG#v}"
+      bash scripts/new-framework-release.sh "$VERSION"
+  environment:
+    name: production

@@ -1,5 +1,15 @@
 {
   "framework": "macos-packaging-framework",
   "framework_version": "1.0.0",
-  "release_type": "starter"
+  "release_date": "2026-03-12",
+  "release_type": "stable",
+  "minimum_macos": "12.0",
+  "contents": [
+    "build-pkg.sh",
+    "templates/preinstall.sh",
+    "templates/postinstall.sh",
+    "helpers/detect-receipt.sh",
+    "helpers/validate-inputs.sh"
+  ],
+  "notes": "Base macOS packaging framework. Title repos overlay macos/src/ content and macos/package.yaml. The build-pkg.sh script orchestrates: staging, script injection (preinstall/postinstall), and pkgbuild execution."
 }

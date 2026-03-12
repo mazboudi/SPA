@@ -1,11 +1,174 @@
-stages:
-  - build
+##=============================================================================
+## windows-build.yml — Windows PSADT build CI template
+## Include: project: <group>/gitlab-ci-templates, file: templates/windows-build.yml
+##
+## Variables consumed:
+##   WINDOWS_ENABLED            — Must be 'true' to activate this job
+##   PSADT_FRAMEWORK_VERSION    — e.g. '4.1.0' (matches psadt-enterprise tag)
+##   PSADT_PROJECT_ID           — GitLab project ID of psadt-enterprise repo
+##   INTUNE_WIN_UTIL_URL        — Direct download URL for IntuneWinAppUtil.exe
+##   GITLAB_READ_TOKEN          — Token with read_api + read_registry scope
+##
+## Produces artifacts:
+##   out/*.intunewin            — The packaged application
+##   out/build.env              — Dotenv: INTUNEWIN_PATH, PKG_ID, VENDOR_VERSION ...
+##=============================================================================
+
+.windows_build:
+  stage: build
+  tags: [Windows]
+  variables:
+    PSADT_FRAMEWORK_VERSION: "4.1.0"
+    INTUNE_WIN_UTIL_URL: "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/raw/master/IntuneWinAppUtil.exe"
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+      $POWERSHELL_TELEMETRY_OPTOUT = "1"
+
+      Write-Host "=== Windows Build: $($env:CI_PROJECT_NAME) ===" -ForegroundColor Cyan
+      Write-Host "PSADT version  : $($env:PSADT_FRAMEWORK_VERSION)"
+      Write-Host "Pipeline tag   : $($env:CI_COMMIT_TAG)"
+
+      ## 1 — Read app metadata
+      if (!(Test-Path 'app.json')) { throw "app.json not found" }
+      $app = Get-Content 'app.json' -Raw | ConvertFrom-Json
+
+      if (!(Test-Path 'windows/package.yaml')) { throw "windows/package.yaml not found" }
+
+      ## 2 — Download IntuneWinAppUtil.exe
+      $toolsDir = 'tools'
+      if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir | Out-Null }
+      $intuneUtil = Join-Path $toolsDir 'IntuneWinAppUtil.exe'
+      if (!(Test-Path $intuneUtil)) {
+        Write-Host "Downloading IntuneWinAppUtil.exe..."
+        Invoke-WebRequest -Uri $env:INTUNE_WIN_UTIL_URL -OutFile $intuneUtil
+      }
+
+      ## 3 — Download psadt-enterprise framework bundle
+      $frameworkDir = "psadt-framework-$($env:PSADT_FRAMEWORK_VERSION)"
+      if (!(Test-Path $frameworkDir)) {
+        $pkgUri = "$($env:CI_API_V4_URL)/projects/$($env:PSADT_PROJECT_ID)/packages/generic/psadt-enterprise/$($env:PSADT_FRAMEWORK_VERSION)/psadt-enterprise-$($env:PSADT_FRAMEWORK_VERSION).zip"
+        Write-Host "Downloading PSADT bundle from: $pkgUri"
+        $headers = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
+        $zipPath = "$frameworkDir.zip"
+        Invoke-WebRequest -Uri $pkgUri -Headers $headers -OutFile $zipPath
+        Expand-Archive -Path $zipPath -DestinationPath $frameworkDir -Force
+        Remove-Item $zipPath
+        Write-Host "Framework extracted to: $frameworkDir"
+      }
+
+      ## 4 — Download upstream PSADT 4.x (the actual framework runtime)
+      ##     In production, the psadt-enterprise bundle should already include
+      ##     the upstream PSADT in a PSAppDeployToolkit/ subfolder.
+      ##     If not present, we pull it from the GitLab Package Registry or a
+      ##     known URL. This step is a placeholder — update the URL for your env.
+      $psadtRuntime = Join-Path $frameworkDir 'PSAppDeployToolkit'
+      if (!(Test-Path $psadtRuntime)) {
+        Write-Warning "PSAppDeployToolkit runtime not found in framework bundle."
+        Write-Warning "Expected path: $psadtRuntime"
+        Write-Warning "Please add the PSADT runtime to the psadt-enterprise bundle."
+      }
+
+      ## 5 — Build staging area
+      $staging = Join-Path $env:TEMP ("psadt_build_" + [guid]::NewGuid())
+      New-Item -ItemType Directory -Path $staging | Out-Null
+
+      # Copy enterprise framework template
+      Copy-Item -Path (Join-Path $frameworkDir '*') -Destination $staging -Recurse -Force
+
+      # Overlay title's Deploy-Application.ps1 if present
+      $titleDeploy = 'windows/src/Deploy-Application.ps1'
+      if (Test-Path $titleDeploy) {
+        Write-Host "Overlaying title Deploy-Application.ps1..."
+        Copy-Item -Path $titleDeploy -Destination $staging -Force
+      }
+
+      # Overlay src/ content (Files, SupportFiles, Assets)
+      foreach ($subDir in @('Files','SupportFiles','Assets')) {
+        $srcPath = Join-Path 'windows/src' $subDir
+        if (Test-Path $srcPath) {
+          $dstPath = Join-Path $staging $subDir
+          if (!(Test-Path $dstPath)) { New-Item -ItemType Directory -Path $dstPath | Out-Null }
+          Copy-Item -Path (Join-Path $srcPath '*') -Destination $dstPath -Recurse -Force
+        }
+      }
+
+      # Overlay Config and Strings overrides
+      foreach ($cfgFile in @('Config\config.psd1','Strings\strings.psd1')) {
+        $src = Join-Path 'windows/src' $cfgFile
+        if (Test-Path $src) {
+          $dst = Join-Path $staging $cfgFile
+          New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
+          Copy-Item -Path $src -Destination $dst -Force
+        }
+      }
+
+      ## 6 — Run IntuneWinAppUtil
+      $outDir = 'out'
+      if (!(Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
+
+      $setupFile = 'Invoke-AppDeployToolkit.exe'
+      $setupPath = Join-Path $staging $setupFile
+      if (!(Test-Path $setupPath)) {
+        # Fallback: look for Deploy-Application.ps1 as entry point
+        $setupFile = 'Deploy-Application.ps1'
+      }
+
+      Write-Host "Running IntuneWinAppUtil..."
+      & $intuneUtil -c $staging -s $setupFile -o (Resolve-Path $outDir) -q
+
+      ## 7 — Rename output deterministically
+      $safeName    = ($app.package_id -replace '[^a-z0-9\-]', '-')
+      $winPkg      = Get-Content 'windows/package.yaml' -Raw
+
+      # Extract vendor_version with simple regex
+      if ($winPkg -match 'vendor_version:\s*["''']?([^\n"'''\r]+)') {
+        $vendorVer = $Matches[1].Trim()
+      } else { $vendorVer = $app.version }
+
+      if ($winPkg -match 'packaging_version:\s*(\d+)') {
+        $pkgVer = $Matches[1].Trim()
+      } else { $pkgVer = '1' }
+
+      $produced = Get-ChildItem -Path $outDir -Filter '*.intunewin' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+      if (-not $produced) { throw "No .intunewin file produced in $outDir" }
+
+      $targetName = "${safeName}_${vendorVer}_${pkgVer}.intunewin"
+      $targetPath = Join-Path $outDir $targetName
+      Move-Item -Path $produced.FullName -Destination $targetPath -Force
+
+      Write-Host "✅ Built: $targetPath" -ForegroundColor Green
+
+      ## 8 — Compute checksum and write dotenv
+      $sha256 = (Get-FileHash -Path $targetPath -Algorithm SHA256).Hash.ToLower()
+      $builtAt = (Get-Date -Format 'o')
+
+      $dotenv = @"
+INTUNEWIN_PATH=$targetPath
+INTUNEWIN_FILENAME=$targetName
+INTUNEWIN_SHA256=$sha256
+PACKAGE_ID=$($app.package_id)
+VENDOR_VERSION=$vendorVer
+PACKAGING_VERSION=$pkgVer
+PLATFORM=windows
+BUILT_AT=$builtAt
+"@
+      $dotenv | Out-File (Join-Path $outDir 'build.env') -Encoding ascii -Force
+      Write-Host "Dotenv written: out/build.env"
+
+      ## 9 — Cleanup staging
+      Remove-Item -Path $staging -Recurse -Force -ErrorAction SilentlyContinue
+
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths:
+      - out/*.intunewin
+      - out/build.env
+    reports:
+      dotenv: out/build.env
 
 windows_build:
-  stage: build
+  extends: .windows_build
   rules:
-    - if: '$WINDOWS_ENABLED == "true"'
-  script:
-    - echo "Fetch PSADT framework"
-    - echo "Overlay Windows title content"
-    - echo "Build .intunewin"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $WINDOWS_ENABLED == "true"

@@ -1,0 +1,45 @@
+##=============================================================================
+## .gitlab-ci.yml — Google Chrome title pipeline
+##=============================================================================
+## Trigger: push a tag in the format vX.Y.Z
+##   e.g. git tag v134.0.6998.89-1 && git push --tags
+##
+## This file consumes the shared CI templates from gitlab-ci-templates.
+## Change the ref: value to pin to a specific template release.
+##=============================================================================
+
+include:
+  - project: 'yourgroup/gitlab-ci-templates'   # ← set your real GitLab group path
+    ref: 'v1.0.0'                               # ← pin template release
+    file:
+      - 'templates/metadata-validate.yml'
+      - 'templates/windows-build.yml'
+      - 'templates/windows-deploy-intune.yml'
+      - 'templates/macos-build.yml'
+      - 'templates/macos-deploy-jamf.yml'
+
+## ── Platform toggles ─────────────────────────────────────────────────────────
+variables:
+  WINDOWS_ENABLED: "true"
+  MACOS_ENABLED: "true"
+
+  ## ── Framework versions ────────────────────────────────────────────────────
+  PSADT_FRAMEWORK_VERSION: "4.1.0"
+  MACOS_FRAMEWORK_VERSION: "1.0.0"
+
+  ## ── Project IDs (set once at group level; override here if needed) ────────
+  # PSADT_PROJECT_ID: "10"           # psadt-enterprise repo project ID
+  # MACOS_FRAMEWORK_PROJECT_ID: "11" # macos-packaging-framework repo project ID
+  # INTUNE_MODULES_PROJECT_ID: "12"  # intune-deployment-modules repo project ID
+  # TF_JAMF_MODULES_PROJECT_ID: "13" # terraform-jamf-modules repo project ID
+  # SCHEMAS_PROJECT_ID: "14"         # packaging-standards repo project ID
+  # SCHEMA_VERSION: "v1.0.0"         # schema tag to validate against
+
+  ## ── Intune ────────────────────────────────────────────────────────────────
+  INTUNE_DRY_RUN: "false"
+
+  ## ── Terraform ─────────────────────────────────────────────────────────────
+  TF_JAMF_MODULES_REF: "main"
+
+  ## ── Misc ──────────────────────────────────────────────────────────────────
+  POWERSHELL_TELEMETRY_OPTOUT: "1"

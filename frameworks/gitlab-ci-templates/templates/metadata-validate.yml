@@ -1,7 +1,99 @@
-stages:
-  - validate
+##=============================================================================
+## metadata-validate.yml — Schema validation CI job
+## Include: project: <group>/gitlab-ci-templates, file: templates/metadata-validate.yml
+##
+## Variables consumed (set in title .gitlab-ci.yml or CI group vars):
+##   SCHEMA_VERSION       — Tag of packaging-standards to fetch schemas from
+##                         (e.g. 'v1.0.0'). Default: 'main'
+##   SCHEMAS_PROJECT_ID   — Numeric GitLab project ID of packaging-standards
+##   WINDOWS_ENABLED      — 'true' / 'false'
+##   MACOS_ENABLED        — 'true' / 'false'
+##=============================================================================
+
+.metadata_validate:
+  stage: validate
+  tags: [Windows]  # pwsh runs anywhere; use Linux runner with pwsh if preferred
+  variables:
+    SCHEMA_VERSION: "main"
+  script:
+    - |
+      ## Download schemas from packaging-standards repo (or use a cached copy)
+      $schemaBase = "https://gitlab.example.com/api/v4/projects/${env:SCHEMAS_PROJECT_ID}/repository/files"
+      $headers    = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
+      $schemaDir  = New-Item -ItemType Directory -Path "$env:TEMP\schemas" -Force
+
+      function Get-Schema([string] $name) {
+        $encoded = [uri]::EscapeDataString("schemas/$name")
+        $uri     = "${schemaBase}/${encoded}/raw?ref=${env:SCHEMA_VERSION}"
+        $dest    = Join-Path $schemaDir $name
+        Invoke-WebRequest -Uri $uri -Headers $headers -OutFile $dest
+        return $dest
+      }
+
+      $appSchema     = Get-Schema 'app.schema.json'
+      $winSchema     = Get-Schema 'windows-package.schema.json'
+      $macSchema     = Get-Schema 'macos-package.schema.json'
+
+      ## Validate app.json
+      Write-Host "Validating app.json..."
+      $app = Get-Content 'app.json' -Raw | ConvertFrom-Json
+      if (-not $app.title)      { throw "app.json: missing required field 'title'" }
+      if (-not $app.publisher)  { throw "app.json: missing required field 'publisher'" }
+      if (-not $app.package_id) { throw "app.json: missing required field 'package_id'" }
+      if (-not $app.version)    { throw "app.json: missing required field 'version'" }
+      if (-not $app.platforms)  { throw "app.json: missing required field 'platforms'" }
+      if (-not $app.deployment) { throw "app.json: missing required field 'deployment'" }
+
+      if ($app.lifecycle -and $app.lifecycle -eq 'retired') {
+        Write-Warning "app.json: lifecycle=retired — pipeline will not build this title."
+        # Graceful exit: skip remaining work
+        exit 0
+      }
+      Write-Host "  ✓ app.json passed"
+
+      ## Validate windows/package.yaml (if Windows enabled)
+      if ($env:WINDOWS_ENABLED -eq 'true') {
+        if (!(Test-Path 'windows/package.yaml')) {
+          throw "windows/package.yaml not found but WINDOWS_ENABLED=true"
+        }
+        Write-Host "Validating windows/package.yaml..."
+        $winPkg = Get-Content 'windows/package.yaml' -Raw | ConvertFrom-Yaml
+        $required = @('vendor_version','packaging_version','installer_type',
+                      'source_filename','install_command','uninstall_command','detection')
+        foreach ($f in $required) {
+          if (-not $winPkg.$f) { throw "windows/package.yaml: missing required field '$f'" }
+        }
+        $validTypes = @('msi','exe','msix','ps1')
+        if ($winPkg.installer_type -notin $validTypes) {
+          throw "windows/package.yaml: installer_type must be one of: $($validTypes -join ', ')"
+        }
+        Write-Host "  ✓ windows/package.yaml passed"
+      }
+
+      ## Validate macos/package.yaml (if macOS enabled)
+      if ($env:MACOS_ENABLED -eq 'true') {
+        if (!(Test-Path 'macos/package.yaml')) {
+          throw "macos/package.yaml not found but MACOS_ENABLED=true"
+        }
+        Write-Host "Validating macos/package.yaml..."
+        $macPkg = Get-Content 'macos/package.yaml' -Raw | ConvertFrom-Yaml
+        $required = @('vendor_version','packaging_version','source_type',
+                      'source_filename','receipt_id','bundle_id','minimum_os')
+        foreach ($f in $required) {
+          if (-not $macPkg.$f) { throw "macos/package.yaml: missing required field '$f'" }
+        }
+        $validSrcTypes = @('pkg','dmg','zip','app')
+        if ($macPkg.source_type -notin $validSrcTypes) {
+          throw "macos/package.yaml: source_type must be one of: $($validSrcTypes -join ', ')"
+        }
+        Write-Host "  ✓ macos/package.yaml passed"
+      }
+
+      Write-Host "✅ All metadata validation passed."
 
 metadata_validate:
-  stage: validate
-  script:
-    - echo "Validate app.json and package metadata"
+  extends: .metadata_validate
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH

@@ -1,4 +1,14 @@
-{
-  "available": ["sg-app-google-chrome-available"],
-  "required": []
-}
+[
+  {
+    "_comment": "Required install — All Computers (replace with your real AAD group ID)",
+    "groupId": "aaaaaaaa-0000-0000-0000-000000000001",
+    "intent": "required",
+    "filter": null
+  },
+  {
+    "_comment": "Available — IT Staff group (replace with your real AAD group ID)",
+    "groupId": "aaaaaaaa-0000-0000-0000-000000000002",
+    "intent": "available",
+    "filter": null
+  }
+]

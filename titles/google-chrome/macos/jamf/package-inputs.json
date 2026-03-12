@@ -1,4 +1,5 @@
 {
-  "package_name": "Google Chrome",
-  "category": "Browsers"
+  "package_name": "Google Chrome 134.0.6998.89",
+  "category": "Browsers",
+  "notes": "Deployed by SPA pipeline. Do not modify directly in Jamf."
 }
