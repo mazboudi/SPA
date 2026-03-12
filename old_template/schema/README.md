@@ -1,0 +1,1 @@
+# naming / version / detection convention

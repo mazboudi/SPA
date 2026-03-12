@@ -1,0 +1,90 @@
+stages:
+  - validate
+  - build
+  - publish
+  - assign
+
+variables:
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+
+# -------------------------
+# VALIDATE
+# -------------------------
+validate_appjson:
+  stage: validate
+  tags: [windows]
+  script:
+    - pwsh -NoProfile -ExecutionPolicy Bypass -File pipeline/validate-appjson.ps1
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+# -------------------------
+# BUILD
+# -------------------------
+build_intunewin:
+  stage: build
+  tags: [windows]
+  needs: ["validate_appjson"]
+  script:
+    - pwsh -NoProfile -ExecutionPolicy Bypass -File pipeline/build-intunewin.ps1 -CleanOut
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - out/*.intunewin
+      - out/build.env
+    reports:
+      dotenv: out/build.env
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+# -------------------------
+# PUBLISH (Intune)
+# -------------------------
+publish_intune:
+  stage: publish
+  tags: [windows]
+  needs: ["build_intunewin"]
+  script:
+    - |
+      pwsh -NoProfile -ExecutionPolicy Bypass -File pipeline/publish-intune.ps1 `
+        -IntuneWinPath "$env:INTUNEWIN_PATH" `
+        -TenantId "$env:AZURE_TENANT_ID" `
+        -ClientId "$env:AZURE_CLIENT_ID" `
+        -ClientSecret "$env:AZURE_CLIENT_SECRET"
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths:
+      - out/app.env
+      - out/publish-logs/*
+    reports:
+      dotenv: out/app.env
+  rules:
+    - if: $CI_COMMIT_TAG
+
+# -------------------------
+# ASSIGN (Intune)
+# -------------------------
+assign_intune:
+  stage: assign
+  tags: [windows]
+  needs: ["publish_intune"]
+  script:
+    - |
+      pwsh -NoProfile -ExecutionPolicy Bypass -File pipeline/assign-intune.ps1 `
+        -AppId "$env:APP_ID" `
+        -TenantId "$env:AZURE_TENANT_ID" `
+        -ClientId "$env:AZURE_CLIENT_ID" `
+        -ClientSecret "$env:AZURE_CLIENT_SECRET"
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths:
+      - out/assign-logs/*
+  rules:
+    - if: $CI_COMMIT_TAG
