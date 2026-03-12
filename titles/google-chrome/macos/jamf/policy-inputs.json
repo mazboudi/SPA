@@ -1,0 +1,4 @@
+{
+  "policy_name": "Install Google Chrome",
+  "trigger": "self_service"
+}

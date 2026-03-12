@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "macOS Package Metadata",
+  "type": "object",
+  "required": ["vendor_version", "packaging_version", "source_type"],
+  "properties": {
+    "vendor_version": { "type": "string" },
+    "packaging_version": { "type": "string" },
+    "source_type": { "type": "string", "enum": ["pkg", "dmg", "zip"] },
+    "receipt_id": { "type": "string" },
+    "bundle_id": { "type": "string" },
+    "minimum_os": { "type": "string" }
+  },
+  "additionalProperties": true
+}

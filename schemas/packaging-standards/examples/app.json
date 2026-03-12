@@ -1,0 +1,24 @@
+{
+  "title": "Google Chrome",
+  "publisher": "Google",
+  "package_id": "google-chrome",
+  "owners": {
+    "team": "euc-packaging"
+  },
+  "platforms": {
+    "windows": {
+      "enabled": true,
+      "framework": "psadt",
+      "framework_version": "4.1.0-enterprise.1"
+    },
+    "macos": {
+      "enabled": true,
+      "framework": "macos-packaging-framework",
+      "framework_version": "1.0.0"
+    }
+  },
+  "deployment": {
+    "windows": "intune",
+    "macos": "jamf"
+  }
+}

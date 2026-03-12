@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windows Package Metadata",
+  "type": "object",
+  "required": ["vendor_version", "packaging_version", "installer_type", "source_filename"],
+  "properties": {
+    "vendor_version": { "type": "string" },
+    "packaging_version": { "type": "string" },
+    "installer_type": { "type": "string", "enum": ["msi", "exe", "msix", "zip"] },
+    "source_filename": { "type": "string" },
+    "install_command": { "type": "string" },
+    "uninstall_command": { "type": "string" },
+    "detection_mode": { "type": "string" }
+  },
+  "additionalProperties": true
+}

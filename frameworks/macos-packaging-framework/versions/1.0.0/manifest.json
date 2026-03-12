@@ -1,0 +1,5 @@
+{
+  "framework": "macos-packaging-framework",
+  "framework_version": "1.0.0",
+  "release_type": "starter"
+}

@@ -1,0 +1,14 @@
+include:
+  - project: 'software-packaging/frameworks/gitlab-ci-templates'
+    file:
+      - '/templates/metadata-validate.yml'
+      - '/templates/windows-build.yml'
+      - '/templates/windows-deploy-intune.yml'
+      - '/templates/macos-build.yml'
+      - '/templates/macos-deploy-jamf.yml'
+      - '/templates/release.yml'
+
+variables:
+  TITLE_ID: 'google-chrome'
+  WINDOWS_ENABLED: 'true'
+  MACOS_ENABLED: 'true'

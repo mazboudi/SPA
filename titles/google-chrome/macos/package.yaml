@@ -1,0 +1,6 @@
+vendor_version: 134.0.6998.89
+packaging_version: 1
+source_type: pkg
+receipt_id: com.google.chrome
+bundle_id: com.google.Chrome
+minimum_os: '13.0'

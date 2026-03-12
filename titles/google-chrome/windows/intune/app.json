@@ -1,0 +1,6 @@
+{
+  "displayName": "Google Chrome",
+  "publisher": "Google",
+  "installContext": "system",
+  "restartBehavior": "suppress"
+}

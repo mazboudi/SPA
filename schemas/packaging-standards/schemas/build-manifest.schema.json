@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Build Manifest",
+  "type": "object",
+  "required": ["title", "platform", "vendor_version", "packaging_version", "framework_version", "artifact_name"],
+  "properties": {
+    "title": { "type": "string" },
+    "platform": { "type": "string", "enum": ["windows", "macos"] },
+    "vendor_version": { "type": "string" },
+    "packaging_version": { "type": "string" },
+    "framework_version": { "type": "string" },
+    "artifact_name": { "type": "string" },
+    "git_commit": { "type": "string" },
+    "pipeline_id": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,9 @@
+stages:
+  - deploy
+
+windows_deploy_intune:
+  stage: deploy
+  rules:
+    - if: '$WINDOWS_ENABLED == "true"'
+  script:
+    - echo "Publish and assign Intune app"

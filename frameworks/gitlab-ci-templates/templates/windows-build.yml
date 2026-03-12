@@ -1,0 +1,11 @@
+stages:
+  - build
+
+windows_build:
+  stage: build
+  rules:
+    - if: '$WINDOWS_ENABLED == "true"'
+  script:
+    - echo "Fetch PSADT framework"
+    - echo "Overlay Windows title content"
+    - echo "Build .intunewin"

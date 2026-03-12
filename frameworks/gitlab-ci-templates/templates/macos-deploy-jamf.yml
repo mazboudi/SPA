@@ -1,0 +1,9 @@
+stages:
+  - deploy
+
+macos_deploy_jamf:
+  stage: deploy
+  rules:
+    - if: '$MACOS_ENABLED == "true"'
+  script:
+    - echo "Deploy Jamf objects"

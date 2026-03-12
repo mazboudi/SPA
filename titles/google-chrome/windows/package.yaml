@@ -1,0 +1,7 @@
+vendor_version: 134.0.6998.89
+packaging_version: 1
+installer_type: msi
+source_filename: GoogleChromeEnterprise64.msi
+install_command: msiexec /i GoogleChromeEnterprise64.msi /qn
+uninstall_command: msiexec /x {PRODUCT-CODE-HERE} /qn
+detection_mode: registry-marker

@@ -1,0 +1,7 @@
+stages:
+  - validate
+
+metadata_validate:
+  stage: validate
+  script:
+    - echo "Validate app.json and package metadata"

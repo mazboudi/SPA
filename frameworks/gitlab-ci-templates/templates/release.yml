@@ -1,0 +1,7 @@
+stages:
+  - release
+
+release_artifacts:
+  stage: release
+  script:
+    - echo "Release artifacts"

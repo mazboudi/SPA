@@ -1,0 +1,11 @@
+stages:
+  - build
+
+macos_build:
+  stage: build
+  rules:
+    - if: '$MACOS_ENABLED == "true"'
+  script:
+    - echo "Fetch macOS framework"
+    - echo "Overlay macOS title content"
+    - echo "Build .pkg"
