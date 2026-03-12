@@ -1,0 +1,14 @@
+# Terraform state and local files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+tfplan
+tf-deploy/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp

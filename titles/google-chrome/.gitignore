@@ -1,0 +1,26 @@
+# Build outputs
+dist/
+*.zip
+*.tar.gz
+
+# Downloaded framework bundles (fetched by CI runners at build time)
+psadt-framework-*/
+macos-framework-*/
+tools/
+intune-modules/
+terraform-jamf-modules/
+
+# IntuneWinAppUtil
+IntuneWinAppUtil.exe
+
+# Build artifacts
+out/
+tf-deploy/
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Editor
+.vscode/
+*.swp

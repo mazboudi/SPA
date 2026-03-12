@@ -6,8 +6,12 @@
 ##   WINDOWS_ENABLED            — Must be 'true' to activate this job
 ##   PSADT_FRAMEWORK_VERSION    — e.g. '4.1.0' (matches psadt-enterprise tag)
 ##   PSADT_PROJECT_ID           — GitLab project ID of psadt-enterprise repo
-##   INTUNE_WIN_UTIL_URL        — Direct download URL for IntuneWinAppUtil.exe
 ##   GITLAB_READ_TOKEN          — Token with read_api + read_registry scope
+##
+## IntuneWinAppUtil.exe is bundled inside the psadt-enterprise framework zip at
+##   tools/IntuneWinAppUtil.exe
+## It does NOT need to be downloaded at runtime. To upgrade it, update the
+## binary in frameworks/psadt-enterprise/tools/ and tag a new framework release.
 ##
 ## Produces artifacts:
 ##   out/*.intunewin            — The packaged application
@@ -19,7 +23,6 @@
   tags: [Windows]
   variables:
     PSADT_FRAMEWORK_VERSION: "4.1.0"
-    INTUNE_WIN_UTIL_URL: "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/raw/master/IntuneWinAppUtil.exe"
   script:
     - |
       $ErrorActionPreference = "Stop"
@@ -35,16 +38,7 @@
 
       if (!(Test-Path 'windows/package.yaml')) { throw "windows/package.yaml not found" }
 
-      ## 2 — Download IntuneWinAppUtil.exe
-      $toolsDir = 'tools'
-      if (!(Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir | Out-Null }
-      $intuneUtil = Join-Path $toolsDir 'IntuneWinAppUtil.exe'
-      if (!(Test-Path $intuneUtil)) {
-        Write-Host "Downloading IntuneWinAppUtil.exe..."
-        Invoke-WebRequest -Uri $env:INTUNE_WIN_UTIL_URL -OutFile $intuneUtil
-      }
-
-      ## 3 — Download psadt-enterprise framework bundle
+      ## 2 — Download psadt-enterprise framework bundle (includes IntuneWinAppUtil.exe)
       $frameworkDir = "psadt-framework-$($env:PSADT_FRAMEWORK_VERSION)"
       if (!(Test-Path $frameworkDir)) {
         $pkgUri = "$($env:CI_API_V4_URL)/projects/$($env:PSADT_PROJECT_ID)/packages/generic/psadt-enterprise/$($env:PSADT_FRAMEWORK_VERSION)/psadt-enterprise-$($env:PSADT_FRAMEWORK_VERSION).zip"
@@ -57,7 +51,19 @@
         Write-Host "Framework extracted to: $frameworkDir"
       }
 
-      ## 4 — Download upstream PSADT 4.x (the actual framework runtime)
+      ## 3 — Resolve IntuneWinAppUtil.exe from the bundled tools/ directory
+      ##     (no download needed — it ships inside the psadt-enterprise zip)
+      $intuneUtil = Join-Path $frameworkDir 'tools\IntuneWinAppUtil.exe'
+      if (!(Test-Path $intuneUtil)) {
+        # Fallback: try the old location at the bundle root
+        $intuneUtil = Join-Path $frameworkDir 'IntuneWinAppUtil.exe'
+      }
+      if (!(Test-Path $intuneUtil)) {
+        throw "IntuneWinAppUtil.exe not found in framework bundle at '$frameworkDir\tools\'. Re-publish psadt-enterprise with tools/ included."
+      }
+      Write-Host "Using IntuneWinAppUtil: $intuneUtil"
+
+
       ##     In production, the psadt-enterprise bundle should already include
       ##     the upstream PSADT in a PSAppDeployToolkit/ subfolder.
       ##     If not present, we pull it from the GitLab Package Registry or a
@@ -172,3 +178,24 @@ windows_build:
   extends: .windows_build
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $WINDOWS_ENABLED == "true"
+  cache:
+    # Cache the extracted framework bundle by version on the runner's local disk.
+    # Works as-is for a static Azure VM runner.
+    #
+    # ── VMSS (future) ─────────────────────────────────────────────────────────
+    # When moving to VMSS, enable Azure Blob Storage as the cache backend in
+    # config.toml on the VMSS base image so the cache is shared across instances:
+    #
+    #   [runners.cache]
+    #     Type = "azure"
+    #     Shared = true
+    #     [runners.cache.azure]
+    #       AccountName   = "yourstorageaccount"
+    #       AccountKey    = "<storage-account-key-or-SAS>"
+    #       ContainerName = "gitlab-runner-cache"
+    # ──────────────────────────────────────────────────────────────────────────
+    key: psadt-framework-$PSADT_FRAMEWORK_VERSION
+    paths:
+      - psadt-framework-$PSADT_FRAMEWORK_VERSION/
+    policy: pull-push
+

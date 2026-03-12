@@ -1,0 +1,9 @@
+# Build outputs
+dist/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp

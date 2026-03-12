@@ -140,7 +140,7 @@ Set these at the GitLab **group level** (inherited by all title repos):
 | `AZURE_TENANT_ID` | Microsoft Entra tenant ID | No |
 | `AZURE_CLIENT_ID` | App registration client ID | No |
 | `AZURE_CLIENT_SECRET` | App registration client secret | **Yes** |
-| `INTUNE_WIN_UTIL_URL` | Download URL for `IntuneWinAppUtil.exe` | No |
+
 
 ### macOS / Jamf
 
@@ -215,6 +215,7 @@ This workspace is a monorepo **template**. When ready to deploy, split each top-
 
 ## See Also
 
+- [`docs/integration-guide.md`](docs/integration-guide.md) — **How to wire this into real GitLab repos** (start here)
 - [`schemas/packaging-standards/docs/schema-guide.md`](schemas/packaging-standards/docs/schema-guide.md) — Schema field reference
 - [`frameworks/gitlab-ci-templates/templates/release.yml`](frameworks/gitlab-ci-templates/templates/release.yml) — CI variable reference
 - [`deployment/intune-deployment-modules/docs/deployment-overview.md`](deployment/intune-deployment-modules/docs/deployment-overview.md) — Intune module docs

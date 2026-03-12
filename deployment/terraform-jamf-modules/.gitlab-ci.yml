@@ -1,0 +1,133 @@
+##=============================================================================
+## terraform-jamf-modules — GitLab CI Pipeline
+##=============================================================================
+## Validates all Terraform modules and creates a release on tag.
+## Modules are cloned at runtime by macos-deploy-jamf.yml via GITLAB_READ_TOKEN.
+##
+## Stages:
+##   test    — terraform init + validate on each module
+##   release — create GitLab release on vX.Y.Z tag for TF_JAMF_MODULES_REF pinning
+##
+## Runner requirements:
+##   - Linux runner tagged [Linux] with Terraform >= 1.5.0 available
+##     (or use the official hashicorp/terraform Docker image)
+##=============================================================================
+
+stages:
+  - test
+  - release
+
+variables:
+  TF_IN_AUTOMATION: "true"
+  GIT_DEPTH: "1"
+
+## ---------------------------------------------------------------------------
+## terraform_validate — init + validate every module
+## ---------------------------------------------------------------------------
+terraform_validate:
+  stage: test
+  tags: [Linux]
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      set -euo pipefail
+      apk add --no-cache bash 2>/dev/null || true
+      ERRORS=0
+      for module_dir in modules/*/; do
+        MODULE=$(basename "$module_dir")
+        echo "Validating module: $MODULE"
+
+        cd "$module_dir"
+
+        # Create a temporary provider mirror to skip real downloads
+        # We use -backend=false to avoid needing real state
+        terraform init -backend=false -get=false 2>&1 | tail -3 || true
+
+        if terraform validate -no-color 2>&1; then
+          echo "  ✓ $MODULE"
+        else
+          echo "  ✗ $MODULE failed validation"
+          ERRORS=$((ERRORS+1))
+        fi
+        cd ../..
+      done
+
+      # Validate root versions.tf
+      echo "Validating root versions.tf..."
+      terraform init -backend=false -get=false 2>&1 | tail -3 || true
+      terraform validate -no-color 2>&1 && echo "  ✓ root" || { echo "  ✗ root"; ERRORS=$((ERRORS+1)); }
+
+      if [[ $ERRORS -gt 0 ]]; then
+        echo "❌ $ERRORS module(s) failed Terraform validation."
+        exit 1
+      fi
+      echo "✅ All Terraform modules are valid."
+
+## ---------------------------------------------------------------------------
+## terraform_fmt_check — ensure code is formatted to canonical style
+## ---------------------------------------------------------------------------
+terraform_fmt_check:
+  stage: test
+  tags: [Linux]
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      set -euo pipefail
+      if ! terraform fmt -check -recursive -diff; then
+        echo "❌ Terraform files are not formatted."
+        echo "Run 'terraform fmt -recursive' to fix."
+        exit 1
+      fi
+      echo "✅ Terraform formatting is canonical."
+  allow_failure: true   # warn but don't block on format issues
+
+## ---------------------------------------------------------------------------
+## create_release — tag-triggered GitLab release for TF_JAMF_MODULES_REF pinning
+## ---------------------------------------------------------------------------
+create_release:
+  stage: release
+  tags: [Linux]
+  needs: [terraform_validate]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: on_success
+  image:
+    name: alpine:3.19
+    entrypoint: [""]
+  before_script:
+    - apk add --no-cache curl python3
+  script:
+    - |
+      set -euo pipefail
+      TAG_NAME="$CI_COMMIT_TAG"
+      PAYLOAD=$(python3 -c "
+      import json
+      print(json.dumps({
+        'name': f'terraform-jamf-modules $TAG_NAME',
+        'tag_name': '$TAG_NAME',
+        'description': f'Jamf Pro Terraform modules $TAG_NAME. Clone in CI with TF_JAMF_MODULES_REF: \"$TAG_NAME\".'
+      }))
+      ")
+      HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+        --header "PRIVATE-TOKEN: ${GITLAB_RELEASE_TOKEN}" \
+        --header "Content-Type: application/json" \
+        --data "$PAYLOAD" \
+        --request POST "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
+
+      [[ "$HTTP_CODE" == "201" ]] && echo "✅ Release created: $TAG_NAME" && exit 0
+      [[ "$HTTP_CODE" == "409" ]] && echo "Release already exists." && exit 0
+      echo "ERROR: HTTP $HTTP_CODE"; exit 1
+  environment:
+    name: production
+    url: $CI_PROJECT_URL/-/releases

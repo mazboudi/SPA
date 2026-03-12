@@ -1,11 +1,18 @@
 ##=============================================================================
 ## psadt-enterprise — GitLab CI Pipeline
 ##=============================================================================
-## Triggered by a tag in the format vX.Y.Z.
+## Triggered by a tag in the format vX.Y.Z (e.g. v4.1.0).
+##
 ## Stages:
-##   test   — smoke-test the template scripts
-##   build  — zip the versioned bundle and compute checksum
-##   publish — upload to GitLab Package Registry and create a release
+##   test    — PowerShell syntax check on all .ps1 files in the version dir
+##   build   — zip the versioned bundle and compute SHA-256 checksum
+##   publish — upload to GitLab Generic Package Registry + create GitLab release
+##
+## Required CI variables (set at GitLab group or project level):
+##   GITLAB_RELEASE_TOKEN  — access token with api scope (protected)
+##                           Used by New-FrameworkRelease.ps1 to upload +
+##                           create the release. CI_JOB_TOKEN is NOT sufficient
+##                           for creating releases in the API.
 ##=============================================================================
 
 stages:
@@ -16,16 +23,10 @@ stages:
 variables:
   POWERSHELL_TELEMETRY_OPTOUT: "1"
   FF_USE_FASTZIP: "true"
+  GIT_DEPTH: "1"
 
 ## ---------------------------------------------------------------------------
-## Derive the semantic version from the vX.Y.Z tag
-## ---------------------------------------------------------------------------
-.derive_version: &derive_version |
-  $VERSION = $CI_COMMIT_TAG -replace '^v', ''
-  Write-Host "Framework version: $VERSION"
-
-## ---------------------------------------------------------------------------
-## test — validate PSADT template syntax
+## test — validate PowerShell syntax on all .ps1 files in the version dir
 ## ---------------------------------------------------------------------------
 test_template_syntax:
   stage: test
@@ -36,29 +37,47 @@ test_template_syntax:
     - if: $CI_COMMIT_BRANCH
   script:
     - |
-      # PowerShell syntax check (parse only, no execution)
-      *: &derive_version
+      $ErrorActionPreference = "Stop"
+
+      # Derive version: strip leading 'v' from tag, or use 'latest' on branches
+      if ($env:CI_COMMIT_TAG) {
+        $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      } else {
+        # On branches: test against the highest existing version dir
+        $VERSION = (Get-ChildItem -Path versions -Directory | Sort-Object Name | Select-Object -Last 1).Name
+      }
+      Write-Host "Testing version: $VERSION"
+
       $versionDir = "versions\$VERSION"
       if (!(Test-Path $versionDir)) {
         throw "Version directory not found: $versionDir"
       }
+
       $scripts = Get-ChildItem -Path $versionDir -Filter '*.ps1' -Recurse
-      $errors = @()
-      foreach ($s in $scripts) {
+      $syntaxErrors = [System.Collections.Generic.List[string]]::new()
+
+      foreach ($script in $scripts) {
+        $parseErrors = $null
         $null = [System.Management.Automation.Language.Parser]::ParseFile(
-          $s.FullName, [ref]$null, [ref]$pErrors
+          $script.FullName, [ref]$null, [ref]$parseErrors
         )
-        if ($pErrors.Count -gt 0) {
-          $errors += "$($s.FullName): $($pErrors -join ', ')"
+        if ($parseErrors.Count -gt 0) {
+          foreach ($e in $parseErrors) {
+            $syntaxErrors.Add("$($script.FullName):$($e.Extent.StartLineNumber): $($e.Message)")
+          }
         }
       }
-      if ($errors.Count -gt 0) {
-        throw "Syntax errors found:`n$($errors -join "`n")"
+
+      if ($syntaxErrors.Count -gt 0) {
+        Write-Host "❌ Syntax errors found:" -ForegroundColor Red
+        $syntaxErrors | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+        throw "PowerShell syntax check failed with $($syntaxErrors.Count) error(s)."
       }
-      Write-Host "✅ All .ps1 files pass syntax check."
+
+      Write-Host "✅ $(@($scripts).Count) .ps1 file(s) passed syntax check." -ForegroundColor Green
 
 ## ---------------------------------------------------------------------------
-## build — create the versioned zip bundle
+## build — create the versioned zip bundle and capture dotenv
 ## ---------------------------------------------------------------------------
 build_bundle:
   stage: build
@@ -67,10 +86,18 @@ build_bundle:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
   script:
-    - *derive_version
-    - pwsh -NoProfile -ExecutionPolicy Bypass
-        -File scripts/build-framework-bundle.ps1
-        -Version $VERSION
+    - |
+      $ErrorActionPreference = "Stop"
+      $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      Write-Host "Building bundle for version: $VERSION"
+
+      pwsh -NoProfile -ExecutionPolicy Bypass `
+        -File scripts/build-framework-bundle.ps1 `
+        -Version $VERSION `
+        -OutDir dist
+
+      Write-Host "Bundle contents:"
+      Get-ChildItem dist | Format-Table Name, Length -AutoSize
   artifacts:
     when: always
     expire_in: 90 days
@@ -82,21 +109,31 @@ build_bundle:
       dotenv: dist/bundle.env
 
 ## ---------------------------------------------------------------------------
-## publish — upload bundle to Package Registry and create GitLab release
+## publish — upload to Package Registry and create a GitLab release
+## Runs automatically on tag (no manual gate here — publish is the final step
+## after the build artifact has been reviewed in the pipeline).
+## To require manual approval, change `when: on_success` to `when: manual`.
 ## ---------------------------------------------------------------------------
 publish_bundle:
   stage: publish
   tags: [Windows]
-  needs: [build_bundle]
+  needs:
+    - job: build_bundle
+      artifacts: true
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-      when: manual
+      when: on_success
   script:
-    - *derive_version
-    - pwsh -NoProfile -ExecutionPolicy Bypass
-        -File scripts/New-FrameworkRelease.ps1
-        -Version $VERSION
-        -GitLabApiUrl "$CI_API_V4_URL"
-        -ProjectId "$CI_PROJECT_ID"
+    - |
+      $ErrorActionPreference = "Stop"
+      $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      Write-Host "Publishing psadt-enterprise v$VERSION to Package Registry..."
+
+      pwsh -NoProfile -ExecutionPolicy Bypass `
+        -File scripts/New-FrameworkRelease.ps1 `
+        -Version $VERSION `
+        -GitLabApiUrl "$env:CI_API_V4_URL" `
+        -ProjectId "$env:CI_PROJECT_ID"
   environment:
     name: production
+    url: $CI_PROJECT_URL/-/packages

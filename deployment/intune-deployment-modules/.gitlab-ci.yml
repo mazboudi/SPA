@@ -1,0 +1,99 @@
+##=============================================================================
+## intune-deployment-modules — GitLab CI Pipeline
+##=============================================================================
+## Runs syntax checks on all PowerShell scripts.
+## No build or publish stage needed — scripts are pulled at runtime by the
+## windows-deploy-intune.yml CI template using GITLAB_READ_TOKEN.
+##
+## A tag creates a GitLab release to make ref pinning possible in the
+## CI template's INTUNE_MODULES_REF variable.
+##
+## Runner requirements:
+##   - Windows runner tagged [Windows] with PowerShell (pwsh) available
+##=============================================================================
+
+stages:
+  - test
+  - release
+
+variables:
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+  GIT_DEPTH: "1"
+
+## ---------------------------------------------------------------------------
+## test_ps_syntax — parse-only check on every .ps1 and .psm1 file
+## ---------------------------------------------------------------------------
+test_ps_syntax:
+  stage: test
+  tags: [Windows]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+
+      $files = Get-ChildItem -Path scripts -Include '*.ps1','*.psm1' -Recurse
+      Write-Host "Checking $($files.Count) PowerShell file(s)..."
+
+      $errorList = [System.Collections.Generic.List[string]]::new()
+      foreach ($f in $files) {
+        $parseErrors = $null
+        $null = [System.Management.Automation.Language.Parser]::ParseFile(
+          $f.FullName, [ref]$null, [ref]$parseErrors
+        )
+        if ($parseErrors.Count -gt 0) {
+          foreach ($e in $parseErrors) {
+            $errorList.Add("$($f.Name):L$($e.Extent.StartLineNumber): $($e.Message)")
+          }
+          Write-Host "  ✗ $($f.Name)" -ForegroundColor Red
+        } else {
+          Write-Host "  ✓ $($f.Name)" -ForegroundColor Green
+        }
+      }
+
+      if ($errorList.Count -gt 0) {
+        Write-Host ""
+        Write-Host "❌ Syntax errors:" -ForegroundColor Red
+        $errorList | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+        throw "PowerShell syntax check failed."
+      }
+
+      Write-Host ""
+      Write-Host "✅ All PowerShell files passed syntax check." -ForegroundColor Green
+
+## ---------------------------------------------------------------------------
+## create_release — tag-triggered GitLab release for version pinning
+## ---------------------------------------------------------------------------
+create_release:
+  stage: release
+  tags: [Linux]
+  needs: [test_ps_syntax]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: on_success
+  script:
+    - |
+      set -euo pipefail
+      TAG_NAME="$CI_COMMIT_TAG"
+      PAYLOAD=$(python3 -c "
+      import json
+      print(json.dumps({
+        'name': f'intune-deployment-modules $TAG_NAME',
+        'tag_name': '$TAG_NAME',
+        'description': f'Intune deployment scripts $TAG_NAME. Pin in CI template with INTUNE_MODULES_REF: \"$TAG_NAME\".'
+      }))
+      ")
+      HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+        --header "PRIVATE-TOKEN: ${GITLAB_RELEASE_TOKEN}" \
+        --header "Content-Type: application/json" \
+        --data "$PAYLOAD" \
+        --request POST "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases")
+
+      [[ "$HTTP_CODE" == "201" ]] && echo "✅ Release created: $TAG_NAME" && exit 0
+      [[ "$HTTP_CODE" == "409" ]] && echo "Release already exists." && exit 0
+      echo "ERROR: HTTP $HTTP_CODE"; exit 1
+  environment:
+    name: production
+    url: $CI_PROJECT_URL/-/releases
