@@ -7,6 +7,10 @@
   or dual-platform title. All fields are pre-populated with sensible
   defaults and clearly marked TODOs so nothing gets missed.
 
+  The generated .gitlab-ci.yml uses Category + GitLabGroup to construct
+  the full GitLab subgroup project path:
+    <GitLabGroup>/titles/<Category>/<PackageId>
+
 .PARAMETER PackageId
   Kebab-case identifier, e.g. "7-zip" or "microsoft-teams".
 
@@ -19,6 +23,13 @@
 .PARAMETER Version
   Vendor version string, e.g. "24.08".
 
+.PARAMETER Category
+  Subgroup category. Used to build the GitLab project path and organise
+  the titles/ subgroup structure.
+  Allowed values:
+    browsers, productivity, developer-tools, security,
+    communication, utilities, endpoint-management, custom
+
 .PARAMETER Platform
   "windows", "macos", or "both" (default: "windows").
 
@@ -28,20 +39,23 @@
 .PARAMETER DetectionMode
   "msi-product-code", "registry-marker", or "file" (default: "msi-product-code").
 
+.PARAMETER GitLabGroup
+  Root GitLab group name, e.g. "euc-packaging". Defaults to "euc-packaging".
+
 .PARAMETER OutDir
   Root titles directory. Defaults to "titles" relative to CWD.
 
 .EXAMPLE
-  # Windows MSI title with MSI product code detection
+  # Windows MSI title in the developer-tools category
   .\scripts\New-Title.ps1 -PackageId "7-zip" -DisplayName "7-Zip" `
-    -Publisher "Igor Pavlov" -Version "24.08" `
+    -Publisher "Igor Pavlov" -Version "24.08" -Category developer-tools `
     -InstallerType msi -DetectionMode msi-product-code
 
 .EXAMPLE
-  # Dual-platform EXE title with registry detection
-  .\scripts\New-Title.ps1 -PackageId "notepad-plus-plus" -DisplayName "Notepad++" `
-    -Publisher "Notepad++ Team" -Version "8.7" `
-    -Platform both -InstallerType exe -DetectionMode registry-marker
+  # Dual-platform browser title
+  .\scripts\New-Title.ps1 -PackageId "google-chrome" -DisplayName "Google Chrome" `
+    -Publisher "Google LLC" -Version "134.0" -Category browsers `
+    -Platform both -InstallerType msi -DetectionMode msi-product-code
 #>
 [CmdletBinding()]
 param(
@@ -49,20 +63,27 @@ param(
     [Parameter(Mandatory)] [string] $DisplayName,
     [Parameter(Mandatory)] [string] $Publisher,
     [Parameter(Mandatory)] [string] $Version,
+    [Parameter(Mandatory)]
+    [ValidateSet('browsers','productivity','developer-tools','security',
+                 'communication','utilities','endpoint-management','custom')]
+    [string] $Category,
     [ValidateSet('windows','macos','both')]
     [string] $Platform = 'windows',
     [ValidateSet('msi','exe')]
     [string] $InstallerType = 'msi',
     [ValidateSet('msi-product-code','registry-marker','file')]
     [string] $DetectionMode = 'msi-product-code',
+    [string] $GitLabGroup = 'euc-packaging',
     [string] $OutDir = 'titles'
 )
 
 $ErrorActionPreference = 'Stop'
 
-$titleDir    = Join-Path $OutDir $PackageId
-$winEnabled  = ($Platform -in @('windows','both')).ToString().ToLower()
-$macEnabled  = ($Platform -in @('macos','both')).ToString().ToLower()
+# Build paths
+$titleDir          = Join-Path $OutDir $PackageId
+$gitLabProjectPath = "$GitLabGroup/titles/$Category/$PackageId"
+$winEnabled        = ($Platform -in @('windows','both')).ToString().ToLower()
+$macEnabled        = ($Platform -in @('macos','both')).ToString().ToLower()
 
 if (Test-Path $titleDir) {
     throw "Title directory already exists: $titleDir. Delete it first or use a different PackageId."
@@ -71,17 +92,19 @@ if (Test-Path $titleDir) {
 function Mkd([string] $path) {
     New-Item -ItemType Directory -Path $path -Force | Out-Null
 }
-function Write([string] $path, [string] $content) {
+function Write-File([string] $path, [string] $content) {
     $dir = Split-Path $path -Parent
     if (!(Test-Path $dir)) { Mkd $dir }
     Set-Content -Path $path -Value $content -Encoding UTF8
 }
 
-Write-Host "Scaffolding title: $PackageId ($Platform)" -ForegroundColor Cyan
-Write-Host "Output: $titleDir"
+Write-Host "Scaffolding title : $PackageId" -ForegroundColor Cyan
+Write-Host "Category          : $Category  ->  $gitLabProjectPath"
+Write-Host "Platform          : $Platform  |  Installer: $InstallerType  |  Detection: $DetectionMode"
+Write-Host ""
 
 # ── app.json ────────────────────────────────────────────────────────────────
-Write (Join-Path $titleDir 'app.json') @"
+Write-File (Join-Path $titleDir 'app.json') @"
 {
   "title": "$DisplayName",
   "publisher": "$Publisher",
@@ -112,16 +135,25 @@ Write (Join-Path $titleDir 'app.json') @"
 "@
 
 # ── .gitlab-ci.yml ───────────────────────────────────────────────────────────
-Write (Join-Path $titleDir '.gitlab-ci.yml') @"
+# Only include platform-relevant templates
+$includeFiles = [System.Collections.Generic.List[string]]::new()
+$includeFiles.Add("      - 'templates/metadata-validate.yml'")
+if ($Platform -in @('windows','both')) {
+    $includeFiles.Add("      - 'templates/windows-build.yml'")
+    $includeFiles.Add("      - 'templates/windows-deploy-intune.yml'")
+}
+if ($Platform -in @('macos','both')) {
+    $includeFiles.Add("      - 'templates/macos-build.yml'")
+    $includeFiles.Add("      - 'templates/macos-deploy-jamf.yml'")
+}
+$includeBlock = $includeFiles -join "`n"
+
+Write-File (Join-Path $titleDir '.gitlab-ci.yml') @"
 include:
-  - project: 'yourgroup/gitlab-ci-templates'  # TODO: set your real GitLab group path
-    ref: 'v1.0.0'                              # TODO: pin to desired template release
+  - project: '$GitLabGroup/frameworks/gitlab-ci-templates'
+    ref: 'v1.0.0'        # TODO: update to the current template release tag
     file:
-      - 'templates/metadata-validate.yml'
-      - 'templates/windows-build.yml'
-      - 'templates/windows-deploy-intune.yml'
-      - 'templates/macos-build.yml'
-      - 'templates/macos-deploy-jamf.yml'
+$includeBlock
 
 variables:
   WINDOWS_ENABLED: "$winEnabled"
@@ -131,7 +163,7 @@ variables:
 "@
 
 # ── .gitignore ───────────────────────────────────────────────────────────────
-Write (Join-Path $titleDir '.gitignore') @"
+Write-File (Join-Path $titleDir '.gitignore') @"
 dist/
 out/
 *.intunewin
@@ -148,21 +180,33 @@ tf-deploy/
 .vscode/
 "@
 
+# ── Windows files ─────────────────────────────────────────────────────────────
 if ($Platform -in @('windows','both')) {
 
-    $installCmd   = if ($InstallerType -eq 'msi') { 'msiexec.exe /i "Files\TODO_INSTALLER.msi" /qn /norestart' } else { '"Files\TODO_INSTALLER.exe" /S' }
-    $uninstallCmd = if ($InstallerType -eq 'msi') { 'msiexec.exe /x "{TODO-PRODUCT-CODE-GUID}" /qn /norestart' } else { '"C:\Program Files\TODO\uninstall.exe" /S' }
+    $installCmd   = if ($InstallerType -eq 'msi') {
+        'msiexec.exe /i "Files\TODO_INSTALLER.msi" /qn /norestart'
+    } else {
+        '"Files\TODO_INSTALLER.exe" /S'
+    }
+    $uninstallCmd = if ($InstallerType -eq 'msi') {
+        'msiexec.exe /x "{TODO-PRODUCT-CODE-GUID}" /qn /norestart'
+    } else {
+        '"C:\Program Files\TODO\uninstall.exe" /S'
+    }
 
     $detectionBlock = switch ($DetectionMode) {
-        'msi-product-code' { @"
+        'msi-product-code' {
+@"
 detection_mode: msi-product-code
 detection:
   msi:
-    product_code: "{TODO-PRODUCT-CODE-GUID}"   # replace with real MSI ProductCode
+    product_code: "{TODO-PRODUCT-CODE-GUID}"   # get from Get-MsiMetadata.ps1
     version_operator: greaterThanOrEqual
     version: "$Version"
-"@ }
-        'registry-marker' { @"
+"@
+        }
+        'registry-marker' {
+@"
 detection_mode: registry-marker
 detection:
   registry:
@@ -171,8 +215,10 @@ detection:
     value_name: Version
     operator: greaterThanOrEqual
     value: "$Version"
-"@ }
-        'file' { @"
+"@
+        }
+        'file' {
+@"
 detection_mode: file
 detection:
   file:
@@ -180,12 +226,12 @@ detection:
     file_or_folder: "TODO.exe"
     operator: versionGreaterThanOrEqual
     version: "$Version"
-"@ }
+"@
+        }
     }
 
-    # windows/package.yaml
-    Write (Join-Path $titleDir 'windows\package.yaml') @"
-# $DisplayName $Version — Windows package definition
+    Write-File (Join-Path $titleDir 'windows\package.yaml') @"
+# $DisplayName $Version - Windows package definition
 package_id: $PackageId
 display_name: "$DisplayName"
 version: "$Version"
@@ -215,8 +261,7 @@ intune:
   uninstall_previous_version_of_app: true
 "@
 
-    # windows/intune/app.json
-    Write (Join-Path $titleDir 'windows\intune\app.json') @"
+    Write-File (Join-Path $titleDir 'windows\intune\app.json') @"
 {
   "displayName": "$DisplayName",
   "description": "TODO: Add application description.",
@@ -236,8 +281,7 @@ intune:
 }
 "@
 
-    # windows/intune/assignments.json
-    Write (Join-Path $titleDir 'windows\intune\assignments.json') @"
+    Write-File (Join-Path $titleDir 'windows\intune\assignments.json') @"
 [
   {
     "intent": "required",
@@ -252,8 +296,7 @@ intune:
 ]
 "@
 
-    # windows/intune/requirements.json
-    Write (Join-Path $titleDir 'windows\intune\requirements.json') @"
+    Write-File (Join-Path $titleDir 'windows\intune\requirements.json') @"
 {
   "minimumOs": "1903",
   "architecture": "x64",
@@ -262,15 +305,13 @@ intune:
 }
 "@
 
-    # windows/src/Deploy-Application.ps1
     Mkd (Join-Path $titleDir 'windows\src\Files')
-    Write (Join-Path $titleDir 'windows\src\Deploy-Application.ps1') @"
+    Write-File (Join-Path $titleDir 'windows\src\Deploy-Application.ps1') @"
 <#
 .SYNOPSIS
-  $DisplayName — PSADT Deploy-Application.ps1 overlay.
-  Inherits all defaults from the psadt-enterprise framework template.
-  Only add app-specific logic here; the framework handles logging, restart
-  prompts, and exit code handling.
+  $DisplayName - PSADT Deploy-Application.ps1 overlay.
+  Only add app-specific logic here; the framework handles logging,
+  restart prompts, and exit code handling.
 #>
 [CmdletBinding()]
 param(
@@ -283,62 +324,68 @@ param(
     [Parameter(Mandatory = `$false)] [switch] `$DisableLogging
 )
 
-# Load the PSADT framework
 . "`$PSScriptRoot\AppDeployToolkit\AppDeployToolkitMain.ps1"
 
 Switch (`$DeploymentType) {
 
     'Install' {
-        ## TODO: Add any pre-install steps here (e.g. close running processes)
+        ## TODO: Close running processes before install if needed
         # Show-InstallationWelcome -CloseApps 'processname' -AllowDefer -DeferTimes 3
 
-        ## Install the application
-        If (`$InstallerType -eq 'msi') {
-            Execute-MSI -Action Install -Path "Files\TODO_INSTALLER.msi"
-        } Else {
-            Execute-Process -Path "Files\TODO_INSTALLER.exe" -Parameters '/S'
-        }
+        ## Install
+        Execute-MSI -Action Install -Path 'Files\TODO_INSTALLER.msi'
 
-        ## Write registry detection marker (if using registry-marker detection mode)
-        # Invoke-RegistryDetection -Action Write -PackageId '$PackageId' -Version '$Version'
-
-        ## TODO: Add any post-install steps here
+        ## TODO: Add post-install steps here
+        ## (e.g. Invoke-RegistryDetection for registry-marker detection mode)
     }
 
     'Uninstall' {
-        ## TODO: Close processes if needed
+        ## TODO: Close running processes if needed
         # Show-InstallationWelcome -CloseApps 'processname' -Silent
 
-        ## Uninstall the application
-        If (`$InstallerType -eq 'msi') {
-            Execute-MSI -Action Uninstall -Path '{TODO-PRODUCT-CODE-GUID}'
-        } Else {
-            Execute-Process -Path "`$envProgramFiles\TODO\uninstall.exe" -Parameters '/S'
-        }
-
-        ## Remove registry detection marker (if using registry-marker detection mode)
-        # Invoke-RegistryDetection -Action Remove -PackageId '$PackageId'
+        Execute-MSI -Action Uninstall -Path '{TODO-PRODUCT-CODE-GUID}'
     }
 
     'Repair' {
-        ## TODO: Add repair logic if needed
-        Execute-MSI -Action Repair -Path "Files\TODO_INSTALLER.msi"
+        Execute-MSI -Action Repair -Path 'Files\TODO_INSTALLER.msi'
     }
 }
 "@
 
-    # windows/src/Files placeholder
-    Write (Join-Path $titleDir 'windows\src\Files\.gitkeep') '# Drop installer binaries here. Do NOT commit binaries to git.'
+    Write-File (Join-Path $titleDir 'windows\src\Files\.gitkeep') @"
+# Drop installer binary here. Do NOT commit binaries to git.
+# Expected: TODO_INSTALLER.msi (or .exe)
+#
+# To get the MSI ProductCode, run from the SPA workspace:
+#   pwsh -File frameworks\psadt-enterprise\tools\Get-MsiMetadata.ps1 ``
+#        -MsiPath titles\$PackageId\windows\src\Files\<installer.msi>
+"@
 }
 
+# ── Summary ──────────────────────────────────────────────────────────────────
+Write-Host "Scaffolded files:" -ForegroundColor Green
+Get-ChildItem -Path $titleDir -Recurse -File | ForEach-Object {
+    Write-Host ("  " + $_.FullName.Replace((Resolve-Path $OutDir).Path + '\', ''))
+}
 Write-Host ""
-Write-Host "✅ Title scaffolded: $titleDir" -ForegroundColor Green
+Write-Host "GitLab project  : $gitLabProjectPath" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Next steps:"
-Write-Host "  1. Search 'TODO' in $titleDir and fill in all placeholders"
-Write-Host "  2. Drop installer binary into windows\src\Files\ (not committed)"
-$msiHint = if ($InstallerType -eq 'msi') { "     Run: pwsh frameworks\psadt-enterprise\tools\Get-MsiMetadata.ps1 -MsiPath windows\src\Files\<installer.msi>" } else { "" }
-if ($msiHint) { Write-Host $msiHint }
-Write-Host "  3. Update assignments.json with real AAD group object IDs"
-Write-Host "  4. Update .gitlab-ci.yml with your real GitLab group path"
-Write-Host "  5. git init, commit, push, then: git tag v$Version-1 && git push --tags"
+Write-Host "Next steps:" -ForegroundColor Cyan
+Write-Host "  1. Search 'TODO' in the generated files and fill in all placeholders"
+if ($InstallerType -eq 'msi') {
+    Write-Host "  2. Get the MSI ProductCode:"
+    Write-Host "       pwsh -File <SPA>\frameworks\psadt-enterprise\tools\Get-MsiMetadata.ps1 \"
+    Write-Host "            -MsiPath windows\src\Files\<installer.msi>"
+} else {
+    Write-Host "  2. Drop the installer binary into windows\src\Files\ (NOT committed to git)"
+}
+Write-Host "  3. Replace AAD group IDs in windows\intune\assignments.json"
+Write-Host "  4. Create the GitLab project under: $gitLabProjectPath"
+Write-Host "     (CI/CD variables are inherited from the euc-packaging/titles group)"
+Write-Host "  5. Push and tag:"
+Write-Host "       cd $titleDir"
+Write-Host "       git init -b main && git add -A"
+Write-Host "       git commit -m 'feat: add $DisplayName $Version'"
+Write-Host "       git remote add origin https://gitlab.example.com/$gitLabProjectPath.git"
+Write-Host "       git push -u origin main"
+Write-Host "       git tag v$Version-1 && git push origin v$Version-1"

@@ -300,27 +300,70 @@ validate → windows_build + macos_build → windows_publish_intune + macos_depl
 
 ## 10. Adding a New Title
 
-```bash
-# Clone google-chrome as template
-cp -r titles/google-chrome titles/your-app
+Each title is its own GitLab project nested under the appropriate category subgroup.
+Packagers work only in their own cloned title repo — they never open the SPA workspace.
 
-# Edit metadata files
-vi titles/your-app/app.json
-vi titles/your-app/windows/package.yaml
-vi titles/your-app/macos/package.yaml
-# ...update intune/ and jamf/ inputs...
+### Standard categories
 
-# Create GitLab project: euc-packaging/titles/your-app
-# Push and tag
-cd titles/your-app
-git init -b main && git add -A
-git commit -m "chore: initial title commit"
-git remote add origin https://gitlab.example.com/euc-packaging/titles/your-app.git
-git push -u origin main
-git tag v<vendor-version>-1 && git push origin v<vendor-version>-1
+| Category | Examples |
+|----------|----------|
+| `browsers` | google-chrome, firefox, microsoft-edge |
+| `productivity` | microsoft-teams, zoom, adobe-reader |
+| `developer-tools` | 7-zip, git-for-windows, vscode |
+| `security` | crowdstrike, qualys-agent, sentinel-one |
+| `communication` | slack, webex, cisco-jabber |
+| `utilities` | forticlient-vpn, citrix-workspace |
+| `endpoint-management` | jamf-connect, ibm-bigfix |
+| `custom` | internal/bespoke applications |
+
+### Workflow
+
+**Step 1 — Scaffold** (run on your machine, from the SPA workspace root)
+
+```powershell
+pwsh -File scripts\New-Title.ps1 `
+  -PackageId   "notepad-plus-plus" `
+  -DisplayName "Notepad++" `
+  -Publisher   "Notepad++ Team" `
+  -Version     "8.7.1" `
+  -Category    developer-tools `
+  -Platform    windows `
+  -InstallerType  exe `
+  -DetectionMode  registry-marker `
+  -GitLabGroup euc-packaging
 ```
 
-Set `WINDOWS_ENABLED: "false"` or `MACOS_ENABLED: "false"` in `.gitlab-ci.yml` for single-platform titles.
+This creates `titles/notepad-plus-plus/` and prints:
+```
+GitLab project  : euc-packaging/titles/developer-tools/notepad-plus-plus
+```
+
+**Step 2 — Fill in TODOs**
+
+Search `TODO` in the generated folder — typically just:
+- MSI product code (run `Get-MsiMetadata.ps1`), or EXE uninstall path
+- AAD group IDs in `windows/intune/assignments.json`
+
+For `registry-marker` detection, also add a call to `Invoke-RegistryDetection` in `Deploy-Application.ps1`.
+
+**Step 3 — Create the GitLab project**
+
+In GitLab: navigate to `euc-packaging` > `titles` > `developer-tools` > **New project**.
+Name it `notepad-plus-plus`. CI variables are automatically inherited from the group.
+
+**Step 4 — Push and tag**
+
+```bash
+cd titles/notepad-plus-plus
+git init -b main && git add -A
+git commit -m "feat: add Notepad++ 8.7.1"
+git remote add origin https://gitlab.example.com/euc-packaging/titles/developer-tools/notepad-plus-plus.git
+git push -u origin main
+git tag v8.7.1-1 && git push origin v8.7.1-1
+```
+
+Set `WINDOWS_ENABLED: "false"` or `MACOS_ENABLED: "false"` for single-platform titles
+(the scaffold script sets this automatically based on `-Platform`).
 
 ---
 
