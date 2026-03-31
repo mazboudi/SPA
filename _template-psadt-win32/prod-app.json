@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/app.schema.json",
+  "title": "PSADT Intune Win32 App Contract",
+  "type": "object",
+  "required": ["name", "publisher", "version", "install", "uninstall", "detection"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "publisher": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "version": { "type": "string", "minLength": 1 },
+
+    "intune": {
+      "type": "object",
+      "properties": {
+        "installExperience": { "type": "string", "enum": ["system", "user"] },
+        "restartBehavior": { "type": "string", "enum": ["suppress", "allow", "basedOnReturnCode"] }
+      },
+      "additionalProperties": false
+    },
+
+    "install": {
+      "type": "object",
+      "required": ["commandLine"],
+      "properties": {
+        "commandLine": { "type": "string", "minLength": 1 },
+        "maxRuntimeMinutes": { "type": "integer", "minimum": 1, "maximum": 1440 }
+      },
+      "additionalProperties": false
+    },
+
+    "uninstall": {
+      "type": "object",
+      "required": ["commandLine"],
+      "properties": {
+        "commandLine": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "architecture": { "type": "string", "enum": ["x86", "x64"] },
+        "minWindows": { "type": "string", "enum": ["W10_21H2", "W10_22H2", "W11_21H2", "W11_22H2", "W11_23H2", "W11_24H2"] }
+      },
+      "additionalProperties": false
+    },
+
+    "detection": {
+      "oneOf": [
+        {
+          "title": "MSI detection",
+          "type": "object",
+          "required": ["type", "productCode"],
+          "properties": {
+            "type": { "const": "msi" },
+            "productCode": { "type": "string", "pattern": "^\\{[0-9A-Fa-f\\-]{36}\\}$" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Registry detection",
+          "type": "object",
+          "required": ["type", "hive", "keyPath", "valueName", "operator", "value"],
+          "properties": {
+            "type": { "const": "registry" },
+            "hive": { "type": "string", "enum": ["HKLM", "HKCU"] },
+            "keyPath": { "type": "string", "minLength": 1 },
+            "valueName": { "type": "string", "minLength": 1 },
+            "operator": { "type": "string", "enum": ["equals", "contains", "greaterThanOrEqual", "exists"] },
+            "value": {}
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "File detection",
+          "type": "object",
+          "required": ["type", "path", "fileOrFolder", "operator"],
+          "properties": {
+            "type": { "const": "file" },
+            "path": { "type": "string", "minLength": 1 },
+            "fileOrFolder": { "type": "string", "minLength": 1 },
+            "operator": { "type": "string", "enum": ["exists", "versionGreaterThanOrEqual", "versionEquals"] },
+            "version": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["intent", "groupId"],
+        "properties": {
+          "intent": { "type": "string", "enum": ["available", "required", "uninstall"] },
+          "groupId": { "type": "string", "pattern": "^[0-9a-fA-F\\-]{36}$" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

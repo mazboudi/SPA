@@ -1,0 +1,12 @@
+# build output
+out/
+*.intunewin
+
+# temp
+*.log
+*.tmp
+
+# OS / Editor
+
+.DS_Store
+.vscode/

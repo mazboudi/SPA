@@ -1,0 +1,12 @@
+{
+  "name": "7-Zip",
+  "publisher": "Igor Pavlov",
+  "description": "7-Zip x64",
+  "version": "24.08",
+  "intune": { "installExperience": "system", "restartBehavior": "suppress" },
+  "install": { "commandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent", "maxRuntimeMinutes": 60 },
+  "uninstall": { "commandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent" },
+  "requirements": { "architecture": "x64", "minWindows": "W11_22H2" },
+  "detection": { "type": "msi", "productCode": "{00000000-0000-0000-0000-000000000000}" },
+  "assignments": [{ "intent": "required", "groupId": "00000000-0000-0000-0000-000000000000" }]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Factory Test",
+  "publisher": "Packaging Automation",
+  "description": "Local buils test package",
+  "version": "0.0.1",
+  "install": { "commandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent", "maxRuntimeMinutes": 30 },
+  "uninstall": { "commandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent" },
+  "detection": {
+    "type": "file",
+    "path": "c:\\Users\\F7NXPWL",
+    "fileOrFolder": "FactoryTest.txt",
+    "operator": "exists",
+    "Assign": "Entra group xyz .. "
+  
+  }
+}
