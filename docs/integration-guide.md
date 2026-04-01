@@ -40,33 +40,42 @@ software-packaging-automation/
 
 ## 3. Push Each Repo Folder
 
-From your local workspace, push each folder as its own git repo:
+From your local workspace, run this **PowerShell** script to push each folder as its own GitLab repo.
 
-```bash
-SPA_DIR="/Users/wissammazboudi/Documents/workspace/gravity/SPA"
-GITLAB_BASE="https://gitlab.example.com/software-packaging-automation"
+> **Note:** The left side is the **local folder path** in your workspace. The right side is the **GitLab project path** under `software-packaging-automation`.
 
-declare -A REPOS=(
-  ["spa-schemas/packaging-standards"]="spa-schemas/packaging-standards"
-  ["spa-frameworks/psadt-enterprise"]="spa-frameworks/psadt-enterprise"
-  ["spa-frameworks/macos-packaging-framework"]="spa-frameworks/macos-packaging-framework"
-  ["spa-frameworks/gitlab-ci-templates"]="spa-frameworks/gitlab-ci-templates"
-  ["spa-deployment/intune-deployment-modules"]="spa-deployment/intune-deployment-modules"
-  ["spa-deployment/terraform-jamf-modules"]="spa-deployment/terraform-jamf-modules"
-  ["titles/google-chrome"]="software-titles/google-chrome"
-)
+```powershell
+$SPA_DIR     = "C:\path\to\SPA"   # ← update to your local workspace path
+$GITLAB_BASE = "https://gitlab.example.com/software-packaging-automation"
 
-for local_path in "${!REPOS[@]}"; do
-  remote_path="${REPOS[$local_path]}"
-  echo "Pushing $local_path -> $GITLAB_BASE/$remote_path"
-  cd "$SPA_DIR/$local_path"
-  git init -b main
-  git add -A
-  git commit -m "chore: initial commit"
-  git remote add origin "$GITLAB_BASE/$remote_path.git"
-  git push -u origin main
-  cd "$SPA_DIR"
-done
+# local folder path  →  GitLab project path (under the root group)
+$repos = [ordered]@{
+    "schemas\packaging-standards"          = "spa-schemas/packaging-standards"
+    "frameworks\psadt-enterprise"          = "spa-frameworks/psadt-enterprise"
+    "frameworks\macos-packaging-framework" = "spa-frameworks/macos-packaging-framework"
+    "frameworks\gitlab-ci-templates"       = "spa-frameworks/gitlab-ci-templates"
+    "deployment\intune-deployment-modules" = "spa-deployment/intune-deployment-modules"
+    "deployment\terraform-jamf-modules"    = "spa-deployment/terraform-jamf-modules"
+    "titles\google-chrome"                 = "software-titles/google-chrome"
+}
+
+foreach ($localPath in $repos.Keys) {
+    $remotePath = $repos[$localPath]
+    $fullLocal  = Join-Path $SPA_DIR $localPath
+    $remoteUrl  = "$GITLAB_BASE/$remotePath.git"
+
+    Write-Host "`nPushing: $localPath  ->  $remoteUrl" -ForegroundColor Cyan
+
+    Push-Location $fullLocal
+    git init -b main
+    git add -A
+    git commit -m "chore: initial commit"
+    git remote add origin $remoteUrl
+    git push -u origin main
+    Pop-Location
+}
+
+Write-Host "`nAll repos pushed." -ForegroundColor Green
 ```
 
 ---
