@@ -9,7 +9,7 @@
 
   The generated .gitlab-ci.yml uses Category + GitLabGroup to construct
   the full GitLab subgroup project path:
-    <GitLabGroup>/titles/<Category>/<PackageId>
+    <GitLabGroup>/software-titles/<Category>/<PackageId>
 
 .PARAMETER PackageId
   Kebab-case identifier, e.g. "7-zip" or "microsoft-teams".
@@ -25,7 +25,7 @@
 
 .PARAMETER Category
   Subgroup category. Used to build the GitLab project path and organise
-  the titles/ subgroup structure.
+  the software-titles/ subgroup structure.
   Allowed values:
     browsers, productivity, developer-tools, security,
     communication, utilities, endpoint-management, custom
@@ -40,7 +40,7 @@
   "msi-product-code", "registry-marker", or "file" (default: "msi-product-code").
 
 .PARAMETER GitLabGroup
-  Root GitLab group name, e.g. "euc-packaging". Defaults to "euc-packaging".
+  Root GitLab group name, e.g. "software-packaging-automation". Defaults to "software-packaging-automation".
 
 .PARAMETER OutDir
   Root titles directory. Defaults to "titles" relative to CWD.
@@ -73,7 +73,7 @@ param(
     [string] $InstallerType = 'msi',
     [ValidateSet('msi-product-code','registry-marker','file')]
     [string] $DetectionMode = 'msi-product-code',
-    [string] $GitLabGroup = 'euc-packaging',
+    [string] $GitLabGroup = 'software-packaging-automation',
     [string] $OutDir = 'titles'
 )
 
@@ -81,7 +81,7 @@ $ErrorActionPreference = 'Stop'
 
 # Build paths
 $titleDir          = Join-Path $OutDir $PackageId
-$gitLabProjectPath = "$GitLabGroup/titles/$Category/$PackageId"
+$gitLabProjectPath = "$GitLabGroup/software-titles/$Category/$PackageId"
 $winEnabled        = ($Platform -in @('windows','both')).ToString().ToLower()
 $macEnabled        = ($Platform -in @('macos','both')).ToString().ToLower()
 
@@ -111,8 +111,8 @@ Write-File (Join-Path $titleDir 'app.json') @"
   "package_id": "$PackageId",
   "version": "$Version",
   "owners": {
-    "team": "euc-packaging",
-    "contact_email": "euc-packaging@yourorg.com"
+    "team": "software-packaging-automation",
+    "contact_email": "spa-team@yourorg.com"
   },
   "lifecycle": "active",
   "platforms": {
@@ -150,7 +150,7 @@ $includeBlock = $includeFiles -join "`n"
 
 Write-File (Join-Path $titleDir '.gitlab-ci.yml') @"
 include:
-  - project: '$GitLabGroup/frameworks/gitlab-ci-templates'
+  - project: '$GitLabGroup/spa-frameworks/gitlab-ci-templates'
     ref: 'v1.0.0'        # TODO: update to the current template release tag
     file:
 $includeBlock
@@ -170,11 +170,11 @@ out/
 *.pkg
 *.tar.gz
 *.zip
-psadt-framework-*/
-macos-framework-*/
+spa-frameworks/psadt-enterprise-*/
+spa-frameworks/macos-packaging-framework-*/
 tools/
-intune-modules/
-terraform-jamf-modules/
+spa-deployment/intune-deployment-modules/
+spa-deployment/terraform-jamf-modules/
 tf-deploy/
 .DS_Store
 .vscode/
@@ -381,7 +381,7 @@ if ($InstallerType -eq 'msi') {
 }
 Write-Host "  3. Replace AAD group IDs in windows\intune\assignments.json"
 Write-Host "  4. Create the GitLab project under: $gitLabProjectPath"
-Write-Host "     (CI/CD variables are inherited from the euc-packaging/titles group)"
+Write-Host "     (CI/CD variables are inherited from the software-packaging-automation/software-titles group)"
 Write-Host "  5. Push and tag:"
 Write-Host "       cd $titleDir"
 Write-Host "       git init -b main && git add -A"

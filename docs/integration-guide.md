@@ -21,17 +21,17 @@ Step-by-step instructions for taking this workspace and wiring it into real GitL
 
 ## 2. Create GitLab Group & Projects
 
-Create a top-level GitLab **group**, e.g. `euc-packaging`, then create these projects under it:
+Create a top-level GitLab **group** named `software-packaging-automation`, with the following subgroups and projects:
 
 ```
-euc-packaging/
-  schemas/packaging-standards
-  frameworks/psadt-enterprise
-  frameworks/macos-packaging-framework
-  frameworks/gitlab-ci-templates
-  deployment/intune-deployment-modules
-  deployment/terraform-jamf-modules
-  titles/google-chrome          ← (repeat for every title)
+software-packaging-automation/
+  spa-schemas/packaging-standards
+  spa-frameworks/psadt-enterprise
+  spa-frameworks/macos-packaging-framework
+  spa-frameworks/gitlab-ci-templates
+  spa-deployment/intune-deployment-modules
+  spa-deployment/terraform-jamf-modules
+  software-titles/google-chrome          ← (repeat for every title)
 ```
 
 > **Tip:** Use the GitLab UI, API, or Terraform (`gitlablabs/gitlab` provider) to bulk-create the projects.
@@ -44,16 +44,16 @@ From your local workspace, push each folder as its own git repo:
 
 ```bash
 SPA_DIR="/Users/wissammazboudi/Documents/workspace/gravity/SPA"
-GITLAB_BASE="https://gitlab.example.com/euc-packaging"
+GITLAB_BASE="https://gitlab.example.com/software-packaging-automation"
 
 declare -A REPOS=(
-  ["schemas/packaging-standards"]="schemas/packaging-standards"
-  ["frameworks/psadt-enterprise"]="frameworks/psadt-enterprise"
-  ["frameworks/macos-packaging-framework"]="frameworks/macos-packaging-framework"
-  ["frameworks/gitlab-ci-templates"]="frameworks/gitlab-ci-templates"
-  ["deployment/intune-deployment-modules"]="deployment/intune-deployment-modules"
-  ["deployment/terraform-jamf-modules"]="deployment/terraform-jamf-modules"
-  ["titles/google-chrome"]="titles/google-chrome"
+  ["schemas/packaging-standards"]="spa-schemas/packaging-standards"
+  ["frameworks/psadt-enterprise"]="spa-frameworks/psadt-enterprise"
+  ["frameworks/macos-packaging-framework"]="spa-frameworks/macos-packaging-framework"
+  ["frameworks/gitlab-ci-templates"]="spa-frameworks/gitlab-ci-templates"
+  ["deployment/intune-deployment-modules"]="spa-deployment/intune-deployment-modules"
+  ["deployment/terraform-jamf-modules"]="spa-deployment/terraform-jamf-modules"
+  ["titles/google-chrome"]="software-titles/google-chrome"
 )
 
 for local_path in "${!REPOS[@]}"; do
@@ -149,17 +149,17 @@ After creating the projects, get their numeric IDs:
 
 ```bash
 curl --header "PRIVATE-TOKEN: <token>" \
-  "https://gitlab.example.com/api/v4/projects/euc-packaging%2Fframeworks%2Fpsadt-enterprise" \
+  "https://gitlab.example.com/api/v4/projects/software-packaging-automation%2Fframeworks%2Fpsadt-enterprise" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])"
 ```
 
 | Variable | Project |
 |----------|---------|
-| `PSADT_PROJECT_ID` | `euc-packaging/frameworks/psadt-enterprise` |
-| `MACOS_FRAMEWORK_PROJECT_ID` | `euc-packaging/frameworks/macos-packaging-framework` |
-| `INTUNE_MODULES_PROJECT_ID` | `euc-packaging/deployment/intune-deployment-modules` |
-| `TF_JAMF_MODULES_PROJECT_ID` | `euc-packaging/deployment/terraform-jamf-modules` |
-| `SCHEMAS_PROJECT_ID` | `euc-packaging/schemas/packaging-standards` |
+| `PSADT_PROJECT_ID` | `software-packaging-automation/spa-frameworks/psadt-enterprise` |
+| `MACOS_FRAMEWORK_PROJECT_ID` | `software-packaging-automation/spa-frameworks/macos-packaging-framework` |
+| `INTUNE_MODULES_PROJECT_ID` | `software-packaging-automation/spa-deployment/intune-deployment-modules` |
+| `TF_JAMF_MODULES_PROJECT_ID` | `software-packaging-automation/spa-deployment/terraform-jamf-modules` |
+| `SCHEMAS_PROJECT_ID` | `software-packaging-automation/spa-schemas/packaging-standards` |
 
 ---
 
@@ -188,7 +188,7 @@ In Jamf Pro **Settings → API Roles and Clients:**
 
 ## 8. Set GitLab Group-Level CI Variables
 
-In **`euc-packaging` group → Settings → CI/CD → Variables:**
+In **`software-packaging-automation` group → Settings → CI/CD → Variables:**
 
 | Variable | Protected | Masked |
 |----------|-----------|--------|
@@ -219,7 +219,7 @@ In **`euc-packaging` group → Settings → CI/CD → Variables:**
 ### Step 1 — Publish `psadt-enterprise`
 
 ```bash
-cd frameworks/psadt-enterprise
+cd spa-frameworks/psadt-enterprise
 git tag v4.1.0 && git push origin v4.1.0
 ```
 
@@ -228,7 +228,7 @@ Pipeline: syntax check → zip bundle → upload to Package Registry → create 
 ### Step 2 — Publish `macos-packaging-framework`
 
 ```bash
-cd frameworks/macos-packaging-framework
+cd spa-frameworks/macos-packaging-framework
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
@@ -237,7 +237,7 @@ Pipeline: shell syntax check → tar.gz bundle → upload → create release `v1
 ### Step 3 — Tag `intune-deployment-modules`
 
 ```bash
-cd deployment/intune-deployment-modules
+cd spa-deployment/intune-deployment-modules
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
@@ -246,7 +246,7 @@ Pipeline: PS syntax check → create release `v1.0.0` *(scripts fetched from git
 ### Step 4 — Tag `terraform-jamf-modules`
 
 ```bash
-cd deployment/terraform-jamf-modules
+cd spa-deployment/terraform-jamf-modules
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
@@ -255,7 +255,7 @@ Pipeline: `terraform validate` all modules → create release `v1.0.0`
 ### Step 5 — Tag `gitlab-ci-templates`
 
 ```bash
-cd frameworks/gitlab-ci-templates
+cd spa-frameworks/gitlab-ci-templates
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
@@ -263,11 +263,11 @@ Pipeline: YAML lint → job name checks → create release `v1.0.0`
 
 ### Step 6 — Update title include paths
 
-In `titles/google-chrome/.gitlab-ci.yml`, update the `include:` block:
+In `software-titles/google-chrome/.gitlab-ci.yml`, update the `include:` block:
 
 ```yaml
 include:
-  - project: 'euc-packaging/frameworks/gitlab-ci-templates'
+  - project: 'software-packaging-automation/spa-frameworks/gitlab-ci-templates'
     ref: 'v1.0.0'
     file:
       - 'templates/metadata-validate.yml'
@@ -286,7 +286,7 @@ Commit and push to `main`.
 # cp GoogleChromeEnterprise64.msi titles/google-chrome/windows/src/Files/
 # cp GoogleChrome.pkg              titles/google-chrome/macos/src/Files/
 
-cd titles/google-chrome
+cd software-titles/google-chrome
 git tag v134.0.6998.89-1 && git push origin v134.0.6998.89-1
 ```
 
@@ -330,12 +330,12 @@ pwsh -File scripts\New-Title.ps1 `
   -Platform    windows `
   -InstallerType  exe `
   -DetectionMode  registry-marker `
-  -GitLabGroup euc-packaging
+  -GitLabGroup software-packaging-automation
 ```
 
 This creates `titles/notepad-plus-plus/` and prints:
 ```
-GitLab project  : euc-packaging/titles/developer-tools/notepad-plus-plus
+GitLab project  : software-packaging-automation/software-titles/developer-tools/notepad-plus-plus
 ```
 
 **Step 2 — Fill in TODOs**
@@ -348,16 +348,16 @@ For `registry-marker` detection, also add a call to `Invoke-RegistryDetection` i
 
 **Step 3 — Create the GitLab project**
 
-In GitLab: navigate to `euc-packaging` > `titles` > `developer-tools` > **New project**.
+In GitLab: navigate to `software-packaging-automation` > `software-titles` > `developer-tools` > **New project**.
 Name it `notepad-plus-plus`. CI variables are automatically inherited from the group.
 
 **Step 4 — Push and tag**
 
 ```bash
-cd titles/notepad-plus-plus
+cd software-titles/notepad-plus-plus
 git init -b main && git add -A
 git commit -m "feat: add Notepad++ 8.7.1"
-git remote add origin https://gitlab.example.com/euc-packaging/titles/developer-tools/notepad-plus-plus.git
+git remote add origin https://gitlab.example.com/software-packaging-automation/software-titles/developer-tools/notepad-plus-plus.git
 git push -u origin main
 git tag v8.7.1-1 && git push origin v8.7.1-1
 ```
@@ -373,12 +373,12 @@ Set `WINDOWS_ENABLED: "false"` or `MACOS_ENABLED: "false"` for single-platform t
 
 ```bash
 # New version directory
-cp -r frameworks/psadt-enterprise/versions/4.1.0 \
-       frameworks/psadt-enterprise/versions/4.2.0
+cp -r spa-frameworks/psadt-enterprise/versions/4.1.0 \
+       spa-frameworks/psadt-enterprise/versions/4.2.0
 
 # Drop in new upstream PSADT runtime
 cp -r /path/to/psadt-4.2.0-runtime/* \
-       frameworks/psadt-enterprise/versions/4.2.0/PSAppDeployToolkit/
+       spa-frameworks/psadt-enterprise/versions/4.2.0/PSAppDeployToolkit/
 
 # Update manifest.json version field
 # Commit + tag
