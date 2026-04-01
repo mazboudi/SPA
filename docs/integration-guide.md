@@ -47,12 +47,12 @@ SPA_DIR="/Users/wissammazboudi/Documents/workspace/gravity/SPA"
 GITLAB_BASE="https://gitlab.example.com/software-packaging-automation"
 
 declare -A REPOS=(
-  ["schemas/packaging-standards"]="spa-schemas/packaging-standards"
-  ["frameworks/psadt-enterprise"]="spa-frameworks/psadt-enterprise"
-  ["frameworks/macos-packaging-framework"]="spa-frameworks/macos-packaging-framework"
-  ["frameworks/gitlab-ci-templates"]="spa-frameworks/gitlab-ci-templates"
-  ["deployment/intune-deployment-modules"]="spa-deployment/intune-deployment-modules"
-  ["deployment/terraform-jamf-modules"]="spa-deployment/terraform-jamf-modules"
+  ["spa-schemas/packaging-standards"]="spa-schemas/packaging-standards"
+  ["spa-frameworks/psadt-enterprise"]="spa-frameworks/psadt-enterprise"
+  ["spa-frameworks/macos-packaging-framework"]="spa-frameworks/macos-packaging-framework"
+  ["spa-frameworks/gitlab-ci-templates"]="spa-frameworks/gitlab-ci-templates"
+  ["spa-deployment/intune-deployment-modules"]="spa-deployment/intune-deployment-modules"
+  ["spa-deployment/terraform-jamf-modules"]="spa-deployment/terraform-jamf-modules"
   ["titles/google-chrome"]="software-titles/google-chrome"
 )
 
