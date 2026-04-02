@@ -1,58 +1,40 @@
-2026-04-02T19:01:46.281471Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-02T19:01:46.281471Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-02T19:01:46.281471Z 00O   feature flags: FF_USE_FASTZIP:true
-2026-04-02T19:01:46.281471Z 00O Resolving secrets
-2026-04-02T19:01:46.281471Z 00O section_start:1775156506:prepare_executor
-2026-04-02T19:01:46.281471Z 00O+Preparing the "shell" executor
-2026-04-02T19:01:46.282107Z 00O Using Shell (pwsh) executor...
-2026-04-02T19:01:46.282107Z 00O section_end:1775156506:prepare_executor
-2026-04-02T19:01:46.282107Z 00O+section_start:1775156506:prepare_script
-2026-04-02T19:01:46.282107Z 00O+Preparing environment
-2026-04-02T19:01:47.304197Z 01O Running on vm-psa-runner-p...
-2026-04-02T19:01:47.564674Z 00O section_end:1775156507:prepare_script
-2026-04-02T19:01:47.564674Z 00O+section_start:1775156507:get_sources
-2026-04-02T19:01:47.565835Z 00O+Getting source from Git repository
-2026-04-02T19:01:49.656066Z 01O Gitaly correlation ID: 01KN7S5APVMR9BJG061S4TQCWA
-2026-04-02T19:01:49.994407Z 01O Fetching changes with git depth set to 1...
-2026-04-02T19:01:50.061438Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/spa-frameworks/psadt-enterprise/.git/
-2026-04-02T19:01:52.643198Z 01O Checking out 33e20802 as detached HEAD (ref is v4.1.0)...
-2026-04-02T19:01:52.783138Z 01O Removing dist/
-2026-04-02T19:01:52.997188Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-02T19:01:53.593278Z 01O 
-2026-04-02T19:01:53.593278Z 01O Skipping Git submodules setup
-2026-04-02T19:01:53.790890Z 00O section_end:1775156513:get_sources
-2026-04-02T19:01:53.790890Z 00O+section_start:1775156513:download_artifacts
-2026-04-02T19:01:53.792483Z 00O+Downloading artifacts
-2026-04-02T19:01:55.161052Z 01O Version:      18.9.0
-2026-04-02T19:01:55.161052Z 01O Git revision: 07e534ba
-2026-04-02T19:01:55.161052Z 01O Git branch:   18-9-stable
-2026-04-02T19:01:55.161052Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-02T19:01:55.161052Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-02T19:01:55.161052Z 01O OS/Arch:      windows/amd64
-2026-04-02T19:01:55.178680Z 01O Downloading artifacts for build_bundle (25810682)...
-2026-04-02T19:01:55.339340Z 01E Runtime platform                                    arch=amd64 os=windows pid=6748 revision=07e534ba version=18.9.0
-2026-04-02T19:01:56.925559Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KN7S5MNXJHMHPC4WRBW8WCSM host=gitlab.onefiserv.net id=25810682 responseStatus=200 OK token=64_zcWjS-
-2026-04-02T19:01:57.187069Z 00O section_end:1775156517:download_artifacts
-2026-04-02T19:01:57.187069Z 00O+section_start:1775156517:step_script
-2026-04-02T19:01:57.187573Z 00O+Executing "step_script" stage of the job script
-2026-04-02T19:01:58.398288Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-02T19:01:58.402031Z 01O Publishing psadt-enterprise v4.1.0 to Package Registry...
-2026-04-02T19:01:58.887686Z 01O Building bundle for version 4.1.0...
-2026-04-02T19:01:58.943868Z 01O Bundling psadt-enterprise 4.1.0...
-2026-04-02T19:02:00.779885Z 01O Bundle created: dist\psadt-enterprise-4.1.0.zip
-2026-04-02T19:02:00.841067Z 01O SHA-256: 9c6f0dfa066780ea13f5dc4e26eedcdac57701833ff1026d6acc03d7a8a78748
-2026-04-02T19:02:00.866154Z 01O Checksums written: dist\checksums.json
-2026-04-02T19:02:00.868165Z 01O 
-2026-04-02T19:02:00.868682Z 01O BUNDLE_PATH=dist\psadt-enterprise-4.1.0.zip
-2026-04-02T19:02:00.869395Z 01O BUNDLE_SHA256=9c6f0dfa066780ea13f5dc4e26eedcdac57701833ff1026d6acc03d7a8a78748
-2026-04-02T19:02:01.035826Z 01E ConvertFrom-StringData: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\spa-frameworks\psadt-enterprise\scripts\New-FrameworkRelease.ps1:46
-2026-04-02T19:02:01.037403Z 01E Line |
-2026-04-02T19:02:01.037403Z 01E   46 |  …  Get-Content (Join-Path 'dist' 'bundle.env') | ConvertFrom-StringData
-2026-04-02T19:02:01.037403Z 01E      |                                                   ~~~~~~~~~~~~~~~~~~~~~~
-2026-04-02T19:02:01.037403Z 01E      | Invalid pattern 'dist\psadt-enterprise-4.1.0.zip' at offset 6. Unrecognized escape sequence \p.
-2026-04-02T19:02:01.365705Z 00O section_end:1775156521:step_script
-2026-04-02T19:02:01.365705Z 00O+section_start:1775156521:cleanup_file_variables
-2026-04-02T19:02:01.367316Z 00O+Cleaning up project directory and file based variables
-2026-04-02T19:02:02.780349Z 00O section_end:1775156522:cleanup_file_variables
-2026-04-02T19:02:02.780349Z 00O+
-2026-04-02T19:02:02.780856Z 00O ERROR: Job failed: exit status 1
+Running with gitlab-runner 16.3.3 (ed9cebb1)
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-hj6wv ZJymoHFP, system ID: r_XBsHgxwG1NmJ
+Resolving secrets
+00:00
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab-prod
+Using Kubernetes executor with image fmk-prod.nexus-ci.onefiserv.net/fmk/os/fmk-ubi8:FMK-05-20-24 ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:03
+Waiting for pod gitlab-prod/runner-zjymohfp-project-86262-concurrent-0-lumjcrf8 to be running, status is Pending
+Running on runner-zjymohfp-project-86262-concurrent-0-lumjcrf8 via gitlab-runner-generic-16-3-3-74cb5cfbf6-hj6wv...
+Getting source from Git repository
+00:02
+Fetching changes with git depth set to 1...
+Initialized empty Git repository in /builds/euc/software-package-automation/spa-frameworks/gitlab-ci-templates/.git/
+Created fresh repository.
+Checking out 0b746793 as detached HEAD (ref is v1.0.0)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:01
+$ set -euo pipefail # collapsed multi-line command
+=== Validating YAML syntax ===
+  Checking: templates/macos-build.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
+FAIL (HTTP 400)
+  Checking: templates/macos-deploy-jamf.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
+FAIL (HTTP 400)
+  Checking: templates/metadata-validate.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
+FAIL (HTTP 400)
+  Checking: templates/release.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
+FAIL (HTTP 400)
+  Checking: templates/windows-build.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
+FAIL (HTTP 400)
+  Checking: templates/windows-deploy-intune.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
+FAIL (HTTP 400)
+❌ 6 template(s) failed validation.
+Cleaning up project directory and file based variables
+00:00
+ERROR: Job failed: command terminated with exit code 1
