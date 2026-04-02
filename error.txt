@@ -1,0 +1,50 @@
+2026-04-02T18:54:06.278153Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-02T18:54:06.278153Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-02T18:54:06.278153Z 00O   feature flags: FF_USE_FASTZIP:true
+2026-04-02T18:54:06.278153Z 00O Resolving secrets
+2026-04-02T18:54:06.278153Z 00O section_start:1775156046:prepare_executor
+2026-04-02T18:54:06.278153Z 00O+Preparing the "shell" executor
+2026-04-02T18:54:06.278854Z 00O Using Shell (pwsh) executor...
+2026-04-02T18:54:06.278854Z 00O section_end:1775156046:prepare_executor
+2026-04-02T18:54:06.278854Z 00O+section_start:1775156046:prepare_script
+2026-04-02T18:54:06.278854Z 00O+Preparing environment
+2026-04-02T18:54:07.308705Z 01O Running on vm-psa-runner-p...
+2026-04-02T18:54:07.563666Z 00O section_end:1775156047:prepare_script
+2026-04-02T18:54:07.563666Z 00O+section_start:1775156047:get_sources
+2026-04-02T18:54:07.564173Z 00O+Getting source from Git repository
+2026-04-02T18:54:09.581281Z 01O Gitaly correlation ID: 01KN7RQ9H4HAKKD2E7958T5ASY
+2026-04-02T18:54:09.949419Z 01O Fetching changes with git depth set to 1...
+2026-04-02T18:54:10.012352Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/spa-frameworks/psadt-enterprise/.git/
+2026-04-02T18:54:12.240706Z 01O Checking out 33e20802 as detached HEAD (ref is v4.1.0)...
+2026-04-02T18:54:12.415142Z 01O Removing dist/
+2026-04-02T18:54:12.682591Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-02T18:54:13.348517Z 01O 
+2026-04-02T18:54:13.350052Z 01O Skipping Git submodules setup
+2026-04-02T18:54:13.608773Z 00O section_end:1775156053:get_sources
+2026-04-02T18:54:13.608773Z 00O+section_start:1775156053:download_artifacts
+2026-04-02T18:54:13.609816Z 00O+Downloading artifacts
+2026-04-02T18:54:15.340259Z 01O Version:      18.9.0
+2026-04-02T18:54:15.340259Z 01O Git revision: 07e534ba
+2026-04-02T18:54:15.340259Z 01O Git branch:   18-9-stable
+2026-04-02T18:54:15.340259Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-02T18:54:15.340259Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-02T18:54:15.340259Z 01O OS/Arch:      windows/amd64
+2026-04-02T18:54:15.362080Z 01O Downloading artifacts for build_bundle (25810682)...
+2026-04-02T18:54:15.612369Z 01E Runtime platform                                    arch=amd64 os=windows pid=7600 revision=07e534ba version=18.9.0
+2026-04-02T18:54:22.935972Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KN7RQKTBXCQ2B5NNEG133G61 host=gitlab.onefiserv.net id=25810682 responseStatus=200 OK token=64_q1Bnip
+2026-04-02T18:54:23.203821Z 00O section_end:1775156063:download_artifacts
+2026-04-02T18:54:23.203821Z 00O+section_start:1775156063:step_script
+2026-04-02T18:54:23.204498Z 00O+Executing "step_script" stage of the job script
+2026-04-02T18:54:24.445077Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-02T18:54:24.454905Z 01O Publishing psadt-enterprise v4.1.0 to Package Registry...
+2026-04-02T18:54:25.086399Z 01E Exception: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\spa-frameworks\psadt-enterprise\scripts\New-FrameworkRelease.ps1:39
+2026-04-02T18:54:25.088493Z 01E Line |
+2026-04-02T18:54:25.088493Z 01E   39 |  if (-not $PrivateToken) { throw 'GITLAB_RELEASE_TOKEN is not set.' }
+2026-04-02T18:54:25.088493Z 01E      |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-04-02T18:54:25.088493Z 01E      | GITLAB_RELEASE_TOKEN is not set.
+2026-04-02T18:54:25.374826Z 00O section_end:1775156065:step_script
+2026-04-02T18:54:25.374826Z 00O+section_start:1775156065:cleanup_file_variables
+2026-04-02T18:54:25.375861Z 00O+Cleaning up project directory and file based variables
+2026-04-02T18:54:26.796681Z 00O section_end:1775156066:cleanup_file_variables
+2026-04-02T18:54:26.796681Z 00O+
+2026-04-02T18:54:26.797283Z 00O ERROR: Job failed: exit status 1
