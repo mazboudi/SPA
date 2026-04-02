@@ -79,5 +79,7 @@ Write-Host ""
 Write-Host "BUNDLE_PATH=$bundlePath" -ForegroundColor Yellow
 Write-Host "BUNDLE_SHA256=$hash"     -ForegroundColor Yellow
 
-# Write dotenv for CI consumption
-"BUNDLE_PATH=$bundlePath`nBUNDLE_SHA256=$hash" | Out-File (Join-Path $OutDir 'bundle.env') -Encoding ascii -Force
+# Write dotenv for CI consumption — use forward slashes so ConvertFrom-StringData
+# doesn't misinterpret Windows backslashes as escape sequences (e.g. \p, \n)
+$bundlePathNorm = $bundlePath.Replace('\', '/')
+"BUNDLE_PATH=$bundlePathNorm`nBUNDLE_SHA256=$hash" | Out-File (Join-Path $OutDir 'bundle.env') -Encoding ascii -Force

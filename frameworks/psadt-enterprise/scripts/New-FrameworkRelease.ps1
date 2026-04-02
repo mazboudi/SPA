@@ -43,7 +43,7 @@ $headers = @{ 'PRIVATE-TOKEN' = $PrivateToken }
 # Step 1 — Build the bundle
 Write-Host "Building bundle for version $Version..." -ForegroundColor Cyan
 & (Join-Path $PSScriptRoot 'build-framework-bundle.ps1') -Version $Version
-$bundleEnv = Get-Content (Join-Path 'dist' 'bundle.env') | ConvertFrom-StringData
+$bundleEnv = (Get-Content (Join-Path 'dist' 'bundle.env') -Raw).Replace('\','\\') | ConvertFrom-StringData
 $bundlePath = $bundleEnv['BUNDLE_PATH']
 $bundleName = Split-Path $bundlePath -Leaf
 
