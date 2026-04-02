@@ -55,7 +55,9 @@ $bundlePath = Join-Path $OutDir $bundleName
 # Remove existing zip if present
 if (Test-Path $bundlePath) { Remove-Item $bundlePath -Force }
 
-# Compress
+# Compress the versioned bundle content only.
+# IntuneWinAppUtil.exe and other tools are pre-installed on the runner at C:\tools
+# and do not need to be included in the bundle.
 Compress-Archive -Path (Join-Path $versionDir '*') -DestinationPath $bundlePath -CompressionLevel Optimal
 Write-Host "Bundle created: $bundlePath" -ForegroundColor Green
 

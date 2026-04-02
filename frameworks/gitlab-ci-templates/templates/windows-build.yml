@@ -51,15 +51,19 @@
         Write-Host "Framework extracted to: $frameworkDir"
       }
 
-      ## 3 — Resolve IntuneWinAppUtil.exe from the bundled tools/ directory
-      ##     (no download needed — it ships inside the psadt-enterprise zip)
-      $intuneUtil = Join-Path $frameworkDir 'tools\IntuneWinAppUtil.exe'
-      if (!(Test-Path $intuneUtil)) {
-        # Fallback: try the old location at the bundle root
-        $intuneUtil = Join-Path $frameworkDir 'IntuneWinAppUtil.exe'
+      ## 3 — Resolve IntuneWinAppUtil.exe
+      ##     Priority: C:\tools (pre-installed on runner) → bundle tools\ → bundle root
+      $intuneUtil = $null
+      $candidates = @(
+        'C:\tools\IntuneWinAppUtil.exe',                          # pre-installed on runner
+        (Join-Path $frameworkDir 'tools\IntuneWinAppUtil.exe'),   # bundled in psadt-enterprise zip
+        (Join-Path $frameworkDir 'IntuneWinAppUtil.exe')           # legacy bundle root location
+      )
+      foreach ($candidate in $candidates) {
+        if (Test-Path $candidate) { $intuneUtil = $candidate; break }
       }
-      if (!(Test-Path $intuneUtil)) {
-        throw "IntuneWinAppUtil.exe not found in framework bundle at '$frameworkDir\tools\'. Re-publish psadt-enterprise with tools/ included."
+      if (-not $intuneUtil) {
+        throw "IntuneWinAppUtil.exe not found. Install it at C:\tools\IntuneWinAppUtil.exe on the runner, or include tools/ in the psadt-enterprise bundle."
       }
       Write-Host "Using IntuneWinAppUtil: $intuneUtil"
 
