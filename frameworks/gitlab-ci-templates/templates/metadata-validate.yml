@@ -12,7 +12,8 @@
 
 .metadata_validate:
   stage: validate
-  tags: [Windows]  # pwsh runs anywhere; use Linux runner with pwsh if preferred
+  # No runner tag — runs on any available runner (instance/shared runners are fine).
+  # This job only does JSON/YAML validation; it does not need the Windows build runner.
   variables:
     SCHEMA_VERSION: "main"
   script:
@@ -57,15 +58,22 @@
           throw "windows/package.yaml not found but WINDOWS_ENABLED=true"
         }
         Write-Host "Validating windows/package.yaml..."
-        $winPkg = Get-Content 'windows/package.yaml' -Raw | ConvertFrom-Yaml
-        $required = @('vendor_version','packaging_version','installer_type',
-                      'source_filename','install_command','uninstall_command','detection')
-        foreach ($f in $required) {
-          if (-not $winPkg.$f) { throw "windows/package.yaml: missing required field '$f'" }
+        $winPkg = Get-Content 'windows/package.yaml' -Raw
+        function Assert-YamlField([string] $yaml, [string] $field) {
+          if ($yaml -notmatch "(?m)^${field}:") {
+            throw "windows/package.yaml: missing required field '$field'"
+          }
         }
-        $validTypes = @('msi','exe','msix','ps1')
-        if ($winPkg.installer_type -notin $validTypes) {
-          throw "windows/package.yaml: installer_type must be one of: $($validTypes -join ', ')"
+        foreach ($f in @('vendor_version','packaging_version','installer_type',
+                          'install_command','uninstall_command','detection')) {
+          Assert-YamlField $winPkg $f
+        }
+        if ($winPkg -match '(?m)^installer_type:\s*(\S+)') {
+          $installerType = $Matches[1].Trim(" '`"")
+          $validTypes = @('msi','exe','msix','ps1')
+          if ($installerType -notin $validTypes) {
+            throw "windows/package.yaml: installer_type '$installerType' must be one of: $($validTypes -join ', ')"
+          }
         }
         Write-Host "  ✓ windows/package.yaml passed"
       }
@@ -76,15 +84,22 @@
           throw "macos/package.yaml not found but MACOS_ENABLED=true"
         }
         Write-Host "Validating macos/package.yaml..."
-        $macPkg = Get-Content 'macos/package.yaml' -Raw | ConvertFrom-Yaml
-        $required = @('vendor_version','packaging_version','source_type',
-                      'source_filename','receipt_id','bundle_id','minimum_os')
-        foreach ($f in $required) {
-          if (-not $macPkg.$f) { throw "macos/package.yaml: missing required field '$f'" }
+        $macPkg = Get-Content 'macos/package.yaml' -Raw
+        function Assert-MacYamlField([string] $yaml, [string] $field) {
+          if ($yaml -notmatch "(?m)^${field}:") {
+            throw "macos/package.yaml: missing required field '$field'"
+          }
         }
-        $validSrcTypes = @('pkg','dmg','zip','app')
-        if ($macPkg.source_type -notin $validSrcTypes) {
-          throw "macos/package.yaml: source_type must be one of: $($validSrcTypes -join ', ')"
+        foreach ($f in @('vendor_version','packaging_version','source_type',
+                          'source_filename','receipt_id','bundle_id','minimum_os')) {
+          Assert-MacYamlField $macPkg $f
+        }
+        if ($macPkg -match '(?m)^source_type:\s*(\S+)') {
+          $srcType = $Matches[1].Trim(" '`"")
+          $validSrcTypes = @('pkg','dmg','zip','app')
+          if ($srcType -notin $validSrcTypes) {
+            throw "macos/package.yaml: source_type '$srcType' must be one of: $($validSrcTypes -join ', ')"
+          }
         }
         Write-Host "  ✓ macos/package.yaml passed"
       }
