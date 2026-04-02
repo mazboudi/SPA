@@ -19,7 +19,7 @@
   script:
     - |
       ## Download schemas from packaging-standards repo (or use a cached copy)
-      $schemaBase = "https://gitlab.example.com/api/v4/projects/${env:SCHEMAS_PROJECT_ID}/repository/files"
+      $schemaBase = "https://gitlab.onefiserv.net/api/v4/projects/${env:SCHEMAS_PROJECT_ID}/repository/files"
       $headers    = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
       $schemaDir  = New-Item -ItemType Directory -Path "$env:TEMP\schemas" -Force
 

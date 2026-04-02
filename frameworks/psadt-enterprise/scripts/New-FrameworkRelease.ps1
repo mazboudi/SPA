@@ -13,7 +13,7 @@
   Framework version to release (e.g. '4.1.0').
 
 .PARAMETER GitLabApiUrl
-  GitLab API base URL (e.g. 'https://gitlab.example.com/api/v4').
+  GitLab API base URL (e.g. 'https://gitlab.onefiserv.net/api/v4').
 
 .PARAMETER ProjectId
   GitLab project ID (numeric) for this repo.
@@ -24,7 +24,7 @@
 
 .EXAMPLE
   pwsh -File scripts/New-FrameworkRelease.ps1 -Version 4.1.0 `
-       -GitLabApiUrl https://gitlab.example.com/api/v4 -ProjectId 42
+       -GitLabApiUrl https://gitlab.onefiserv.net/api/v4 -ProjectId 42
 #>
 [CmdletBinding()]
 param(

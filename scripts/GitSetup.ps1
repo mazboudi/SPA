@@ -1,5 +1,5 @@
 $SPA_DIR     = "C:\path\to\SPA"   # ← update to your local workspace path
-$GITLAB_BASE = "https://gitlab.example.com/software-packaging-automation"
+$GITLAB_BASE = "https://gitlab.onefiserv.net/euc/software-package-automation"
 
 # local folder path  →  GitLab project path (under the root group)
 $repos = [ordered]@{

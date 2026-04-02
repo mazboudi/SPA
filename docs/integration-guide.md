@@ -21,10 +21,10 @@ Step-by-step instructions for taking this workspace and wiring it into real GitL
 
 ## 2. Create GitLab Group & Projects
 
-Create a top-level GitLab **group** named `software-packaging-automation`, with the following subgroups and projects:
+Create a top-level GitLab **group** named `euc/software-package-automation`, with the following subgroups and projects:
 
 ```
-software-packaging-automation/
+euc/software-package-automation/
   spa-schemas/packaging-standards
   spa-frameworks/psadt-enterprise
   spa-frameworks/macos-packaging-framework
@@ -42,11 +42,11 @@ software-packaging-automation/
 
 From your local workspace, run this **PowerShell** script to push each folder as its own GitLab repo.
 
-> **Note:** The left side is the **local folder path** in your workspace. The right side is the **GitLab project path** under `software-packaging-automation`.
+> **Note:** The left side is the **local folder path** in your workspace. The right side is the **GitLab project path** under `euc/software-package-automation`.
 
 ```powershell
 $SPA_DIR     = "C:\path\to\SPA"   # ← update to your local workspace path
-$GITLAB_BASE = "https://gitlab.example.com/software-packaging-automation"
+$GITLAB_BASE = "https://gitlab.onefiserv.net/euc/software-package-automation"
 
 # local folder path  →  GitLab project path (under the root group)
 $repos = [ordered]@{
@@ -87,7 +87,7 @@ Write-Host "`nAll repos pushed." -ForegroundColor Green
 ```powershell
 # On the Windows runner machine
 gitlab-runner register `
-  --url https://gitlab.example.com `
+  --url https://gitlab.onefiserv.net `
   --token <RUNNER_TOKEN> `
   --executor shell `
   --shell pwsh `
@@ -125,7 +125,7 @@ is shared across all VMSS instances rather than re-downloaded per node.
 
 ```bash
 gitlab-runner register \
-  --url https://gitlab.example.com \
+  --url https://gitlab.onefiserv.net \
   --token <RUNNER_TOKEN> \
   --executor shell \
   --tag-list macOS \
@@ -142,7 +142,7 @@ gitlab-runner register \
 
 ```bash
 gitlab-runner register \
-  --url https://gitlab.example.com \
+  --url https://gitlab.onefiserv.net \
   --token <RUNNER_TOKEN> \
   --executor docker \
   --docker-image alpine:3.19 \
@@ -158,17 +158,17 @@ After creating the projects, get their numeric IDs:
 
 ```bash
 curl --header "PRIVATE-TOKEN: <token>" \
-  "https://gitlab.example.com/api/v4/projects/software-packaging-automation%2Fframeworks%2Fpsadt-enterprise" \
+  "https://gitlab.onefiserv.net/api/v4/projects/euc/software-package-automation%2Fframeworks%2Fpsadt-enterprise" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])"
 ```
 
 | Variable | Project |
 |----------|---------|
-| `PSADT_PROJECT_ID` | `software-packaging-automation/spa-frameworks/psadt-enterprise` |
-| `MACOS_FRAMEWORK_PROJECT_ID` | `software-packaging-automation/spa-frameworks/macos-packaging-framework` |
-| `INTUNE_MODULES_PROJECT_ID` | `software-packaging-automation/spa-deployment/intune-deployment-modules` |
-| `TF_JAMF_MODULES_PROJECT_ID` | `software-packaging-automation/spa-deployment/terraform-jamf-modules` |
-| `SCHEMAS_PROJECT_ID` | `software-packaging-automation/spa-schemas/packaging-standards` |
+| `PSADT_PROJECT_ID` | `euc/software-package-automation/spa-frameworks/psadt-enterprise` |
+| `MACOS_FRAMEWORK_PROJECT_ID` | `euc/software-package-automation/spa-frameworks/macos-packaging-framework` |
+| `INTUNE_MODULES_PROJECT_ID` | `euc/software-package-automation/spa-deployment/intune-deployment-modules` |
+| `TF_JAMF_MODULES_PROJECT_ID` | `euc/software-package-automation/spa-deployment/terraform-jamf-modules` |
+| `SCHEMAS_PROJECT_ID` | `euc/software-package-automation/spa-schemas/packaging-standards` |
 
 ---
 
@@ -197,7 +197,7 @@ In Jamf Pro **Settings → API Roles and Clients:**
 
 ## 8. Set GitLab Group-Level CI Variables
 
-In **`software-packaging-automation` group → Settings → CI/CD → Variables:**
+In **`euc/software-package-automation` group → Settings → CI/CD → Variables:**
 
 | Variable | Protected | Masked |
 |----------|-----------|--------|
@@ -276,7 +276,7 @@ In `software-titles/google-chrome/.gitlab-ci.yml`, update the `include:` block:
 
 ```yaml
 include:
-  - project: 'software-packaging-automation/spa-frameworks/gitlab-ci-templates'
+  - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
     ref: 'v1.0.0'
     file:
       - 'templates/metadata-validate.yml'
@@ -339,12 +339,12 @@ pwsh -File scripts\New-Title.ps1 `
   -Platform    windows `
   -InstallerType  exe `
   -DetectionMode  registry-marker `
-  -GitLabGroup software-packaging-automation
+  -GitLabGroup euc/software-package-automation
 ```
 
 This creates `titles/notepad-plus-plus/` and prints:
 ```
-GitLab project  : software-packaging-automation/software-titles/developer-tools/notepad-plus-plus
+GitLab project  : euc/software-package-automation/software-titles/developer-tools/notepad-plus-plus
 ```
 
 **Step 2 — Fill in TODOs**
@@ -357,7 +357,7 @@ For `registry-marker` detection, also add a call to `Invoke-RegistryDetection` i
 
 **Step 3 — Create the GitLab project**
 
-In GitLab: navigate to `software-packaging-automation` > `software-titles` > `developer-tools` > **New project**.
+In GitLab: navigate to `euc/software-package-automation` > `software-titles` > `developer-tools` > **New project**.
 Name it `notepad-plus-plus`. CI variables are automatically inherited from the group.
 
 **Step 4 — Push and tag**
@@ -366,7 +366,7 @@ Name it `notepad-plus-plus`. CI variables are automatically inherited from the g
 cd software-titles/notepad-plus-plus
 git init -b main && git add -A
 git commit -m "feat: add Notepad++ 8.7.1"
-git remote add origin https://gitlab.example.com/software-packaging-automation/software-titles/developer-tools/notepad-plus-plus.git
+git remote add origin https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/developer-tools/notepad-plus-plus.git
 git push -u origin main
 git tag v8.7.1-1 && git push origin v8.7.1-1
 ```

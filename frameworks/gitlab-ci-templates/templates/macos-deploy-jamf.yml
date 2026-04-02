@@ -42,7 +42,7 @@
         git clone \
           --depth 1 \
           --branch "$TF_JAMF_MODULES_REF" \
-          "https://gitlab-ci-token:${GITLAB_READ_TOKEN}@gitlab.example.com/your-group/terraform-jamf-modules.git" \
+          "https://gitlab-ci-token:${GITLAB_READ_TOKEN}@gitlab.onefiserv.net/euc/software-package-automation/spa-deployment/terraform-jamf-modules.git" \
           "$TF_MODULES_DIR"
       fi
 

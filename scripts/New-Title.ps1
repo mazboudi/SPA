@@ -40,7 +40,7 @@
   "msi-product-code", "registry-marker", or "file" (default: "msi-product-code").
 
 .PARAMETER GitLabGroup
-  Root GitLab group name, e.g. "software-packaging-automation". Defaults to "software-packaging-automation".
+  Root GitLab group name, e.g. "euc/software-package-automation". Defaults to "euc/software-package-automation".
 
 .PARAMETER OutDir
   Root titles directory. Defaults to "titles" relative to CWD.
@@ -73,7 +73,7 @@ param(
     [string] $InstallerType = 'msi',
     [ValidateSet('msi-product-code','registry-marker','file')]
     [string] $DetectionMode = 'msi-product-code',
-    [string] $GitLabGroup = 'software-packaging-automation',
+    [string] $GitLabGroup = 'euc/software-package-automation',
     [string] $OutDir = 'titles'
 )
 
@@ -381,11 +381,11 @@ if ($InstallerType -eq 'msi') {
 }
 Write-Host "  3. Replace AAD group IDs in windows\intune\assignments.json"
 Write-Host "  4. Create the GitLab project under: $gitLabProjectPath"
-Write-Host "     (CI/CD variables are inherited from the software-packaging-automation/software-titles group)"
+Write-Host "     (CI/CD variables are inherited from the euc/software-package-automation/software-titles group)"
 Write-Host "  5. Push and tag:"
 Write-Host "       cd $titleDir"
 Write-Host "       git init -b main && git add -A"
 Write-Host "       git commit -m 'feat: add $DisplayName $Version'"
-Write-Host "       git remote add origin https://gitlab.example.com/$gitLabProjectPath.git"
+Write-Host "       git remote add origin https://gitlab.onefiserv.net/$gitLabProjectPath.git"
 Write-Host "       git push -u origin main"
 Write-Host "       git tag v$Version-1 && git push origin v$Version-1"
