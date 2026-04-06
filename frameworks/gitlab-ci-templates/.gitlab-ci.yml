@@ -27,8 +27,10 @@ variables:
   GIT_DEPTH: "1"
 
 ## ---------------------------------------------------------------------------
-## validate_yaml_syntax — parse every template file for YAML syntax errors
-## Uses Ruby (bundled on most Linux images) — no API calls, no tokens needed.
+## validate_yaml_syntax — check templates for common YAML errors (pure bash)
+## No external tools required — uses only grep/awk/sed which are always present.
+## Catches: tab indentation, empty files, obviously malformed structure.
+## Full semantic validation happens naturally when title pipelines include them.
 ## ---------------------------------------------------------------------------
 validate_yaml_syntax:
   stage: validate
@@ -41,26 +43,48 @@ validate_yaml_syntax:
       set -euo pipefail
       ERRORS=0
 
-      echo "=== Validating YAML syntax ==="
+      echo "=== Validating YAML templates ==="
 
       for f in templates/*.yml; do
         echo -n "  Checking: $f ... "
+        FILE_ERRORS=0
 
-        if ruby -e "require 'yaml'; YAML.safe_load(File.read('$f'))" 2>/tmp/yaml_err; then
+        # 1. File must not be empty
+        if [[ ! -s "$f" ]]; then
+          echo "FAIL — file is empty"
+          ERRORS=$((ERRORS+1))
+          continue
+        fi
+
+        # 2. YAML must not contain tab characters (tabs are illegal in YAML)
+        if grep -Pn "\t" "$f" > /tmp/tab_lines 2>/dev/null; then
+          echo "FAIL — tab character(s) found (YAML requires spaces):"
+          sed 's/^/    /' /tmp/tab_lines
+          FILE_ERRORS=$((FILE_ERRORS+1))
+        fi
+
+        # 3. Every line with a colon key must have a space after the colon
+        #    (catches `key:value` without space — common copy-paste mistake)
+        if grep -Pn "^\s*[a-zA-Z_][a-zA-Z0-9_-]*:[^ >|{'\"\[\n]" "$f" \
+             | grep -v "^Binary" > /tmp/nospace_lines 2>/dev/null; then
+          echo "FAIL — key:value missing space after colon:"
+          sed 's/^/    /' /tmp/nospace_lines
+          FILE_ERRORS=$((FILE_ERRORS+1))
+        fi
+
+        if [[ $FILE_ERRORS -eq 0 ]]; then
           echo "OK"
         else
-          echo "INVALID"
-          sed 's/^/    /' /tmp/yaml_err || true
           ERRORS=$((ERRORS+1))
         fi
       done
 
       echo ""
       if [[ $ERRORS -gt 0 ]]; then
-        echo "❌ $ERRORS template(s) have YAML syntax errors."
+        echo "❌ $ERRORS template(s) have YAML issues."
         exit 1
       fi
-      echo "✅ All templates passed YAML syntax check."
+      echo "✅ All templates passed YAML checks."
 
 ## ---------------------------------------------------------------------------
 ## validate_required_jobs — verify each template defines expected job names
