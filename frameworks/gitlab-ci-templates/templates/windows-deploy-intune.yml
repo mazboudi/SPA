@@ -155,9 +155,12 @@ windows_publish_intune:
   extends: .windows_publish_intune
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $WINDOWS_ENABLED == "true"
+    - if: $CI_COMMIT_BRANCH == "main" && $WINDOWS_ENABLED == "true"
 
 windows_assign_intune:
   extends: .windows_assign_intune
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $WINDOWS_ENABLED == "true"
+      when: manual
+    - if: $CI_COMMIT_BRANCH == "main" && $WINDOWS_ENABLED == "true"
       when: manual
