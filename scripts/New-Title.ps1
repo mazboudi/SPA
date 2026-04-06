@@ -155,6 +155,14 @@ include:
     file:
 $includeBlock
 
+# Declare all stages used by the included templates.
+# GitLab's default stages don't include validate / publish / assign.
+stages:
+  - validate
+  - build
+  - publish
+  - assign
+
 variables:
   WINDOWS_ENABLED: "$winEnabled"
   MACOS_ENABLED:   "$macEnabled"
