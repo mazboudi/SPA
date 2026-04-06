@@ -168,9 +168,9 @@
       $safeName    = ($app.package_id -replace '[^a-z0-9\-]', '-')
       $winPkg      = Get-Content 'windows/package.yaml' -Raw
 
-      # Extract vendor_version with simple regex
-      if ($winPkg -match 'vendor_version:\s*["''']?([^\n"'''\r]+)') {
-        $vendorVer = $Matches[1].Trim()
+      # Extract vendor_version — use double-quoted regex to avoid single-quote parser issues
+      if ($winPkg -match "(?m)^vendor_version:\s*[`"']?([^`"'`r`n]+)[`"']?\s*$") {
+        $vendorVer = $Matches[1].Trim().Trim('"').Trim("'")
       } else { $vendorVer = $app.version }
 
       if ($winPkg -match 'packaging_version:\s*(\d+)') {
