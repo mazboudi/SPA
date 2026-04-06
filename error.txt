@@ -8,9 +8,9 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image fmk-prod.nexus-ci.onefiserv.net/fmk/os/fmk-ubi8:FMK-05-20-24 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:03
-Waiting for pod gitlab-prod/runner-m5kfmq4n-project-86265-concurrent-0-3v924fwq to be running, status is Pending
-Running on runner-m5kfmq4n-project-86265-concurrent-0-3v924fwq via gitlab-runner-generic-16-3-3-74cb5cfbf6-xknfh...
+00:04
+Waiting for pod gitlab-prod/runner-m5kfmq4n-project-86265-concurrent-0-nvyrx6xx to be running, status is Pending
+Running on runner-m5kfmq4n-project-86265-concurrent-0-nvyrx6xx via gitlab-runner-generic-16-3-3-74cb5cfbf6-xknfh...
 Getting source from Git repository
 00:01
 Fetching changes with git depth set to 20...
@@ -19,9 +19,9 @@ Created fresh repository.
 Checking out 183a72fe as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:01
-$ ## Download schemas from packaging-standards repo (or use a cached copy) # collapsed multi-line command
-/scripts-86265-25952101/step_script: line 202: =: command not found
-Cleaning up project directory and file based variables
 00:00
+$ ## Download schemas from packaging-standards repo (or use a cached copy) # collapsed multi-line command
+/scripts-86265-25952716/step_script: line 202: =: command not found
+Cleaning up project directory and file based variables
+00:01
 ERROR: Job failed: command terminated with exit code 1
