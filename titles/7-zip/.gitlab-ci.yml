@@ -1,5 +1,5 @@
 include:
-  - project: 'yourgroup/gitlab-ci-templates'   # TODO: set your real GitLab group path
+  - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
     ref: 'v1.0.0'                               # TODO: pin to desired template release
     file:
       - 'templates/metadata-validate.yml'
@@ -7,6 +7,8 @@ include:
       - 'templates/windows-deploy-intune.yml'
 
 variables:
-  WINDOWS_ENABLED: "true"
-  MACOS_ENABLED:   "false"        # Windows-only title
-  PSADT_FRAMEWORK_VERSION: "4.1.0"
+  WINDOWS_ENABLED:          "true"
+  MACOS_ENABLED:            "false"
+  PSADT_FRAMEWORK_VERSION:  "4.1.0"
+  # Installer is pre-staged on the runner VM — no download needed
+  WINDOWS_INSTALLER_SOURCE: "C:\\files\\7-zip\\7z2408-x64.msi"

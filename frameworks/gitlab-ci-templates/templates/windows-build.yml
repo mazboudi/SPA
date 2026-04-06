@@ -93,6 +93,20 @@
         Copy-Item -Path $titleDeploy -Destination $staging -Force
       }
 
+      # Copy installer from runner VM if WINDOWS_INSTALLER_SOURCE is set
+      # Use this when the installer is pre-staged on the runner (e.g. C:\files\7-zip\7z2408-x64.msi)
+      # rather than committed to git in windows/src/Files/
+      if ($env:WINDOWS_INSTALLER_SOURCE) {
+        $filesDir = 'windows\src\Files'
+        if (!(Test-Path $filesDir)) { New-Item -ItemType Directory -Path $filesDir | Out-Null }
+        if (Test-Path $env:WINDOWS_INSTALLER_SOURCE) {
+          Write-Host "Copying installer from: $($env:WINDOWS_INSTALLER_SOURCE) -> $filesDir"
+          Copy-Item -Path $env:WINDOWS_INSTALLER_SOURCE -Destination $filesDir -Force
+        } else {
+          throw "WINDOWS_INSTALLER_SOURCE set but file not found: $($env:WINDOWS_INSTALLER_SOURCE)"
+        }
+      }
+
       # Overlay src/ content (Files, SupportFiles, Assets)
       foreach ($subDir in @('Files','SupportFiles','Assets')) {
         $srcPath = Join-Path 'windows/src' $subDir

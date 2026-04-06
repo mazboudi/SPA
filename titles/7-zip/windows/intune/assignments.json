@@ -1,12 +1,7 @@
 [
     {
-        "intent": "required",
-        "groupId": "TODO-AAD-GROUP-OBJECT-ID-FOR-REQUIRED",
-        "filterMode": "none"
-    },
-    {
         "intent": "available",
-        "groupId": "TODO-AAD-GROUP-OBJECT-ID-FOR-SELFSERVICE",
+        "groupId": "TODO-EUC-PSA-TESTING-AAD-GROUP-OBJECT-ID",
         "filterMode": "none"
     }
 ]
