@@ -12,11 +12,7 @@
 
 .metadata_validate:
   stage: validate
-  # Runs on any Linux runner using the official PowerShell Alpine image.
-  # No Windows runner needed — validation only requires PowerShell + curl.
-  # NOTE: if your org proxies external images through Nexus, use:
-  #   image: fmk-prod.nexus-ci.onefiserv.net/proxy/mcr.microsoft.com/powershell:lts-alpine
-  image: mcr.microsoft.com/powershell:lts-alpine
+  tags: [Windows]
   variables:
     SCHEMA_VERSION: "main"
   script:
