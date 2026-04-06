@@ -8,33 +8,35 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image fmk-prod.nexus-ci.onefiserv.net/fmk/os/fmk-ubi8:FMK-05-20-24 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:03
-Waiting for pod gitlab-prod/runner-zjymohfp-project-86262-concurrent-0-lumjcrf8 to be running, status is Pending
-Running on runner-zjymohfp-project-86262-concurrent-0-lumjcrf8 via gitlab-runner-generic-16-3-3-74cb5cfbf6-hj6wv...
+00:04
+Waiting for pod gitlab-prod/runner-zjymohfp-project-86262-concurrent-0-s72jeqjq to be running, status is Pending
+Running on runner-zjymohfp-project-86262-concurrent-0-s72jeqjq via gitlab-runner-generic-16-3-3-74cb5cfbf6-hj6wv...
 Getting source from Git repository
-00:02
+00:01
 Fetching changes with git depth set to 1...
 Initialized empty Git repository in /builds/euc/software-package-automation/spa-frameworks/gitlab-ci-templates/.git/
 Created fresh repository.
-Checking out 0b746793 as detached HEAD (ref is v1.0.0)...
+Checking out 6d28464f as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:01
+00:03
 $ set -euo pipefail # collapsed multi-line command
-=== Validating YAML syntax ===
-  Checking: templates/macos-build.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
-FAIL (HTTP 400)
-  Checking: templates/macos-deploy-jamf.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
-FAIL (HTTP 400)
-  Checking: templates/metadata-validate.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
-FAIL (HTTP 400)
-  Checking: templates/release.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
-FAIL (HTTP 400)
-  Checking: templates/windows-build.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
-FAIL (HTTP 400)
-  Checking: templates/windows-deploy-intune.yml ... /scripts-86262-25815453/step_script: line 214: python3: command not found
-FAIL (HTTP 400)
-❌ 6 template(s) failed validation.
+=== Validating YAML syntax via GitLab CI Lint API ===
+  Checking: templates/macos-build.yml ... OK
+  Checking: templates/macos-deploy-jamf.yml ... 
+INVALID
+    macos_deploy_jamf job: undefined need: macos_build
+  Checking: templates/metadata-validate.yml ... 
+INVALID
+    metadata_validate job: chosen stage does not exist; available stages are .pre, build, test, deploy, .post
+  Checking: templates/release.yml ... 
+OK
+  Checking: templates/windows-build.yml ... 
+OK
+  Checking: templates/windows-deploy-intune.yml ... 
+INVALID
+    windows_publish_intune job: chosen stage does not exist; available stages are .pre, build, test, deploy, .post
+❌ 3 template(s) failed validation.
 Cleaning up project directory and file based variables
 00:00
 ERROR: Job failed: command terminated with exit code 1
