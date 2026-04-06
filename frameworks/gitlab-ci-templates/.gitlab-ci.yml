@@ -93,7 +93,7 @@ YAML
       HTTP_CODE=$(curl --silent --output /tmp/lint_response.json \
         --write-out "%{http_code}" \
         --request POST \
-        --header "PRIVATE-TOKEN: ${GITLAB_READ_TOKEN}" \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
         --header "Content-Type: application/json" \
         --data "$PAYLOAD" \
         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/ci/lint")
