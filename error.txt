@@ -1,5 +1,5 @@
 Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-hj6wv ZJymoHFP, system ID: r_XBsHgxwG1NmJ
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-h6bgb MhUTinQi, system ID: r_g0kju4idEJpb
 Resolving secrets
 00:00
 Preparing the "kubernetes" executor
@@ -8,35 +8,24 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image fmk-prod.nexus-ci.onefiserv.net/fmk/os/fmk-ubi8:FMK-05-20-24 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:04
-Waiting for pod gitlab-prod/runner-zjymohfp-project-86262-concurrent-0-s72jeqjq to be running, status is Pending
-Running on runner-zjymohfp-project-86262-concurrent-0-s72jeqjq via gitlab-runner-generic-16-3-3-74cb5cfbf6-hj6wv...
+00:08
+Waiting for pod gitlab-prod/runner-mhutinqi-project-86265-concurrent-0-jfh8kiny to be running, status is Pending
+Waiting for pod gitlab-prod/runner-mhutinqi-project-86265-concurrent-0-jfh8kiny to be running, status is Pending
+	ContainersNotInitialized: "containers with incomplete status: [init-permissions]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+Running on runner-mhutinqi-project-86265-concurrent-0-jfh8kiny via gitlab-runner-generic-16-3-3-74cb5cfbf6-h6bgb...
 Getting source from Git repository
 00:01
-Fetching changes with git depth set to 1...
-Initialized empty Git repository in /builds/euc/software-package-automation/spa-frameworks/gitlab-ci-templates/.git/
+Fetching changes with git depth set to 20...
+Initialized empty Git repository in /builds/euc/software-package-automation/software-titles/7-zip/.git/
 Created fresh repository.
-Checking out 6d28464f as detached HEAD (ref is main)...
+Checking out 7d9f5b1f as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:03
-$ set -euo pipefail # collapsed multi-line command
-=== Validating YAML syntax via GitLab CI Lint API ===
-  Checking: templates/macos-build.yml ... OK
-  Checking: templates/macos-deploy-jamf.yml ... 
-INVALID
-    macos_deploy_jamf job: undefined need: macos_build
-  Checking: templates/metadata-validate.yml ... 
-INVALID
-    metadata_validate job: chosen stage does not exist; available stages are .pre, build, test, deploy, .post
-  Checking: templates/release.yml ... 
-OK
-  Checking: templates/windows-build.yml ... 
-OK
-  Checking: templates/windows-deploy-intune.yml ... 
-INVALID
-    windows_publish_intune job: chosen stage does not exist; available stages are .pre, build, test, deploy, .post
-❌ 3 template(s) failed validation.
-Cleaning up project directory and file based variables
 00:00
+$ ## Download schemas from packaging-standards repo (or use a cached copy) # collapsed multi-line command
+/scripts-86265-25950598/step_script: line 202: =: command not found
+Cleaning up project directory and file based variables
+00:01
 ERROR: Job failed: command terminated with exit code 1
