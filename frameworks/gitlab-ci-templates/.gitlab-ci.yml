@@ -27,12 +27,8 @@ variables:
   GIT_DEPTH: "1"
 
 ## ---------------------------------------------------------------------------
-## validate_yaml_syntax — lint templates as a composed pipeline via CI Lint API
-##
-## Templates use custom stages (validate, publish, assign, deploy) and cross-
-## file `needs:` references. Linting each file in isolation produces false
-## positives. Instead we build a minimal composed pipeline that declares all
-## stages and includes every template, mirroring how title repos consume them.
+## validate_yaml_syntax — parse every template file for YAML syntax errors
+## Uses Ruby (bundled on most Linux images) — no API calls, no tokens needed.
 ## ---------------------------------------------------------------------------
 validate_yaml_syntax:
   stage: validate
@@ -43,75 +39,28 @@ validate_yaml_syntax:
   script:
     - |
       set -euo pipefail
+      ERRORS=0
 
-      # Ensure jq is available
-      if ! command -v jq &>/dev/null; then
-        echo "jq not found — attempting install..."
-        yum install -y jq 2>/dev/null || apt-get install -y jq 2>/dev/null || \
-          { echo "ERROR: jq could not be installed."; exit 1; }
-      fi
+      echo "=== Validating YAML syntax ==="
 
-      echo "=== Validating templates as composed pipeline ==="
-
-      # Build a minimal composed pipeline that includes all templates.
-      # Declare all stages used across templates so the linter doesn't
-      # report false "stage does not exist" errors.
-      COMPOSED=$(cat <<'YAML'
-stages:
-  - validate
-  - build
-  - publish
-  - deploy
-  - assign
-
-variables:
-  WINDOWS_ENABLED: "true"
-  MACOS_ENABLED: "true"
-  PSADT_FRAMEWORK_VERSION: "4.1.0"
-  MACOS_FRAMEWORK_VERSION: "1.0.0"
-  PSADT_PROJECT_ID: "1"
-  MACOS_FRAMEWORK_PROJECT_ID: "2"
-  SCHEMAS_PROJECT_ID: "3"
-  TF_JAMF_MODULES_PROJECT_ID: "4"
-  GITLAB_READ_TOKEN: "dummy"
-  AZURE_TENANT_ID: "dummy"
-  AZURE_CLIENT_ID: "dummy"
-  AZURE_CLIENT_SECRET: "dummy"
-  JAMF_URL: "https://dummy.jamfcloud.com"
-  JAMF_CLIENT_ID: "dummy"
-  JAMF_CLIENT_SECRET: "dummy"
-YAML
-)
-
-      # Append each template file as a local include via its raw content
       for f in templates/*.yml; do
-        COMPOSED="${COMPOSED}"$'\n'"$(cat "$f")"
+        echo -n "  Checking: $f ... "
+
+        if ruby -e "require 'yaml'; YAML.safe_load(File.read('$f'))" 2>/tmp/yaml_err; then
+          echo "OK"
+        else
+          echo "INVALID"
+          sed 's/^/    /' /tmp/yaml_err || true
+          ERRORS=$((ERRORS+1))
+        fi
       done
 
-      PAYLOAD=$(printf '%s' "$COMPOSED" | jq -Rs '{content: .}')
-
-      HTTP_CODE=$(curl --silent --output /tmp/lint_response.json \
-        --write-out "%{http_code}" \
-        --request POST \
-        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-        --header "Content-Type: application/json" \
-        --data "$PAYLOAD" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/ci/lint")
-
-      if [[ "$HTTP_CODE" != "200" ]]; then
-        echo "FAIL (HTTP $HTTP_CODE)"
-        cat /tmp/lint_response.json || true
+      echo ""
+      if [[ $ERRORS -gt 0 ]]; then
+        echo "❌ $ERRORS template(s) have YAML syntax errors."
         exit 1
       fi
-
-      VALID=$(jq -r '.valid' /tmp/lint_response.json)
-      if [[ "$VALID" == "true" ]]; then
-        echo "✅ Composed pipeline passed YAML validation."
-      else
-        echo "❌ Composed pipeline is INVALID:"
-        jq -r '.errors[]' /tmp/lint_response.json 2>/dev/null | sed 's/^/    /' || true
-        exit 1
-      fi
+      echo "✅ All templates passed YAML syntax check."
 
 ## ---------------------------------------------------------------------------
 ## validate_required_jobs — verify each template defines expected job names
