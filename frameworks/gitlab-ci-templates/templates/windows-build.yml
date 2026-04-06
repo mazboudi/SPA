@@ -32,11 +32,34 @@
       Write-Host "PSADT version  : $($env:PSADT_FRAMEWORK_VERSION)"
       Write-Host "Pipeline tag   : $($env:CI_COMMIT_TAG)"
 
-      ## 1 — Read app metadata
+      ## 1 — Read and validate app metadata
       if (!(Test-Path 'app.json')) { throw "app.json not found" }
       $app = Get-Content 'app.json' -Raw | ConvertFrom-Json
 
+      Write-Host "--- Validating app.json ---"
+      foreach ($f in @('title','publisher','package_id','version','platforms','deployment')) {
+        if (-not $app.$f) { throw "app.json: missing required field '$f'" }
+      }
+      if ($app.lifecycle -eq 'retired') {
+        Write-Warning "app.json: lifecycle=retired — skipping build."
+        exit 0
+      }
+      Write-Host "  ✓ app.json valid"
+
       if (!(Test-Path 'windows/package.yaml')) { throw "windows/package.yaml not found" }
+
+      Write-Host "--- Validating windows/package.yaml ---"
+      $winPkg = Get-Content 'windows/package.yaml' -Raw
+      foreach ($f in @('vendor_version','packaging_version','installer_type','install','uninstall','detection')) {
+        if ($winPkg -notmatch "(?m)^${f}:") { throw "windows/package.yaml: missing required field '$f'" }
+      }
+      if ($winPkg -match '(?m)^installer_type:\s*(\S+)') {
+        $iType = $Matches[1].Trim(" '`"")
+        if ($iType -notin @('msi','exe','msix','ps1')) {
+          throw "windows/package.yaml: installer_type '$iType' must be one of: msi, exe, msix, ps1"
+        }
+      }
+      Write-Host "  ✓ windows/package.yaml valid"
 
       ## 2 — Download psadt-enterprise framework bundle (includes IntuneWinAppUtil.exe)
       $frameworkDir = "psadt-framework-$($env:PSADT_FRAMEWORK_VERSION)"

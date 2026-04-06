@@ -1,16 +1,12 @@
 include:
   - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
-    ref: 'v1.0.0'
+    ref: 'main'
     file:
-      - 'templates/metadata-validate.yml'
       - 'templates/windows-build.yml'
       - 'templates/windows-deploy-intune.yml'
 
-# Declare all stages used by the included templates.
-# GitLab's default stages (.pre, build, test, deploy, .post) don't include
-# validate / publish / assign — so they must be explicit here.
+# Stages used by the included templates.
 stages:
-  - validate
   - build
   - publish
   - assign
