@@ -12,8 +12,11 @@
 
 .metadata_validate:
   stage: validate
-  # No runner tag — runs on any available runner (instance/shared runners are fine).
-  # This job only does JSON/YAML validation; it does not need the Windows build runner.
+  # Runs on any Linux runner using the official PowerShell Alpine image.
+  # No Windows runner needed — validation only requires PowerShell + curl.
+  # NOTE: if your org proxies external images through Nexus, use:
+  #   image: fmk-prod.nexus-ci.onefiserv.net/proxy/mcr.microsoft.com/powershell:lts-alpine
+  image: mcr.microsoft.com/powershell:lts-alpine
   variables:
     SCHEMA_VERSION: "main"
   script:
