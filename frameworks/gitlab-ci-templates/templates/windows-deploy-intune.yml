@@ -59,6 +59,7 @@
   needs:
     - job: windows_build
       artifacts: true
+      optional: true
   script:
     - *download_intune_modules
     - |
@@ -67,7 +68,7 @@
 
       # Import shared module
       if (Test-Path 'intune-modules/IntuneDeployment.psm1') {
-        Import-Module (Resolve-Path 'intune-deployment/IntuneDeployment.psm1') -Force
+        Import-Module (Resolve-Path 'intune-modules/IntuneDeployment.psm1') -Force
       }
 
       # Build detection rules from windows/package.yaml
@@ -112,6 +113,7 @@
   needs:
     - job: windows_publish_intune
       artifacts: true
+      optional: true
   script:
     - *download_intune_modules
     - |
