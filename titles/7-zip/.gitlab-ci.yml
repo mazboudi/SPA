@@ -1,6 +1,6 @@
 include:
   - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
-    ref: 'main'
+    ref: 'main'    # TODO: pin to 'v1.0.1' once templates are stable
     file:
       - 'templates/windows-build.yml'
       - 'templates/windows-deploy-intune.yml'
