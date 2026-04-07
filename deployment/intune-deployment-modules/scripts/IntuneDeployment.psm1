@@ -27,8 +27,8 @@ function Write-Log {
 }
 
 #endregion
-#region ── Shared load YAML Helper (Pure PowerShell, CI‑Safe) ─────────────────────────────
-function Load-PackageYaml {
+#region ── Shared Import YAML Helper (Pure PowerShell, CI‑Safe) ─────────────────────────────
+function Import-PackageYaml {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $Path
@@ -59,38 +59,58 @@ function Load-PackageYaml {
 
 #endregion
 #region ── YAML Parsing (Pure PowerShell, CI‑Safe) ─────────────────────────────
-
 function ConvertFrom-SimpleYaml {
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [string] $Yaml)
+    param(
+        [Parameter(Mandatory)]
+        [string] $Yaml
+    )
 
     $lines = $Yaml -split "`r?`n"
     $root  = @{}
     $stack = @(@{ indent = -1; node = $root })
 
     foreach ($raw in $lines) {
+
+        $trimmed = $raw.Trim()
+
+        # Skip full-line comments
+        if ($trimmed.StartsWith('#')) {
+            continue
+        }
+
+        # Strip inline comments
         $line = $raw -replace '\s+#.*$', ''
-        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
 
         $indent = ($line -match '^(\s*)')[1].Length
         $text   = $line.Trim()
 
+        # Walk stack back to correct indent
         while ($stack[-1].indent -ge $indent) {
             $stack = $stack[0..($stack.Count - 2)]
         }
 
         $parent = $stack[-1].node
 
+        # Array item
         if ($text -match '^- (.+)$') {
+            if (-not ($parent -is [System.Collections.IList])) {
+                throw "YAML error: array item without array context: $text"
+            }
             $parent.Add((Convert-YamlValue $matches[1]))
             continue
         }
 
+        # Key/value
         if ($text -match '^([^:]+):\s*(.*)$') {
             $key = $matches[1].Trim()
             $val = $matches[2].Trim()
 
             if ($val -eq '') {
+                # Start nested object
                 $child = @{}
                 $parent[$key] = $child
                 $stack += @{ indent = $indent; node = $child }
@@ -236,6 +256,6 @@ Export-ModuleMember -Function @(
     'ConvertFrom-SimpleYaml',
     'Get-SafeName',
     'Get-FileSha256',
-    'Load-PackageYaml',
+    'Import-PackageYaml',
     'Get-FileBytes'
 )
