@@ -19,11 +19,11 @@ $GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 
 Import-Module "$PSScriptRoot/IntuneDeployment.psm1" -Force
 
-$pkg = Load-PackageYaml 'windows/package.yaml'
+$pkg = Import-PackageYaml 'windows/package.yaml'
 $intuneMeta = Get-Content 'windows/intune/app.json' -Raw | ConvertFrom-Json
 
 $displayName = $intuneMeta.displayName
-$vendorVersion = $pkg.vendor_version
+$vendorVersion = if ($pkg.version) { $pkg.version } else { $pkg.vendor_version }
 
 Write-Log "Publishing $displayName v$vendorVersion"
 

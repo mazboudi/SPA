@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 
 Import-Module "$PSScriptRoot/IntuneDeployment.psm1" -Force
 
-$pkg = Load-PackageYaml -Path $PackageYamlPath
+$pkg = Import-PackageYaml -Path $PackageYamlPath
 
 $detectionMode = $pkg.detection_mode ?? 'registry-marker'
 Write-Host "Building detection rules for mode: $detectionMode"

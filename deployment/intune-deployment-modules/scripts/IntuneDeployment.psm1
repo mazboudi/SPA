@@ -42,8 +42,13 @@ function Import-PackageYaml {
     $pkg = ConvertFrom-SimpleYaml $yamlText
 
     # ── Normalize & validate structure ───────────────────────────────
-    if (-not $pkg.vendor_version) {
-        throw "package.yaml missing required field: vendor_version"
+    # Accept 'version' (current field name) with 'vendor_version' as legacy fallback
+    if ($pkg.version) {
+        $pkg['vendor_version'] = $pkg.version   # expose under both names for downstream scripts
+    } elseif ($pkg.vendor_version) {
+        $pkg['version'] = $pkg.vendor_version
+    } else {
+        throw "package.yaml missing required field: version"
     }
 
     if (-not $pkg.install) {
