@@ -55,8 +55,12 @@ function Import-PackageYaml {
         throw "package.yaml missing required block: install"
     }
 
-    if (-not $pkg.install.install_command) {
-        throw "package.yaml install.install_command is required"
+    if (-not $pkg.install.command_line) {
+        throw "package.yaml missing required field: install.command_line"
+    }
+
+    if (-not $pkg.uninstall) {
+        throw "package.yaml missing required block: uninstall"
     }
 
     return $pkg
