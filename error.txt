@@ -1,72 +1,72 @@
-2026-04-07T17:48:03.039658Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-07T17:48:03.039658Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-07T17:48:03.039658Z 00O Resolving secrets
-2026-04-07T17:48:03.040345Z 00O section_start:1775584083:prepare_executor
-2026-04-07T17:48:03.040345Z 00O+Preparing the "shell" executor
-2026-04-07T17:48:03.040345Z 00O Using Shell (pwsh) executor...
-2026-04-07T17:48:03.040345Z 00O section_end:1775584083:prepare_executor
-2026-04-07T17:48:03.040345Z 00O+section_start:1775584083:prepare_script
-2026-04-07T17:48:03.040888Z 00O+Preparing environment
-2026-04-07T17:48:04.061717Z 01O Running on vm-psa-runner-p...
-2026-04-07T17:48:04.315425Z 00O section_end:1775584084:prepare_script
-2026-04-07T17:48:04.315425Z 00O+section_start:1775584084:get_sources
-2026-04-07T17:48:04.316464Z 00O+Getting source from Git repository
-2026-04-07T17:48:06.420247Z 01O Gitaly correlation ID: 01KNMGXYDGFCSVQ8QB0QCMR56Z
-2026-04-07T17:48:06.746219Z 01O Fetching changes with git depth set to 20...
-2026-04-07T17:48:06.811388Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
-2026-04-07T17:48:08.800066Z 01O Checking out 7b9dc2e4 as detached HEAD (ref is main)...
-2026-04-07T17:48:09.065105Z 01O Removing out/
-2026-04-07T17:48:09.065105Z 01O Removing psadt-framework-4.1.0/
-2026-04-07T17:48:09.065105Z 01O Removing windows/src/Files/7z2600-x64.msi
-2026-04-07T17:48:09.277225Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-07T17:48:09.871070Z 01O 
-2026-04-07T17:48:09.871070Z 01O Skipping Git submodules setup
-2026-04-07T17:48:10.070824Z 00O section_end:1775584090:get_sources
-2026-04-07T17:48:10.070824Z 00O+section_start:1775584090:download_artifacts
-2026-04-07T17:48:10.077200Z 00O+Downloading artifacts
-2026-04-07T17:48:11.788831Z 01O Version:      18.9.0
-2026-04-07T17:48:11.788831Z 01O Git revision: 07e534ba
-2026-04-07T17:48:11.788831Z 01O Git branch:   18-9-stable
-2026-04-07T17:48:11.788831Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-07T17:48:11.788831Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-07T17:48:11.788831Z 01O OS/Arch:      windows/amd64
-2026-04-07T17:48:11.808030Z 01O Downloading artifacts for windows_build (26005069)...
-2026-04-07T17:48:12.075723Z 01E Runtime platform                                    arch=amd64 os=windows pid=13780 revision=07e534ba version=18.9.0
-2026-04-07T17:48:13.910597Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KNMGY82NG664MYWWEFW04K5G host=gitlab.onefiserv.net id=26005069 responseStatus=200 OK token=64_tuTfAG
-2026-04-07T17:48:14.258466Z 00O section_end:1775584094:download_artifacts
-2026-04-07T17:48:14.258466Z 00O+section_start:1775584094:step_script
-2026-04-07T17:48:14.258974Z 00O+Executing "step_script" stage of the job script
-2026-04-07T17:48:15.806598Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-07T17:48:18.691102Z 01O Intune modules ready in: intune-modules
-2026-04-07T17:48:18.694269Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-07T17:48:19.063218Z 01E Exception: package.yaml install.install_command is required
-2026-04-07T17:48:19.294142Z 00O section_end:1775584099:step_script
-2026-04-07T17:48:19.294142Z 00O+section_start:1775584099:upload_artifacts_on_failure
-2026-04-07T17:48:19.295745Z 00O+Uploading artifacts for failed job
-2026-04-07T17:48:20.733942Z 01O Version:      18.9.0
-2026-04-07T17:48:20.733942Z 01O Git revision: 07e534ba
-2026-04-07T17:48:20.733942Z 01O Git branch:   18-9-stable
-2026-04-07T17:48:20.733942Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-07T17:48:20.733942Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-07T17:48:20.733942Z 01O OS/Arch:      windows/amd64
-2026-04-07T17:48:20.749230Z 01O Uploading artifacts...
-2026-04-07T17:48:20.921252Z 01E Runtime platform                                    arch=amd64 os=windows pid=8000 revision=07e534ba version=18.9.0
-2026-04-07T17:48:20.921252Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-07T17:48:20.921252Z 01E WARNING: out/publish-logs/*: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-07T17:48:20.921252Z 01E ERROR: No files to upload                          
-2026-04-07T17:48:21.088735Z 01O Version:      18.9.0
-2026-04-07T17:48:21.088735Z 01O Git revision: 07e534ba
-2026-04-07T17:48:21.088735Z 01O Git branch:   18-9-stable
-2026-04-07T17:48:21.088735Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-07T17:48:21.088735Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-07T17:48:21.088735Z 01O OS/Arch:      windows/amd64
-2026-04-07T17:48:21.098227Z 01O Uploading artifacts...
-2026-04-07T17:48:21.283070Z 01E Runtime platform                                    arch=amd64 os=windows pid=14984 revision=07e534ba version=18.9.0
-2026-04-07T17:48:21.283070Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-07T17:48:21.283070Z 01E ERROR: No files to upload                          
-2026-04-07T17:48:21.501938Z 00O section_end:1775584101:upload_artifacts_on_failure
-2026-04-07T17:48:21.501938Z 00O+section_start:1775584101:cleanup_file_variables
-2026-04-07T17:48:21.501938Z 00O+Cleaning up project directory and file based variables
-2026-04-07T17:48:22.962377Z 00O section_end:1775584102:cleanup_file_variables
-2026-04-07T17:48:22.962377Z 00O+
-2026-04-07T17:48:22.962883Z 00O ERROR: Job failed: exit status 1
+2026-04-07T18:54:06.065547Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-07T18:54:06.065547Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-07T18:54:06.065547Z 00O Resolving secrets
+2026-04-07T18:54:06.065547Z 00O section_start:1775588046:prepare_executor
+2026-04-07T18:54:06.065547Z 00O+Preparing the "shell" executor
+2026-04-07T18:54:06.066130Z 00O Using Shell (pwsh) executor...
+2026-04-07T18:54:06.066130Z 00O section_end:1775588046:prepare_executor
+2026-04-07T18:54:06.066130Z 00O+section_start:1775588046:prepare_script
+2026-04-07T18:54:06.066130Z 00O+Preparing environment
+2026-04-07T18:54:07.104175Z 01O Running on vm-psa-runner-p...
+2026-04-07T18:54:07.355470Z 00O section_end:1775588047:prepare_script
+2026-04-07T18:54:07.355470Z 00O+section_start:1775588047:get_sources
+2026-04-07T18:54:07.356810Z 00O+Getting source from Git repository
+2026-04-07T18:54:09.509704Z 01O Gitaly correlation ID: 01KNMMPTSA4QACC0W2785PVQ08
+2026-04-07T18:54:09.855604Z 01O Fetching changes with git depth set to 20...
+2026-04-07T18:54:09.922459Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
+2026-04-07T18:54:15.160741Z 01O Checking out 7b9dc2e4 as detached HEAD (ref is main)...
+2026-04-07T18:54:15.476052Z 01O Removing out/
+2026-04-07T18:54:15.476052Z 01O Removing psadt-framework-4.1.0/
+2026-04-07T18:54:15.476052Z 01O Removing windows/src/Files/7z2600-x64.msi
+2026-04-07T18:54:15.840467Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-07T18:54:16.624308Z 01O 
+2026-04-07T18:54:16.625006Z 01O Skipping Git submodules setup
+2026-04-07T18:54:16.910791Z 00O section_end:1775588056:get_sources
+2026-04-07T18:54:16.910791Z 00O+section_start:1775588056:download_artifacts
+2026-04-07T18:54:16.912927Z 00O+Downloading artifacts
+2026-04-07T18:54:18.560175Z 01O Version:      18.9.0
+2026-04-07T18:54:18.560175Z 01O Git revision: 07e534ba
+2026-04-07T18:54:18.560175Z 01O Git branch:   18-9-stable
+2026-04-07T18:54:18.560175Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-07T18:54:18.560175Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-07T18:54:18.560175Z 01O OS/Arch:      windows/amd64
+2026-04-07T18:54:18.581044Z 01O Downloading artifacts for windows_build (26009025)...
+2026-04-07T18:54:19.017438Z 01E Runtime platform                                    arch=amd64 os=windows pid=632 revision=07e534ba version=18.9.0
+2026-04-07T18:54:21.303911Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KNMMQA9A8Q90CEDYKY9CQ1CP host=gitlab.onefiserv.net id=26009025 responseStatus=200 OK token=64_FdqJfL
+2026-04-07T18:54:21.819515Z 00O section_end:1775588061:download_artifacts
+2026-04-07T18:54:21.819515Z 00O+section_start:1775588061:step_script
+2026-04-07T18:54:21.821523Z 00O+Executing "step_script" stage of the job script
+2026-04-07T18:54:23.890062Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-07T18:54:29.734683Z 01O Intune modules ready in: intune-modules
+2026-04-07T18:54:29.734683Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-07T18:54:30.046871Z 01E Exception: package.yaml missing required field: install.command_line
+2026-04-07T18:54:30.279927Z 00O section_end:1775588070:step_script
+2026-04-07T18:54:30.279927Z 00O+section_start:1775588070:upload_artifacts_on_failure
+2026-04-07T18:54:30.281529Z 00O+Uploading artifacts for failed job
+2026-04-07T18:54:31.698285Z 01O Version:      18.9.0
+2026-04-07T18:54:31.698285Z 01O Git revision: 07e534ba
+2026-04-07T18:54:31.698285Z 01O Git branch:   18-9-stable
+2026-04-07T18:54:31.698285Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-07T18:54:31.698285Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-07T18:54:31.698285Z 01O OS/Arch:      windows/amd64
+2026-04-07T18:54:31.714182Z 01O Uploading artifacts...
+2026-04-07T18:54:31.881097Z 01E Runtime platform                                    arch=amd64 os=windows pid=2500 revision=07e534ba version=18.9.0
+2026-04-07T18:54:31.882225Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-07T18:54:31.882225Z 01E WARNING: out/publish-logs/*: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-07T18:54:31.882225Z 01E ERROR: No files to upload                          
+2026-04-07T18:54:32.073237Z 01O Version:      18.9.0
+2026-04-07T18:54:32.075249Z 01O Git revision: 07e534ba
+2026-04-07T18:54:32.075249Z 01O Git branch:   18-9-stable
+2026-04-07T18:54:32.075249Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-07T18:54:32.075249Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-07T18:54:32.075249Z 01O OS/Arch:      windows/amd64
+2026-04-07T18:54:32.085818Z 01O Uploading artifacts...
+2026-04-07T18:54:32.295043Z 01E Runtime platform                                    arch=amd64 os=windows pid=14972 revision=07e534ba version=18.9.0
+2026-04-07T18:54:32.295043Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-07T18:54:32.295043Z 01E ERROR: No files to upload                          
+2026-04-07T18:54:32.509992Z 00O section_end:1775588072:upload_artifacts_on_failure
+2026-04-07T18:54:32.509992Z 00O+section_start:1775588072:cleanup_file_variables
+2026-04-07T18:54:32.509992Z 00O+Cleaning up project directory and file based variables
+2026-04-07T18:54:33.936838Z 00O section_end:1775588073:cleanup_file_variables
+2026-04-07T18:54:33.936838Z 00O+
+2026-04-07T18:54:33.938591Z 00O ERROR: Job failed: exit status 1
