@@ -9,9 +9,11 @@ param(
     [Parameter(Mandatory)] [string] $TenantId,
     [Parameter(Mandatory)] [string] $ClientId,
     [Parameter(Mandatory)] [string] $ClientSecret,
-    [object[]] $DetectionRules  = @(),
+    [string]   $AppJsonPath      = 'windows/intune/app.json',
+    [string]   $PackageYamlPath  = 'windows/package.yaml',
+    [object[]] $DetectionRules   = @(),
     [object[]] $RequirementRules = @(),
-    [switch] $DryRun
+    [switch]   $DryRun
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,8 +28,8 @@ $logFile = 'out/publish-logs/publish.log'
 
 Import-Module "$PSScriptRoot/IntuneDeployment.psm1" -Force
 
-$pkg         = Import-PackageYaml 'windows/package.yaml'
-$intuneMeta  = Get-Content 'windows/intune/app.json' -Raw | ConvertFrom-Json
+$pkg         = Import-PackageYaml $PackageYamlPath
+$intuneMeta  = Get-Content $AppJsonPath -Raw | ConvertFrom-Json
 
 $displayName   = $intuneMeta.displayName
 $vendorVersion = if ($pkg.version) { $pkg.version } else { $pkg.vendor_version }
