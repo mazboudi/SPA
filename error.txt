@@ -1,79 +1,72 @@
-2026-04-06T22:29:43.500116Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-06T22:29:43.500116Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-06T22:29:43.500116Z 00O Resolving secrets
-2026-04-06T22:29:43.500743Z 00O section_start:1775514583:prepare_executor
-2026-04-06T22:29:43.500743Z 00O+Preparing the "shell" executor
-2026-04-06T22:29:43.500743Z 00O Using Shell (pwsh) executor...
-2026-04-06T22:29:43.500743Z 00O section_end:1775514583:prepare_executor
-2026-04-06T22:29:43.500743Z 00O+section_start:1775514583:prepare_script
-2026-04-06T22:29:43.501272Z 00O+Preparing environment
-2026-04-06T22:29:44.694568Z 01O Running on vm-psa-runner-p...
-2026-04-06T22:29:45.027089Z 00O section_end:1775514585:prepare_script
-2026-04-06T22:29:45.027089Z 00O+section_start:1775514585:get_sources
-2026-04-06T22:29:45.028131Z 00O+Getting source from Git repository
-2026-04-06T22:29:47.305399Z 01O Gitaly correlation ID: 01KNJEMZWQ78J9X05K8Z7N0HZG
-2026-04-06T22:29:47.649195Z 01O Fetching changes with git depth set to 20...
-2026-04-06T22:29:47.716702Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
-2026-04-06T22:29:49.938365Z 01O Checking out 7b9dc2e4 as detached HEAD (ref is main)...
-2026-04-06T22:29:50.261590Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-06T22:29:50.866334Z 01O 
-2026-04-06T22:29:50.866334Z 01O Skipping Git submodules setup
-2026-04-06T22:29:51.063195Z 00O section_end:1775514591:get_sources
-2026-04-06T22:29:51.063195Z 00O+section_start:1775514591:restore_cache
-2026-04-06T22:29:51.063702Z 00O+Restoring cache
-2026-04-06T22:29:52.432038Z 01O Version:      18.9.0
-2026-04-06T22:29:52.432038Z 01O Git revision: 07e534ba
-2026-04-06T22:29:52.432038Z 01O Git branch:   18-9-stable
-2026-04-06T22:29:52.432038Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-06T22:29:52.432038Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-06T22:29:52.432038Z 01O OS/Arch:      windows/amd64
-2026-04-06T22:29:52.449633Z 01O Checking cache for psadt-framework-4.1.0-2-protected...
-2026-04-06T22:29:52.615558Z 01E Runtime platform                                    arch=amd64 os=windows pid=8856 revision=07e534ba version=18.9.0
-2026-04-06T22:29:52.615558Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
-2026-04-06T22:29:52.616994Z 01E WARNING: Cache file does not exist                 
-2026-04-06T22:29:52.639177Z 01O Failed to extract cache
-2026-04-06T22:29:52.828292Z 00O section_end:1775514592:restore_cache
-2026-04-06T22:29:52.828292Z 00O+section_start:1775514592:step_script
-2026-04-06T22:29:52.829372Z 00O+Executing "step_script" stage of the job script
-2026-04-06T22:29:54.216864Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-06T22:29:54.232812Z 01O === Windows Build: 7-zip ===
-2026-04-06T22:29:54.234445Z 01O PSADT version  : 4.1.0
-2026-04-06T22:29:54.236044Z 01O Pipeline tag   : 
-2026-04-06T22:29:54.244649Z 01O --- Validating app.json ---
-2026-04-06T22:29:54.248847Z 01O   ✓ app.json valid
-2026-04-06T22:29:54.257604Z 01O --- Validating windows/package.yaml ---
-2026-04-06T22:29:54.398051Z 01E Exception: 
-2026-04-06T22:29:54.398051Z 01E Line |
-2026-04-06T22:29:54.398051Z 01E  436 |  … )^${f}:") { throw "windows/package.yaml: missing required field '$f'" …
-2026-04-06T22:29:54.398051Z 01E      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2026-04-06T22:29:54.398051Z 01E      | windows/package.yaml: missing required field 'vendor_version'
-2026-04-06T22:29:54.607074Z 00O section_end:1775514594:step_script
-2026-04-06T22:29:54.607074Z 00O+section_start:1775514594:upload_artifacts_on_failure
-2026-04-06T22:29:54.609706Z 00O+Uploading artifacts for failed job
-2026-04-06T22:29:56.035183Z 01O Version:      18.9.0
-2026-04-06T22:29:56.035183Z 01O Git revision: 07e534ba
-2026-04-06T22:29:56.035183Z 01O Git branch:   18-9-stable
-2026-04-06T22:29:56.035183Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-06T22:29:56.035183Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-06T22:29:56.035183Z 01O OS/Arch:      windows/amd64
-2026-04-06T22:29:56.050884Z 01O Uploading artifacts...
-2026-04-06T22:29:56.226015Z 01E Runtime platform                                    arch=amd64 os=windows pid=12032 revision=07e534ba version=18.9.0
-2026-04-06T22:29:56.226409Z 01E WARNING: out/*.intunewin: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-06T22:29:56.226409Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-06T22:29:56.226409Z 01E ERROR: No files to upload                          
-2026-04-06T22:29:56.396883Z 01O Version:      18.9.0
-2026-04-06T22:29:56.397403Z 01O Git revision: 07e534ba
-2026-04-06T22:29:56.397403Z 01O Git branch:   18-9-stable
-2026-04-06T22:29:56.397403Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-06T22:29:56.397403Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-06T22:29:56.397403Z 01O OS/Arch:      windows/amd64
-2026-04-06T22:29:56.407664Z 01O Uploading artifacts...
-2026-04-06T22:29:56.584584Z 01E Runtime platform                                    arch=amd64 os=windows pid=12736 revision=07e534ba version=18.9.0
-2026-04-06T22:29:56.584584Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-06T22:29:56.584584Z 01E ERROR: No files to upload                          
-2026-04-06T22:29:56.805920Z 00O section_end:1775514596:upload_artifacts_on_failure
-2026-04-06T22:29:56.805920Z 00O+section_start:1775514596:cleanup_file_variables
-2026-04-06T22:29:56.805920Z 00O+Cleaning up project directory and file based variables
-2026-04-06T22:29:58.231343Z 00O section_end:1775514598:cleanup_file_variables
-2026-04-06T22:29:58.231343Z 00O+
-2026-04-06T22:29:58.231852Z 00O ERROR: Job failed: exit status 1
+2026-04-07T16:24:13.156401Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-07T16:24:13.156401Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-07T16:24:13.156401Z 00O Resolving secrets
+2026-04-07T16:24:13.157105Z 00O section_start:1775579053:prepare_executor
+2026-04-07T16:24:13.157105Z 00O+Preparing the "shell" executor
+2026-04-07T16:24:13.158708Z 00O Using Shell (pwsh) executor...
+2026-04-07T16:24:13.158708Z 00O section_end:1775579053:prepare_executor
+2026-04-07T16:24:13.158708Z 00O+section_start:1775579053:prepare_script
+2026-04-07T16:24:13.159234Z 00O+Preparing environment
+2026-04-07T16:24:14.389505Z 01O Running on vm-psa-runner-p...
+2026-04-07T16:24:14.722483Z 00O section_end:1775579054:prepare_script
+2026-04-07T16:24:14.722483Z 00O+section_start:1775579054:get_sources
+2026-04-07T16:24:14.723517Z 00O+Getting source from Git repository
+2026-04-07T16:24:17.546851Z 01O Gitaly correlation ID: 01KNMC4EE2NM1TC6YDVWSV67G7
+2026-04-07T16:24:17.942497Z 01O Fetching changes with git depth set to 20...
+2026-04-07T16:24:18.023520Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
+2026-04-07T16:24:19.891969Z 01O Checking out 7b9dc2e4 as detached HEAD (ref is main)...
+2026-04-07T16:24:20.202697Z 01O Removing out/
+2026-04-07T16:24:20.202697Z 01O Removing psadt-framework-4.1.0/
+2026-04-07T16:24:20.202697Z 01O Removing windows/src/Files/7z2600-x64.msi
+2026-04-07T16:24:20.460709Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-07T16:24:21.136795Z 01O 
+2026-04-07T16:24:21.137167Z 01O Skipping Git submodules setup
+2026-04-07T16:24:21.389892Z 00O section_end:1775579061:get_sources
+2026-04-07T16:24:21.389892Z 00O+section_start:1775579061:download_artifacts
+2026-04-07T16:24:21.393452Z 00O+Downloading artifacts
+2026-04-07T16:24:22.799509Z 01O Version:      18.9.0
+2026-04-07T16:24:22.799509Z 01O Git revision: 07e534ba
+2026-04-07T16:24:22.799509Z 01O Git branch:   18-9-stable
+2026-04-07T16:24:22.799509Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-07T16:24:22.799509Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-07T16:24:22.799509Z 01O OS/Arch:      windows/amd64
+2026-04-07T16:24:22.815070Z 01O Downloading artifacts for windows_build (25999936)...
+2026-04-07T16:24:22.981980Z 01E Runtime platform                                    arch=amd64 os=windows pid=14432 revision=07e534ba version=18.9.0
+2026-04-07T16:24:24.669641Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KNMC4RV8VPHJDNY949QPDC1D host=gitlab.onefiserv.net id=25999936 responseStatus=200 OK token=64_7bBgeC
+2026-04-07T16:24:24.935021Z 00O section_end:1775579064:download_artifacts
+2026-04-07T16:24:24.935021Z 00O+section_start:1775579064:step_script
+2026-04-07T16:24:24.935662Z 00O+Executing "step_script" stage of the job script
+2026-04-07T16:24:26.203054Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-07T16:24:29.933436Z 01O Intune modules ready in: intune-modules
+2026-04-07T16:24:29.936806Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-07T16:24:30.270615Z 01E Exception: package.yaml missing required field: vendor_version
+2026-04-07T16:24:30.503096Z 00O section_end:1775579070:step_script
+2026-04-07T16:24:30.503096Z 00O+section_start:1775579070:upload_artifacts_on_failure
+2026-04-07T16:24:30.504134Z 00O+Uploading artifacts for failed job
+2026-04-07T16:24:31.896150Z 01O Version:      18.9.0
+2026-04-07T16:24:31.896150Z 01O Git revision: 07e534ba
+2026-04-07T16:24:31.896150Z 01O Git branch:   18-9-stable
+2026-04-07T16:24:31.896150Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-07T16:24:31.896150Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-07T16:24:31.896150Z 01O OS/Arch:      windows/amd64
+2026-04-07T16:24:31.914574Z 01O Uploading artifacts...
+2026-04-07T16:24:32.078392Z 01E Runtime platform                                    arch=amd64 os=windows pid=12988 revision=07e534ba version=18.9.0
+2026-04-07T16:24:32.080307Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-07T16:24:32.080307Z 01E WARNING: out/publish-logs/*: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-07T16:24:32.080307Z 01E ERROR: No files to upload                          
+2026-04-07T16:24:32.247823Z 01O Version:      18.9.0
+2026-04-07T16:24:32.247823Z 01O Git revision: 07e534ba
+2026-04-07T16:24:32.247823Z 01O Git branch:   18-9-stable
+2026-04-07T16:24:32.247823Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-07T16:24:32.247823Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-07T16:24:32.247823Z 01O OS/Arch:      windows/amd64
+2026-04-07T16:24:32.256994Z 01O Uploading artifacts...
+2026-04-07T16:24:32.428368Z 01E Runtime platform                                    arch=amd64 os=windows pid=12304 revision=07e534ba version=18.9.0
+2026-04-07T16:24:32.428368Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-07T16:24:32.428368Z 01E ERROR: No files to upload                          
+2026-04-07T16:24:32.641084Z 00O section_end:1775579072:upload_artifacts_on_failure
+2026-04-07T16:24:32.641084Z 00O+section_start:1775579072:cleanup_file_variables
+2026-04-07T16:24:32.641084Z 00O+Cleaning up project directory and file based variables
+2026-04-07T16:24:34.075574Z 00O section_end:1775579074:cleanup_file_variables
+2026-04-07T16:24:34.075574Z 00O+
+2026-04-07T16:24:34.076081Z 00O ERROR: Job failed: exit status 1
