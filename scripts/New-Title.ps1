@@ -137,7 +137,6 @@ Write-File (Join-Path $titleDir 'app.json') @"
 # ── .gitlab-ci.yml ───────────────────────────────────────────────────────────
 # Only include platform-relevant templates
 $includeFiles = [System.Collections.Generic.List[string]]::new()
-$includeFiles.Add("      - 'templates/metadata-validate.yml'")
 if ($Platform -in @('windows','both')) {
     $includeFiles.Add("      - 'templates/windows-build.yml'")
     $includeFiles.Add("      - 'templates/windows-deploy-intune.yml'")
@@ -156,9 +155,7 @@ include:
 $includeBlock
 
 # Declare all stages used by the included templates.
-# GitLab's default stages don't include validate / publish / assign.
 stages:
-  - validate
   - build
   - publish
   - assign
@@ -246,27 +243,10 @@ version: "$Version"
 packaging_version: "1"
 installer_type: $InstallerType
 
-install:
-  command_line: '$installCmd'
-  return_codes:
-    success: [0, 3010]
-    soft_reboot: [3010]
-
-uninstall:
-  command_line: '$uninstallCmd'
-  return_codes:
-    success: [0]
+install_command: '$installCmd'
+uninstall_command: '$uninstallCmd'
 
 $detectionBlock
-
-intune:
-  display_name: "$DisplayName"
-  description: "TODO: Add description"
-  restart_behavior: basedOnReturnCode    # suppress|allow|force|basedOnReturnCode
-  install_experience: system             # system|user
-  max_run_time_in_minutes: 60
-  allowed_to_reinstall: true
-  uninstall_previous_version_of_app: true
 "@
 
     Write-File (Join-Path $titleDir 'windows\intune\app.json') @"

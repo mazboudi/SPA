@@ -5,17 +5,8 @@ version: "26.00"
 packaging_version: "1"
 installer_type: msi
 
-install:
-  command_line: 'msiexec.exe /i "Files\7z2600-x64.msi" /qn /norestart'
-  return_codes:
-    success: [0, 3010]
-    soft_reboot: [3010]
-
-uninstall:
-  # MSI product code from 7-Zip 26.00 x64 — verify with Get-MsiMetadata.ps1
-  command_line: 'msiexec.exe /x "{23170F69-40C1-2702-2408-000001000000}" /qn /norestart'
-  return_codes:
-    success: [0]
+install_command: 'msiexec.exe /i "Files\7z2600-x64.msi" /qn /norestart'
+uninstall_command: 'msiexec.exe /x "{23170F69-40C1-2702-2408-000001000000}" /qn /norestart'
 
 detection_mode: msi-product-code
 detection:
@@ -23,12 +14,3 @@ detection:
     product_code: "{23170F69-40C1-2702-2408-000001000000}"
     version_operator: greaterThanOrEqual
     version: "26.00"
-
-intune:
-  display_name: "7-Zip 26.00"
-  description: "Open-source file archiver with high compression ratio."
-  restart_behavior: suppress
-  install_experience: system
-  max_run_time_in_minutes: 30
-  allowed_to_reinstall: true
-  uninstall_previous_version_of_app: true

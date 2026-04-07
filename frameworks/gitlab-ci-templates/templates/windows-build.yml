@@ -50,7 +50,7 @@
 
       Write-Host "--- Validating windows/package.yaml ---"
       $winPkg = Get-Content 'windows/package.yaml' -Raw
-      foreach ($f in @('version','packaging_version','installer_type','install','uninstall','detection')) {
+      foreach ($f in @('version','packaging_version','installer_type','install_command','uninstall_command','detection')) {
         if ($winPkg -notmatch "(?m)^${f}:") { throw "windows/package.yaml: missing required field '$f'" }
       }
       if ($winPkg -match '(?m)^installer_type:\s*(\S+)') {
