@@ -1,17 +1,8 @@
 <#
 .SYNOPSIS
-  Builds Intune Win32 detection rule objects from windows/package.yaml.
-
-.DESCRIPTION
-  Reads the detection_mode and detection block from package.yaml and returns
-  a JSON-compatible array of detection rule objects ready for the Graph API body.
-
-.PARAMETER PackageYamlPath
-  Path to windows/package.yaml.
-
-.OUTPUTS
-  [object[]] Array of detection rule hashtables for Graph API.
+  Builds Intune Win32 detection rules from package.yaml
 #>
+
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
@@ -20,161 +11,86 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-if (!(Test-Path $PackageYamlPath)) { throw "package.yaml not found: $PackageYamlPath" }
+Import-Module "$PSScriptRoot/IntuneDeployment.psm1" -Force
 
-$yaml = Get-Content $PackageYamlPath -Raw
+$pkg = Load-PackageYaml -Path $PackageYamlPath
 
-function Read-YamlScalar([string] $content, [string] $key) {
-    if ($content -match "(?m)^  ${key}:\s*['\"]?([^'\"\r\n]+)['\"]?") { return $Matches[1].Trim() }
-    if ($content -match "(?m)^${key}:\s*['\"]?([^'\"\r\n]+)['\"]?")   { return $Matches[1].Trim() }
-    return $null
-}
-
-$detectionMode = Read-YamlScalar $yaml 'detection_mode'
-if (-not $detectionMode) { $detectionMode = 'registry-marker' }
-
+$detectionMode = $pkg.detection_mode ?? 'registry-marker'
 Write-Host "Building detection rules for mode: $detectionMode"
 
 switch ($detectionMode) {
 
     'registry-marker' {
-        # Expected YAML:
-        #   detection_mode: registry-marker
-        #   detection:
-        #     registry:
-        #       hive: HKLM          # must be HKLM or HKCU
-        #       key_path: SOFTWARE\YourOrg\InstalledApps\AppName
-        #       value_name: Version
-        #       operator: exists    # exists|notExists|equal|notEqual|greaterThanOrEqual
-        $hive      = Read-YamlScalar $yaml 'hive'       ?? 'HKLM'
-        $keyPath   = Read-YamlScalar $yaml 'key_path'
-        $valueName = Read-YamlScalar $yaml 'value_name' ?? 'Version'
-        $operator  = Read-YamlScalar $yaml 'operator'   ?? 'exists'
-        $value     = Read-YamlScalar $yaml 'value'
+        $reg = $pkg.detection.registry
 
-        # --- Validation (ported from validate-appjson.ps1) ---
-        if (-not $keyPath) {
-            throw "package.yaml detection.registry.key_path is required for registry-marker mode"
-        }
-        $validHives = @('HKLM', 'HKCU')
-        if ($hive -notin $validHives) {
-            throw "detection.registry.hive must be one of: $($validHives -join ', ') (got: '$hive')"
-        }
-        $validOperators = @('exists', 'notExists', 'equal', 'notEqual', 'greaterThanOrEqual')
-        if ($operator -notin $validOperators) {
-            throw "detection.registry.operator must be one of: $($validOperators -join ', ') (got: '$operator')"
-        }
-        if ($operator -ne 'exists' -and $operator -ne 'notExists' -and -not $value) {
-            throw "detection.registry.value is required when operator is '$operator'"
+        if (-not $reg.key_path) {
+            throw "detection.registry.key_path is required"
         }
 
-        $rule = @{
+        if ($reg.hive -and $reg.hive -notin @('HKLM','HKCU')) {
+            throw "Invalid hive: $($reg.hive)"
+        }
+
+        $operator = $reg.operator ?? 'exists'
+
+        return @(@{
             '@odata.type'        = '#microsoft.graph.win32LobAppRegistryDetection'
             check32BitOn64System = $false
-            keyPath              = $keyPath
-            valueName            = $valueName
-            detectionType        = switch ($operator) {
-                'exists'             { 'exists' }
-                'notExists'          { 'doesNotExist' }
-                'equal'              { 'equal' }
-                'notEqual'           { 'notEqual' }
-                'greaterThanOrEqual' { 'greaterThanOrEqual' }
-                default              { 'exists' }
-            }
-            detectionValue       = $value
-        }
-        return @($rule)
+            keyPath              = $reg.key_path
+            valueName            = $reg.value_name ?? 'Version'
+            detectionType        = @{
+                exists             = 'exists'
+                notExists          = 'doesNotExist'
+                equal              = 'equal'
+                notEqual           = 'notEqual'
+                greaterThanOrEqual = 'greaterThanOrEqual'
+            }[$operator]
+            detectionValue       = $reg.value
+        })
     }
 
     'file' {
-        $path         = Read-YamlScalar $yaml 'path'
-        $fileOrFolder = Read-YamlScalar $yaml 'file_or_folder'
-        $operator     = Read-YamlScalar $yaml 'operator' ?? 'exists'
-        $versionVal   = Read-YamlScalar $yaml 'version'
-        $check32      = ($yaml -match '(?m)check32BitOn64System:\s*true')
+        $file = $pkg.detection.file
 
-        # --- Validation (ported from validate-appjson.ps1) ---
-        if (-not $path) {
-            throw "package.yaml detection.file.path is required for file mode"
-        }
-        if (-not $fileOrFolder) {
-            throw "package.yaml detection.file.file_or_folder is required for file mode"
-        }
-        $validOperators = @('exists', 'doesNotExist', 'equal', 'greaterThanOrEqual', 'versionEquals', 'versionGreaterThanOrEqual')
-        if ($operator -notin $validOperators) {
-            throw "detection.file.operator must be one of: $($validOperators -join ', ') (got: '$operator')"
-        }
-        if ($operator -match '^version' -and -not $versionVal) {
-            throw "detection.file.version is required when operator is '$operator'"
-        }
-
-        $rule = @{
+        return @(@{
             '@odata.type'        = '#microsoft.graph.win32LobAppFileSystemDetection'
-            path                 = $path
-            fileOrFolderName     = $fileOrFolder
-            check32BitOn64System = $check32
-            detectionType        = switch ($operator) {
-                'exists'                  { 'exists' }
-                'doesNotExist'            { 'doesNotExist' }
-                'equal'                   { 'equal' }
-                'greaterThanOrEqual'      { 'greaterThanOrEqual' }
-                'versionEquals'           { 'equal' }
-                'versionGreaterThanOrEqual' { 'greaterThanOrEqual' }
-                default                   { 'exists' }
-            }
-            detectionValue       = $versionVal
-        }
-        return @($rule)
+            path                 = $file.path
+            fileOrFolderName     = $file.file_or_folder
+            detectionType        = $file.operator ?? 'exists'
+            detectionValue       = $file.version
+            check32BitOn64System = $file.check32BitOn64System ?? $false
+        })
     }
 
     'msi-product-code' {
-        $productCode = Read-YamlScalar $yaml 'product_code'
-        $versionOp   = Read-YamlScalar $yaml 'version_operator' ?? 'greaterThanOrEqual'
-        $versionVal  = Read-YamlScalar $yaml 'version'
+        $msi = $pkg.detection.msi
 
-        # --- Validation (ported from validate-appjson.ps1) ---
-        if (-not $productCode) {
-            throw "package.yaml detection.msi.product_code is required for msi-product-code mode"
-        }
-        # Must be a GUID wrapped in braces: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
-        if ($productCode -notmatch '^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$') {
-            throw "detection.msi.product_code must be a GUID in braces (e.g. {8A69D345-D564-463C-AFF1-A69D9E530F96}). Got: '$productCode'"
-        }
-        $validVersionOps = @('greaterThanOrEqual', 'equal', 'notConfigured')
-        if ($versionOp -notin $validVersionOps) {
-            throw "detection.msi.version_operator must be one of: $($validVersionOps -join ', ') (got: '$versionOp')"
-        }
-
-        $rule = @{
+        return @(@{
             '@odata.type'          = '#microsoft.graph.win32LobAppProductCodeDetection'
-            productCode            = $productCode
-            productVersionOperator = switch ($versionOp) {
-                'greaterThanOrEqual' { 'greaterThanOrEqual' }
-                'equal'              { 'equal' }
-                'notConfigured'      { 'notConfigured' }
-                default              { 'greaterThanOrEqual' }
-            }
-            productVersion         = $versionVal
-        }
-        return @($rule)
+            productCode            = $msi.product_code
+            productVersionOperator = $msi.version_operator ?? 'greaterThanOrEqual'
+            productVersion         = $msi.version
+        })
     }
 
     'script' {
-        # For script-based detection, title must provide windows/detection/detect.ps1
         $scriptPath = 'windows/detection/detect.ps1'
         if (!(Test-Path $scriptPath)) {
-            throw "detection_mode=script requires windows/detection/detect.ps1"
+            throw "script detection requires windows/detection/detect.ps1"
         }
-        $scriptContent = Get-Content $scriptPath -Raw
-        $encoded       = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($scriptContent))
 
-        $rule = @{
-            '@odata.type'          = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
-            enforceSignatureCheck  = $false
-            runAs32Bit             = $false
-            scriptContent          = $encoded
-        }
-        return @($rule)
+        $encoded = [Convert]::ToBase64String(
+            [Text.Encoding]::Unicode.GetBytes(
+                (Get-Content $scriptPath -Raw)
+            )
+        )
+
+        return @(@{
+            '@odata.type'        = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
+            scriptContent        = $encoded
+            runAs32Bit           = $false
+            enforceSignatureCheck = $false
+        })
     }
 
     default {

@@ -1,9 +1,5 @@
 ##=============================================================================
 ## IntuneDeployment.psm1 — Shared PowerShell module
-## intune-deployment-modules
-##
-## Provides Graph authentication, HTTP client helpers, logging, and naming
-## utilities shared by all Publish/Update/Assign/Detection scripts.
 ##=============================================================================
 
 #region ── Logging ─────────────────────────────────────────────────────────────
@@ -17,33 +13,120 @@ function Write-Log {
         [string] $LogFile
     )
 
-    $ts  = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    $line = "[$ts] [$Level] $Message"
+    $ts    = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $line  = "[$ts] [$Level] $Message"
+    $color = @{
+        INFO  = 'Cyan'
+        WARN  = 'Yellow'
+        ERROR = 'Red'
+        DEBUG = 'Gray'
+    }[$Level]
 
-    $colour = switch ($Level) {
-        'INFO'  { 'Cyan'   }
-        'WARN'  { 'Yellow' }
-        'ERROR' { 'Red'    }
-        'DEBUG' { 'Gray'   }
-    }
-    Write-Host $line -ForegroundColor $colour
+    Write-Host $line -ForegroundColor $color
+    if ($LogFile) { $line | Out-File -FilePath $LogFile -Append -Encoding utf8 }
+}
 
-    if ($LogFile) {
-        $line | Out-File -FilePath $LogFile -Append -Encoding utf8
+#endregion
+#region ── Shared load YAML Helper (Pure PowerShell, CI‑Safe) ─────────────────────────────
+function Load-PackageYaml {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path
+    )
+
+    if (!(Test-Path $Path)) {
+        throw "package.yaml not found: $Path"
     }
+
+    $yamlText = Get-Content $Path -Raw
+    $pkg = ConvertFrom-SimpleYaml $yamlText
+
+    # ── Normalize & validate structure ───────────────────────────────
+    if (-not $pkg.vendor_version) {
+        throw "package.yaml missing required field: vendor_version"
+    }
+
+    if (-not $pkg.install) {
+        throw "package.yaml missing required block: install"
+    }
+
+    if (-not $pkg.install.install_command) {
+        throw "package.yaml install.install_command is required"
+    }
+
+    return $pkg
+}
+
+#endregion
+#region ── YAML Parsing (Pure PowerShell, CI‑Safe) ─────────────────────────────
+
+function ConvertFrom-SimpleYaml {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)] [string] $Yaml)
+
+    $lines = $Yaml -split "`r?`n"
+    $root  = @{}
+    $stack = @(@{ indent = -1; node = $root })
+
+    foreach ($raw in $lines) {
+        $line = $raw -replace '\s+#.*$', ''
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+
+        $indent = ($line -match '^(\s*)')[1].Length
+        $text   = $line.Trim()
+
+        while ($stack[-1].indent -ge $indent) {
+            $stack = $stack[0..($stack.Count - 2)]
+        }
+
+        $parent = $stack[-1].node
+
+        if ($text -match '^- (.+)$') {
+            $parent.Add((Convert-YamlValue $matches[1]))
+            continue
+        }
+
+        if ($text -match '^([^:]+):\s*(.*)$') {
+            $key = $matches[1].Trim()
+            $val = $matches[2].Trim()
+
+            if ($val -eq '') {
+                $child = @{}
+                $parent[$key] = $child
+                $stack += @{ indent = $indent; node = $child }
+            } else {
+                $parent[$key] = Convert-YamlValue $val
+            }
+            continue
+        }
+
+        throw "Invalid YAML syntax: $text"
+    }
+
+    return $root
+}
+
+function Convert-YamlValue {
+    param([string] $Value)
+
+    if (
+        ($Value.StartsWith('"') -and $Value.EndsWith('"')) -or
+        ($Value.StartsWith("'") -and $Value.EndsWith("'"))
+    ) {
+        return $Value.Substring(1, $Value.Length - 2)
+    }
+
+    if ($Value -match '^(true|false)$') { return [bool]::Parse($Value) }
+    if ($Value -match '^-?\d+$')         { return [int]$Value }
+    if ($Value -match '^-?\d+\.\d+$')    { return [double]$Value }
+
+    return $Value
 }
 
 #endregion
 
 #region ── Graph Authentication ────────────────────────────────────────────────
 
-<#
-.SYNOPSIS
-  Acquires a Microsoft Graph access token using client_credentials flow.
-
-.OUTPUTS
-  [string] Access token
-#>
 function Get-GraphToken {
     [CmdletBinding()]
     [OutputType([string])]
@@ -67,6 +150,7 @@ function Get-GraphToken {
             -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token" `
             -ContentType 'application/x-www-form-urlencoded' `
             -Body $body
+
         Write-Log "Token acquired (length=$($resp.access_token.Length))"
         return $resp.access_token
     } catch {
@@ -79,10 +163,6 @@ function Get-GraphToken {
 
 #region ── Graph HTTP Client ───────────────────────────────────────────────────
 
-<#
-.SYNOPSIS
-  Invokes a Microsoft Graph API request with retry on transient errors.
-#>
 function Invoke-GraphRequest {
     [CmdletBinding()]
     param(
@@ -99,10 +179,7 @@ function Invoke-GraphRequest {
         'Content-Type' = $ContentType
     }
 
-    $bodyJson = $null
-    if ($Body) {
-        $bodyJson = $Body | ConvertTo-Json -Depth 20 -Compress
-    }
+    $bodyJson = if ($Body) { $Body | ConvertTo-Json -Depth 20 -Compress }
 
     for ($i = 1; $i -le $MaxRetries; $i++) {
         try {
@@ -111,14 +188,14 @@ function Invoke-GraphRequest {
                 Uri     = $Uri
                 Headers = $headers
             }
-            if ($bodyJson) { $params['Body'] = $bodyJson }
+            if ($bodyJson) { $params.Body = $bodyJson }
 
             return Invoke-RestMethod @params
         } catch {
-            $statusCode = $_.Exception.Response?.StatusCode
-            if ($statusCode -in @(429, 503, 504) -and $i -lt $MaxRetries) {
+            $status = $_.Exception.Response?.StatusCode
+            if ($status -in 429,503,504 -and $i -lt $MaxRetries) {
                 $retryAfter = [int]($_.Exception.Response.Headers['Retry-After'] ?? (5 * $i))
-                Write-Log "Graph throttle/transient (HTTP $statusCode). Retrying in ${retryAfter}s... ($i/$MaxRetries)" -Level WARN
+                Write-Log "Graph transient error HTTP $status. Retrying in $retryAfter s ($i/$MaxRetries)" -Level WARN
                 Start-Sleep -Seconds $retryAfter
             } else {
                 Write-Log "Graph request failed [$Method $Uri]: $($_.Exception.Message)" -Level ERROR
@@ -130,36 +207,20 @@ function Invoke-GraphRequest {
 
 #endregion
 
-#region ── Naming Utilities ─────────────────────────────────────────────────────
+#region ── Utilities ───────────────────────────────────────────────────────────
 
-<#
-.SYNOPSIS
-  Produces a safe artifact name (no spaces, no special chars).
-#>
 function Get-SafeName {
     [OutputType([string])]
     param([Parameter(Mandatory)] [string] $Name)
     return ($Name -replace '[^a-zA-Z0-9\.\-]', '_')
 }
 
-#endregion
-
-#region ── File Hashing ────────────────────────────────────────────────────────
-
-<#
-.SYNOPSIS
-  Returns the SHA-256 hash of a file as a lowercase hex string.
-#>
 function Get-FileSha256 {
     [OutputType([string])]
     param([Parameter(Mandatory)] [string] $Path)
     return (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLower()
 }
 
-<#
-.SYNOPSIS
-  Returns the file size in bytes.
-#>
 function Get-FileBytes {
     [OutputType([long])]
     param([Parameter(Mandatory)] [string] $Path)
@@ -172,7 +233,9 @@ Export-ModuleMember -Function @(
     'Write-Log',
     'Get-GraphToken',
     'Invoke-GraphRequest',
+    'ConvertFrom-SimpleYaml',
     'Get-SafeName',
     'Get-FileSha256',
+    'Load-PackageYaml',
     'Get-FileBytes'
 )
