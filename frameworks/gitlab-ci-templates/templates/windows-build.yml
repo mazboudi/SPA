@@ -42,7 +42,7 @@
       $ref = $env:SCHEMA_VERSION ?? 'main'
       
       foreach ($s in @('app.schema.json', 'windows-package.schema.json', 'intune-requirements.schema.json')) {
-        $encodedPath = [uri]::EscapeDataString("schemas/packaging-standards/schemas/$s")
+        $encodedPath = [uri]::EscapeDataString("schemas/$s")
         $url = "$($env:CI_API_V4_URL)/projects/$schemasId/repository/files/$encodedPath/raw?ref=$ref"
         try {
           Invoke-WebRequest -Uri $url -Headers $schemaHeaders -OutFile "schemas/$s" -ErrorAction Stop
