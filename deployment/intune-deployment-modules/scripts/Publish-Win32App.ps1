@@ -11,7 +11,7 @@ param(
     [Parameter(Mandatory)] [string] $ClientSecret,
 
     [Parameter(Mandatory)] [object[]] $DetectionRules,
-    [object[]] $RequirementRules = @(),
+    [hashtable] $HardwareRequirements = @{},
 
     [string] $AppJsonPath     = 'windows/intune/app.json',
     [string] $PackageYamlPath = 'windows/package.yaml',
@@ -72,9 +72,16 @@ $appBody = @{
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
     setupFilePath = 'Invoke-AppDeployToolkit.exe'
 
-    # With the beta endpoint, requirementRules and detectionRules are natively supported.
-    detectionRules   = @($DetectionRules)
-    requirementRules = @($RequirementRules)
+    # With the beta endpoint, detectionRules are natively supported.
+    detectionRules = @($DetectionRules)
+
+    # Spread hardware requirements if provided
+    minimumFreeDiskSpaceInMB       = if ($HardwareRequirements.minimumFreeDiskSpaceInMB) { $HardwareRequirements.minimumFreeDiskSpaceInMB } else { $null }
+    minimumMemoryInMB              = if ($HardwareRequirements.minimumMemoryInMB) { $HardwareRequirements.minimumMemoryInMB } else { $null }
+    minimumNumberOfProcessors      = if ($HardwareRequirements.minimumNumberOfProcessors) { $HardwareRequirements.minimumNumberOfProcessors } else { $null }
+    minimumCpuSpeedInMHz           = if ($HardwareRequirements.minimumCpuSpeedInMHz) { $HardwareRequirements.minimumCpuSpeedInMHz } else { $null }
+    applicableArchitectures        = if ($HardwareRequirements.applicableArchitectures) { $HardwareRequirements.applicableArchitectures } else { 'x64' }
+    minimumSupportedWindowsRelease = if ($HardwareRequirements.minimumSupportedWindowsRelease) { $HardwareRequirements.minimumSupportedWindowsRelease } else { '10.0.19041.0' }
 
     installCommandLine   = $pkg.install_command
     uninstallCommandLine = $pkg.uninstall_command

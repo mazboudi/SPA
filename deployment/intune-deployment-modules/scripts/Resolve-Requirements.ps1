@@ -33,41 +33,24 @@ if (!(Test-Path $RequirementsPath)) {
 $req = Get-Content $RequirementsPath -Raw | ConvertFrom-Json
 
 $rule = @{
-    '@odata.type'       = '#microsoft.graph.win32LobAppRequirement'
-    minimumFreeDiskSpaceInMB   = $req.minDiskSpaceInMB   ?? $null
-    minimumMemoryInMB          = $req.minRamInMB          ?? $null
-    minimumNumberOfProcessors  = $null
-    minimumCpuSpeedInMHz       = $req.minCpuSpeedInMHz    ?? $null
+    minimumFreeDiskSpaceInMB       = $req.minDiskSpaceInMB    ?? $null
+    minimumMemoryInMB              = $req.minRamInMB          ?? $null
+    minimumNumberOfProcessors      = $null
+    minimumCpuSpeedInMHz           = $req.minCpuSpeedInMHz    ?? $null
+    minimumSupportedWindowsRelease = $req.minWindowsVersion   ?? '10.0.19041.0'
 }
 
-# Applicability rule (OS version + architecture)
-$applicability = @{
-    '@odata.type'            = '#microsoft.graph.win32LobAppWindowsVersionRule'
-    operator                 = 'greaterThanOrEqual'
-    applicabilityRuleType    = 'minOSVersion'
-    rule                     = $req.minWindowsVersion ?? '10.0.19041.0'
-}
-
-# Processor architecture
 $archMap = @{
-    x64  = 'x64'
-    x32  = 'x86'
-    x86  = 'x86'
+    x64   = 'x64'
+    x32   = 'x86'
+    x86   = 'x86'
     arm64 = 'arm'
 }
 if ($req.architecture -and $archMap.ContainsKey($req.architecture)) {
-    $rule['applicabilityRules'] = @(
-        $applicability,
-        @{
-            '@odata.type'         = '#microsoft.graph.win32LobAppWindowsVersionRule'
-            operator              = 'equal'
-            applicabilityRuleType = 'architecture'
-            rule                  = $archMap[$req.architecture]
-        }
-    )
+    $rule.applicableArchitectures = $archMap[$req.architecture]
 } else {
-    $rule['applicabilityRules'] = @($applicability)
+    $rule.applicableArchitectures = 'x64'
 }
 
-Write-Host "Requirement rules built (minOS=$($req.minWindowsVersion), arch=$($req.architecture))"
-return @($rule)
+Write-Host "Hardware properties resolved (minOS=$($rule.minimumSupportedWindowsRelease), arch=$($rule.applicableArchitectures))"
+return $rule

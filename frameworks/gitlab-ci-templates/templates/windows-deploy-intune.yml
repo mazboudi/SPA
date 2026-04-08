@@ -79,11 +79,11 @@
         -PackageYamlPath 'windows/package.yaml')
       Write-Host "Detection rules count: $($detectionRules.Count)"
 
-      # Build requirement rules from windows/intune/requirements.json
-      $requirementRules = @()
+      # Build hardware requirements from windows/intune/requirements.json
+      $hardwareRequirements = $null
       if (Test-Path 'windows/intune/requirements.json') {
-        $requirementRules = @(& 'intune-modules/Resolve-Requirements.ps1' `
-          -RequirementsPath 'windows/intune/requirements.json')
+        $hardwareRequirements = & 'intune-modules/Resolve-Requirements.ps1' `
+          -RequirementsPath 'windows/intune/requirements.json'
       }
 
       # Publish (creates or updates) the Win32 app
@@ -92,7 +92,7 @@
         -AppJsonPath        'windows/intune/app.json' `
         -PackageYamlPath    'windows/package.yaml' `
         -DetectionRules     $detectionRules `
-        -RequirementRules   $requirementRules `
+        -HardwareRequirements $hardwareRequirements `
         -TenantId           $env:AZURE_TENANT_ID `
         -ClientId           $env:AZURE_CLIENT_ID `
         -ClientSecret       $env:AZURE_CLIENT_SECRET `
