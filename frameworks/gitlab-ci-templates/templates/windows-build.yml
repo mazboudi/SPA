@@ -32,11 +32,9 @@
       Write-Host "PSADT version  : $($env:PSADT_FRAMEWORK_VERSION)"
       Write-Host "Pipeline tag   : $($env:CI_COMMIT_TAG)"
 
-      ## 1 — Install YAML Parser & Read metadata
-      Write-Host "--- Installing powershell-yaml module for schema validation ---"
-      Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
-      Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-      Install-Module -Name powershell-yaml -Force -Scope CurrentUser -AllowClobber
+      ## 1 — Read metadata & Validate against Schemas
+      Write-Host "--- Verifying powershell-yaml module is present ---"
+      Import-Module powershell-yaml -ErrorAction Stop
 
       if (!(Test-Path 'app.json')) { throw "app.json not found" }
       $app = Get-Content 'app.json' -Raw | ConvertFrom-Json
