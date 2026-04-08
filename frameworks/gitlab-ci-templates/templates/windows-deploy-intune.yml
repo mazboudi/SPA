@@ -27,6 +27,7 @@
   $headers = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
   $scripts = @(
     'Publish-Win32App.ps1',
+    'Upload-Win32Content.ps1',
     'Update-Win32App.ps1',
     'Resolve-DetectionRules.ps1',
     'Resolve-Requirements.ps1',

@@ -40,7 +40,7 @@ $pkg        = Import-PackageYaml $PackageYamlPath
 $intuneMeta = Get-Content $AppJsonPath -Raw | ConvertFrom-Json
 
 $displayName   = $intuneMeta.displayName
-$vendorVersion = $pkg.version ?? $pkg.vendor_version
+$vendorVersion = if ($pkg.version) { $pkg.version } else { $pkg.vendor_version }
 
 Write-Log "Publishing $displayName v$vendorVersion" -LogFile $logFile
 
@@ -49,6 +49,12 @@ if ($DryRun) {
     "APP_ID=DRY-RUN" | Out-File 'out/app.env' -Encoding ascii -Force
     exit 0
 }
+
+# ── Validate .intunewin exists before any Graph calls ────────────────────────
+if (!(Test-Path $IntuneWinPath)) {
+    throw "IntuneWin file not found: $IntuneWinPath"
+}
+Write-Log "IntuneWin: $IntuneWinPath" -LogFile $logFile
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 $token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
@@ -74,11 +80,14 @@ $appBody = @{
 
     installCommandLine   = $pkg.install_command
     uninstallCommandLine = $pkg.uninstall_command
-    detectionRules       = $DetectionRules
+
+    # Always wrap in @() so ConvertTo-Json produces a JSON array, not a bare object.
+    # A single-element PS array is unwrapped by the pipeline without this guard.
+    detectionRules       = @($DetectionRules)
 
     installExperience    = @{
-        runAsAccount          = 'system'
-        deviceRestartBehavior = 'suppress'
+        runAsAccount          = $intuneMeta.installContext   ?? 'system'
+        deviceRestartBehavior = $intuneMeta.restartBehavior ?? 'suppress'
     }
 }
 
@@ -93,16 +102,16 @@ $create = Invoke-GraphRequest `
 $appId = $create.id
 Write-Log "Win32 app created: $appId" -LogFile $logFile
 
-# ── PATCH requirement rules (AFTER create) ────────────────────────────────────
-if ($RequirementRules -and $RequirementRules.Count -gt 0) {
-    Write-Log "Patching requirement rules onto app $appId" -LogFile $logFile
+# ── Upload .intunewin content ─────────────────────────────────────────────────
+# The app is metadata-only until content is uploaded. Without this step
+# the app will appear in Intune but will never deploy to any device.
+Write-Log "Starting content upload..." -LogFile $logFile
 
-    Invoke-GraphRequest `
-        -Token  $token `
-        -Method PATCH `
-        -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId" `
-        -Body   @{ requirementRules = $RequirementRules }
-}
+& "$PSScriptRoot/Upload-Win32Content.ps1" `
+    -IntuneWinPath $IntuneWinPath `
+    -AppId         $appId `
+    -Token         $token `
+    -LogFile       $logFile
 
 # ── Write dotenv for downstream jobs ──────────────────────────────────────────
 "APP_ID=$appId" | Out-File 'out/app.env' -Encoding ascii -Force
