@@ -70,7 +70,7 @@ $appBody = @{
 
     # REQUIRED CREATE-TIME FIELDS
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
-    setupFilePath = 'Deploy-Application.exe'
+    setupFilePath = 'Invoke-AppDeployToolkit.exe'
 
     minimumSupportedOperatingSystem = @{
         v10_1903 = $false

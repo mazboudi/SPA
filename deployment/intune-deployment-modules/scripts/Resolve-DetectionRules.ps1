@@ -59,8 +59,12 @@ switch ($detectionMode) {
             $versionOperator = 'greaterThanOrEqual'
         }
 
-        if ($versionOperator -ne 'exists' -and -not $detVersion) {
-            throw "package.yaml: detection.version is required when using version comparison operators"
+        if ($versionOperator -eq 'exists') {
+            $versionOperator = 'notConfigured'
+        }
+
+        if ($versionOperator -ne 'notConfigured' -and -not $detVersion) {
+            throw "package.yaml: detection.version is required when using version comparison operators (operator: $versionOperator)"
         }
 
         Write-Host "  product_code    : $productCode"
@@ -72,7 +76,6 @@ switch ($detectionMode) {
             productCode              = $productCode
             productVersion           = $detVersion
             productVersionOperator   = $versionOperator
-            check32BitOn64System     = $false   # ✅ REQUIRED BY GRAPH
         })
     }
 
