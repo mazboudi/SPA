@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Creates or updates a Win32 LOB app in Intune and uploads .intunewin content
+  Creates a Win32 LOB app in Intune, then patches requirement rules after creation
 #>
 
 [CmdletBinding()]
@@ -9,17 +9,19 @@ param(
     [Parameter(Mandatory)] [string] $TenantId,
     [Parameter(Mandatory)] [string] $ClientId,
     [Parameter(Mandatory)] [string] $ClientSecret,
-    [string]   $AppJsonPath      = 'windows/intune/app.json',
-    [string]   $PackageYamlPath  = 'windows/package.yaml',
-    [object[]] $DetectionRules   = @(),
+
+    [Parameter(Mandatory)] [object[]] $DetectionRules,
     [object[]] $RequirementRules = @(),
-    [switch]   $DryRun
+
+    [string] $AppJsonPath     = 'windows/intune/app.json',
+    [string] $PackageYamlPath = 'windows/package.yaml',
+    [switch] $DryRun
 )
 
 $ErrorActionPreference = 'Stop'
 $GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 
-# ── Ensure output directories always exist (so artifacts never warn) ──────────
+# ── Output dirs ───────────────────────────────────────────────────────────────
 foreach ($d in @('out', 'out/publish-logs')) {
     if (!(Test-Path $d)) { New-Item -ItemType Directory -Path $d | Out-Null }
 }
@@ -28,71 +30,82 @@ $logFile = 'out/publish-logs/publish.log'
 
 Import-Module "$PSScriptRoot/IntuneDeployment.psm1" -Force
 
-$pkg         = Import-PackageYaml $PackageYamlPath
-$intuneMeta  = Get-Content $AppJsonPath -Raw | ConvertFrom-Json
+# ── Validate detection rules ──────────────────────────────────────────────────
+if (-not $DetectionRules -or $DetectionRules.Count -eq 0) {
+    throw "DetectionRules are required to create a Win32 app."
+}
+
+# ── Load metadata ─────────────────────────────────────────────────────────────
+$pkg        = Import-PackageYaml $PackageYamlPath
+$intuneMeta = Get-Content $AppJsonPath -Raw | ConvertFrom-Json
 
 $displayName   = $intuneMeta.displayName
-$vendorVersion = if ($pkg.version) { $pkg.version } else { $pkg.vendor_version }
+$vendorVersion = $pkg.version ?? $pkg.vendor_version
 
 Write-Log "Publishing $displayName v$vendorVersion" -LogFile $logFile
 
 if ($DryRun) {
-    Write-Log "DRY RUN — skipping Graph API calls" WARN -LogFile $logFile
+    Write-Log "DRY RUN enabled — skipping Graph writes" WARN -LogFile $logFile
     "APP_ID=DRY-RUN" | Out-File 'out/app.env' -Encoding ascii -Force
     exit 0
 }
 
-# ── Validate inputs ───────────────────────────────────────────────────────────
-if (!(Test-Path $IntuneWinPath)) {
-    throw "IntuneWin file not found: $IntuneWinPath"
-}
-Write-Log "IntuneWin: $IntuneWinPath" -LogFile $logFile
-
-# ── Acquire Graph token ───────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────────────────
 $token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
 
-# ── Build app body ────────────────────────────────────────────────────────────
+# ── CREATE Win32 app (NO requirementRules!) ───────────────────────────────────
 $appBody = @{
-    '@odata.type'        = '#microsoft.graph.win32LobApp'
-    displayName          = $displayName
-    displayVersion       = $vendorVersion
-    publisher            = if ($intuneMeta.publisher)  { $intuneMeta.publisher }  else { 'Unknown' }
+    '@odata.type' = '#microsoft.graph.win32LobApp'
+
+    displayName    = $displayName
+    displayVersion = $vendorVersion
+    publisher      = $intuneMeta.publisher ?? 'Unknown'
+    description    = $intuneMeta.description ?? $displayName
+
+    # REQUIRED CREATE-TIME FIELDS
+    fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
+    setupFilePath = 'Deploy-Application.exe'
+
+    minimumSupportedOperatingSystem = @{
+        v10_1903 = $false
+        v10_1909 = $false
+        v10_2004 = $true
+    }
+
     installCommandLine   = $pkg.install_command
     uninstallCommandLine = $pkg.uninstall_command
-    description          = if ($intuneMeta.description) { $intuneMeta.description } else { $displayName }
+    detectionRules       = $DetectionRules
+
     installExperience    = @{
-        runAsAccount          = if ($intuneMeta.installContext)   { $intuneMeta.installContext }   else { 'system' }
-        deviceRestartBehavior = if ($intuneMeta.restartBehavior)  { $intuneMeta.restartBehavior }  else { 'suppress' }
+        runAsAccount          = 'system'
+        deviceRestartBehavior = 'suppress'
     }
 }
 
-Write-Log "Detection rules received : $($DetectionRules.Count)" -LogFile $logFile
-Write-Log "Requirement rules received: $($RequirementRules.Count)" -LogFile $logFile
+Write-Log "Creating Win32 app (metadata + detection rules only)" -LogFile $logFile
 
-# Detection rules are mandatory for Win32 LOB apps in Intune
-if ($DetectionRules.Count -eq 0) {
-    throw "No detection rules provided. Resolve-DetectionRules.ps1 must return at least one rule."
-}
-
-# Always assign as @() to guarantee Graph API receives a JSON array, not a bare object.
-# PowerShell array-unwrapping means a single rule loses its outer array without this.
-$appBody.detectionRules   = @($DetectionRules)
-if ($RequirementRules.Count -gt 0) {
-    $appBody.requirementRules = @($RequirementRules)
-}
-
-Write-Log "App body built for: $displayName" -LogFile $logFile
-
-# ── Create or update app ──────────────────────────────────────────────────────
-$create = Invoke-GraphRequest -Token $token -Method POST `
-    -Uri "$GRAPH_BASE/deviceAppManagement/mobileApps" `
-    -Body $appBody
+$create = Invoke-GraphRequest `
+    -Token  $token `
+    -Method POST `
+    -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps" `
+    -Body   $appBody
 
 $appId = $create.id
-Write-Log "App created in Intune: $appId" -LogFile $logFile
+Write-Log "Win32 app created: $appId" -LogFile $logFile
 
-# ── Write dotenv for downstream assign job ────────────────────────────────────
+# ── PATCH requirement rules (AFTER create) ────────────────────────────────────
+if ($RequirementRules -and $RequirementRules.Count -gt 0) {
+    Write-Log "Patching requirement rules onto app $appId" -LogFile $logFile
+
+    Invoke-GraphRequest `
+        -Token  $token `
+        -Method PATCH `
+        -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId" `
+        -Body   @{ requirementRules = $RequirementRules }
+}
+
+# ── Write dotenv for downstream jobs ──────────────────────────────────────────
 "APP_ID=$appId" | Out-File 'out/app.env' -Encoding ascii -Force
-Write-Log "Written: out/app.env (APP_ID=$appId)" -LogFile $logFile
+Write-Log "Written out/app.env (APP_ID=$appId)" -LogFile $logFile
 
 Write-Host "✅ Publish complete: $displayName v$vendorVersion ($appId)" -ForegroundColor Green
