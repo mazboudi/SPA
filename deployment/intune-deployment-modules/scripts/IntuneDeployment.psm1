@@ -204,7 +204,13 @@ function Invoke-GraphRequest {
         'Content-Type' = $ContentType
     }
 
-    $bodyJson = if ($Body) { $Body | ConvertTo-Json -Depth 20 -Compress }
+    # Use -InputObject (not pipeline) so single-element arrays are NOT unwrapped.
+    # Piping a hashtable through ConvertTo-Json can strip [] from single-item arrays,
+    # causing the Graph API to reject the body (e.g. "must have at least one detection rule").
+    $bodyJson = if ($Body) { ConvertTo-Json -InputObject $Body -Depth 20 -Compress }
+    if ($bodyJson) {
+        Write-Log "Request body JSON: $bodyJson" -Level DEBUG
+    }
 
     for ($i = 1; $i -le $MaxRetries; $i++) {
         try {
