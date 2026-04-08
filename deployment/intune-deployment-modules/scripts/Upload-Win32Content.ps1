@@ -37,7 +37,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$GRAPH_BASE  = 'https://graph.microsoft.com/v1.0'
+$GRAPH_BASE  = 'https://graph.microsoft.com/beta'
 $WIN32_TYPE  = 'microsoft.graph.win32LobApp'
 $CHUNK_SIZE  = 6 * 1024 * 1024    # 6 MB — recommended Azure Blob block size
 $MAX_WAIT    = 30                  # max polls (5 s each = 2.5 min)

@@ -19,7 +19,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
+$GRAPH_BASE = 'https://graph.microsoft.com/beta'
 
 # ── Output dirs ───────────────────────────────────────────────────────────────
 foreach ($d in @('out', 'out/publish-logs')) {
@@ -72,18 +72,12 @@ $appBody = @{
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
     setupFilePath = 'Invoke-AppDeployToolkit.exe'
 
-    minimumSupportedOperatingSystem = @{
-        v10_1903 = $false
-        v10_1909 = $false
-        v10_2004 = $true
-    }
+    # With the beta endpoint, requirementRules and detectionRules are natively supported.
+    detectionRules   = @($DetectionRules)
+    requirementRules = @($RequirementRules)
 
     installCommandLine   = $pkg.install_command
     uninstallCommandLine = $pkg.uninstall_command
-
-    # Always wrap in @() so ConvertTo-Json produces a JSON array, not a bare object.
-    # A single-element PS array is unwrapped by the pipeline without this guard.
-    detectionRules       = @($DetectionRules)
 
     installExperience    = @{
         runAsAccount          = $intuneMeta.installContext   ?? 'system'
