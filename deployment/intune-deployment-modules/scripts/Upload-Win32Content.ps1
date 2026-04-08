@@ -209,7 +209,7 @@ Write-Log "  Azure Blob committed" -LogFile $LogFile
 Write-Log "Committing file in Graph API with encryption metadata..." -LogFile $LogFile
 
 Invoke-GraphRequest -Token $Token -Method POST `
-    -Uri  "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId/microsoft.graph.commitContent" `
+    -Uri  "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId/commit" `
     -Body @{ fileEncryptionInfo = $fileEncryptionInfo }
 
 # ─────────────────────────────────────────────────────────────────────────────
