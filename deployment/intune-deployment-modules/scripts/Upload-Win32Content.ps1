@@ -67,15 +67,12 @@ try {
     $detReader = [System.IO.StreamReader]::new($detEntry.Open())
     [xml]$detXml = $detReader.ReadToEnd()
     $detReader.Dispose()
-
-    # IntunePackage.intunewin is the AES-256 encrypted app content
-    $pkgEntry = $zip.Entries | Where-Object { $_.Name -eq 'IntunePackage.intunewin' } | Select-Object -First 1
-    if (-not $pkgEntry) { throw ".intunewin is corrupt: IntunePackage.intunewin not found" }
-
-    $encryptedSize = $pkgEntry.Length
 } finally {
     $zip.Dispose()
 }
+
+# The encrypted size is the entire .intunewin file — that is what we upload.
+$encryptedSize = (Get-Item -Path $IntuneWinPath).Length
 
 # PowerShell [xml] accesses default-namespace nodes transparently via property chain
 $appInfo        = $detXml.ApplicationInfo
@@ -153,39 +150,48 @@ if (-not $azureUri) {
 Write-Log "  Azure Storage URI obtained" -LogFile $LogFile
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 5 – Upload encrypted content to Azure Blob Storage in 6 MB chunks
+# Step 5 – Upload the raw .intunewin file to Azure Blob Storage in 6 MB chunks
+#          Reference: MSEndpointMgr/IntuneWin32App — uploads the whole file,
+#          NOT the IntunePackage.intunewin entry inside the ZIP.
 # ─────────────────────────────────────────────────────────────────────────────
-Write-Log "Uploading encrypted content to Azure Blob Storage..." -LogFile $LogFile
+Write-Log "Uploading .intunewin to Azure Blob Storage..." -LogFile $LogFile
+
+# Allow time for SAS token propagation in Azure Storage backend
+Start-Sleep -Seconds 2
+
+$fileSize   = (Get-Item -Path $IntuneWinPath).Length
+$chunkCount = [Math]::Ceiling($fileSize / $CHUNK_SIZE)
+$reader     = [System.IO.BinaryReader]::new(
+    [System.IO.File]::Open($IntuneWinPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+)
+$null = $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::Begin)
 
 $blockIds  = [System.Collections.Generic.List[string]]::new()
-$uploadZip = [System.IO.Compression.ZipFile]::OpenRead($IntuneWinPath)
+$isoEnc    = [System.Text.Encoding]::GetEncoding('iso-8859-1')
+
 try {
-    $pkgStream = ($uploadZip.Entries |
-        Where-Object { $_.Name -eq 'IntunePackage.intunewin' } |
-        Select-Object -First 1).Open()
+    for ($blockIdx = 0; $blockIdx -lt $chunkCount; $blockIdx++) {
+        $start     = $blockIdx * $CHUNK_SIZE
+        $length    = [Math]::Min($CHUNK_SIZE, $fileSize - $start)
+        $bytes     = $reader.ReadBytes($length)
 
-    $buffer    = [byte[]]::new($CHUNK_SIZE)
-    $blockIdx  = 0
-
-    while (($bytesRead = $pkgStream.Read($buffer, 0, $CHUNK_SIZE)) -gt 0) {
-        # Block IDs must be base64-encoded and all the same byte length.
-        # Using 6-digit zero-padded decimal avoids base64 padding ('=') ambiguity.
-        $blockId  = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($blockIdx.ToString('D6')))
+        $blockId   = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($blockIdx.ToString('0000')))
         $blockIds.Add($blockId)
 
-        $chunk    = $buffer[0..($bytesRead - 1)]
-        $blockUri = "${azureUri}&comp=block&blockid=$([Uri]::EscapeDataString($blockId))"
+        $blockUri  = "${azureUri}&comp=block&blockid=$($blockId)"
+        $headers   = @{
+            'content-type'    = 'text/plain; charset=iso-8859-1'
+            'x-ms-blob-type'  = 'BlockBlob'
+        }
+        $encodedBody = $isoEnc.GetString($bytes)
 
-        Invoke-RestMethod -Method Put -Uri $blockUri `
-            -Body $chunk `
-            -ContentType 'application/octet-stream'
+        Invoke-WebRequest -Uri $blockUri -Method Put -Headers $headers -Body $encodedBody -UseBasicParsing -ErrorAction Stop | Out-Null
 
-        Write-Log "  Block $blockIdx — $bytesRead bytes uploaded" -LogFile $LogFile
-        $blockIdx++
+        Write-Log "  Block $blockIdx — $length bytes uploaded" -LogFile $LogFile
     }
-    $pkgStream.Dispose()
 } finally {
-    $uploadZip.Dispose()
+    $reader.Close()
+    $reader.Dispose()
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -197,9 +203,10 @@ $blockListXml  = '<?xml version="1.0" encoding="utf-8"?><BlockList>'
 $blockListXml += ($blockIds | ForEach-Object { "<Latest>$_</Latest>" }) -join ''
 $blockListXml += '</BlockList>'
 
-Invoke-RestMethod -Method Put -Uri "${azureUri}&comp=blocklist" `
+Invoke-WebRequest -Method Put -Uri "${azureUri}&comp=blocklist" `
     -Body $blockListXml `
-    -ContentType 'text/plain; charset=utf-8'
+    -ContentType 'text/plain; charset=utf-8' `
+    -UseBasicParsing -ErrorAction Stop | Out-Null
 
 Write-Log "  Azure Blob committed" -LogFile $LogFile
 
