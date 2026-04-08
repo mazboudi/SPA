@@ -10,11 +10,10 @@
 
 .EXAMPLE requirements.json
   {
-    "minWindowsVersion": "10.0.19041.0",
-    "architecture": "x64",
-    "minDiskSpaceInMB": 500,
-    "minRamInMB": 2048,
-    "minCpuSpeedInMHz": null
+    "minimumSupportedWindowsRelease": "2004",
+    "applicableArchitectures": "x64",
+    "minimumFreeDiskSpaceInMB": 500,
+    "minimumMemoryInMB": 2048
   }
 #>
 [CmdletBinding()]

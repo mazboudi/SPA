@@ -8,11 +8,10 @@
     "version",
     "packaging_version",
     "installer_type",
-    "install",
-    "uninstall",
+    "install_command",
+    "uninstall_command",
     "detection"
   ],
-  "additionalProperties": false,
   "properties": {
     "package_id": {
       "type": "string",
@@ -26,6 +25,10 @@
       "type": "string",
       "description": "The installer's vendor version string (e.g. '26.00', '134.0.6998.89')."
     },
+    "vendor_version": {
+      "type": "string",
+      "description": "Alias for version. Deprecated — prefer 'version'."
+    },
     "packaging_version": {
       "type": ["string", "integer"],
       "description": "Internal packaging iteration. Increment when re-packaging without a vendor version change."
@@ -35,48 +38,17 @@
       "enum": ["msi", "exe", "msix", "ps1"],
       "description": "Type of installer file."
     },
-    "install": {
-      "type": "object",
-      "description": "Install command and return code configuration.",
-      "required": ["command_line"],
-      "additionalProperties": false,
-      "properties": {
-        "command_line": {
-          "type": "string",
-          "description": "Silent install command line (e.g. 'msiexec.exe /i \"Files\\7z2600-x64.msi\" /qn /norestart')."
-        },
-        "return_codes": {
-          "type": "object",
-          "description": "Return code classification.",
-          "additionalProperties": false,
-          "properties": {
-            "success":     { "type": "array", "items": { "type": "integer" } },
-            "soft_reboot": { "type": "array", "items": { "type": "integer" } },
-            "hard_reboot": { "type": "array", "items": { "type": "integer" } },
-            "retry":       { "type": "array", "items": { "type": "integer" } }
-          }
-        }
-      }
+    "source_filename": {
+      "type": "string",
+      "description": "Filename of the installer binary inside the src/Files directory."
     },
-    "uninstall": {
-      "type": "object",
-      "description": "Uninstall command and return code configuration.",
-      "required": ["command_line"],
-      "additionalProperties": false,
-      "properties": {
-        "command_line": {
-          "type": "string",
-          "description": "Silent uninstall command line."
-        },
-        "return_codes": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "success":     { "type": "array", "items": { "type": "integer" } },
-            "soft_reboot": { "type": "array", "items": { "type": "integer" } }
-          }
-        }
-      }
+    "install_command": {
+      "type": "string",
+      "description": "Silent install command line (e.g. 'msiexec.exe /i \"Files\\7z2600-x64.msi\" /qn /norestart')."
+    },
+    "uninstall_command": {
+      "type": "string",
+      "description": "Silent uninstall command line."
     },
     "detection_mode": {
       "type": "string",
@@ -86,9 +58,23 @@
     },
     "detection": {
       "type": "object",
-      "description": "Detection parameters. Required keys vary by detection_mode.",
+      "description": "Detection parameters. Required keys vary by detection_mode. For msi-product-code: product_code, version, version_operator. For registry-marker: registry sub-object. For file: file sub-object.",
       "additionalProperties": true,
       "properties": {
+        "product_code": {
+          "type": "string",
+          "description": "MSI product code GUID. Used when detection_mode is 'msi-product-code'."
+        },
+        "version_operator": {
+          "type": "string",
+          "enum": ["greaterThanOrEqual", "equal"],
+          "default": "greaterThanOrEqual",
+          "description": "Version comparison operator for MSI detection."
+        },
+        "version": {
+          "type": "string",
+          "description": "Expected version string for MSI detection."
+        },
         "registry": {
           "type": "object",
           "description": "Used when detection_mode is 'registry-marker'.",
@@ -114,19 +100,24 @@
             "version":            { "type": "string" },
             "check32BitOn64System": { "type": "boolean", "default": false }
           }
-        },
-        "msi": {
-          "type": "object",
-          "description": "Used when detection_mode is 'msi-product-code'.",
-          "required": ["product_code"],
-          "additionalProperties": false,
-          "properties": {
-            "product_code":    { "type": "string", "pattern": "^\\{[A-Fa-f0-9\\-]{36}\\}$" },
-            "version_operator":{ "type": "string", "enum": ["greaterThanOrEqual", "equal"], "default": "greaterThanOrEqual" },
-            "version":         { "type": "string" }
-          }
         }
       }
+    },
+    "max_runtime_minutes": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1440,
+      "description": "Maximum time in minutes the install is allowed to run before Intune marks it as failed."
+    },
+    "restart_behavior": {
+      "type": "string",
+      "enum": ["basedOnReturnCode", "allow", "suppress", "force"],
+      "description": "Device restart behavior after install."
+    },
+    "install_experience": {
+      "type": "string",
+      "enum": ["system", "user"],
+      "description": "Install execution context."
     },
     "intune": {
       "type": "object",
@@ -142,5 +133,6 @@
         "uninstall_previous_version_of_app": { "type": "boolean" }
       }
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -81,7 +81,7 @@ $appBody = @{
     minimumNumberOfProcessors      = if ($HardwareRequirements.minimumNumberOfProcessors) { $HardwareRequirements.minimumNumberOfProcessors } else { $null }
     minimumCpuSpeedInMHz           = if ($HardwareRequirements.minimumCpuSpeedInMHz) { $HardwareRequirements.minimumCpuSpeedInMHz } else { $null }
     applicableArchitectures        = if ($HardwareRequirements.applicableArchitectures) { $HardwareRequirements.applicableArchitectures } else { 'x64' }
-    minimumSupportedWindowsRelease = if ($HardwareRequirements.minimumSupportedWindowsRelease) { $HardwareRequirements.minimumSupportedWindowsRelease } else { '10.0.19041.0' }
+    minimumSupportedWindowsRelease = if ($HardwareRequirements.minimumSupportedWindowsRelease) { $HardwareRequirements.minimumSupportedWindowsRelease } else { '2004' }
 
     installCommandLine   = $pkg.install_command
     uninstallCommandLine = $pkg.uninstall_command
