@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/intune-requirements.schema.json",
+  "title": "Intune Hardware Requirements",
+  "description": "Hardware and OS requirements for Intune Win32 apps. Located at windows/intune/requirements.json.",
+  "type": "object",
+  "required": [
+    "minimumSupportedWindowsRelease",
+    "applicableArchitectures"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "minimumSupportedWindowsRelease": {
+      "type": "string",
+      "enum": [
+        "1607", "1703", "1709", "1803", "1809", "1903", "1909", 
+        "2004", "20H2", "21H1", "21H2", "22H2",
+        "Windows11_21H2", "Windows11_22H2", "Windows11_23H2", "Windows11_24H2"
+      ],
+      "description": "Minimum required Windows 10/11 release version."
+    },
+    "applicableArchitectures": {
+      "type": "string",
+      "enum": ["x86", "x64", "arm", "neutral"],
+      "description": "Allowed CPU architecture."
+    },
+    "minimumFreeDiskSpaceInMB": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum required free disk space in MB."
+    },
+    "minimumMemoryInMB": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum required memory in MB."
+    },
+    "minimumNumberOfProcessors": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum number of CPU cores."
+    },
+    "minimumCpuSpeedInMHz": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum CPU speed in MHz."
+    }
+  }
+}

@@ -283,10 +283,12 @@ $detectionBlock
 
     Write-File (Join-Path $titleDir 'windows\intune\requirements.json') @"
 {
-  "minimumOs": "1903",
-  "architecture": "x64",
+  "minimumSupportedWindowsRelease": "2004",
+  "applicableArchitectures": "x64",
   "minimumFreeDiskSpaceInMB": 500,
-  "minimumMemoryInMB": 2048
+  "minimumMemoryInMB": 2048,
+  "minimumNumberOfProcessors": null,
+  "minimumCpuSpeedInMHz": null
 }
 "@
 

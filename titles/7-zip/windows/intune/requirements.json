@@ -1,6 +1,6 @@
 {
-    "minimumOs": "1903",
-    "architecture": "x64",
-    "minimumFreeDiskSpaceInMB": 10,
-    "minimumMemoryInMB": 1024
+  "minimumSupportedWindowsRelease": "2004",
+  "applicableArchitectures": "x64",
+  "minimumFreeDiskSpaceInMB": 500,
+  "minimumMemoryInMB": 2048
 }
