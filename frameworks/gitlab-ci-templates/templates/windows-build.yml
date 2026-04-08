@@ -29,19 +29,34 @@
       $POWERSHELL_TELEMETRY_OPTOUT = "1"
 
       Write-Host "=== Windows Build: $($env:CI_PROJECT_NAME) ===" -ForegroundColor Cyan
-      Write-Host "PSADT version  : $($env:PSADT_FRAMEWORK_VERSION)"
       Write-Host "Pipeline tag   : $($env:CI_COMMIT_TAG)"
 
       ## 1 — Read metadata & Validate against Schemas
       Write-Host "--- Verifying powershell-yaml module is present ---"
       Import-Module powershell-yaml -ErrorAction Stop
 
+      Write-Host "--- Downloading JSON Schemas ---"
+      New-Item -ItemType Directory -Path 'schemas' -Force | Out-Null
+      $schemaHeaders = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
+      $schemasId = $env:SCHEMAS_PROJECT_ID
+      $ref = $env:SCHEMA_VERSION ?? 'main'
+      
+      foreach ($s in @('app.schema.json', 'windows-package.schema.json', 'intune-requirements.schema.json')) {
+        $encodedPath = [uri]::EscapeDataString("schemas/packaging-standards/schemas/$s")
+        $url = "$($env:CI_API_V4_URL)/projects/$schemasId/repository/files/$encodedPath/raw?ref=$ref"
+        try {
+          Invoke-WebRequest -Uri $url -Headers $schemaHeaders -OutFile "schemas/$s" -ErrorAction Stop
+        } catch {
+          throw "Failed to download $s from SCHEMAS_PROJECT_ID ($schemasId). Ensure the variable is set and token has read_api access."
+        }
+      }
+
       if (!(Test-Path 'app.json')) { throw "app.json not found" }
       $app = Get-Content 'app.json' -Raw | ConvertFrom-Json
 
       Write-Host "--- Validating app.json against schema ---"
       $appJsonBody = Get-Content 'app.json' -Raw
-      $appSchema   = Get-Content 'schemas/packaging-standards/schemas/app.schema.json' -Raw
+      $appSchema   = Get-Content "schemas/app.schema.json" -Raw
       $appIsValid  = Test-Json -Json $appJsonBody -Schema $appSchema -ErrorAction Stop
       if (-not $appIsValid) { throw "app.json failed JSON Schema validation!" }
       
@@ -51,11 +66,17 @@
       }
       Write-Host "  ✓ app.json valid"
 
+      ## Override PSADT Framework Version using app.json metadata
+      if ($app.platforms.windows.framework_version) {
+        $env:PSADT_FRAMEWORK_VERSION = $app.platforms.windows.framework_version
+      }
+      Write-Host "PSADT version locked to: $($env:PSADT_FRAMEWORK_VERSION)"
+
       if (!(Test-Path 'windows/package.yaml')) { throw "windows/package.yaml not found" }
 
       Write-Host "--- Validating windows/package.yaml against schema ---"
       $winPkgJson   = ConvertTo-Json (ConvertFrom-Yaml (Get-Content 'windows/package.yaml' -Raw)) -Depth 20
-      $pkgSchema    = Get-Content 'schemas/packaging-standards/schemas/windows-package.schema.json' -Raw
+      $pkgSchema    = Get-Content "schemas/windows-package.schema.json" -Raw
       $pkgIsValid   = Test-Json -Json $winPkgJson -Schema $pkgSchema -ErrorAction Stop
       if (-not $pkgIsValid) { throw "windows/package.yaml failed JSON Schema validation!" }
       Write-Host "  ✓ windows/package.yaml valid"
@@ -63,7 +84,7 @@
       if (Test-Path 'windows/intune/requirements.json') {
         Write-Host "--- Validating windows/intune/requirements.json against schema ---"
         $reqJson     = Get-Content 'windows/intune/requirements.json' -Raw
-        $reqSchema   = Get-Content 'schemas/packaging-standards/schemas/intune-requirements.schema.json' -Raw
+        $reqSchema   = Get-Content "schemas/intune-requirements.schema.json" -Raw
         $reqIsValid  = Test-Json -Json $reqJson -Schema $reqSchema -ErrorAction Stop
         if (-not $reqIsValid) { throw "windows/intune/requirements.json failed JSON Schema validation!" }
         Write-Host "  ✓ windows/intune/requirements.json valid"
