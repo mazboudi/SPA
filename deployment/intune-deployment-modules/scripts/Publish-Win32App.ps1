@@ -66,8 +66,20 @@ $appBody = @{
     }
 }
 
-if ($DetectionRules.Count  -gt 0) { $appBody.detectionRules   = $DetectionRules }
-if ($RequirementRules.Count -gt 0) { $appBody.requirementRules = $RequirementRules }
+Write-Log "Detection rules received : $($DetectionRules.Count)" -LogFile $logFile
+Write-Log "Requirement rules received: $($RequirementRules.Count)" -LogFile $logFile
+
+# Detection rules are mandatory for Win32 LOB apps in Intune
+if ($DetectionRules.Count -eq 0) {
+    throw "No detection rules provided. Resolve-DetectionRules.ps1 must return at least one rule."
+}
+
+# Always assign as @() to guarantee Graph API receives a JSON array, not a bare object.
+# PowerShell array-unwrapping means a single rule loses its outer array without this.
+$appBody.detectionRules   = @($DetectionRules)
+if ($RequirementRules.Count -gt 0) {
+    $appBody.requirementRules = @($RequirementRules)
+}
 
 Write-Log "App body built for: $displayName" -LogFile $logFile
 

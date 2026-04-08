@@ -72,14 +72,17 @@
       }
 
       # Build detection rules from windows/package.yaml
-      $detectionRules = & 'intune-modules/Resolve-DetectionRules.ps1' `
-        -PackageYamlPath 'windows/package.yaml'
+      # @() forces the result into an array — PowerShell unwraps single-element
+      # script outputs, which causes Graph API to receive a bare object not an array.
+      $detectionRules = @(& 'intune-modules/Resolve-DetectionRules.ps1' `
+        -PackageYamlPath 'windows/package.yaml')
+      Write-Host "Detection rules count: $($detectionRules.Count)"
 
       # Build requirement rules from windows/intune/requirements.json
-      $requirementRules = $null
+      $requirementRules = @()
       if (Test-Path 'windows/intune/requirements.json') {
-        $requirementRules = & 'intune-modules/Resolve-Requirements.ps1' `
-          -RequirementsPath 'windows/intune/requirements.json'
+        $requirementRules = @(& 'intune-modules/Resolve-Requirements.ps1' `
+          -RequirementsPath 'windows/intune/requirements.json')
       }
 
       # Publish (creates or updates) the Win32 app
