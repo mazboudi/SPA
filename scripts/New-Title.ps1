@@ -204,33 +204,30 @@ if ($Platform -in @('windows','both')) {
 @"
 detection_mode: msi-product-code
 detection:
-  msi:
-    product_code: "{TODO-PRODUCT-CODE-GUID}"   # get from Get-MsiMetadata.ps1
-    version_operator: greaterThanOrEqual
-    version: "$Version"
+  product_code: "{TODO-PRODUCT-CODE-GUID}"   # get from Get-MsiMetadata.ps1
+  version_operator: greaterThanOrEqual
+  version: "$Version"
 "@
         }
         'registry-marker' {
 @"
 detection_mode: registry-marker
 detection:
-  registry:
-    hive: HKLM
-    key_path: "SOFTWARE\\YourOrg\\InstalledApps\\$PackageId"
-    value_name: Version
-    operator: greaterThanOrEqual
-    value: "$Version"
+  hive: HKLM
+  key_path: "SOFTWARE\\YourOrg\\InstalledApps\\$PackageId"
+  value_name: Version
+  operator: greaterThanOrEqual
+  value: "$Version"
 "@
         }
         'file' {
 @"
 detection_mode: file
 detection:
-  file:
-    path: "C:\\Program Files\\TODO"
-    file_or_folder: "TODO.exe"
-    operator: versionGreaterThanOrEqual
-    version: "$Version"
+  path: "C:\\Program Files\\TODO"
+  file_or_folder: "TODO.exe"
+  operator: versionGreaterThanOrEqual
+  version: "$Version"
 "@
         }
     }

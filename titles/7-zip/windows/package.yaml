@@ -10,7 +10,6 @@ uninstall_command: 'msiexec.exe /x "{23170F69-40C1-2702-2408-000001000000}" /qn 
 
 detection_mode: msi-product-code
 detection:
-  msi:
-    product_code: "{23170F69-40C1-2702-2408-000001000000}"
-    version_operator: greaterThanOrEqual
-    version: "26.00"
+  product_code: "{23170F69-40C1-2702-2408-000001000000}"
+  version_operator: greaterThanOrEqual
+  version: "26.00"
