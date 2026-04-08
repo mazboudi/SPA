@@ -47,6 +47,9 @@ Import-Module "$PSScriptRoot/IntuneDeployment.psm1" -Force
 if (!(Test-Path $IntuneWinPath)) {
     throw "Upload-Win32Content: .intunewin file not found: $IntuneWinPath"
 }
+# Resolve to absolute path — .NET methods resolve relative paths against the
+# process working directory, not PowerShell's $PWD, which breaks in CI runners.
+$IntuneWinPath = (Resolve-Path $IntuneWinPath).Path
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 1 – Parse Detection.xml from the .intunewin ZIP
