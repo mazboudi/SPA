@@ -295,9 +295,15 @@ Invoke-GraphRequest -Token $Token -Method POST `
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 8 – Poll until commit succeeds
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 8 – Poll until commit succeeds
+# ─────────────────────────────────────────────────────────────────────────────
 Write-Log "Waiting for Graph commit (up to $($MAX_WAIT * 5)s)..." -LogFile $LogFile
 
 $fileStatus = $null
+$successStates = @('commitFileSuccess')
+$failureStates = @('commitFileFailed')
+
 for ($i = 1; $i -le $MAX_WAIT; $i++) {
     Start-Sleep -Seconds 5
     $fileStatus = Invoke-GraphRequest -Token $Token -Method GET `
@@ -305,12 +311,17 @@ for ($i = 1; $i -le $MAX_WAIT; $i++) {
 
     Write-Log "  [$i/$MAX_WAIT] uploadState: $($fileStatus.uploadState)" -LogFile $LogFile
 
-    if ($fileStatus.uploadState -eq 'commitFilesSuccess') { break }
-    if ($fileStatus.uploadState -eq 'commitFilesFailed')  {
+    if ($successStates -contains $fileStatus.uploadState) {
+        Write-Log "File commit completed successfully" -LogFile $LogFile
+        break
+    }
+
+    if ($failureStates -contains $fileStatus.uploadState) {
         throw "Graph: file commit failed (uploadState: $($fileStatus.uploadState))"
     }
 }
-if ($fileStatus.uploadState -ne 'commitFilesSuccess') {
+
+if (-not $fileStatus -or $successStates -notcontains $fileStatus.uploadState) {
     throw "Timed out waiting for file commit. Last state: $($fileStatus.uploadState)"
 }
 
