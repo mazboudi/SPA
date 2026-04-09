@@ -1,114 +1,143 @@
-2026-04-08T22:11:01.746819Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-08T22:11:01.746819Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-08T22:11:01.746819Z 00O Resolving secrets
-2026-04-08T22:11:01.746819Z 00O section_start:1775686261:prepare_executor
-2026-04-08T22:11:01.746819Z 00O+Preparing the "shell" executor
-2026-04-08T22:11:01.747446Z 00O Using Shell (pwsh) executor...
-2026-04-08T22:11:01.747446Z 00O section_end:1775686261:prepare_executor
-2026-04-08T22:11:01.747446Z 00O+section_start:1775686261:prepare_script
-2026-04-08T22:11:01.747446Z 00O+Preparing environment
-2026-04-08T22:11:02.843757Z 01O Running on vm-psa-runner-p...
-2026-04-08T22:11:03.102205Z 00O section_end:1775686263:prepare_script
-2026-04-08T22:11:03.102205Z 00O+section_start:1775686263:get_sources
-2026-04-08T22:11:03.103294Z 00O+Getting source from Git repository
-2026-04-08T22:11:05.357341Z 01O Gitaly correlation ID: 01KNQJC6CYVH8WWCA7S5R3F5G9
-2026-04-08T22:11:05.707029Z 01O Fetching changes with git depth set to 20...
-2026-04-08T22:11:05.774283Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
-2026-04-08T22:11:07.483482Z 01O Checking out 1d4438c6 as detached HEAD (ref is main)...
-2026-04-08T22:11:07.753191Z 01O Removing out/
-2026-04-08T22:11:07.753191Z 01O Removing psadt-framework-4.1.0/
-2026-04-08T22:11:07.753191Z 01O Removing schemas/
-2026-04-08T22:11:07.753191Z 01O Removing windows/src/Files/7z2600-x64.msi
-2026-04-08T22:11:07.963780Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-08T22:11:08.575113Z 01O 
-2026-04-08T22:11:08.575818Z 01O Skipping Git submodules setup
-2026-04-08T22:11:08.801153Z 00O section_end:1775686268:get_sources
-2026-04-08T22:11:08.801153Z 00O+section_start:1775686268:download_artifacts
-2026-04-08T22:11:08.801666Z 00O+Downloading artifacts
-2026-04-08T22:11:10.333816Z 01O Version:      18.9.0
-2026-04-08T22:11:10.333816Z 01O Git revision: 07e534ba
-2026-04-08T22:11:10.333816Z 01O Git branch:   18-9-stable
-2026-04-08T22:11:10.333816Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-08T22:11:10.333816Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-08T22:11:10.333816Z 01O OS/Arch:      windows/amd64
-2026-04-08T22:11:10.346596Z 01O Downloading artifacts for windows_build (26080922)...
-2026-04-08T22:11:10.531496Z 01E Runtime platform                                    arch=amd64 os=windows pid=2216 revision=07e534ba version=18.9.0
-2026-04-08T22:11:12.239223Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KNQJCFVT7QKT1MMG52KNM9XY host=gitlab.onefiserv.net id=26080922 responseStatus=200 OK token=64_q2mGgj
-2026-04-08T22:11:12.599950Z 00O section_end:1775686272:download_artifacts
-2026-04-08T22:11:12.599950Z 00O+section_start:1775686272:step_script
-2026-04-08T22:11:12.600457Z 00O+Executing "step_script" stage of the job script
-2026-04-08T22:11:14.192861Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-08T22:11:17.253807Z 01O Intune modules ready in: intune-modules
-2026-04-08T22:11:17.257326Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-08T22:11:17.398056Z 01O Building detection rules for mode: msi-product-code
-2026-04-08T22:11:17.405606Z 01O   product_code    : {23170F69-40C1-2702-2408-000001000000}
-2026-04-08T22:11:17.406133Z 01O   version         : 26.00
-2026-04-08T22:11:17.406659Z 01O   version_operator: greaterThanOrEqual
-2026-04-08T22:11:17.410403Z 01O Detection rules count: 1
-2026-04-08T22:11:17.440557Z 01O Hardware properties resolved (minOS=2004, arch=x64)
-2026-04-08T22:11:17.600683Z 01O [2026-04-08 22:11:17] [INFO] Publishing 7-Zip 24.08 v26.00
-2026-04-08T22:11:17.600683Z 01O [2026-04-08 22:11:17] [INFO] IntuneWin: out\7-zip_26.00_1.intunewin
-2026-04-08T22:11:17.602357Z 01O [2026-04-08 22:11:17] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-04-08T22:11:17.897669Z 01O [2026-04-08 22:11:17] [INFO] Token acquired (length=2128)
-2026-04-08T22:11:17.914432Z 01O [2026-04-08 22:11:17] [INFO] Creating Win32 app (metadata + detection rules only)
-2026-04-08T22:11:17.939739Z 01O [2026-04-08 22:11:17] [DEBUG] Request body JSON: {"minimumMemoryInMB":2048,"installExperience":{"runAsAccount":"system","deviceRestartBehavior":"suppress"},"detectionRules":[{"productCode":"{23170F69-40C1-2702-2408-000001000000}","@odata.type":"#microsoft.graph.win32LobAppProductCodeDetection","productVersion":"26.00","productVersionOperator":"greaterThanOrEqual"}],"description":"Open-source file archiver with a high compression ratio. Supports 7z, ZIP, CAB, RAR, ARJ, LZH, CHM, GZIP, BZIP2, Z, TAR, CPIO, ISO, and RPM formats.","setupFilePath":"Invoke-AppDeployToolkit.exe","fileName":"7-zip_26.00_1.intunewin","uninstallCommandLine":"msiexec.exe /x \"{23170F69-40C1-2702-2408-000001000000}\" /qn /norestart","minimumSupportedWindowsRelease":"2004","installCommandLine":"msiexec.exe /i \"Files\\7z2600-x64.msi\" /qn /norestart","applicableArchitectures":"x64","minimumNumberOfProcessors":null,"displayVersion":"26.00","minimumFreeDiskSpaceInMB":500,"displayName":"7-Zip 24.08","publisher":"Igor Pavlov","minimumCpuSpeedInMHz":null,"@odata.type":"#microsoft.graph.win32LobApp"}
-2026-04-08T22:11:18.927600Z 01O [2026-04-08 22:11:18] [INFO] Win32 app created: 13d07eb1-c2df-4fde-bfc5-d323a9fb797c
-2026-04-08T22:11:18.930865Z 01O [2026-04-08 22:11:18] [INFO] Starting content upload...
-2026-04-08T22:11:19.005687Z 01O [2026-04-08 22:11:19] [INFO] Parsing .intunewin metadata: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip\out\7-zip_26.00_1.intunewin
-2026-04-08T22:11:19.075132Z 01O [2026-04-08 22:11:19] [INFO]   Package       : Invoke-AppDeployToolkit.exe
-2026-04-08T22:11:19.078929Z 01O [2026-04-08 22:11:19] [INFO]   Unencrypted   : 11491246 bytes
-2026-04-08T22:11:19.081580Z 01O [2026-04-08 22:11:19] [INFO]   Encrypted     : 11491296 bytes
-2026-04-08T22:11:19.086531Z 01O [2026-04-08 22:11:19] [INFO] Creating content version for app 13d07eb1-c2df-4fde-bfc5-d323a9fb797c...
-2026-04-08T22:11:19.088292Z 01O [2026-04-08 22:11:19] [DEBUG] Request body JSON: {}
-2026-04-08T22:11:19.639099Z 01O [2026-04-08 22:11:19] [INFO]   Content version: 1
-2026-04-08T22:11:19.672361Z 01O [2026-04-08 22:11:19] [INFO] Registering file upload request...
-2026-04-08T22:11:19.677606Z 01O [2026-04-08 22:11:19] [DEBUG] Request body JSON: {"sizeEncrypted":11491296,"name":"7-zip_26.00_1.intunewin","isDependency":false,"size":11491246,"manifest":null}
-2026-04-08T22:11:20.409218Z 01O [2026-04-08 22:11:20] [INFO]   File entry ID: fff4e6bf-1175-49a8-9add-d1fa721585d5
-2026-04-08T22:11:20.411783Z 01O [2026-04-08 22:11:20] [INFO] Waiting for Azure Storage URI (up to 150s)...
-2026-04-08T22:11:25.861564Z 01O [2026-04-08 22:11:25] [INFO]   [1/30] uploadState: azureStorageUriRequestSuccess
-2026-04-08T22:11:25.868087Z 01O [2026-04-08 22:11:25] [INFO]   Azure Storage URI obtained
-2026-04-08T22:11:25.869159Z 01O [2026-04-08 22:11:25] [INFO] Uploading encrypted content to Azure Blob Storage...
-2026-04-08T22:11:31.085393Z 01O 
-2026-04-08T22:11:31.087165Z 01O [2026-04-08 22:11:31] [INFO]   Block 0 — 6291456 bytes uploaded
-2026-04-08T22:11:36.186203Z 01O 
-2026-04-08T22:11:36.188212Z 01O [2026-04-08 22:11:36] [INFO]   Block 1 — 5199840 bytes uploaded
-2026-04-08T22:11:36.193556Z 01O [2026-04-08 22:11:36] [INFO] Committing 2 blocks to Azure Blob...
-2026-04-08T22:11:36.271377Z 01O 
-2026-04-08T22:11:36.283264Z 01O [2026-04-08 22:11:36] [INFO]   Azure Blob committed
-2026-04-08T22:11:36.285253Z 01O [2026-04-08 22:11:36] [INFO] Committing file in Graph API with encryption metadata...
-2026-04-08T22:11:36.287491Z 01O [2026-04-08 22:11:36] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"mac":"liNcJKuSSEYwsSKMReT1sNQSM/oGdUlQD/GzlxWZ66g=","macKey":"eSmEh6vLN4uFOorJYbomqL14SYa/wVhn48QPGXFtLxE=","fileDigest":"HS3xNv04OC0mfVA+1/AGX8HeplANgjDFNzLJedjEqOg=","fileDigestAlgorithm":"SHA256","profileIdentifier":"ProfileVersion1","encryptionKey":"mJ6B67qIqAzSny6phKcIjlyn8JxaYSNm5j0SNFeKomo=","initializationVector":"PiaZyexUauNBCNWluM0aIQ=="}}
-2026-04-08T22:11:36.364377Z 01O [2026-04-08 22:11:36] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/13d07eb1-c2df-4fde-bfc5-d323a9fb797c/microsoft.graph.win32LobApp/contentVersions/1/files/fff4e6bf-1175-49a8-9add-d1fa721585d5/microsoft.graph.commitContent]: Response status code does not indicate success: 400 (Bad Request).
-2026-04-08T22:11:36.457407Z 01E Invoke-RestMethod:  {   "error": {     "code": "BadRequest",     "message": "Resource not found for the segment
-2026-04-08T22:11:36.457407Z 01E \u0027microsoft.graph.commitContent\u0027.",     "innerError": {       "date": "2026-04-08T22:11:36",      
-2026-04-08T22:11:36.457407Z 01E "request-id": "337aa14c-57e7-4fbf-b1f7-f9f725f27a9b",       "client-request-id": "337aa14c-57e7-4fbf-b1f7-f9f725f27a9b"
-2026-04-08T22:11:36.457407Z 01E }   } }
-2026-04-08T22:11:36.616555Z 00O section_end:1775686296:step_script
-2026-04-08T22:11:36.616555Z 00O+section_start:1775686296:upload_artifacts_on_failure
-2026-04-08T22:11:36.618125Z 00O+Uploading artifacts for failed job
-2026-04-08T22:11:38.197291Z 01O Version:      18.9.0
-2026-04-08T22:11:38.197291Z 01O Git revision: 07e534ba
-2026-04-08T22:11:38.197291Z 01O Git branch:   18-9-stable
-2026-04-08T22:11:38.197291Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-08T22:11:38.197291Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-08T22:11:38.197291Z 01O OS/Arch:      windows/amd64
-2026-04-08T22:11:38.209881Z 01O Uploading artifacts...
-2026-04-08T22:11:38.374111Z 01E Runtime platform                                    arch=amd64 os=windows pid=10508 revision=07e534ba version=18.9.0
-2026-04-08T22:11:38.376071Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-08T22:11:38.376579Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
-2026-04-08T22:11:40.546512Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KNQJDB0CT9JM07A4C7CQ1Q44 id=26080923 responseStatus=201 Created token=64_q2mGgj
-2026-04-08T22:11:40.740433Z 01O Version:      18.9.0
-2026-04-08T22:11:40.740433Z 01O Git revision: 07e534ba
-2026-04-08T22:11:40.740433Z 01O Git branch:   18-9-stable
-2026-04-08T22:11:40.740433Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-08T22:11:40.740433Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-08T22:11:40.740433Z 01O OS/Arch:      windows/amd64
-2026-04-08T22:11:40.749638Z 01O Uploading artifacts...
-2026-04-08T22:11:40.941689Z 01E Runtime platform                                    arch=amd64 os=windows pid=13944 revision=07e534ba version=18.9.0
-2026-04-08T22:11:40.941689Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-08T22:11:40.941689Z 01E ERROR: No files to upload                          
-2026-04-08T22:11:41.159874Z 00O section_end:1775686301:upload_artifacts_on_failure
-2026-04-08T22:11:41.159874Z 00O+section_start:1775686301:cleanup_file_variables
-2026-04-08T22:11:41.159874Z 00O+Cleaning up project directory and file based variables
-2026-04-08T22:11:42.612055Z 00O section_end:1775686302:cleanup_file_variables
-2026-04-08T22:11:42.612055Z 00O+
-2026-04-08T22:11:42.612564Z 00O ERROR: Job failed: exit status 1
+2026-04-08T22:35:35.432642Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-08T22:35:35.432642Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-08T22:35:35.432642Z 00O Resolving secrets
+2026-04-08T22:35:35.432642Z 00O section_start:1775687735:prepare_executor
+2026-04-08T22:35:35.432642Z 00O+Preparing the "shell" executor
+2026-04-08T22:35:35.433330Z 00O Using Shell (pwsh) executor...
+2026-04-08T22:35:35.433330Z 00O section_end:1775687735:prepare_executor
+2026-04-08T22:35:35.433330Z 00O+section_start:1775687735:prepare_script
+2026-04-08T22:35:35.433330Z 00O+Preparing environment
+2026-04-08T22:35:36.464075Z 01O Running on vm-psa-runner-p...
+2026-04-08T22:35:36.728845Z 00O section_end:1775687736:prepare_script
+2026-04-08T22:35:36.728845Z 00O+section_start:1775687736:get_sources
+2026-04-08T22:35:36.730892Z 00O+Getting source from Git repository
+2026-04-08T22:35:38.848221Z 01O Gitaly correlation ID: 01KNQKS4HT0DTMC7Q4E0B4DX7Q
+2026-04-08T22:35:39.192861Z 01O Fetching changes with git depth set to 20...
+2026-04-08T22:35:39.260273Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
+2026-04-08T22:35:41.024799Z 01O Checking out e67d24f3 as detached HEAD (ref is main)...
+2026-04-08T22:35:41.285983Z 01O Removing out/
+2026-04-08T22:35:41.285983Z 01O Removing psadt-framework-4.1.0/
+2026-04-08T22:35:41.285983Z 01O Removing schemas/
+2026-04-08T22:35:41.285983Z 01O Removing windows/src/Files/7z2600-x64.msi
+2026-04-08T22:35:41.500925Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-08T22:35:42.146752Z 01O 
+2026-04-08T22:35:42.148624Z 01O Skipping Git submodules setup
+2026-04-08T22:35:42.348221Z 00O section_end:1775687742:get_sources
+2026-04-08T22:35:42.348221Z 00O+section_start:1775687742:download_artifacts
+2026-04-08T22:35:42.350770Z 00O+Downloading artifacts
+2026-04-08T22:35:43.739572Z 01O Version:      18.9.0
+2026-04-08T22:35:43.739572Z 01O Git revision: 07e534ba
+2026-04-08T22:35:43.739572Z 01O Git branch:   18-9-stable
+2026-04-08T22:35:43.739572Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-08T22:35:43.739572Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-08T22:35:43.739572Z 01O OS/Arch:      windows/amd64
+2026-04-08T22:35:43.756853Z 01O Downloading artifacts for windows_build (26081594)...
+2026-04-08T22:35:43.915640Z 01E Runtime platform                                    arch=amd64 os=windows pid=12668 revision=07e534ba version=18.9.0
+2026-04-08T22:35:45.259449Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KNQKSEJQ63ZJ0PT39WBWAZSG host=gitlab.onefiserv.net id=26081594 responseStatus=200 OK token=64_jkxXks
+2026-04-08T22:35:45.529260Z 00O section_end:1775687745:download_artifacts
+2026-04-08T22:35:45.529260Z 00O+section_start:1775687745:step_script
+2026-04-08T22:35:45.529831Z 00O+Executing "step_script" stage of the job script
+2026-04-08T22:35:46.904671Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-08T22:35:49.950646Z 01O Intune modules ready in: intune-modules
+2026-04-08T22:35:49.954446Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-08T22:35:50.069329Z 01O Building detection rules for mode: msi-product-code
+2026-04-08T22:35:50.076349Z 01O   product_code    : {23170F69-40C1-2702-2408-000001000000}
+2026-04-08T22:35:50.076886Z 01O   version         : 26.00
+2026-04-08T22:35:50.077420Z 01O   version_operator: greaterThanOrEqual
+2026-04-08T22:35:50.081197Z 01O Detection rules count: 1
+2026-04-08T22:35:50.104853Z 01O Hardware properties resolved (minOS=2004, arch=x64)
+2026-04-08T22:35:50.219484Z 01O [2026-04-08 22:35:50] [INFO] Publishing 7-Zip 26.00 v26.00
+2026-04-08T22:35:50.226718Z 01O [2026-04-08 22:35:50] [INFO] IntuneWin: out\7-zip_26.00_1.intunewin
+2026-04-08T22:35:50.235089Z 01O [2026-04-08 22:35:50] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
+2026-04-08T22:35:50.592232Z 01O [2026-04-08 22:35:50] [INFO] Token acquired (length=2130)
+2026-04-08T22:35:50.604635Z 01O [2026-04-08 22:35:50] [INFO] Creating Win32 app (metadata + detection rules only)
+2026-04-08T22:35:50.632045Z 01O [2026-04-08 22:35:50] [DEBUG] Request body JSON: {"installExperience":{"deviceRestartBehavior":"suppress","runAsAccount":"system"},"minimumFreeDiskSpaceInMB":500,"minimumCpuSpeedInMHz":null,"publisher":"Igor Pavlov","uninstallCommandLine":"msiexec.exe /x \"{23170F69-40C1-2702-2408-000001000000}\" /qn /norestart","@odata.type":"#microsoft.graph.win32LobApp","displayName":"7-Zip 26.00","detectionRules":[{"productVersionOperator":"greaterThanOrEqual","productCode":"{23170F69-40C1-2702-2408-000001000000}","productVersion":"26.00","@odata.type":"#microsoft.graph.win32LobAppProductCodeDetection"}],"fileName":"7-zip_26.00_1.intunewin","minimumMemoryInMB":2048,"applicableArchitectures":"x64","description":"Open-source file archiver with a high compression ratio. Supports 7z, ZIP, CAB, RAR, ARJ, LZH, CHM, GZIP, BZIP2, Z, TAR, CPIO, ISO, and RPM formats.","displayVersion":"26.00","minimumNumberOfProcessors":null,"setupFilePath":"Invoke-AppDeployToolkit.exe","installCommandLine":"msiexec.exe /i \"Files\\7z2600-x64.msi\" /qn /norestart","minimumSupportedWindowsRelease":"2004"}
+2026-04-08T22:35:51.553919Z 01O [2026-04-08 22:35:51] [INFO] Win32 app created: 54dc92e4-056c-4d30-bc7d-a28635911461
+2026-04-08T22:35:51.555026Z 01O [2026-04-08 22:35:51] [INFO] Starting content upload...
+2026-04-08T22:35:51.638366Z 01O [2026-04-08 22:35:51] [INFO] Parsing .intunewin metadata: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip\out\7-zip_26.00_1.intunewin
+2026-04-08T22:35:51.672697Z 01O [2026-04-08 22:35:51] [INFO]   Package       : Invoke-AppDeployToolkit.exe
+2026-04-08T22:35:51.674618Z 01O [2026-04-08 22:35:51] [INFO]   Unencrypted   : 11491246 bytes
+2026-04-08T22:35:51.676768Z 01O [2026-04-08 22:35:51] [INFO]   Encrypted     : 11492582 bytes
+2026-04-08T22:35:51.682181Z 01O [2026-04-08 22:35:51] [INFO] Creating content version for app 54dc92e4-056c-4d30-bc7d-a28635911461...
+2026-04-08T22:35:51.683876Z 01O [2026-04-08 22:35:51] [DEBUG] Request body JSON: {}
+2026-04-08T22:35:52.321504Z 01O [2026-04-08 22:35:52] [INFO]   Content version: 1
+2026-04-08T22:35:52.322465Z 01O [2026-04-08 22:35:52] [INFO] Registering file upload request...
+2026-04-08T22:35:52.326057Z 01O [2026-04-08 22:35:52] [DEBUG] Request body JSON: {"size":11491246,"sizeEncrypted":11492582,"manifest":null,"name":"7-zip_26.00_1.intunewin","isDependency":false}
+2026-04-08T22:35:53.098368Z 01O [2026-04-08 22:35:53] [INFO]   File entry ID: 03a9f8dd-eecf-4601-a6a9-29f49038d51b
+2026-04-08T22:35:53.100643Z 01O [2026-04-08 22:35:53] [INFO] Waiting for Azure Storage URI (up to 150s)...
+2026-04-08T22:35:58.593669Z 01O [2026-04-08 22:35:58] [INFO]   [1/30] uploadState: azureStorageUriRequestSuccess
+2026-04-08T22:35:58.598382Z 01O [2026-04-08 22:35:58] [INFO]   Azure Storage URI obtained
+2026-04-08T22:35:58.632954Z 01O [2026-04-08 22:35:58] [INFO] Uploading .intunewin to Azure Blob Storage...
+2026-04-08T22:36:01.007458Z 01O [2026-04-08 22:36:01] [INFO]   Block 0 — 6291456 bytes uploaded
+2026-04-08T22:36:01.280036Z 01O [2026-04-08 22:36:01] [INFO]   Block 1 — 5201126 bytes uploaded
+2026-04-08T22:36:01.284827Z 01O [2026-04-08 22:36:01] [INFO] Committing 2 blocks to Azure Blob...
+2026-04-08T22:36:01.356581Z 01O [2026-04-08 22:36:01] [INFO]   Azure Blob committed
+2026-04-08T22:36:01.357956Z 01O [2026-04-08 22:36:01] [INFO] Committing file in Graph API with encryption metadata...
+2026-04-08T22:36:01.359857Z 01O [2026-04-08 22:36:01] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"fileDigest":"HS3xNv04OC0mfVA+1/AGX8HeplANgjDFNzLJedjEqOg=","macKey":"UdjJ19fikz7Zejmq8kQ0KrQeD6mV24xK/Zru1Zen31g=","mac":"WshktLs4rLn0aqo3n/kMzL+5aUUMuvHTvAZJOs/TfFA=","fileDigestAlgorithm":"SHA256","profileIdentifier":"ProfileVersion1","encryptionKey":"E0vOKMkb3IWrf4Ki22INN0K1GfJ0ZpA/DL9w/90ymM4=","initializationVector":"IA3sjLvCksrTwjtwalKBpg=="}}
+2026-04-08T22:36:02.077412Z 01O 
+2026-04-08T22:36:02.085724Z 01O [2026-04-08 22:36:02] [INFO] Waiting for Graph commit (up to 150s)...
+2026-04-08T22:36:07.588682Z 01O [2026-04-08 22:36:07] [INFO]   [1/30] uploadState: commitFileFailed
+2026-04-08T22:36:13.134048Z 01O [2026-04-08 22:36:13] [INFO]   [2/30] uploadState: commitFileFailed
+2026-04-08T22:36:18.619940Z 01O [2026-04-08 22:36:18] [INFO]   [3/30] uploadState: commitFileFailed
+2026-04-08T22:36:24.125112Z 01O [2026-04-08 22:36:24] [INFO]   [4/30] uploadState: commitFileFailed
+2026-04-08T22:36:29.636654Z 01O [2026-04-08 22:36:29] [INFO]   [5/30] uploadState: commitFileFailed
+2026-04-08T22:36:35.083570Z 01O [2026-04-08 22:36:35] [INFO]   [6/30] uploadState: commitFileFailed
+2026-04-08T22:36:40.570183Z 01O [2026-04-08 22:36:40] [INFO]   [7/30] uploadState: commitFileFailed
+2026-04-08T22:36:46.032802Z 01O [2026-04-08 22:36:46] [INFO]   [8/30] uploadState: commitFileFailed
+2026-04-08T22:36:51.507227Z 01O [2026-04-08 22:36:51] [INFO]   [9/30] uploadState: commitFileFailed
+2026-04-08T22:36:56.989410Z 01O [2026-04-08 22:36:56] [INFO]   [10/30] uploadState: commitFileFailed
+2026-04-08T22:37:02.855067Z 01O [2026-04-08 22:37:02] [INFO]   [11/30] uploadState: commitFileFailed
+2026-04-08T22:37:08.527378Z 01O [2026-04-08 22:37:08] [INFO]   [12/30] uploadState: commitFileFailed
+2026-04-08T22:37:14.153928Z 01O [2026-04-08 22:37:14] [INFO]   [13/30] uploadState: commitFileFailed
+2026-04-08T22:37:19.787553Z 01O [2026-04-08 22:37:19] [INFO]   [14/30] uploadState: commitFileFailed
+2026-04-08T22:37:25.430638Z 01O [2026-04-08 22:37:25] [INFO]   [15/30] uploadState: commitFileFailed
+2026-04-08T22:37:31.046961Z 01O [2026-04-08 22:37:31] [INFO]   [16/30] uploadState: commitFileFailed
+2026-04-08T22:37:36.689418Z 01O [2026-04-08 22:37:36] [INFO]   [17/30] uploadState: commitFileFailed
+2026-04-08T22:37:42.351312Z 01O [2026-04-08 22:37:42] [INFO]   [18/30] uploadState: commitFileFailed
+2026-04-08T22:37:48.099330Z 01O [2026-04-08 22:37:48] [INFO]   [19/30] uploadState: commitFileFailed
+2026-04-08T22:37:53.701181Z 01O [2026-04-08 22:37:53] [INFO]   [20/30] uploadState: commitFileFailed
+2026-04-08T22:37:59.306229Z 01O [2026-04-08 22:37:59] [INFO]   [21/30] uploadState: commitFileFailed
+2026-04-08T22:38:04.953292Z 01O [2026-04-08 22:38:04] [INFO]   [22/30] uploadState: commitFileFailed
+2026-04-08T22:38:10.554317Z 01O [2026-04-08 22:38:10] [INFO]   [23/30] uploadState: commitFileFailed
+2026-04-08T22:38:16.150454Z 01O [2026-04-08 22:38:16] [INFO]   [24/30] uploadState: commitFileFailed
+2026-04-08T22:38:21.878281Z 01O [2026-04-08 22:38:21] [INFO]   [25/30] uploadState: commitFileFailed
+2026-04-08T22:38:27.283193Z 01O [2026-04-08 22:38:27] [INFO]   [26/30] uploadState: commitFileFailed
+2026-04-08T22:38:33.020459Z 01O [2026-04-08 22:38:33] [INFO]   [27/30] uploadState: commitFileFailed
+2026-04-08T22:38:38.642625Z 01O [2026-04-08 22:38:38] [INFO]   [28/30] uploadState: commitFileFailed
+2026-04-08T22:38:44.318959Z 01O [2026-04-08 22:38:44] [INFO]   [29/30] uploadState: commitFileFailed
+2026-04-08T22:38:49.960417Z 01O [2026-04-08 22:38:49] [INFO]   [30/30] uploadState: commitFileFailed
+2026-04-08T22:38:50.072085Z 01E Exception: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip\intune-modules\Upload-Win32Content.ps1:241
+2026-04-08T22:38:50.072085Z 01E Line |
+2026-04-08T22:38:50.072085Z 01E  241 |      throw "Timed out waiting for file commit. Last state: $($fileStat …
+2026-04-08T22:38:50.072085Z 01E      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-04-08T22:38:50.072085Z 01E      | Timed out waiting for file commit. Last state: commitFileFailed
+2026-04-08T22:38:50.165681Z 00O section_end:1775687930:step_script
+2026-04-08T22:38:50.165681Z 00O+section_start:1775687930:upload_artifacts_on_failure
+2026-04-08T22:38:50.166840Z 00O+Uploading artifacts for failed job
+2026-04-08T22:38:51.710131Z 01O Version:      18.9.0
+2026-04-08T22:38:51.710131Z 01O Git revision: 07e534ba
+2026-04-08T22:38:51.710131Z 01O Git branch:   18-9-stable
+2026-04-08T22:38:51.710131Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-08T22:38:51.710131Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-08T22:38:51.710131Z 01O OS/Arch:      windows/amd64
+2026-04-08T22:38:51.727297Z 01O Uploading artifacts...
+2026-04-08T22:38:51.903241Z 01E Runtime platform                                    arch=amd64 os=windows pid=5308 revision=07e534ba version=18.9.0
+2026-04-08T22:38:51.903772Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-08T22:38:51.904284Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
+2026-04-08T22:38:54.529678Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KNQKZ68PSKVZ7BMEHRVQGZ0P id=26081595 responseStatus=201 Created token=64_jkxXks
+2026-04-08T22:38:54.724202Z 01O Version:      18.9.0
+2026-04-08T22:38:54.724202Z 01O Git revision: 07e534ba
+2026-04-08T22:38:54.724202Z 01O Git branch:   18-9-stable
+2026-04-08T22:38:54.724202Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-08T22:38:54.724202Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-08T22:38:54.724202Z 01O OS/Arch:      windows/amd64
+2026-04-08T22:38:54.733350Z 01O Uploading artifacts...
+2026-04-08T22:38:54.913030Z 01E Runtime platform                                    arch=amd64 os=windows pid=7364 revision=07e534ba version=18.9.0
+2026-04-08T22:38:54.913030Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
+2026-04-08T22:38:54.913030Z 01E ERROR: No files to upload                          
+2026-04-08T22:38:55.134286Z 00O section_end:1775687935:upload_artifacts_on_failure
+2026-04-08T22:38:55.134286Z 00O+section_start:1775687935:cleanup_file_variables
+2026-04-08T22:38:55.134286Z 00O+Cleaning up project directory and file based variables
+2026-04-08T22:38:56.575500Z 00O section_end:1775687936:cleanup_file_variables
+2026-04-08T22:38:56.575500Z 00O+
+2026-04-08T22:38:56.578367Z 00O ERROR: Job failed: exit status 1
