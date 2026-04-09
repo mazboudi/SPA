@@ -163,15 +163,30 @@ if (-not $azureUri) {
 }
 Write-Log "  Azure Storage URI obtained" -LogFile $LogFile
 
+# SAS URI renewal helper — Graph issues short-lived URIs that can expire mid-upload
+$renewUri = "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId/renewUpload"
+function Renew-SasUri {
+    param([string]$Token, [string]$RenewUri, [string]$FileUri, [string]$LogFile)
+    try {
+        $renewed = Invoke-GraphRequest -Token $Token -Method POST -Uri $RenewUri -Body @{}
+        Write-Log "  SAS URI renewed" -LogFile $LogFile
+        return $renewed.azureStorageUri
+    } catch {
+        Write-Warning "SAS URI renewal failed: $_. Continuing with existing URI."
+        return $null
+    }
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 5 – Upload the extracted IntunePackage.intunewin to Azure Blob Storage
 #          We upload the encrypted payload only (not the outer ZIP), because the
 #          fileEncryptionInfo MAC/digest describes this specific content.
+#          Includes retry logic + SAS renewal per MSEndpointMgr reference.
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Log "Uploading encrypted payload to Azure Blob Storage..." -LogFile $LogFile
 
 # Allow time for SAS token propagation in Azure Storage backend
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 3
 
 $fileSize   = $encryptedSize
 $chunkCount = [Math]::Ceiling($fileSize / $CHUNK_SIZE)
@@ -182,6 +197,7 @@ $null = $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::Begin)
 
 $blockIds  = [System.Collections.Generic.List[string]]::new()
 $isoEnc    = [System.Text.Encoding]::GetEncoding('iso-8859-1')
+$sasTimer  = [System.Diagnostics.Stopwatch]::StartNew()
 
 try {
     for ($blockIdx = 0; $blockIdx -lt $chunkCount; $blockIdx++) {
@@ -192,24 +208,53 @@ try {
         $blockId   = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($blockIdx.ToString('0000')))
         $blockIds.Add($blockId)
 
-        $blockUri  = "${azureUri}&comp=block&blockid=$($blockId)"
-        $headers   = @{
-            'content-type'    = 'text/plain; charset=iso-8859-1'
-            'x-ms-blob-type'  = 'BlockBlob'
-        }
         $encodedBody = $isoEnc.GetString($bytes)
 
-        Invoke-WebRequest -Uri $blockUri -Method Put -Headers $headers -Body $encodedBody -UseBasicParsing -ErrorAction Stop | Out-Null
+        # Retry logic — up to 5 attempts with random backoff
+        $uploaded = $false
+        for ($attempt = 1; $attempt -le 5; $attempt++) {
+            try {
+                $blockUri  = "${azureUri}&comp=block&blockid=$($blockId)"
+                $headers   = @{
+                    'content-type'    = 'text/plain; charset=iso-8859-1'
+                    'x-ms-blob-type'  = 'BlockBlob'
+                }
+                Invoke-WebRequest -Uri $blockUri -Method Put -Headers $headers -Body $encodedBody -UseBasicParsing -ErrorAction Stop | Out-Null
+                $uploaded = $true
+                break
+            } catch {
+                $delay = Get-Random -Minimum 5 -Maximum 20
+                Write-Log "  Block $blockIdx attempt $attempt failed: $($_.Exception.Message). Retrying in ${delay}s..." -Level WARN -LogFile $LogFile
+
+                # Renew SAS URI before retrying — the token may have been invalidated
+                $newUri = Renew-SasUri -Token $Token -RenewUri $renewUri -FileUri $azureUri -LogFile $LogFile
+                if ($newUri) { $azureUri = $newUri }
+
+                Start-Sleep -Seconds $delay
+            }
+        }
+        if (-not $uploaded) {
+            throw "Failed to upload block $blockIdx after 5 attempts."
+        }
 
         Write-Log "  Block $blockIdx — $length bytes uploaded" -LogFile $LogFile
+
+        # Renew SAS URI if timer exceeds 7.5 minutes (450 seconds)
+        if ($blockIdx -lt ($chunkCount - 1) -and $sasTimer.ElapsedMilliseconds -ge 450000) {
+            Write-Log "  SAS URI approaching expiry, renewing..." -LogFile $LogFile
+            $newUri = Renew-SasUri -Token $Token -RenewUri $renewUri -FileUri $azureUri -LogFile $LogFile
+            if ($newUri) { $azureUri = $newUri }
+            $sasTimer.Restart()
+        }
     }
 } finally {
     $reader.Close()
     $reader.Dispose()
+    $sasTimer.Stop()
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 6 – Commit the Azure Blob block list
+# Step 6 – Commit the Azure Blob block list (with retry)
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Log "Committing $($blockIds.Count) blocks to Azure Blob..." -LogFile $LogFile
 
@@ -217,10 +262,24 @@ $blockListXml  = '<?xml version="1.0" encoding="utf-8"?><BlockList>'
 $blockListXml += ($blockIds | ForEach-Object { "<Latest>$_</Latest>" }) -join ''
 $blockListXml += '</BlockList>'
 
-Invoke-WebRequest -Method Put -Uri "${azureUri}&comp=blocklist" `
-    -Body $blockListXml `
-    -ContentType 'text/plain; charset=utf-8' `
-    -UseBasicParsing -ErrorAction Stop | Out-Null
+$committed = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    try {
+        Invoke-WebRequest -Method Put -Uri "${azureUri}&comp=blocklist" `
+            -Body $blockListXml `
+            -ContentType 'text/plain; charset=utf-8' `
+            -UseBasicParsing -ErrorAction Stop | Out-Null
+        $committed = $true
+        break
+    } catch {
+        $delay = Get-Random -Minimum 5 -Maximum 15
+        Write-Log "  Blocklist commit attempt $attempt failed: $($_.Exception.Message). Retrying in ${delay}s..." -Level WARN -LogFile $LogFile
+        $newUri = Renew-SasUri -Token $Token -RenewUri $renewUri -FileUri $azureUri -LogFile $LogFile
+        if ($newUri) { $azureUri = $newUri }
+        Start-Sleep -Seconds $delay
+    }
+}
+if (-not $committed) { throw "Failed to commit Azure Blob block list after 5 attempts." }
 
 Write-Log "  Azure Blob committed" -LogFile $LogFile
 
