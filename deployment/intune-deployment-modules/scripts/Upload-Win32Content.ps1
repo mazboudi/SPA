@@ -67,12 +67,26 @@ try {
     $detReader = [System.IO.StreamReader]::new($detEntry.Open())
     [xml]$detXml = $detReader.ReadToEnd()
     $detReader.Dispose()
+
+    # Extract the encrypted payload to a temp file for upload.
+    # The fileEncryptionInfo (MAC, digest) describes THIS content, not the outer ZIP.
+    $pkgEntry = $zip.Entries | Where-Object { $_.Name -eq 'IntunePackage.intunewin' } | Select-Object -First 1
+    if (-not $pkgEntry) { throw ".intunewin is corrupt: IntunePackage.intunewin not found" }
+
+    $tempEncryptedFile = Join-Path $env:TEMP "intunewin_upload_$([guid]::NewGuid().ToString('N')).bin"
+    $extractStream = $pkgEntry.Open()
+    $outStream     = [System.IO.File]::Create($tempEncryptedFile)
+    try {
+        $extractStream.CopyTo($outStream)
+    } finally {
+        $outStream.Dispose()
+        $extractStream.Dispose()
+    }
 } finally {
     $zip.Dispose()
 }
 
-# The encrypted size is the entire .intunewin file — that is what we upload.
-$encryptedSize = (Get-Item -Path $IntuneWinPath).Length
+$encryptedSize = (Get-Item -Path $tempEncryptedFile).Length
 
 # PowerShell [xml] accesses default-namespace nodes transparently via property chain
 $appInfo        = $detXml.ApplicationInfo
@@ -150,19 +164,19 @@ if (-not $azureUri) {
 Write-Log "  Azure Storage URI obtained" -LogFile $LogFile
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 5 – Upload the raw .intunewin file to Azure Blob Storage in 6 MB chunks
-#          Reference: MSEndpointMgr/IntuneWin32App — uploads the whole file,
-#          NOT the IntunePackage.intunewin entry inside the ZIP.
+# Step 5 – Upload the extracted IntunePackage.intunewin to Azure Blob Storage
+#          We upload the encrypted payload only (not the outer ZIP), because the
+#          fileEncryptionInfo MAC/digest describes this specific content.
 # ─────────────────────────────────────────────────────────────────────────────
-Write-Log "Uploading .intunewin to Azure Blob Storage..." -LogFile $LogFile
+Write-Log "Uploading encrypted payload to Azure Blob Storage..." -LogFile $LogFile
 
 # Allow time for SAS token propagation in Azure Storage backend
 Start-Sleep -Seconds 2
 
-$fileSize   = (Get-Item -Path $IntuneWinPath).Length
+$fileSize   = $encryptedSize
 $chunkCount = [Math]::Ceiling($fileSize / $CHUNK_SIZE)
 $reader     = [System.IO.BinaryReader]::new(
-    [System.IO.File]::Open($IntuneWinPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    [System.IO.File]::Open($tempEncryptedFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
 )
 $null = $reader.BaseStream.Seek(0, [System.IO.SeekOrigin]::Begin)
 
@@ -255,3 +269,8 @@ Invoke-GraphRequest -Token $Token -Method PATCH `
 
 Write-Log "✅ Content upload complete — app: $AppId, contentVersion: $cvId" -LogFile $LogFile
 Write-Host "✅ Upload complete: $AppId (contentVersion: $cvId)" -ForegroundColor Green
+
+# Clean up extracted temp file
+if ($tempEncryptedFile -and (Test-Path $tempEncryptedFile)) {
+    Remove-Item $tempEncryptedFile -Force -ErrorAction SilentlyContinue
+}
