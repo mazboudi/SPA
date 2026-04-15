@@ -1,0 +1,1 @@
+Remove-Printer -Name "\\10.253.57.135\corp secureprint pune"
