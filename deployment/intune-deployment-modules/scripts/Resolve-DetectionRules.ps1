@@ -102,24 +102,40 @@ switch ($detectionMode) {
             throw "package.yaml: detection.hive must be HKLM or HKCU"
         }
 
-        $operatorMap = @{
-            exists             = 'exists'
-            notExists          = 'doesNotExist'
-            equal              = 'equal'
-            notEqual           = 'notEqual'
-            greaterThanOrEqual = 'greaterThanOrEqual'
+        # Graph API uses two separate fields:
+        #   detectionType = value type: exists | doesNotExist | string | integer | version
+        #   operator      = comparison: notConfigured | equal | notEqual | greaterThanOrEqual | ...
+        #
+        # The package.yaml 'operator' field maps to BOTH — we infer detectionType from it.
+
+        # Map package.yaml operators → Graph detectionType + operator
+        $detectionType = 'version'       # default: compare as version string
+        $graphOperator = 'greaterThanOrEqual'
+
+        switch ($operator) {
+            'exists'             { $detectionType = 'exists';       $graphOperator = 'notConfigured' }
+            'notExists'          { $detectionType = 'doesNotExist'; $graphOperator = 'notConfigured' }
+            'equal'              { $detectionType = 'version';      $graphOperator = 'equal' }
+            'notEqual'           { $detectionType = 'version';      $graphOperator = 'notEqual' }
+            'greaterThanOrEqual' { $detectionType = 'version';      $graphOperator = 'greaterThanOrEqual' }
+            default              { $detectionType = 'exists';       $graphOperator = 'notConfigured' }
         }
 
-        $graphOperator = $operatorMap[$operator] ?? 'exists'
-
-        return @(@{
+        $rule = @{
             '@odata.type'            = '#microsoft.graph.win32LobAppRegistryDetection'
             check32BitOn64System     = $false
             keyPath                  = $keyPath
             valueName                = $valueName
-            detectionType            = $graphOperator
-            detectionValue           = $value
-        })
+            detectionType            = $detectionType
+        }
+
+        # Only include operator and detectionValue when doing a comparison
+        if ($detectionType -notin @('exists', 'doesNotExist')) {
+            $rule['operator']        = $graphOperator
+            $rule['detectionValue']  = $value
+        }
+
+        return @($rule)
     }
 
     # ─────────────────────────────────────────────────────────────────────────
