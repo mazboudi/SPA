@@ -1,0 +1,27 @@
+{
+  "title": "Secure Print - Pune",
+  "publisher": "Fiserv",
+  "package_id": "secure-print-pune",
+  "version": "2.3",
+  "owners": {
+    "team": "euc-packaging",
+    "contact_email": "euc-packaging@fiserv.com"
+  },
+  "lifecycle": "active",
+  "platforms": {
+    "windows": {
+      "enabled": true,
+      "framework": "psadt-enterprise",
+      "framework_version": "4.1.0"
+    },
+    "macos": {
+      "enabled": false,
+      "framework": "macos-packaging-framework",
+      "framework_version": "1.0.0"
+    }
+  },
+  "deployment": {
+    "windows": "intune",
+    "macos": "jamf"
+  }
+}

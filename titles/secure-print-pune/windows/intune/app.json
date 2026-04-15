@@ -1,0 +1,17 @@
+{
+  "displayName": "Fiserv Secure Print - Pune",
+  "description": "Installs the Fiserv Secure Print network printer for the Pune office (\\\\10.253.57.135\\corp secureprint pune). Runs as the logged-on user via PSADT.",
+  "publisher": "Fiserv",
+  "appVersion": "2.3",
+  "informationUrl": "",
+  "isFeatured": false,
+  "privacyInformationUrl": "",
+  "notes": "Managed by SPA pipeline. Script-based deployment — no MSI.",
+  "owner": "EUC Packaging",
+  "installCommandLine": "Invoke-AppDeployToolkit.exe",
+  "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall",
+  "applicableArchitectures": "x64",
+  "minimumSupportedWindowsRelease": "2004",
+  "displayVersion": "2.3",
+  "allowAvailableUninstall": true
+}

@@ -1,0 +1,17 @@
+# Fiserv Secure Print - Pune v2.3 — Windows package definition
+package_id: secure-print-pune
+display_name: "Fiserv Secure Print - Pune"
+version: "2.3"
+packaging_version: "1"
+installer_type: exe
+
+install_command: 'Invoke-AppDeployToolkit.exe'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
+
+detection_mode: registry-marker
+detection:
+  hive: HKLM
+  key_path: "SOFTWARE\\Fiserv\\InstalledApps\\secure-print-pune"
+  value_name: Version
+  operator: greaterThanOrEqual
+  value: "2.3"
