@@ -232,6 +232,11 @@ $RestartBehavior  = 'suppress'
 $MaxInstallTime   = 60
 $ReturnCodes      = ''
 $SupersedesAppId  = ''
+$MsiPath          = ''
+$MsiProductCode   = ''
+$MsiProductVersion = ''
+$MsiProductName   = ''
+$MsiFileName      = ''
 # File detection sub-fields
 $FileDetPath      = ''
 $FileDetName      = ''
@@ -245,6 +250,41 @@ if ($Platform -in @('windows','both')) {
             'msi', 'exe'
         ) -Default 'msi'
     }
+
+    # MSI metadata extraction
+    if ($InstallerType -eq 'msi') {
+        Write-Host ""
+        $MsiPath = Read-Host "Path to MSI file (drag & drop or type path) — press Enter to skip"
+        $MsiPath = $MsiPath.Trim().Trim('"').Trim("'")
+
+        if ($MsiPath -and (Test-Path $MsiPath)) {
+            Write-Host "  Extracting MSI metadata..." -ForegroundColor DarkCyan
+            $msiScript = Join-Path $PSScriptRoot 'Get-MsiMetadata.ps1'
+            if (Test-Path $msiScript) {
+                $msiJson = & pwsh -File $msiScript -MsiPath $MsiPath -Json 2>&1
+                try {
+                    $msiMeta = $msiJson | ConvertFrom-Json
+                    $MsiProductCode    = $msiMeta.ProductCode
+                    $MsiProductVersion = $msiMeta.ProductVersion
+                    $MsiProductName    = $msiMeta.ProductName
+                    $MsiFileName       = [System.IO.Path]::GetFileName($MsiPath)
+
+                    Write-Host "  ✓ ProductCode    : $MsiProductCode" -ForegroundColor Green
+                    Write-Host "    ProductVersion : $MsiProductVersion" -ForegroundColor White
+                    Write-Host "    ProductName    : $MsiProductName" -ForegroundColor White
+                    Write-Host "    FileName       : $MsiFileName" -ForegroundColor White
+                } catch {
+                    Write-Host "  ⚠ Could not parse MSI metadata. You'll need to fill in ProductCode manually." -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "  ⚠ Get-MsiMetadata.ps1 not found at $msiScript" -ForegroundColor Yellow
+            }
+        } elseif ($MsiPath) {
+            Write-Host "  ⚠ File not found: $MsiPath — skipping extraction" -ForegroundColor Yellow
+            $MsiPath = ''
+        }
+    }
+
     if (-not $DetectionMode) {
         $DetectionMode = Show-Menu -Title "Windows detection mode:" -Options @(
             'msi-product-code', 'registry-marker', 'file', 'script'
@@ -563,19 +603,25 @@ if (Test-Path $initScript) {
     Write-Host "  ⚠ Initialize-GitLab.ps1 not found at $initScript — skipping copy" -ForegroundColor Yellow
 }
 
+# (Get-MsiMetadata.ps1 is called inline during prompts — not copied into titles)
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  WINDOWS FILES
 # ══════════════════════════════════════════════════════════════════════════════
 if ($Platform -in @('windows','both')) {
 
+    # ── Resolve MSI-specific values ───────────────────────────────────────────
+    $productCode = if ($MsiProductCode) { $MsiProductCode } else { '{TODO-PRODUCT-CODE-GUID}' }
+    $msiFile     = if ($MsiFileName)    { $MsiFileName }    else { 'TODO_INSTALLER.msi' }
+
     # ── Install / uninstall commands ──────────────────────────────────────────
     $installCmd   = if ($InstallerType -eq 'msi') {
-        'msiexec.exe /i "Files\TODO_INSTALLER.msi" /qn /norestart'
+        "msiexec.exe /i `"Files\$msiFile`" /qn /norestart"
     } else {
         '"Files\TODO_INSTALLER.exe" /S'
     }
     $uninstallCmd = if ($InstallerType -eq 'msi') {
-        'msiexec.exe /x "{TODO-PRODUCT-CODE-GUID}" /qn /norestart'
+        "msiexec.exe /x `"$productCode`" /qn /norestart"
     } else {
         '"C:\Program Files\TODO\uninstall.exe" /S'
     }
@@ -586,7 +632,7 @@ if ($Platform -in @('windows','both')) {
 @"
 detection_mode: msi-product-code
 detection:
-  product_code: "{TODO-PRODUCT-CODE-GUID}"   # get from Get-MsiMetadata.ps1
+  product_code: "$productCode"
   version_operator: greaterThanOrEqual
   version: "$Version"
 "@
@@ -728,11 +774,7 @@ $returnCodesBlock
     Mkd (Join-Path $titleDir 'windows\src\Files')
     Write-File (Join-Path $titleDir 'windows\src\Files\.gitkeep') @"
 # Drop installer binary here. Do NOT commit binaries to git.
-# Expected: TODO_INSTALLER.$InstallerType
-#
-# For MSI titles, get the ProductCode:
-#   pwsh -File frameworks\psadt-enterprise\tools\Get-MsiMetadata.ps1 ``
-#        -MsiPath <path-to-installer.msi>
+# Expected: $msiFile
 "@
 
     # ── windows/src/Deploy-Application.ps1 (PSADT v4) ─────────────────────────
@@ -740,7 +782,7 @@ $returnCodesBlock
     $installBody = if ($InstallerType -eq 'msi') {
 @"
         # Install MSI
-        Execute-MSI -Action Install -Path 'Files\TODO_INSTALLER.msi'
+        Execute-MSI -Action Install -Path 'Files\$msiFile'
 "@
     } else {
 @"
@@ -752,7 +794,7 @@ $returnCodesBlock
     $uninstallBody = if ($InstallerType -eq 'msi') {
 @"
         # Uninstall MSI
-        Execute-MSI -Action Uninstall -Path '{TODO-PRODUCT-CODE-GUID}'
+        Execute-MSI -Action Uninstall -Path '$productCode'
 "@
     } else {
 @"
@@ -1104,10 +1146,13 @@ Write-Host "  1. Search 'TODO' in the generated files and fill in all placeholde
 if ($Platform -in @('windows','both')) {
     Write-Host ""
     Write-Host "  WINDOWS:" -ForegroundColor Magenta
-    if ($InstallerType -eq 'msi') {
-        Write-Host "  2w. Get the MSI ProductCode:"
-        Write-Host "       pwsh -File frameworks\psadt-enterprise\tools\Get-MsiMetadata.ps1 \"
-        Write-Host "            -MsiPath windows\src\Files\<installer.msi>"
+    if ($InstallerType -eq 'msi' -and $MsiProductCode) {
+        Write-Host "  ✓ MSI ProductCode auto-filled: $MsiProductCode" -ForegroundColor Green
+        Write-Host "  2w. Copy $MsiFileName into windows\src\Files\ (NOT committed to git)"
+    } elseif ($InstallerType -eq 'msi') {
+        Write-Host "  2w. Extract ProductCode (MSI path was not provided during scaffold):"
+        Write-Host "       pwsh -File scripts\Get-MsiMetadata.ps1 -MsiPath <path-to-installer.msi>"
+        Write-Host "       Then update ProductCode in windows\package.yaml and Deploy-Application.ps1"
     } else {
         Write-Host "  2w. Drop the installer binary into windows\src\Files\ (NOT committed to git)"
     }
