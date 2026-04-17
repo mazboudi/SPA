@@ -115,22 +115,21 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [string] $PackageId,
-    [Parameter(Mandatory)] [string] $DisplayName,
-    [Parameter(Mandatory)] [string] $Publisher,
-    [Parameter(Mandatory)] [string] $Version,
-    [Parameter(Mandatory)]
+    [string] $PackageId = '',
+    [string] $DisplayName = '',
+    [string] $Publisher = '',
+    [string] $Version = '',
     [ValidateSet('browsers','productivity','developer-tools','security',
                  'communication','utilities','endpoint-management','custom')]
-    [string] $Category,
+    [string] $Category = '',
     [ValidateSet('windows','macos','both')]
-    [string] $Platform = 'windows',
+    [string] $Platform = '',
     [ValidateSet('msi','exe')]
-    [string] $InstallerType = 'msi',
+    [string] $InstallerType = '',
     [ValidateSet('msi-product-code','registry-marker','file','script')]
-    [string] $DetectionMode = 'msi-product-code',
+    [string] $DetectionMode = '',
     [ValidateSet('pkg','dmg','zip')]
-    [string] $MacInstallerType = 'pkg',
+    [string] $MacInstallerType = '',
     [string] $BundleId = '',
     [string] $ReceiptId = '',
     [string] $JamfCategory = '',
@@ -142,6 +141,112 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  INTERACTIVE PROMPTS — only shown when parameters are not provided
+# ══════════════════════════════════════════════════════════════════════════════
+
+function Show-Menu {
+    <#
+    .SYNOPSIS
+      Displays a numbered menu and returns the selected value.
+    #>
+    param(
+        [Parameter(Mandatory)] [string]   $Title,
+        [Parameter(Mandatory)] [string[]] $Options,
+        [string] $Default = ''
+    )
+    Write-Host ""
+    Write-Host "$Title" -ForegroundColor Cyan
+    for ($i = 0; $i -lt $Options.Count; $i++) {
+        $marker = if ($Options[$i] -eq $Default) { ' (default)' } else { '' }
+        Write-Host "  [$($i + 1)] $($Options[$i])$marker"
+    }
+    $prompt = if ($Default) { "Enter number (1-$($Options.Count)) or press Enter for '$Default'" }
+              else          { "Enter number (1-$($Options.Count))" }
+    do {
+        $raw = Read-Host $prompt
+        if ($Default -and [string]::IsNullOrWhiteSpace($raw)) {
+            return $Default
+        }
+        $idx = [int]$raw - 1
+    } while ($idx -lt 0 -or $idx -ge $Options.Count)
+
+    $selected = $Options[$idx]
+    Write-Host "  → $selected" -ForegroundColor Green
+    return $selected
+}
+
+function Read-Required {
+    <#
+    .SYNOPSIS
+      Prompts for a required text value. Loops until non-empty input.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $Prompt,
+        [string] $Default = ''
+    )
+    $suffix = if ($Default) { " (default: $Default)" } else { '' }
+    do {
+        $value = Read-Host "$Prompt$suffix"
+        if ([string]::IsNullOrWhiteSpace($value) -and $Default) { return $Default }
+    } while ([string]::IsNullOrWhiteSpace($value))
+    return $value.Trim()
+}
+
+# ── Text inputs ───────────────────────────────────────────────────────────────
+if (-not $PackageId)    { $PackageId    = Read-Required "Package ID (kebab-case, e.g. '7-zip')" }
+if (-not $DisplayName)  { $DisplayName  = Read-Required "Display Name (e.g. '7-Zip')" }
+if (-not $Publisher)    { $Publisher    = Read-Required "Publisher (e.g. 'Igor Pavlov')" -Default 'Fiserv' }
+if (-not $Version)      { $Version      = Read-Required "Version (e.g. '26.00')" }
+
+# ── Choice menus ──────────────────────────────────────────────────────────────
+if (-not $Category) {
+    $Category = Show-Menu -Title "Select a category:" -Options @(
+        'browsers', 'productivity', 'developer-tools', 'security',
+        'communication', 'utilities', 'endpoint-management', 'custom'
+    )
+}
+
+if (-not $Platform) {
+    $Platform = Show-Menu -Title "Select target platform:" -Options @(
+        'windows', 'macos', 'both'
+    ) -Default 'windows'
+}
+
+# ── Windows-specific prompts ──────────────────────────────────────────────────
+if ($Platform -in @('windows','both')) {
+    if (-not $InstallerType) {
+        $InstallerType = Show-Menu -Title "Windows installer type:" -Options @(
+            'msi', 'exe'
+        ) -Default 'msi'
+    }
+    if (-not $DetectionMode) {
+        $DetectionMode = Show-Menu -Title "Windows detection mode:" -Options @(
+            'msi-product-code', 'registry-marker', 'file', 'script'
+        ) -Default $(if ($InstallerType -eq 'msi') { 'msi-product-code' } else { 'registry-marker' })
+    }
+}
+# Apply defaults for non-interactive use when Platform is Windows-only
+if (-not $InstallerType)  { $InstallerType  = 'msi' }
+if (-not $DetectionMode)  { $DetectionMode  = 'msi-product-code' }
+
+# ── macOS-specific prompts ────────────────────────────────────────────────────
+if ($Platform -in @('macos','both')) {
+    if (-not $MacInstallerType) {
+        $MacInstallerType = Show-Menu -Title "macOS installer type:" -Options @(
+            'pkg', 'dmg', 'zip'
+        ) -Default 'pkg'
+    }
+    if (-not $BundleId) {
+        $BundleId = Read-Required "macOS Bundle ID (e.g. 'com.google.Chrome')"
+    }
+    if (-not $ReceiptId) {
+        $ReceiptId = Read-Required "macOS Receipt ID" -Default $BundleId.ToLower()
+    }
+}
+# Apply defaults for non-interactive use
+if (-not $MacInstallerType) { $MacInstallerType = 'pkg' }
 
 # ── Validate GitLab params ────────────────────────────────────────────────────
 if ($CreateGitLabProject -and -not $GitLabToken) {
