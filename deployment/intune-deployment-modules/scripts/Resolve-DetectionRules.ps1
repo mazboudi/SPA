@@ -143,27 +143,75 @@ switch ($detectionMode) {
     # ─────────────────────────────────────────────────────────────────────────
     'file' {
 
-        $path         = Get-DetectionField 'path'
-        $fileOrFolder = Get-DetectionField 'file_or_folder'
-        $operator     = Get-DetectionField 'operator'
-        $detVersion   = Get-DetectionField 'version'
-        $check32      = Get-DetectionField 'check_32bit'
+        $path           = Get-DetectionField 'path'
+        $fileOrFolder   = Get-DetectionField 'file_or_folder'
+        $detType        = Get-DetectionField 'detection_type'
+        $operator       = Get-DetectionField 'operator'
+        $detValue       = Get-DetectionField 'value'
+        $check32        = Get-DetectionField 'check_32bit'
+
+        # Backward compat: if 'operator' is set but 'detection_type' is not,
+        # infer detection_type from the operator (legacy package.yaml format)
+        if (-not $detType -and $operator) {
+            switch ($operator) {
+                'exists'             { $detType = 'exists' }
+                'doesNotExist'       { $detType = 'doesNotExist' }
+                { $_ -match 'version' -or $_ -match 'Version' } {
+                    $detType = 'version'
+                }
+                default              { $detType = 'exists' }
+            }
+        }
 
         if (-not $path -or -not $fileOrFolder) {
             throw "package.yaml: detection.path and detection.file_or_folder are required"
         }
 
-        if (-not $operator) { $operator = 'exists' }
+        if (-not $detType) { $detType = 'exists' }
         $check32Bool = ($check32 -eq 'true')
 
-        return @(@{
+        # Graph API uses:
+        #   detectionType = exists | doesNotExist | version | sizeInMB | modifiedDate
+        #   operator      = notConfigured | equal | notEqual | greaterThan |
+        #                   greaterThanOrEqual | lessThan | lessThanOrEqual
+        #   detectionValue = comparison value (only when detectionType is version/sizeInMB/modifiedDate)
+
+        $graphOperator  = 'notConfigured'
+        $graphValue     = $null
+
+        switch ($detType) {
+            'exists'       { $graphOperator = 'notConfigured'; $graphValue = $null }
+            'doesNotExist' { $graphOperator = 'notConfigured'; $graphValue = $null }
+            { $_ -in @('version', 'sizeInMB', 'modifiedDate') } {
+                $graphOperator = if ($operator) { $operator } else { 'greaterThanOrEqual' }
+                $graphValue    = $detValue
+                if (-not $graphValue) {
+                    throw "package.yaml: detection.value is required when detection_type is '$detType'"
+                }
+            }
+        }
+
+        Write-Host "  path            : $path"
+        Write-Host "  file_or_folder  : $fileOrFolder"
+        Write-Host "  detection_type  : $detType"
+        Write-Host "  operator        : $graphOperator"
+        Write-Host "  value           : $graphValue"
+
+        $rule = @{
             '@odata.type'            = '#microsoft.graph.win32LobAppFileSystemDetection'
             path                     = $path
             fileOrFolderName         = $fileOrFolder
-            detectionType            = $operator
-            detectionValue           = $detVersion
+            detectionType            = $detType
             check32BitOn64System     = $check32Bool
-        })
+        }
+
+        # Only include operator and detectionValue when doing a comparison
+        if ($detType -notin @('exists', 'doesNotExist')) {
+            $rule['operator']        = $graphOperator
+            $rule['detectionValue']  = $graphValue
+        }
+
+        return @($rule)
     }
 
     # ─────────────────────────────────────────────────────────────────────────

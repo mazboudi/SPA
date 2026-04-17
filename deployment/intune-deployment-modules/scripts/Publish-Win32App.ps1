@@ -59,6 +59,37 @@ Write-Log "IntuneWin: $IntuneWinPath" -LogFile $logFile
 # ── Auth ──────────────────────────────────────────────────────────────────────
 $token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
 
+# ── BUILD return codes ────────────────────────────────────────────────────────
+# Intune defaults + any custom codes from package.yaml
+$defaultReturnCodes = @(
+    @{ returnCode = 0;    type = 'success' }
+    @{ returnCode = 1707; type = 'success' }
+    @{ returnCode = 3010; type = 'softReboot' }
+    @{ returnCode = 1641; type = 'hardReboot' }
+    @{ returnCode = 1618; type = 'retry' }
+)
+
+# Merge custom return codes from package.yaml (if present)
+$returnCodes = $defaultReturnCodes
+if ($pkg.return_codes) {
+    # Parse custom return codes: "3010=softReboot,1234=success" format
+    $customCodes = @()
+    foreach ($entry in ($pkg.return_codes -split ',')) {
+        $parts = $entry.Trim() -split '='
+        if ($parts.Count -eq 2) {
+            $customCodes += @{ returnCode = [int]$parts[0].Trim(); type = $parts[1].Trim() }
+        }
+    }
+    if ($customCodes.Count -gt 0) {
+        # Replace defaults with custom set
+        $returnCodes = $customCodes
+        Write-Log "Using custom return codes from package.yaml" -LogFile $logFile
+    }
+}
+
+# ── READ max install time ─────────────────────────────────────────────────────
+$maxInstallTime = if ($pkg.max_install_time) { [int]$pkg.max_install_time } else { 60 }
+
 # ── CREATE Win32 app (NO requirementRules!) ───────────────────────────────────
 $appBody = @{
     '@odata.type' = '#microsoft.graph.win32LobApp'
@@ -75,6 +106,9 @@ $appBody = @{
     # With the beta endpoint, detectionRules are natively supported.
     detectionRules = @($DetectionRules)
 
+    # Return codes — how Intune interprets installer exit codes
+    returnCodes = @($returnCodes)
+
     # Spread hardware requirements if provided
     minimumFreeDiskSpaceInMB       = if ($HardwareRequirements.minimumFreeDiskSpaceInMB) { $HardwareRequirements.minimumFreeDiskSpaceInMB } else { $null }
     minimumMemoryInMB              = if ($HardwareRequirements.minimumMemoryInMB) { $HardwareRequirements.minimumMemoryInMB } else { $null }
@@ -87,8 +121,9 @@ $appBody = @{
     uninstallCommandLine = $pkg.uninstall_command
 
     installExperience    = @{
-        runAsAccount          = $intuneMeta.installContext   ?? 'system'
-        deviceRestartBehavior = $intuneMeta.restartBehavior ?? 'suppress'
+        runAsAccount               = $intuneMeta.installContext   ?? 'system'
+        deviceRestartBehavior      = $intuneMeta.restartBehavior ?? 'suppress'
+        maxRunTimeInMinutes        = $maxInstallTime
     }
 }
 

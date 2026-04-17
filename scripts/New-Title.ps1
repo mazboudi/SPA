@@ -215,6 +215,18 @@ if (-not $Platform) {
 }
 
 # ── Windows-specific prompts ──────────────────────────────────────────────────
+$CloseApps        = ''
+$RestartBehavior  = 'suppress'
+$MaxInstallTime   = 60
+$ReturnCodes      = ''
+$SupersedesAppId  = ''
+# File detection sub-fields
+$FileDetPath      = ''
+$FileDetName      = ''
+$FileDetType      = ''
+$FileDetOperator  = ''
+$FileDetValue     = ''
+
 if ($Platform -in @('windows','both')) {
     if (-not $InstallerType) {
         $InstallerType = Show-Menu -Title "Windows installer type:" -Options @(
@@ -226,12 +238,57 @@ if ($Platform -in @('windows','both')) {
             'msi-product-code', 'registry-marker', 'file', 'script'
         ) -Default $(if ($InstallerType -eq 'msi') { 'msi-product-code' } else { 'registry-marker' })
     }
+
+    # File detection sub-prompts
+    if ($DetectionMode -eq 'file') {
+        $FileDetPath = Read-Required "File detection — folder path (e.g. 'C:\Program Files\MyApp')"
+        $FileDetName = Read-Required "File detection — file or folder name (e.g. 'MyApp.exe')"
+        $FileDetType = Show-Menu -Title "File detection — what to check:" -Options @(
+            'exists', 'doesNotExist', 'version', 'sizeInMB'
+        ) -Default 'exists'
+        if ($FileDetType -in @('version', 'sizeInMB')) {
+            $FileDetOperator = Show-Menu -Title "Comparison operator:" -Options @(
+                'greaterThanOrEqual', 'equal', 'notEqual', 'greaterThan', 'lessThan', 'lessThanOrEqual'
+            ) -Default 'greaterThanOrEqual'
+            $FileDetValue = Read-Required "Comparison value (version string or size in MB)"
+        }
+    }
+
+    # Close apps
+    Write-Host ""
+    $CloseApps = Read-Host "Processes to close before install (comma-separated, e.g. 'chrome,msedge') — press Enter to skip"
+    $CloseApps = $CloseApps.Trim()
+
+    # Restart behavior
+    $RestartBehavior = Show-Menu -Title "Device restart behavior after install:" -Options @(
+        'suppress', 'allow', 'basedOnReturnCode', 'force'
+    ) -Default 'suppress'
+
+    # Max install time
+    Write-Host ""
+    $maxInput = Read-Host "Max install time in minutes (default: 60)"
+    if ($maxInput -and $maxInput -match '^\d+$') {
+        $MaxInstallTime = [int]$maxInput
+    }
+
+    # Return codes
+    Write-Host ""
+    Write-Host "Custom return codes (Intune defaults: 0=success, 3010=softReboot, 1618=retry)" -ForegroundColor DarkGray
+    $ReturnCodes = Read-Host "Custom return codes (format: '3010=softReboot,1234=success') — press Enter for defaults"
+    $ReturnCodes = $ReturnCodes.Trim()
+
+    # Supersedence
+    Write-Host ""
+    $SupersedesAppId = Read-Host "Intune App ID this title supersedes — press Enter to skip"
+    $SupersedesAppId = $SupersedesAppId.Trim()
 }
 # Apply defaults for non-interactive use when Platform is Windows-only
 if (-not $InstallerType)  { $InstallerType  = 'msi' }
 if (-not $DetectionMode)  { $DetectionMode  = 'msi-product-code' }
 
 # ── macOS-specific prompts ────────────────────────────────────────────────────
+$MacSelfService = $false
+
 if ($Platform -in @('macos','both')) {
     if (-not $MacInstallerType) {
         $MacInstallerType = Show-Menu -Title "macOS installer type:" -Options @(
@@ -244,6 +301,10 @@ if ($Platform -in @('macos','both')) {
     if (-not $ReceiptId) {
         $ReceiptId = Read-Required "macOS Receipt ID" -Default $BundleId.ToLower()
     }
+    $ssChoice = Show-Menu -Title "Enable Jamf Self Service?" -Options @(
+        'no', 'yes'
+    ) -Default 'no'
+    $MacSelfService = ($ssChoice -eq 'yes')
 }
 # Apply defaults for non-interactive use
 if (-not $MacInstallerType) { $MacInstallerType = 'pkg' }
@@ -521,13 +582,34 @@ detection:
 "@
         }
         'file' {
+            # Use values from interactive prompts or defaults
+            $fdPath = if ($FileDetPath) { $FileDetPath } else { 'C:\\Program Files\\TODO' }
+            $fdName = if ($FileDetName) { $FileDetName } else { 'TODO.exe' }
+            $fdType = if ($FileDetType) { $FileDetType } else { 'exists' }
+
+            if ($fdType -in @('version', 'sizeInMB')) {
+                $fdOp  = if ($FileDetOperator) { $FileDetOperator } else { 'greaterThanOrEqual' }
+                $fdVal = if ($FileDetValue) { $FileDetValue } else { $Version }
 @"
 detection_mode: file
 detection:
-  path: "C:\\Program Files\\TODO"
-  file_or_folder: "TODO.exe"
-  operator: exists
+  path: "$fdPath"
+  file_or_folder: "$fdName"
+  detection_type: $fdType
+  operator: $fdOp
+  value: "$fdVal"
+  check_32bit: false
 "@
+            } else {
+@"
+detection_mode: file
+detection:
+  path: "$fdPath"
+  file_or_folder: "$fdName"
+  detection_type: $fdType
+  check_32bit: false
+"@
+            }
         }
         'script' {
 @"
@@ -538,6 +620,15 @@ detection_mode: script
         }
     }
 
+    # ── Return codes block (for package.yaml) ─────────────────────────────────
+    $returnCodesBlock = ''
+    if ($ReturnCodes) {
+        $returnCodesBlock = "`nreturn_codes: '$ReturnCodes'"
+    }
+
+    # ── Max install time block ────────────────────────────────────────────────
+    $maxTimeBlock = "max_install_time: $MaxInstallTime"
+
     # ── windows/package.yaml ──────────────────────────────────────────────────
     Write-File (Join-Path $titleDir 'windows\package.yaml') @"
 # $DisplayName $Version — Windows package definition
@@ -546,14 +637,17 @@ display_name: "$DisplayName"
 version: "$Version"
 packaging_version: "1"
 installer_type: $InstallerType
+$maxTimeBlock
 
 install_command: '$installCmd'
 uninstall_command: '$uninstallCmd'
 
 $detectionBlock
+$returnCodesBlock
 "@
 
     # ── windows/intune/app.json ───────────────────────────────────────────────
+    $allowUninstallStr = 'true'
     Write-File (Join-Path $titleDir 'windows\intune\app.json') @"
 {
   "displayName": "$DisplayName",
@@ -570,7 +664,9 @@ $detectionBlock
   "applicableArchitectures": "x64",
   "minimumSupportedWindowsRelease": "2004",
   "displayVersion": "$Version",
-  "allowAvailableUninstall": true
+  "allowAvailableUninstall": $allowUninstallStr,
+  "installContext": "system",
+  "restartBehavior": "$RestartBehavior"
 }
 "@
 
@@ -596,6 +692,16 @@ $detectionBlock
   "minimumCpuSpeedInMHz": null
 }
 "@
+
+    # ── windows/intune/supersedence.json (only if superseding) ────────────────
+    if ($SupersedesAppId) {
+        Write-File (Join-Path $titleDir 'windows\intune\supersedence.json') @"
+{
+  "supersededAppId": "$SupersedesAppId",
+  "supersedenceType": "update"
+}
+"@
+    }
 
     # ── windows/src/Files/.gitkeep ────────────────────────────────────────────
     Mkd (Join-Path $titleDir 'windows\src\Files')
@@ -709,8 +815,8 @@ try {
         ## --- Pre-Installation ---
         [String] `$installPhase = 'Pre-Installation'
 
-        # TODO: Close blocking processes if needed
-        Show-ADTInstallationWelcome -CloseAppsCountdown 60 -ForceCloseAppsCountdown 180
+        # Close blocking processes before install
+        Show-ADTInstallationWelcome -CloseApps '$CloseApps' -CloseAppsCountdown 60 -ForceCloseAppsCountdown 180
 
         ## --- Installation ---
         [String] `$installPhase = 'Installation'
@@ -833,7 +939,7 @@ post_install_script: postinstall.sh
   "trigger": "RECURRING_CHECK_IN",
   "frequency": "Once per computer",
   "run_recon_after_install": true,
-  "self_service_enabled": false
+  "self_service_enabled": $($MacSelfService.ToString().ToLower())
 }
 "@
 
