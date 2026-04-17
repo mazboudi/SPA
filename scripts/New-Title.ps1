@@ -200,6 +200,18 @@ if (-not $DisplayName)  { $DisplayName  = Read-Required "Display Name (e.g. '7-Z
 if (-not $Publisher)    { $Publisher    = Read-Required "Publisher (e.g. 'Igor Pavlov')" -Default 'Fiserv' }
 if (-not $Version)      { $Version      = Read-Required "Version (e.g. '26.00')" }
 
+# ── Output directory ──────────────────────────────────────────────────────────
+if ($OutDir -eq 'titles') {
+    $customDir = Read-Host "Output folder for scaffolded files (default: titles)"
+    if ($customDir -and $customDir.Trim()) {
+        $OutDir = $customDir.Trim()
+    }
+}
+if (!(Test-Path $OutDir)) {
+    New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
+    Write-Host "  Created: $OutDir" -ForegroundColor Green
+}
+
 # ── Choice menus ──────────────────────────────────────────────────────────────
 if (-not $Category) {
     $Category = Show-Menu -Title "Select a category:" -Options @(
@@ -541,6 +553,15 @@ tf-deploy/
 .DS_Store
 .vscode/
 "@
+
+# ── Initialize-GitLab.ps1 ────────────────────────────────────────────────────
+# Copy the standalone script into the title so the packager can run it later
+$initScript = Join-Path $PSScriptRoot 'Initialize-GitLab.ps1'
+if (Test-Path $initScript) {
+    Copy-Item $initScript (Join-Path $titleDir 'Initialize-GitLab.ps1') -Force
+} else {
+    Write-Host "  ⚠ Initialize-GitLab.ps1 not found at $initScript — skipping copy" -ForegroundColor Yellow
+}
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  WINDOWS FILES
@@ -1191,18 +1212,14 @@ if ($CreateGitLabProject) {
 
 } else {
 
-    # ── Manual deploy instructions (no -CreateGitLabProject) ──────────────
+    # ── Deploy instructions (no -CreateGitLabProject) ───────────────────────
     Write-Host ""
     Write-Host "  DEPLOY:" -ForegroundColor Magenta
-    Write-Host "  A. Create the GitLab project under: $gitLabProjectPath"
-    Write-Host "     (CI/CD variables are inherited from the software-titles group)"
-    Write-Host "  B. Push and tag:"
-    Write-Host "       cd $titleDir"
-    Write-Host "       git init -b main && git add -A"
-    Write-Host "       git commit -m 'feat: add $DisplayName $Version'"
-    Write-Host "       git remote add origin $GitLabUrl/$gitLabProjectPath.git"
-    Write-Host "       git push -u origin main"
-    Write-Host "       git tag v$Version-1 && git push origin v$Version-1"
+    Write-Host "  After filling in all TODOs, run the included script:"
     Write-Host ""
-    Write-Host "  TIP: Use -CreateGitLabProject to automate the above steps." -ForegroundColor DarkGray
+    Write-Host "       cd $titleDir" -ForegroundColor White
+    Write-Host "       pwsh -File Initialize-GitLab.ps1" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  This will create the GitLab project, commit, push, and tag automatically."
+    Write-Host "  You'll need a GitLab token — set GITLAB_TOKEN or pass -GitLabToken." -ForegroundColor DarkGray
 }
