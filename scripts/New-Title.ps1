@@ -268,11 +268,12 @@ if ($Platform -in @('windows','both')) {
             if (Test-Path $msiScript) {
                 $msiJson = & pwsh -File $msiScript -MsiPath $MsiPath -Json 2>&1
                 try {
-                    $msiMeta = $msiJson | ConvertFrom-Json
-                    $MsiProductCode    = $msiMeta.ProductCode
-                    $MsiProductVersion = $msiMeta.ProductVersion
-                    $MsiProductName    = $msiMeta.ProductName
-                    $MsiFileName       = [System.IO.Path]::GetFileName($MsiPath)
+                    $msiRaw  = ($msiJson -join "`n")
+                    $msiMeta = $msiRaw | ConvertFrom-Json
+                    $MsiProductCode    = [string]$msiMeta.ProductCode
+                    $MsiProductVersion = [string]$msiMeta.ProductVersion
+                    $MsiProductName    = [string]$msiMeta.ProductName
+                    $MsiFileName       = [string][System.IO.Path]::GetFileName($MsiPath)
 
                     Write-Host "  ✓ ProductCode    : $MsiProductCode" -ForegroundColor Green
                     Write-Host "    ProductVersion : $MsiProductVersion" -ForegroundColor White
