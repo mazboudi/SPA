@@ -142,6 +142,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# ── Import workbench modules ─────────────────────────────────────────────────
+. (Join-Path $PSScriptRoot 'lib' 'Prompt-PackagingLifecycle.ps1')
+. (Join-Path $PSScriptRoot 'lib' 'Prompt-DeploymentConfig.ps1')
+. (Join-Path $PSScriptRoot 'lib' 'Build-DeployApplication.ps1')
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  INTERACTIVE PROMPTS — only shown when parameters are not provided
 # ══════════════════════════════════════════════════════════════════════════════
@@ -360,6 +365,38 @@ if ($Platform -in @('macos','both')) {
 }
 # Apply defaults for non-interactive use
 if (-not $MacInstallerType) { $MacInstallerType = 'pkg' }
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PACKAGING LIFECYCLE & DEPLOYMENT CONFIG PROMPTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+$lifecycleConfig = $null
+$deploymentConfig = $null
+
+if ($Platform -in @('windows','both')) {
+    # Packaging lifecycle prompts (all 9 PSADT phases)
+    $lifecycleConfig = Invoke-PackagingLifecyclePrompts `
+        -InstallerType $InstallerType `
+        -MsiFile $(if ($MsiFileName) { $MsiFileName } else { '' }) `
+        -ProductCode $(if ($MsiProductCode) { $MsiProductCode } else { '' }) `
+        -PackageId $PackageId `
+        -DisplayName $DisplayName `
+        -Publisher $Publisher `
+        -Version $Version `
+        -CloseApps $CloseApps
+
+    # Intune deployment configuration prompts
+    $deploymentConfig = Invoke-DeploymentConfigPrompts `
+        -DisplayName $DisplayName `
+        -Publisher $Publisher `
+        -Version $Version `
+        -RestartBehavior $RestartBehavior
+
+    # Carry forward any updated values from deployment config
+    if ($deploymentConfig.RestartBehavior) {
+        $RestartBehavior = $deploymentConfig.RestartBehavior
+    }
+}
 
 # ── Validate GitLab params ────────────────────────────────────────────────────
 if ($CreateGitLabProject -and -not $GitLabToken) {
@@ -714,39 +751,87 @@ $returnCodesBlock
 "@
 
     # ── windows/intune/app.json ───────────────────────────────────────────────
-    $allowUninstallStr = 'true'
+    $appDescription  = if ($deploymentConfig.Description)    { $deploymentConfig.Description }    else { 'TODO: Add application description.' }
+    $appInfoUrl      = if ($deploymentConfig.InformationUrl) { $deploymentConfig.InformationUrl } else { '' }
+    $appPrivacyUrl   = if ($deploymentConfig.PrivacyUrl)     { $deploymentConfig.PrivacyUrl }     else { '' }
+    $appOwner        = if ($deploymentConfig.Owner)          { $deploymentConfig.Owner }          else { 'EUC Packaging' }
+    $appNotes        = if ($deploymentConfig.Notes)          { $deploymentConfig.Notes }          else { 'Managed by SPA pipeline.' }
+    $appInstCtx      = if ($deploymentConfig.InstallContext) { $deploymentConfig.InstallContext } else { 'system' }
+    $appFeatured     = if ($deploymentConfig -and $deploymentConfig.IsFeatured) { 'true' } else { 'false' }
+
     Write-File (Join-Path $titleDir 'windows\intune\app.json') @"
 {
   "displayName": "$DisplayName",
-  "description": "TODO: Add application description.",
+  "description": "$appDescription",
   "publisher": "$Publisher",
   "appVersion": "$Version",
-  "informationUrl": "",
-  "isFeatured": false,
-  "privacyInformationUrl": "",
-  "notes": "Managed by SPA pipeline.",
-  "owner": "EUC Packaging",
+  "informationUrl": "$appInfoUrl",
+  "isFeatured": $appFeatured,
+  "privacyInformationUrl": "$appPrivacyUrl",
+  "notes": "$appNotes",
+  "owner": "$appOwner",
   "installCommandLine": "Invoke-AppDeployToolkit.exe",
   "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall",
   "applicableArchitectures": "x64",
   "minimumSupportedWindowsRelease": "2004",
   "displayVersion": "$Version",
-  "allowAvailableUninstall": $allowUninstallStr,
-  "installContext": "system",
+  "allowAvailableUninstall": true,
+  "installContext": "$appInstCtx",
   "restartBehavior": "$RestartBehavior"
 }
 "@
 
     # ── windows/intune/assignments.json ───────────────────────────────────────
-    Write-File (Join-Path $titleDir 'windows\intune\assignments.json') @"
-[
+    $assignmentEntries = @()
+    if ($deploymentConfig -and $deploymentConfig.Assignments.Count -gt 0) {
+        foreach ($a in $deploymentConfig.Assignments) {
+            $filterBlock = ''
+            if ($a.FilterMode -ne 'none' -and $a.FilterId) {
+                $filterBlock = ",`n    `"filterMode`": `"$($a.FilterMode)`",`n    `"filterId`": `"$($a.FilterId)`""
+            } else {
+                $filterBlock = ",`n    `"filterMode`": `"none`""
+            }
+            $assignmentEntries += @"
+  {
+    "intent": "$($a.Intent)",
+    "groupId": "$($a.GroupId)"$filterBlock
+  }
+"@
+        }
+    } else {
+        $assignmentEntries += @"
   {
     "intent": "available",
     "groupId": "TODO-ENTRA-ID-GROUP-OBJECT-ID",
     "filterMode": "none"
   }
+"@
+    }
+    $assignmentsJson = $assignmentEntries -join ",`n"
+    Write-File (Join-Path $titleDir 'windows\intune\assignments.json') @"
+[
+$assignmentsJson
 ]
 "@
+
+    # ── windows/intune/dependencies.json (only if dependencies specified) ────
+    if ($deploymentConfig -and $deploymentConfig.Dependencies.Count -gt 0) {
+        $depEntries = @()
+        foreach ($d in $deploymentConfig.Dependencies) {
+            $depEntries += @"
+  {
+    "appId": "$($d.AppId)",
+    "dependencyType": "$($d.DependencyType)"
+  }
+"@
+        }
+        $depsJson = $depEntries -join ",`n"
+        Write-File (Join-Path $titleDir 'windows\intune\dependencies.json') @"
+[
+$depsJson
+]
+"@
+    }
 
     # ── windows/intune/requirements.json ──────────────────────────────────────
     Write-File (Join-Path $titleDir 'windows\intune\requirements.json') @"
@@ -778,166 +863,55 @@ $returnCodesBlock
 "@
 
     # ── windows/src/Deploy-Application.ps1 (PSADT v4) ─────────────────────────
-    # Build install/uninstall body based on installer type
-    $installBody = if ($InstallerType -eq 'msi') {
-@"
-        # Install MSI
-        Execute-MSI -Action Install -Path 'Files\$msiFile'
-"@
+    if ($lifecycleConfig) {
+        $deployAppContent = Build-DeployApplication `
+            -Lifecycle $lifecycleConfig `
+            -DisplayName $DisplayName `
+            -Publisher $Publisher `
+            -Version $Version `
+            -PackageId $PackageId
     } else {
-@"
-        # Install EXE silently
-        Execute-Process -Path 'Files\TODO_INSTALLER.exe' -Parameters '/S'
-"@
+        # Fallback: build a lifecycle config from the legacy prompts
+        $fallbackLifecycle = @{
+            PreInstall    = @{ Actions = @(@{ Type = 'CloseApps'; Apps = $CloseApps }) }
+            Install       = @{ Actions = @(
+                if ($InstallerType -eq 'msi') {
+                    @{ Type = 'MsiInstall'; FilePath = $msiFile; ArgumentList = '/QN /norestart' }
+                } else {
+                    @{ Type = 'ExeInstall'; FilePath = 'TODO_INSTALLER.exe'; ArgumentList = '/S' }
+                }
+            )}
+            PostInstall   = @{ Actions = @(
+                if ($DetectionMode -eq 'registry-marker') {
+                    @{ Type = 'RegistryMarker'; PackageId = $PackageId; DisplayName = $DisplayName; Publisher = $Publisher; Version = $Version }
+                }
+            )}
+            PreUninstall  = @{ Actions = @(@{ Type = 'CloseApps'; Apps = $CloseApps }) }
+            Uninstall     = @{ Actions = @(
+                if ($InstallerType -eq 'msi') {
+                    @{ Type = 'MsiUninstall'; AppName = $DisplayName; ProductCode = $productCode }
+                } else {
+                    @{ Type = 'ExeUninstall'; FilePath = 'C:\Program Files\TODO\uninstall.exe'; ArgumentList = '/S' }
+                }
+            )}
+            PostUninstall = @{ Actions = @(
+                if ($DetectionMode -eq 'registry-marker') {
+                    @{ Type = 'RemoveRegistryMarker'; PackageId = $PackageId }
+                }
+            )}
+            RepairMode    = 'mirror'
+            PreRepair     = @{ Actions = @() }
+            Repair        = @{ Actions = @() }
+            PostRepair    = @{ Actions = @() }
+        }
+        $deployAppContent = Build-DeployApplication `
+            -Lifecycle $fallbackLifecycle `
+            -DisplayName $DisplayName `
+            -Publisher $Publisher `
+            -Version $Version `
+            -PackageId $PackageId
     }
-
-    $uninstallBody = if ($InstallerType -eq 'msi') {
-@"
-        # Uninstall MSI
-        Execute-MSI -Action Uninstall -Path '$productCode'
-"@
-    } else {
-@"
-        # Uninstall EXE silently
-        Execute-Process -Path 'C:\Program Files\TODO\uninstall.exe' -Parameters '/S'
-"@
-    }
-
-    # Add registry marker write/remove if detection mode is registry-marker
-    $postInstallMarker = ''
-    $postUninstallMarker = ''
-    if ($DetectionMode -eq 'registry-marker') {
-        $postInstallMarker = @"
-
-        # Write registry detection marker for Intune
-        Set-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Fiserv\InstalledApps\$PackageId' ``
-            -Name 'Version' -Type 'String' -Value '$Version'
-        Set-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Fiserv\InstalledApps\$PackageId' ``
-            -Name 'Publisher' -Type 'String' -Value '$Publisher'
-        Set-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Fiserv\InstalledApps\$PackageId' ``
-            -Name 'DisplayName' -Type 'String' -Value '$DisplayName'
-"@
-        $postUninstallMarker = @"
-
-        # Remove registry detection marker
-        Remove-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Fiserv\InstalledApps\$PackageId'
-"@
-    }
-
-    Write-File (Join-Path $titleDir 'windows\src\Deploy-Application.ps1') @"
-<#
-.SYNOPSIS
-  $DisplayName — PSADT v4 Deploy-Application.ps1 overlay.
-  Only add app-specific logic here; the framework handles logging,
-  module import, and session lifecycle.
-
-.NOTES
-  Framework : psadt-enterprise 4.1.0
-  Generated : $(Get-Date -Format 'yyyy-MM-dd')
-#>
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory = `$false)]
-    [ValidateSet('Install', 'Uninstall', 'Repair')]
-    [String] `$DeploymentType = 'Install',
-
-    [Parameter(Mandatory = `$false)]
-    [ValidateSet('Interactive', 'Silent', 'NonInteractive')]
-    [String] `$DeployMode = 'Interactive',
-
-    [Parameter(Mandatory = `$false)]
-    [Switch] `$AllowRebootPassThru,
-
-    [Parameter(Mandatory = `$false)]
-    [Switch] `$TerminalServerMode,
-
-    [Parameter(Mandatory = `$false)]
-    [Switch] `$DisableLogging
-)
-
-`$ErrorActionPreference = 'Stop'
-
-try {
-    ## Import the PSADT module
-    Import-Module -Name (Join-Path -Path `$PSScriptRoot -ChildPath 'PSAppDeployToolkit\PSAppDeployToolkit.psd1') -Force
-
-    ## Initialize the PSADT session
-    `$adtSession = Open-ADTSession -SessionState `$ExecutionContext.SessionState ``
-        -DeploymentType `$DeploymentType ``
-        -DeployMode `$DeployMode ``
-        -AllowRebootPassThru:`$AllowRebootPassThru ``
-        -TerminalServerMode:`$TerminalServerMode ``
-        -DisableLogging:`$DisableLogging ``
-        -PassThru
-
-    ##*===============================================
-    ##  INSTALL
-    ##*===============================================
-    if (`$DeploymentType -eq 'Install') {
-
-        ## --- Pre-Installation ---
-        [String] `$installPhase = 'Pre-Installation'
-
-        # Close blocking processes before install
-        Show-ADTInstallationWelcome -CloseApps '$CloseApps' -CloseAppsCountdown 60 -ForceCloseAppsCountdown 180
-
-        ## --- Installation ---
-        [String] `$installPhase = 'Installation'
-
-$installBody
-
-        ## --- Post-Installation ---
-        [String] `$installPhase = 'Post-Installation'
-$postInstallMarker
-    }
-
-    ##*===============================================
-    ##  UNINSTALL
-    ##*===============================================
-    elseif (`$DeploymentType -eq 'Uninstall') {
-
-        ## --- Pre-Uninstallation ---
-        [String] `$installPhase = 'Pre-Uninstallation'
-
-        Show-ADTInstallationWelcome -CloseAppsCountdown 60
-
-        ## --- Uninstallation ---
-        [String] `$installPhase = 'Uninstallation'
-
-$uninstallBody
-
-        ## --- Post-Uninstallation ---
-        [String] `$installPhase = 'Post-Uninstallation'
-$postUninstallMarker
-    }
-
-    ##*===============================================
-    ##  REPAIR
-    ##*===============================================
-    elseif (`$DeploymentType -eq 'Repair') {
-
-        ## --- Pre-Repair ---
-        [String] `$installPhase = 'Pre-Repair'
-
-        Show-ADTInstallationWelcome -CloseAppsCountdown 60
-
-        ## --- Repair ---
-        [String] `$installPhase = 'Repair'
-
-        Write-ADTLogEntry -Message 'TODO: Add repair logic or remove this block.'
-
-        ## --- Post-Repair ---
-        [String] `$installPhase = 'Post-Repair'
-    }
-
-} catch {
-    Write-ADTLogEntry -Message "Deployment failed in phase [`$installPhase]: `$(`$_.Exception.Message)" -Severity 3
-    Close-ADTSession -ExitCode 60001
-    throw
-} finally {
-    Close-ADTSession
-}
-"@
+    Write-File (Join-Path $titleDir 'windows\src\Invoke-AppDeployToolkit.ps1') $deployAppContent
 
     # ── windows/detection/detect.ps1 (only for script detection mode) ─────────
     if ($DetectionMode -eq 'script') {
