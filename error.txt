@@ -1,85 +1,79 @@
-2026-04-15T19:09:14.384047Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-15T19:09:14.384047Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-15T19:09:14.384047Z 00O Resolving secrets
-2026-04-15T19:09:14.384666Z 00O section_start:1776280154:prepare_executor
-2026-04-15T19:09:14.384666Z 00O+Preparing the "shell" executor
-2026-04-15T19:09:14.384666Z 00O Using Shell (pwsh) executor...
-2026-04-15T19:09:14.384666Z 00O section_end:1776280154:prepare_executor
-2026-04-15T19:09:14.384666Z 00O+section_start:1776280154:prepare_script
-2026-04-15T19:09:14.385193Z 00O+Preparing environment
-2026-04-15T19:09:15.557596Z 01O Running on vm-psa-runner-p...
-2026-04-15T19:09:15.867475Z 00O section_end:1776280155:prepare_script
-2026-04-15T19:09:15.867475Z 00O+section_start:1776280155:get_sources
-2026-04-15T19:09:15.868567Z 00O+Getting source from Git repository
-2026-04-15T19:09:18.414165Z 01O Gitaly correlation ID: 01KP98RB8K1GK0K3PSNVMXH6J4
-2026-04-15T19:09:18.809695Z 01O Fetching changes with git depth set to 20...
-2026-04-15T19:09:18.879178Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/secure-print/.git/
-2026-04-15T19:09:20.996678Z 01O Checking out 47091cfd as detached HEAD (ref is main)...
-2026-04-15T19:09:21.295283Z 01O Removing out/
-2026-04-15T19:09:21.295283Z 01O Removing psadt-framework-4.1.0/
-2026-04-15T19:09:21.295283Z 01O Removing schemas/
-2026-04-15T19:09:21.701488Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-15T19:09:22.394988Z 01O 
-2026-04-15T19:09:22.396044Z 01O Skipping Git submodules setup
-2026-04-15T19:09:22.642747Z 00O section_end:1776280162:get_sources
-2026-04-15T19:09:22.642747Z 00O+section_start:1776280162:download_artifacts
-2026-04-15T19:09:22.645501Z 00O+Downloading artifacts
-2026-04-15T19:09:24.219903Z 01O Version:      18.9.0
-2026-04-15T19:09:24.219903Z 01O Git revision: 07e534ba
-2026-04-15T19:09:24.219903Z 01O Git branch:   18-9-stable
-2026-04-15T19:09:24.219903Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-15T19:09:24.219903Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-15T19:09:24.219903Z 01O OS/Arch:      windows/amd64
-2026-04-15T19:09:24.236027Z 01O Downloading artifacts for windows_build (26405400)...
-2026-04-15T19:09:24.392157Z 01E Runtime platform                                    arch=amd64 os=windows pid=3568 revision=07e534ba version=18.9.0
-2026-04-15T19:09:25.661025Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KP98RP76DGKMP36DSYCHRQ0Y host=gitlab.onefiserv.net id=26405400 responseStatus=200 OK token=64_yQz6PC
-2026-04-15T19:09:25.907947Z 00O section_end:1776280165:download_artifacts
-2026-04-15T19:09:25.907947Z 00O+section_start:1776280165:step_script
-2026-04-15T19:09:25.908457Z 00O+Executing "step_script" stage of the job script
-2026-04-15T19:09:27.178435Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-15T19:09:30.721021Z 01O Intune modules ready in: intune-modules
-2026-04-15T19:09:30.727021Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-15T19:09:30.867778Z 01O Building detection rules for mode: registry-marker
-2026-04-15T19:09:30.878834Z 01O Detection rules count: 1
-2026-04-15T19:09:30.917827Z 01O Hardware properties resolved (minOS=2004, arch=x64)
-2026-04-15T19:09:31.064707Z 01O [2026-04-15 19:09:31] [INFO] Publishing Fiserv Secure Print - Pune v2.3
-2026-04-15T19:09:31.074666Z 01O [2026-04-15 19:09:31] [INFO] IntuneWin: out\secure-print-pune_2.3_1.intunewin
-2026-04-15T19:09:31.080904Z 01O [2026-04-15 19:09:31] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-04-15T19:09:31.360036Z 01O [2026-04-15 19:09:31] [INFO] Token acquired (length=2130)
-2026-04-15T19:09:31.375823Z 01O [2026-04-15 19:09:31] [INFO] Creating Win32 app (metadata + detection rules only)
-2026-04-15T19:09:31.403840Z 01O [2026-04-15 19:09:31] [DEBUG] Request body JSON: {"uninstallCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Uninstall","description":"Installs the Fiserv Secure Print network printer for the Pune office (\\\\10.253.57.135\\corp secureprint pune). Runs as the logged-on user via PSADT.","applicableArchitectures":"x64","displayName":"Fiserv Secure Print - Pune","minimumFreeDiskSpaceInMB":100,"installExperience":{"runAsAccount":"system","deviceRestartBehavior":"suppress"},"minimumCpuSpeedInMHz":null,"setupFilePath":"Invoke-AppDeployToolkit.exe","minimumSupportedWindowsRelease":"2004","fileName":"secure-print-pune_2.3_1.intunewin","installCommandLine":"Invoke-AppDeployToolkit.exe","minimumNumberOfProcessors":null,"@odata.type":"#microsoft.graph.win32LobApp","publisher":"Fiserv","minimumMemoryInMB":2048,"displayVersion":"2.3","detectionRules":[{"detectionType":"greaterThanOrEqual","@odata.type":"#microsoft.graph.win32LobAppRegistryDetection","keyPath":"SOFTWARE\\\\Fiserv\\\\InstalledApps\\\\secure-print-pune","check32BitOn64System":false,"detectionValue":"2.3","valueName":"Version"}]}
-2026-04-15T19:09:31.944503Z 01O [2026-04-15 19:09:31] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps]: Response status code does not indicate success: 400 (Bad Request).
-2026-04-15T19:09:32.139024Z 01E Invoke-RestMethod:  {   "error": {     "code": "ModelValidationFailure",     "message": "Requested value \u0027greaterThanOrEqual\u0027
-2026-04-15T19:09:32.139024Z 01E was not found.",     "innerError": {       "message": "Requested value \u0027greaterThanOrEqual\u0027 was not found.", 
-2026-04-15T19:09:32.139024Z 01E "date": "2026-04-15T19:09:31",       "request-id": "31c2d435-b653-44fe-9128-3af802164444",       "client-request-id":
-2026-04-15T19:09:32.139024Z 01E "31c2d435-b653-44fe-9128-3af802164444"     }   } }
-2026-04-15T19:09:32.377561Z 00O section_end:1776280172:step_script
-2026-04-15T19:09:32.377561Z 00O+section_start:1776280172:upload_artifacts_on_failure
-2026-04-15T19:09:32.379713Z 00O+Uploading artifacts for failed job
-2026-04-15T19:09:33.784227Z 01O Version:      18.9.0
-2026-04-15T19:09:33.784227Z 01O Git revision: 07e534ba
-2026-04-15T19:09:33.784227Z 01O Git branch:   18-9-stable
-2026-04-15T19:09:33.784227Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-15T19:09:33.784227Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-15T19:09:33.784227Z 01O OS/Arch:      windows/amd64
-2026-04-15T19:09:33.799391Z 01O Uploading artifacts...
-2026-04-15T19:09:33.970731Z 01E Runtime platform                                    arch=amd64 os=windows pid=1992 revision=07e534ba version=18.9.0
-2026-04-15T19:09:33.972067Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\secure-print) 
-2026-04-15T19:09:33.972067Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
-2026-04-15T19:09:36.790952Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KP98S0H660SZME4ZQR2VW2PJ id=26405401 responseStatus=201 Created token=64_yQz6PC
-2026-04-15T19:09:36.981352Z 01O Version:      18.9.0
-2026-04-15T19:09:36.981352Z 01O Git revision: 07e534ba
-2026-04-15T19:09:36.981352Z 01O Git branch:   18-9-stable
-2026-04-15T19:09:36.981352Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-15T19:09:36.981352Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-15T19:09:36.981352Z 01O OS/Arch:      windows/amd64
-2026-04-15T19:09:36.989106Z 01O Uploading artifacts...
-2026-04-15T19:09:37.169319Z 01E Runtime platform                                    arch=amd64 os=windows pid=1308 revision=07e534ba version=18.9.0
-2026-04-15T19:09:37.169319Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\secure-print) 
-2026-04-15T19:09:37.169319Z 01E ERROR: No files to upload                          
-2026-04-15T19:09:37.372660Z 00O section_end:1776280177:upload_artifacts_on_failure
-2026-04-15T19:09:37.373970Z 00O+section_start:1776280177:cleanup_file_variables
-2026-04-15T19:09:37.373970Z 00O+Cleaning up project directory and file based variables
-2026-04-15T19:09:38.734458Z 00O section_end:1776280178:cleanup_file_variables
-2026-04-15T19:09:38.734458Z 00O+
-2026-04-15T19:09:38.734973Z 00O ERROR: Job failed: exit status 1
+2026-04-20T20:13:45.145116Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-20T20:13:45.145116Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-20T20:13:45.145116Z 00O Resolving secrets
+2026-04-20T20:13:45.145116Z 00O section_start:1776716025:prepare_executor
+2026-04-20T20:13:45.145116Z 00O+Preparing the "shell" executor
+2026-04-20T20:13:45.145918Z 00O Using Shell (pwsh) executor...
+2026-04-20T20:13:45.145918Z 00O section_end:1776716025:prepare_executor
+2026-04-20T20:13:45.145918Z 00O+section_start:1776716025:prepare_script
+2026-04-20T20:13:45.145918Z 00O+Preparing environment
+2026-04-20T20:13:46.235991Z 01O Running on vm-psa-runner-p...
+2026-04-20T20:13:46.489124Z 00O section_end:1776716026:prepare_script
+2026-04-20T20:13:46.489124Z 00O+section_start:1776716026:get_sources
+2026-04-20T20:13:46.490159Z 00O+Getting source from Git repository
+2026-04-20T20:13:48.524803Z 01O Gitaly correlation ID: 01KPP8E2DVZ5NKJ1G3W2DNB93E
+2026-04-20T20:13:48.856589Z 01O Fetching changes with git depth set to 20...
+2026-04-20T20:13:48.921429Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/node.js/.git/
+2026-04-20T20:13:51.111231Z 01O Checking out 1c4561a0 as detached HEAD (ref is main)...
+2026-04-20T20:13:51.260470Z 01O Removing schemas/
+2026-04-20T20:13:51.505511Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-20T20:13:52.104236Z 01O 
+2026-04-20T20:13:52.104236Z 01O Skipping Git submodules setup
+2026-04-20T20:13:52.309116Z 00O section_end:1776716032:get_sources
+2026-04-20T20:13:52.309116Z 00O+section_start:1776716032:restore_cache
+2026-04-20T20:13:52.310198Z 00O+Restoring cache
+2026-04-20T20:13:53.717241Z 01O Version:      18.9.0
+2026-04-20T20:13:53.717241Z 01O Git revision: 07e534ba
+2026-04-20T20:13:53.717241Z 01O Git branch:   18-9-stable
+2026-04-20T20:13:53.717241Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-20T20:13:53.717241Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-20T20:13:53.717241Z 01O OS/Arch:      windows/amd64
+2026-04-20T20:13:53.734762Z 01O Checking cache for psadt-framework-4.1.0-protected...
+2026-04-20T20:13:53.897121Z 01E Runtime platform                                    arch=amd64 os=windows pid=7076 revision=07e534ba version=18.9.0
+2026-04-20T20:13:53.897121Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
+2026-04-20T20:13:53.899129Z 01E WARNING: Cache file does not exist                 
+2026-04-20T20:13:53.910282Z 01O Failed to extract cache
+2026-04-20T20:13:54.113365Z 00O section_end:1776716034:restore_cache
+2026-04-20T20:13:54.113365Z 00O+section_start:1776716034:step_script
+2026-04-20T20:13:54.114926Z 00O+Executing "step_script" stage of the job script
+2026-04-20T20:13:55.506055Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-20T20:13:55.518948Z 01O === Windows Build: node.js ===
+2026-04-20T20:13:55.523236Z 01O Pipeline tag   : 
+2026-04-20T20:13:55.523772Z 01O --- Verifying powershell-yaml module is present ---
+2026-04-20T20:13:55.717515Z 01O --- Downloading JSON Schemas ---
+2026-04-20T20:13:56.916680Z 01O --- Validating app.json against schema ---
+2026-04-20T20:13:57.184080Z 01E Test-Json: 
+2026-04-20T20:13:57.184080Z 01E Line |
+2026-04-20T20:13:57.184080Z 01E  441 |  … pIsValid  = Test-Json -Json $appJsonBody -Schema $appSchema -ErrorAct …
+2026-04-20T20:13:57.184080Z 01E      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-04-20T20:13:57.184080Z 01E      | The JSON is not valid with the schema: The string value is not a match for the indicated regular expression at '/package_id'
+2026-04-20T20:13:57.432355Z 00O section_end:1776716037:step_script
+2026-04-20T20:13:57.432355Z 00O+section_start:1776716037:upload_artifacts_on_failure
+2026-04-20T20:13:57.433392Z 00O+Uploading artifacts for failed job
+2026-04-20T20:13:58.845430Z 01O Version:      18.9.0
+2026-04-20T20:13:58.845430Z 01O Git revision: 07e534ba
+2026-04-20T20:13:58.845430Z 01O Git branch:   18-9-stable
+2026-04-20T20:13:58.845430Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-20T20:13:58.845430Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-20T20:13:58.845430Z 01O OS/Arch:      windows/amd64
+2026-04-20T20:13:58.861040Z 01O Uploading artifacts...
+2026-04-20T20:13:59.022027Z 01E Runtime platform                                    arch=amd64 os=windows pid=7440 revision=07e534ba version=18.9.0
+2026-04-20T20:13:59.023068Z 01E WARNING: out/*.intunewin: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-04-20T20:13:59.023068Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-04-20T20:13:59.023068Z 01E ERROR: No files to upload                          
+2026-04-20T20:13:59.199524Z 01O Version:      18.9.0
+2026-04-20T20:13:59.199524Z 01O Git revision: 07e534ba
+2026-04-20T20:13:59.199524Z 01O Git branch:   18-9-stable
+2026-04-20T20:13:59.199524Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-20T20:13:59.199524Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-20T20:13:59.199524Z 01O OS/Arch:      windows/amd64
+2026-04-20T20:13:59.208455Z 01O Uploading artifacts...
+2026-04-20T20:13:59.395696Z 01E Runtime platform                                    arch=amd64 os=windows pid=5180 revision=07e534ba version=18.9.0
+2026-04-20T20:13:59.395696Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-04-20T20:13:59.395696Z 01E ERROR: No files to upload                          
+2026-04-20T20:13:59.607042Z 00O section_end:1776716039:upload_artifacts_on_failure
+2026-04-20T20:13:59.607042Z 00O+section_start:1776716039:cleanup_file_variables
+2026-04-20T20:13:59.607042Z 00O+Cleaning up project directory and file based variables
+2026-04-20T20:14:01.377967Z 00O section_end:1776716041:cleanup_file_variables
+2026-04-20T20:14:01.377967Z 00O+
+2026-04-20T20:14:01.378477Z 00O ERROR: Job failed: exit status 1
