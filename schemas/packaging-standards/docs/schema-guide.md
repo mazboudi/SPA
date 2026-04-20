@@ -5,7 +5,7 @@ This repo publishes the canonical JSON schemas that govern all software title me
 ## Schema Overview
 
 | Schema | Purpose | Used by |
-|--------|---------|---------|
+| -------- | --------- | --------- |
 | `app.schema.json` | Root title metadata (`app.json`) | All pipelines (validate stage) |
 | `windows-package.schema.json` | Windows build config (`windows/package.yaml`) | Windows build job |
 | `macos-package.schema.json` | macOS build config (`macos/package.yaml`) | macOS build job |
@@ -69,7 +69,7 @@ Breaking schema changes must bump the major version.
 ### app.json
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `title` | string | ✅ | Human-readable name |
 | `publisher` | string | ✅ | Vendor/publisher |
 | `package_id` | string | ✅ | Kebab-case unique ID |
@@ -87,7 +87,7 @@ Breaking schema changes must bump the major version.
 ### windows/package.yaml
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `version` | string | ✅ | Installer version |
 | `packaging_version` | integer | ✅ | Packaging iteration |
 | `installer_type` | enum | ✅ | `msi`, `exe`, `msix`, `ps1` |
@@ -107,7 +107,7 @@ Breaking schema changes must bump the major version.
 ### windows/intune/app.json
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `displayName` | string | ✅ | Name shown in Intune / Company Portal |
 | `description` | string | | App description for Company Portal |
 | `publisher` | string | ✅ | Publisher name |
@@ -128,7 +128,7 @@ Breaking schema changes must bump the major version.
 ### windows/intune/assignments.json
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `intent` | enum | ✅ | `available`, `required`, or `uninstall` |
 | `groupId` | string | ✅ | Entra ID group object ID |
 | `filterMode` | enum | | `none`, `include`, `exclude` |
@@ -137,14 +137,14 @@ Breaking schema changes must bump the major version.
 ### windows/intune/dependencies.json (optional)
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `appId` | string | ✅ | Intune App ID of the dependency |
 | `dependencyType` | enum | ✅ | `autoInstall` or `detect` |
 
 ### macos/package.yaml
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `vendor_version` | string | ✅ | Installer version |
 | `packaging_version` | integer | ✅ | Packaging iteration |
 | `source_type` | enum | ✅ | `pkg`, `dmg`, `zip`, `app` |
