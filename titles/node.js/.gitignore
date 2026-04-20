@@ -1,0 +1,14 @@
+dist/
+out/
+*.intunewin
+*.pkg
+*.tar.gz
+*.zip
+psadt-framework-*/
+macos-framework-*/
+tools/
+intune-modules/
+terraform-jamf-modules/
+tf-deploy/
+.DS_Store
+.vscode/

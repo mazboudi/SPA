@@ -1,0 +1,19 @@
+{
+  "displayName": "Node.js",
+  "description": "TODO: App description",
+  "publisher": "Node.js Foundation",
+  "appVersion": "25.8.1",
+  "informationUrl": "TODO: Information URL (press Enter to skip)",
+  "isFeatured": true,
+  "privacyInformationUrl": "TODO: Privacy URL (press Enter to skip)",
+  "notes": "Managed by SPA pipeline.",
+  "owner": "EUC Packaging",
+  "installCommandLine": "Invoke-AppDeployToolkit.exe",
+  "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall",
+  "applicableArchitectures": "x64",
+  "minimumSupportedWindowsRelease": "2004",
+  "displayVersion": "25.8.1",
+  "allowAvailableUninstall": true,
+  "installContext": "system",
+  "restartBehavior": "suppress"
+}

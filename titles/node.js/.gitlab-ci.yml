@@ -1,0 +1,17 @@
+include:
+  - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
+    ref: 'main'
+    file:
+      - 'templates/windows-build.yml'
+      - 'templates/windows-deploy-intune.yml'
+
+stages:
+  - build
+  - publish
+  - assign
+
+variables:
+  WINDOWS_ENABLED: "true"
+  MACOS_ENABLED:   "false"
+  PSADT_FRAMEWORK_VERSION: "4.1.0"
+  MACOS_FRAMEWORK_VERSION: "1.0.0"

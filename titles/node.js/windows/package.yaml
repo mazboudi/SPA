@@ -1,0 +1,18 @@
+# Node.js 25.8.1 — Windows package definition
+package_id: node.js
+display_name: "Node.js"
+version: "25.8.1"
+packaging_version: "1"
+installer_type: msi
+source_filename: TODO_INSTALLER.msi
+max_install_time: 60
+
+install_command: 'msiexec.exe /i "Files\TODO_INSTALLER.msi" /qn /norestart'
+uninstall_command: 'msiexec.exe /x "{TODO-PRODUCT-CODE-GUID}" /qn /norestart'
+
+detection_mode: msi-product-code
+detection:
+  product_code: "{TODO-PRODUCT-CODE-GUID}"
+  version_operator: greaterThanOrEqual
+  version: "25.8.1"
+
