@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Generates a PSADT v4 Deploy-Application.ps1 from a lifecycle configuration hashtable.
+  Generates a PSADT v4 Invoke-AppDeployToolkit.ps1 from a lifecycle configuration hashtable.
 
 .DESCRIPTION
   Takes the structured lifecycle hashtable from Invoke-PackagingLifecyclePrompts
@@ -22,7 +22,7 @@
   Package identifier.
 
 .OUTPUTS
-  String — the full content of Deploy-Application.ps1.
+  String — the full content of Invoke-AppDeployToolkit.ps1.
 #>
 function Build-DeployApplication {
     [CmdletBinding()]
@@ -31,7 +31,8 @@ function Build-DeployApplication {
         [string] $DisplayName = '',
         [string] $Publisher = '',
         [string] $Version = '',
-        [string] $PackageId = ''
+        [string] $PackageId = '',
+        [string] $FrameworkVersion = '4.1.0'
     )
 
     # ── Code generation helpers ───────────────────────────────────────────────
@@ -249,7 +250,7 @@ function Build-DeployApplication {
     Uses the PSAppDeployToolkit v4 function-based architecture.
 
 .NOTES
-    Framework : PSAppDeployToolkit 4.1.7
+    Framework : PSAppDeployToolkit $FrameworkVersion
     Package   : $PackageId
     Version   : $Version
 #>
@@ -300,7 +301,7 @@ param
 
     DeployAppScriptFriendlyName = `$MyInvocation.MyCommand.Name
     DeployAppScriptParameters   = `$PSBoundParameters
-    DeployAppScriptVersion      = '4.1.7'
+    DeployAppScriptVersion      = '$FrameworkVersion'
 }
 
 function Install-ADTDeployment
@@ -404,11 +405,11 @@ try
     if (Test-Path -LiteralPath "`$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1" -PathType Leaf)
     {
         Get-ChildItem -LiteralPath "`$PSScriptRoot\PSAppDeployToolkit" -Recurse -File | Unblock-File -ErrorAction Ignore
-        Import-Module -FullyQualifiedName @{ ModuleName = "`$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1"; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '4.1.7' } -Force
+        Import-Module -FullyQualifiedName @{ ModuleName = "`$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1"; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '$FrameworkVersion' } -Force
     }
     else
     {
-        Import-Module -FullyQualifiedName @{ ModuleName = 'PSAppDeployToolkit'; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '4.1.7' } -Force
+        Import-Module -FullyQualifiedName @{ ModuleName = 'PSAppDeployToolkit'; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '$FrameworkVersion' } -Force
     }
 
     `$iadtParams = Get-ADTBoundParametersAndDefaultValues -Invocation `$MyInvocation

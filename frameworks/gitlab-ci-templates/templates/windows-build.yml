@@ -138,11 +138,13 @@
       # Copy enterprise framework template
       Copy-Item -Path (Join-Path $frameworkDir '*') -Destination $staging -Recurse -Force
 
-      # Overlay title's Deploy-Application.ps1 if present
-      $titleDeploy = 'windows/src/Deploy-Application.ps1'
+      # Overlay title's Invoke-AppDeployToolkit.ps1 (PSADT v4)
+      $titleDeploy = 'windows/src/Invoke-AppDeployToolkit.ps1'
       if (Test-Path $titleDeploy) {
-        Write-Host "Overlaying title Deploy-Application.ps1..."
+        Write-Host "Overlaying title Invoke-AppDeployToolkit.ps1..."
         Copy-Item -Path $titleDeploy -Destination $staging -Force
+      } else {
+        throw "Missing windows/src/Invoke-AppDeployToolkit.ps1 — run New-Title to scaffold this file."
       }
 
       # Copy installer from runner VM if WINDOWS_INSTALLER_SOURCE is set
@@ -184,11 +186,6 @@
       if (!(Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 
       $setupFile = 'Invoke-AppDeployToolkit.exe'
-      $setupPath = Join-Path $staging $setupFile
-      if (!(Test-Path $setupPath)) {
-        # Fallback: look for Deploy-Application.ps1 as entry point
-        $setupFile = 'Deploy-Application.ps1'
-      }
 
       Write-Host "Running IntuneWinAppUtil..."
       & $intuneUtil -c $staging -s $setupFile -o (Resolve-Path $outDir) -q

@@ -900,14 +900,15 @@ $depsJson
 # Expected: $msiFile
 "@
 
-    # ── windows/src/Deploy-Application.ps1 (PSADT v4) ─────────────────────────
+    # ── windows/src/Invoke-AppDeployToolkit.ps1 (PSADT v4) ───────────────────
     if ($lifecycleConfig) {
         $deployAppContent = Build-DeployApplication `
             -Lifecycle $lifecycleConfig `
             -DisplayName $DisplayName `
             -Publisher $Publisher `
             -Version $Version `
-            -PackageId $PackageId
+            -PackageId $PackageId `
+            -FrameworkVersion '4.1.0'
     } else {
         # Fallback: build a lifecycle config from the legacy prompts
         $fallbackLifecycle = @{
@@ -947,7 +948,8 @@ $depsJson
             -DisplayName $DisplayName `
             -Publisher $Publisher `
             -Version $Version `
-            -PackageId $PackageId
+            -PackageId $PackageId `
+            -FrameworkVersion '4.1.0'
     }
     Write-File (Join-Path $titleDir 'windows\src\Invoke-AppDeployToolkit.ps1') $deployAppContent
 
@@ -1164,13 +1166,13 @@ if ($Platform -in @('windows','both')) {
     } elseif ($InstallerType -eq 'msi') {
         Write-Host "  2w. Extract ProductCode (MSI path was not provided during scaffold):"
         Write-Host "       pwsh -File scripts\Get-MsiMetadata.ps1 -MsiPath <path-to-installer.msi>"
-        Write-Host "       Then update ProductCode in windows\package.yaml and Deploy-Application.ps1"
+        Write-Host "       Then update ProductCode in windows\package.yaml and Invoke-AppDeployToolkit.ps1"
     } else {
         Write-Host "  2w. Drop the installer binary into windows\src\Files\ (NOT committed to git)"
     }
     Write-Host "  3w. Replace Entra ID group IDs in windows\intune\assignments.json"
     if ($DetectionMode -eq 'registry-marker') {
-        Write-Host "  4w. Verify the registry marker path in package.yaml matches Deploy-Application.ps1"
+        Write-Host "  4w. Verify the registry marker path in package.yaml matches Invoke-AppDeployToolkit.ps1"
     }
 }
 
