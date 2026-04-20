@@ -18,7 +18,7 @@
     "package_id": {
       "type": "string",
       "description": "Unique, kebab-case identifier used as the folder name and artifact prefix.",
-      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+      "pattern": "^[a-z0-9][a-z0-9._-]*[a-z0-9]$"
     },
     "version": {
       "type": "string",
