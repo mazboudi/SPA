@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/intune-app.schema.json",
+  "title": "Intune App Configuration",
+  "description": "Intune Win32 app metadata. Located at windows/intune/app.json in each title repo.",
+  "type": "object",
+  "required": [
+    "displayName",
+    "publisher",
+    "installCommandLine",
+    "uninstallCommandLine"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "displayName": {
+      "type": "string",
+      "description": "Application display name shown in Intune and Company Portal."
+    },
+    "description": {
+      "type": "string",
+      "description": "Application description shown in Company Portal."
+    },
+    "publisher": {
+      "type": "string",
+      "description": "Application publisher/vendor name."
+    },
+    "appVersion": {
+      "type": "string",
+      "description": "Application version string."
+    },
+    "informationUrl": {
+      "type": "string",
+      "description": "URL for more information about the application."
+    },
+    "privacyInformationUrl": {
+      "type": "string",
+      "description": "URL for the application's privacy statement."
+    },
+    "isFeatured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to feature this app prominently in Company Portal."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes for IT admins (not visible to end users)."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Owner or team responsible for this app in Intune."
+    },
+    "installCommandLine": {
+      "type": "string",
+      "description": "Command line to execute for silent install (e.g. 'Invoke-AppDeployToolkit.exe')."
+    },
+    "uninstallCommandLine": {
+      "type": "string",
+      "description": "Command line to execute for silent uninstall."
+    },
+    "applicableArchitectures": {
+      "type": "string",
+      "enum": ["x86", "x64", "arm", "neutral"],
+      "description": "CPU architectures this app supports."
+    },
+    "minimumSupportedWindowsRelease": {
+      "type": "string",
+      "description": "Minimum Windows release version required."
+    },
+    "displayVersion": {
+      "type": "string",
+      "description": "Display version shown to end users in Company Portal."
+    },
+    "allowAvailableUninstall": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether users can uninstall from Company Portal when assigned as Available."
+    },
+    "installContext": {
+      "type": "string",
+      "enum": ["system", "user"],
+      "default": "system",
+      "description": "Execution context for install: system (SYSTEM account) or user (logged-in user)."
+    },
+    "restartBehavior": {
+      "type": "string",
+      "enum": ["suppress", "allow", "basedOnReturnCode", "force"],
+      "default": "suppress",
+      "description": "Device restart behavior after installation completes."
+    }
+  }
+}

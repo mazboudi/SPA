@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/intune-dependencies.schema.json",
+  "title": "Intune App Dependencies",
+  "description": "Intune Win32 app dependency relationships. Located at windows/intune/dependencies.json in each title repo. Only present when the app declares dependencies.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["appId", "dependencyType"],
+    "additionalProperties": false,
+    "properties": {
+      "appId": {
+        "type": "string",
+        "description": "Intune App ID of the dependency application."
+      },
+      "dependencyType": {
+        "type": "string",
+        "enum": ["autoInstall", "detect"],
+        "description": "'autoInstall' will install the dependency automatically. 'detect' only checks if it's present."
+      }
+    }
+  }
+}

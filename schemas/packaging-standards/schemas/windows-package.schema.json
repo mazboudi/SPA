@@ -132,6 +132,43 @@
         "allowed_to_reinstall":           { "type": "boolean" },
         "uninstall_previous_version_of_app": { "type": "boolean" }
       }
+    },
+    "return_codes": {
+      "type": "array",
+      "description": "Custom return code mappings. Each entry specifies a code and its interpretation.",
+      "items": {
+        "type": "object",
+        "required": ["returnCode", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "returnCode": { "type": "integer", "description": "Process exit code." },
+          "type": {
+            "type": "string",
+            "enum": ["success", "softReboot", "hardReboot", "retry", "failed"],
+            "description": "How Intune should interpret this exit code."
+          }
+        }
+      }
+    },
+    "close_apps": {
+      "type": "string",
+      "description": "Comma-separated list of process names to close before install/uninstall (e.g. 'chrome,msedge')."
+    },
+    "supersedes": {
+      "type": "object",
+      "description": "Supersedence configuration for replacing a prior Intune app.",
+      "additionalProperties": false,
+      "properties": {
+        "app_id": {
+          "type": "string",
+          "description": "Intune App ID of the title this supersedes."
+        },
+        "uninstall_previous": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to uninstall the previous version before installing this one."
+        }
+      }
     }
   },
   "additionalProperties": false

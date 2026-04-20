@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/intune-assignments.schema.json",
+  "title": "Intune App Assignments",
+  "description": "Intune Win32 app group assignments. Located at windows/intune/assignments.json in each title repo.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["intent", "groupId"],
+    "additionalProperties": false,
+    "properties": {
+      "intent": {
+        "type": "string",
+        "enum": ["available", "required", "uninstall"],
+        "description": "Assignment intent: 'available' (Company Portal), 'required' (forced), or 'uninstall'."
+      },
+      "groupId": {
+        "type": "string",
+        "description": "Entra ID (Azure AD) group object ID to target."
+      },
+      "filterMode": {
+        "type": "string",
+        "enum": ["none", "include", "exclude"],
+        "default": "none",
+        "description": "Intune assignment filter mode."
+      },
+      "filterId": {
+        "type": "string",
+        "description": "Intune assignment filter ID. Required when filterMode is 'include' or 'exclude'."
+      }
+    }
+  }
+}
