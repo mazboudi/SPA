@@ -103,10 +103,11 @@
         }
       }
     },
-    "max_runtime_minutes": {
+    "max_install_time": {
       "type": "integer",
       "minimum": 5,
       "maximum": 1440,
+      "default": 60,
       "description": "Maximum time in minutes the install is allowed to run before Intune marks it as failed."
     },
     "restart_behavior": {

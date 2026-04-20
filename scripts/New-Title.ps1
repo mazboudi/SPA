@@ -734,6 +734,11 @@ detection_mode: script
     # ── Max install time block ────────────────────────────────────────────────
     $maxTimeBlock = "max_install_time: $MaxInstallTime"
 
+    # ── Resolve source filename ────────────────────────────────────────────────
+    $sourceFile = if ($msiFile -and $msiFile -ne 'TODO_INSTALLER.msi') { $msiFile }
+                  elseif ($InstallerType -eq 'msi') { 'TODO_INSTALLER.msi' }
+                  else { "TODO_INSTALLER.$InstallerType" }
+
     # ── windows/package.yaml ──────────────────────────────────────────────────
     Write-File (Join-Path $titleDir 'windows\package.yaml') @"
 # $DisplayName $Version — Windows package definition
@@ -742,6 +747,7 @@ display_name: "$DisplayName"
 version: "$Version"
 packaging_version: "1"
 installer_type: $InstallerType
+source_filename: $sourceFile
 $maxTimeBlock
 
 install_command: '$installCmd'

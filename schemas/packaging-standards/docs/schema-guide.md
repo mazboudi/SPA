@@ -96,7 +96,7 @@ Breaking schema changes must bump the major version.
 | `uninstall_command` | string | ✅ | Silent uninstall cmdline |
 | `detection_mode` | enum | ✅ | `registry-marker`, `file`, `msi-product-code`, `script` |
 | `detection` | object | ✅ | Detection parameters (keys vary by mode) |
-| `max_runtime_minutes` | integer | | Default: 60 |
+| `max_install_time` | integer | | Max install time in minutes (default: 60) |
 | `restart_behavior` | enum | | `suppress`, `allow`, `basedOnReturnCode`, `force` |
 | `install_experience` | enum | | `system` or `user` |
 | `close_apps` | string | | Processes to close before install/uninstall |
