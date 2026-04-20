@@ -186,24 +186,57 @@ function Read-Required {
     <#
     .SYNOPSIS
       Prompts for a required text value. Loops until non-empty input.
+      Type 't' or 'todo' to defer — marks the field as TODO.
     #>
     param(
         [Parameter(Mandatory)] [string] $Prompt,
-        [string] $Default = ''
+        [string] $Default = '',
+        [switch] $AllowTodo
     )
-    $suffix = if ($Default) { " (default: $Default)" } else { '' }
+    $todoHint   = if ($AllowTodo) { ' — type [T] for TODO' } else { '' }
+    $suffix     = if ($Default) { " (default: $Default)$todoHint" } else { $todoHint }
     do {
         $value = Read-Host "$Prompt$suffix"
         if ([string]::IsNullOrWhiteSpace($value) -and $Default) { return $Default }
+        if ($AllowTodo -and $value.Trim() -in @('t','T','todo','TODO')) {
+            $marker = "TODO: $Prompt"
+            Write-Host "  ⏳ Marked as: $marker" -ForegroundColor Yellow
+            return $marker
+        }
     } while ([string]::IsNullOrWhiteSpace($value))
     return $value.Trim()
+}
+
+function Read-Deferrable {
+    <#
+    .SYNOPSIS
+      Prompts for an optional value. Empty = default, 't' = TODO marker.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $Prompt,
+        [string] $Default = '',
+        [string] $FieldName = ''
+    )
+    $todoHint = " — type [T] for TODO, Enter to skip"
+    $suffix   = if ($Default) { " (default: $Default)$todoHint" } else { $todoHint }
+    $value = Read-Host "$Prompt$suffix"
+    if ([string]::IsNullOrWhiteSpace($value) -and $Default) { return $Default }
+    if ([string]::IsNullOrWhiteSpace($value)) { return '' }
+    $trimmed = $value.Trim()
+    if ($trimmed -in @('t','T','todo','TODO')) {
+        $label = if ($FieldName) { $FieldName } else { $Prompt }
+        $marker = "TODO: $label"
+        Write-Host "  ⏳ Marked as: $marker" -ForegroundColor Yellow
+        return $marker
+    }
+    return $trimmed
 }
 
 # ── Text inputs ───────────────────────────────────────────────────────────────
 if (-not $PackageId)    { $PackageId    = Read-Required "Package ID (kebab-case, e.g. '7-zip')" }
 if (-not $DisplayName)  { $DisplayName  = Read-Required "Display Name (e.g. '7-Zip')" }
-if (-not $Publisher)    { $Publisher    = Read-Required "Publisher (e.g. 'Igor Pavlov')" -Default 'Fiserv' }
-if (-not $Version)      { $Version      = Read-Required "Version (e.g. '26.00')" }
+if (-not $Publisher)    { $Publisher    = Read-Required "Publisher (e.g. 'Igor Pavlov')" -Default 'Fiserv' -AllowTodo }
+if (-not $Version)      { $Version      = Read-Required "Version (e.g. '26.00')" -AllowTodo }
 
 # ── Output directory ──────────────────────────────────────────────────────────
 if ($OutDir -eq 'titles') {
@@ -299,8 +332,8 @@ if ($Platform -in @('windows','both')) {
 
     # File detection sub-prompts
     if ($DetectionMode -eq 'file') {
-        $FileDetPath = Read-Required "File detection — folder path (e.g. 'C:\Program Files\MyApp')"
-        $FileDetName = Read-Required "File detection — file or folder name (e.g. 'MyApp.exe')"
+        $FileDetPath = Read-Required "File detection — folder path (e.g. 'C:\Program Files\MyApp')" -AllowTodo
+        $FileDetName = Read-Required "File detection — file or folder name (e.g. 'MyApp.exe')" -AllowTodo
         $FileDetType = Show-Menu -Title "File detection — what to check:" -Options @(
             'exists', 'doesNotExist', 'version', 'sizeInMB'
         ) -Default 'exists'
@@ -308,14 +341,13 @@ if ($Platform -in @('windows','both')) {
             $FileDetOperator = Show-Menu -Title "Comparison operator:" -Options @(
                 'greaterThanOrEqual', 'equal', 'notEqual', 'greaterThan', 'lessThan', 'lessThanOrEqual'
             ) -Default 'greaterThanOrEqual'
-            $FileDetValue = Read-Required "Comparison value (version string or size in MB)"
+            $FileDetValue = Read-Required "Comparison value (version string or size in MB)" -AllowTodo
         }
     }
 
     # Close apps
     Write-Host ""
-    $CloseApps = Read-Host "Processes to close before install (comma-separated, e.g. 'chrome,msedge') — press Enter to skip"
-    $CloseApps = $CloseApps.Trim()
+    $CloseApps = Read-Deferrable "Processes to close before install (comma-separated, e.g. 'chrome,msedge')" -FieldName 'close_apps'
 
     # Restart behavior
     $RestartBehavior = Show-Menu -Title "Device restart behavior after install:" -Options @(
@@ -337,8 +369,7 @@ if ($Platform -in @('windows','both')) {
 
     # Supersedence
     Write-Host ""
-    $SupersedesAppId = Read-Host "Intune App ID this title supersedes — press Enter to skip"
-    $SupersedesAppId = $SupersedesAppId.Trim()
+    $SupersedesAppId = Read-Deferrable "Intune App ID this title supersedes" -FieldName 'supersedes_app_id'
 }
 # Apply defaults for non-interactive use when Platform is Windows-only
 if (-not $InstallerType)  { $InstallerType  = 'msi' }
@@ -354,10 +385,10 @@ if ($Platform -in @('macos','both')) {
         ) -Default 'pkg'
     }
     if (-not $BundleId) {
-        $BundleId = Read-Required "macOS Bundle ID (e.g. 'com.google.Chrome')"
+        $BundleId = Read-Required "macOS Bundle ID (e.g. 'com.google.Chrome')" -AllowTodo
     }
     if (-not $ReceiptId) {
-        $ReceiptId = Read-Required "macOS Receipt ID" -Default $BundleId.ToLower()
+        $ReceiptId = Read-Required "macOS Receipt ID" -Default $BundleId.ToLower() -AllowTodo
     }
     $ssChoice = Show-Menu -Title "Enable Jamf Self Service?" -Options @(
         'no', 'yes'

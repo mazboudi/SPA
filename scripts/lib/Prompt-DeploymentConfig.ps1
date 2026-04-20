@@ -36,11 +36,18 @@ function Invoke-DeploymentConfigPrompts {
             [string] $Prompt,
             [string] $Default = ''
         )
-        $suffix = if ($Default) { " (default: $Default)" } else { '' }
+        $todoHint = ' — [T] for TODO, Enter to skip'
+        $suffix = if ($Default) { " (default: $Default)$todoHint" } else { $todoHint }
         $value = Read-Host "$Prompt$suffix"
         if ([string]::IsNullOrWhiteSpace($value) -and $Default) { return $Default }
         if ([string]::IsNullOrWhiteSpace($value)) { return '' }
-        return $value.Trim()
+        $trimmed = $value.Trim()
+        if ($trimmed -in @('t','T','todo','TODO')) {
+            $marker = "TODO: $Prompt"
+            Write-Host "  ⏳ Marked as: $marker" -ForegroundColor Yellow
+            return $marker
+        }
+        return $trimmed
     }
 
     function Show-ChoiceMenu {
