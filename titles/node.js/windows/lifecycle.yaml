@@ -19,10 +19,13 @@ post_install:
   actions:
     - type: registry_marker
 
+pre_uninstall:
+  show_progress: true
+
 uninstall:
   actions:
     - type: msi_uninstall
-      app_name: "Node.js"
+      app_name: "Node.js-Test"
       product_code: "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}"
 
 post_uninstall:

@@ -1,6 +1,6 @@
-# Node.js 25.8.1 — Windows package definition
+# Node.js-Test 25.8.1 — Windows package definition
 package_id: node.js
-display_name: "Node.js"
+display_name: "Node.js-Test"
 version: "25.8.1"
 packaging_version: "1"
 installer_type: msi

@@ -1,6 +1,6 @@
 {
-  "title": "Node.js",
-  "publisher": "Node.js Foundation",
+  "title": "Node.js-Test",
+  "publisher": "Node,js Foundation",
   "package_id": "node.js",
   "version": "25.8.1",
   "owners": {
