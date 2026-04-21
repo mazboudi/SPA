@@ -1,79 +1,76 @@
-2026-04-20T20:13:45.145116Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-20T20:13:45.145116Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-20T20:13:45.145116Z 00O Resolving secrets
-2026-04-20T20:13:45.145116Z 00O section_start:1776716025:prepare_executor
-2026-04-20T20:13:45.145116Z 00O+Preparing the "shell" executor
-2026-04-20T20:13:45.145918Z 00O Using Shell (pwsh) executor...
-2026-04-20T20:13:45.145918Z 00O section_end:1776716025:prepare_executor
-2026-04-20T20:13:45.145918Z 00O+section_start:1776716025:prepare_script
-2026-04-20T20:13:45.145918Z 00O+Preparing environment
-2026-04-20T20:13:46.235991Z 01O Running on vm-psa-runner-p...
-2026-04-20T20:13:46.489124Z 00O section_end:1776716026:prepare_script
-2026-04-20T20:13:46.489124Z 00O+section_start:1776716026:get_sources
-2026-04-20T20:13:46.490159Z 00O+Getting source from Git repository
-2026-04-20T20:13:48.524803Z 01O Gitaly correlation ID: 01KPP8E2DVZ5NKJ1G3W2DNB93E
-2026-04-20T20:13:48.856589Z 01O Fetching changes with git depth set to 20...
-2026-04-20T20:13:48.921429Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/node.js/.git/
-2026-04-20T20:13:51.111231Z 01O Checking out 1c4561a0 as detached HEAD (ref is main)...
-2026-04-20T20:13:51.260470Z 01O Removing schemas/
-2026-04-20T20:13:51.505511Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-20T20:13:52.104236Z 01O 
-2026-04-20T20:13:52.104236Z 01O Skipping Git submodules setup
-2026-04-20T20:13:52.309116Z 00O section_end:1776716032:get_sources
-2026-04-20T20:13:52.309116Z 00O+section_start:1776716032:restore_cache
-2026-04-20T20:13:52.310198Z 00O+Restoring cache
-2026-04-20T20:13:53.717241Z 01O Version:      18.9.0
-2026-04-20T20:13:53.717241Z 01O Git revision: 07e534ba
-2026-04-20T20:13:53.717241Z 01O Git branch:   18-9-stable
-2026-04-20T20:13:53.717241Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-20T20:13:53.717241Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-20T20:13:53.717241Z 01O OS/Arch:      windows/amd64
-2026-04-20T20:13:53.734762Z 01O Checking cache for psadt-framework-4.1.0-protected...
-2026-04-20T20:13:53.897121Z 01E Runtime platform                                    arch=amd64 os=windows pid=7076 revision=07e534ba version=18.9.0
-2026-04-20T20:13:53.897121Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
-2026-04-20T20:13:53.899129Z 01E WARNING: Cache file does not exist                 
-2026-04-20T20:13:53.910282Z 01O Failed to extract cache
-2026-04-20T20:13:54.113365Z 00O section_end:1776716034:restore_cache
-2026-04-20T20:13:54.113365Z 00O+section_start:1776716034:step_script
-2026-04-20T20:13:54.114926Z 00O+Executing "step_script" stage of the job script
-2026-04-20T20:13:55.506055Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-20T20:13:55.518948Z 01O === Windows Build: node.js ===
-2026-04-20T20:13:55.523236Z 01O Pipeline tag   : 
-2026-04-20T20:13:55.523772Z 01O --- Verifying powershell-yaml module is present ---
-2026-04-20T20:13:55.717515Z 01O --- Downloading JSON Schemas ---
-2026-04-20T20:13:56.916680Z 01O --- Validating app.json against schema ---
-2026-04-20T20:13:57.184080Z 01E Test-Json: 
-2026-04-20T20:13:57.184080Z 01E Line |
-2026-04-20T20:13:57.184080Z 01E  441 |  … pIsValid  = Test-Json -Json $appJsonBody -Schema $appSchema -ErrorAct …
-2026-04-20T20:13:57.184080Z 01E      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2026-04-20T20:13:57.184080Z 01E      | The JSON is not valid with the schema: The string value is not a match for the indicated regular expression at '/package_id'
-2026-04-20T20:13:57.432355Z 00O section_end:1776716037:step_script
-2026-04-20T20:13:57.432355Z 00O+section_start:1776716037:upload_artifacts_on_failure
-2026-04-20T20:13:57.433392Z 00O+Uploading artifacts for failed job
-2026-04-20T20:13:58.845430Z 01O Version:      18.9.0
-2026-04-20T20:13:58.845430Z 01O Git revision: 07e534ba
-2026-04-20T20:13:58.845430Z 01O Git branch:   18-9-stable
-2026-04-20T20:13:58.845430Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-20T20:13:58.845430Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-20T20:13:58.845430Z 01O OS/Arch:      windows/amd64
-2026-04-20T20:13:58.861040Z 01O Uploading artifacts...
-2026-04-20T20:13:59.022027Z 01E Runtime platform                                    arch=amd64 os=windows pid=7440 revision=07e534ba version=18.9.0
-2026-04-20T20:13:59.023068Z 01E WARNING: out/*.intunewin: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
-2026-04-20T20:13:59.023068Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
-2026-04-20T20:13:59.023068Z 01E ERROR: No files to upload                          
-2026-04-20T20:13:59.199524Z 01O Version:      18.9.0
-2026-04-20T20:13:59.199524Z 01O Git revision: 07e534ba
-2026-04-20T20:13:59.199524Z 01O Git branch:   18-9-stable
-2026-04-20T20:13:59.199524Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-20T20:13:59.199524Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-20T20:13:59.199524Z 01O OS/Arch:      windows/amd64
-2026-04-20T20:13:59.208455Z 01O Uploading artifacts...
-2026-04-20T20:13:59.395696Z 01E Runtime platform                                    arch=amd64 os=windows pid=5180 revision=07e534ba version=18.9.0
-2026-04-20T20:13:59.395696Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
-2026-04-20T20:13:59.395696Z 01E ERROR: No files to upload                          
-2026-04-20T20:13:59.607042Z 00O section_end:1776716039:upload_artifacts_on_failure
-2026-04-20T20:13:59.607042Z 00O+section_start:1776716039:cleanup_file_variables
-2026-04-20T20:13:59.607042Z 00O+Cleaning up project directory and file based variables
-2026-04-20T20:14:01.377967Z 00O section_end:1776716041:cleanup_file_variables
-2026-04-20T20:14:01.377967Z 00O+
-2026-04-20T20:14:01.378477Z 00O ERROR: Job failed: exit status 1
+2026-04-21T21:31:38.457709Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-21T21:31:38.457709Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-21T21:31:38.457709Z 00O Resolving secrets
+2026-04-21T21:31:38.457709Z 00O section_start:1776807098:prepare_executor
+2026-04-21T21:31:38.457709Z 00O+Preparing the "shell" executor
+2026-04-21T21:31:38.458433Z 00O Using Shell (pwsh) executor...
+2026-04-21T21:31:38.458433Z 00O section_end:1776807098:prepare_executor
+2026-04-21T21:31:38.458433Z 00O+section_start:1776807098:prepare_script
+2026-04-21T21:31:38.458433Z 00O+Preparing environment
+2026-04-21T21:31:39.589695Z 01O Running on vm-psa-runner-p...
+2026-04-21T21:31:39.870626Z 00O section_end:1776807099:prepare_script
+2026-04-21T21:31:39.870626Z 00O+section_start:1776807099:get_sources
+2026-04-21T21:31:39.871671Z 00O+Getting source from Git repository
+2026-04-21T21:31:42.022197Z 01O Gitaly correlation ID: 01KPRZ9DERQ8NFYC2Z6VZH0FXH
+2026-04-21T21:31:42.407861Z 01O Fetching changes with git depth set to 20...
+2026-04-21T21:31:42.483934Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/node.js/.git/
+2026-04-21T21:31:44.628401Z 01O Checking out 239d84fd as detached HEAD (ref is main)...
+2026-04-21T21:31:44.763661Z 01O Removing intune-modules/
+2026-04-21T21:31:44.763661Z 01O Removing out/
+2026-04-21T21:31:45.002959Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-21T21:31:45.640128Z 01O 
+2026-04-21T21:31:45.640128Z 01O Skipping Git submodules setup
+2026-04-21T21:31:45.865105Z 00O section_end:1776807105:get_sources
+2026-04-21T21:31:45.865105Z 00O+section_start:1776807105:download_artifacts
+2026-04-21T21:31:45.866185Z 00O+Downloading artifacts
+2026-04-21T21:31:47.334325Z 01O Version:      18.9.0
+2026-04-21T21:31:47.334325Z 01O Git revision: 07e534ba
+2026-04-21T21:31:47.334325Z 01O Git branch:   18-9-stable
+2026-04-21T21:31:47.334325Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-21T21:31:47.334325Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-21T21:31:47.334325Z 01O OS/Arch:      windows/amd64
+2026-04-21T21:31:47.349491Z 01O Downloading artifacts for windows_publish_intune (26707159)...
+2026-04-21T21:31:47.535730Z 01E Runtime platform                                    arch=amd64 os=windows pid=10232 revision=07e534ba version=18.9.0
+2026-04-21T21:31:48.047129Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KPRZ9Q4AQJ7EEEDAQ9FSHPBN host=gitlab.onefiserv.net id=26707159 responseStatus=200 OK token=64_KSwnsm
+2026-04-21T21:31:48.306042Z 00O section_end:1776807108:download_artifacts
+2026-04-21T21:31:48.306042Z 00O+section_start:1776807108:step_script
+2026-04-21T21:31:48.306552Z 00O+Executing "step_script" stage of the job script
+2026-04-21T21:31:49.626257Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-21T21:31:51.932348Z 01O Intune modules ready in: intune-modules
+2026-04-21T21:31:51.936416Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-21T21:31:52.066537Z 01O [2026-04-21 21:31:52] [INFO] Loading 1 assignment(s) for app: 4d333198-13f8-4d4c-9fcc-7b11c3c25f07
+2026-04-21T21:31:52.078551Z 01O [2026-04-21 21:31:52] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
+2026-04-21T21:31:52.205002Z 01O [2026-04-21 21:31:52] [INFO] Token acquired (length=2130)
+2026-04-21T21:31:52.216200Z 01O [2026-04-21 21:31:52] [INFO] Posting assignments to Graph...
+2026-04-21T21:31:52.244003Z 01O [2026-04-21 21:31:52] [DEBUG] Request body JSON: {"mobileAppAssignments":[{"@odata.type":"#microsoft.graph.mobileAppAssignment","target":{"@odata.type":"#microsoft.graph.groupAssignmentTarget","groupId":"207ca967-c626-436e-8983-498d95d17384"},"intent":"available","settings":{"deliveryOptimizationPriority":"notConfigured","@odata.type":"#microsoft.graph.win32LobAppAssignmentSettings","installTimeSettings":null,"notifications":"showAll","restartSettings":null}}]}
+2026-04-21T21:31:53.022161Z 01O [2026-04-21 21:31:53] [INFO] ✅ Assignments applied for app: 4d333198-13f8-4d4c-9fcc-7b11c3c25f07
+2026-04-21T21:31:53.023882Z 01O ✅ Assignments applied.
+2026-04-21T21:31:53.120529Z 01O [2026-04-21 21:31:53] [INFO] Setting 1 supersedence relationship(s) for app: 4d333198-13f8-4d4c-9fcc-7b11c3c25f07
+2026-04-21T21:31:53.122238Z 01O [2026-04-21 21:31:53] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
+2026-04-21T21:31:53.242137Z 01O [2026-04-21 21:31:53] [INFO] Token acquired (length=2130)
+2026-04-21T21:31:53.245243Z 01O [2026-04-21 21:31:53] [DEBUG] Request body JSON: {"targetId":"b3b5bed0-9929-454e-88a2-4c6c9a3bbbb8","@odata.type":"#microsoft.graph.mobileAppSupersedence","supersedenceType":"update"}
+2026-04-21T21:31:53.557761Z 01O [2026-04-21 21:31:53] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/4d333198-13f8-4d4c-9fcc-7b11c3c25f07/relationships]: Response status code does not indicate success: 400 (Bad Request).
+2026-04-21T21:31:53.781391Z 01E Invoke-RestMethod:  {   "error": {     "code": "No method match route template",     "message": "No OData route exists that match template
+2026-04-21T21:31:53.781391Z 01E ~/singleton/navigation/key/navigation with http verb POST for request
+2026-04-21T21:31:53.781391Z 01E /AppLifecycle_2603/StatelessAppMetadataFEService/deviceAppManagement/mobileApps(\u00274d333198-13f8-4d4c-9fcc-7b11c3c25f
+2026-04-21T21:31:53.781391Z 01E 07\u0027)/relationships.",     "innerError": {       "date": "2026-04-21T21:31:53",       "request-id":
+2026-04-21T21:31:53.781391Z 01E "2effee7a-8727-48e5-ba5f-3edc611e9215",       "client-request-id": "2effee7a-8727-48e5-ba5f-3edc611e9215"     }   } }
+2026-04-21T21:31:54.041929Z 00O section_end:1776807114:step_script
+2026-04-21T21:31:54.041929Z 00O+section_start:1776807114:upload_artifacts_on_failure
+2026-04-21T21:31:54.043534Z 00O+Uploading artifacts for failed job
+2026-04-21T21:31:55.535129Z 01O Version:      18.9.0
+2026-04-21T21:31:55.535129Z 01O Git revision: 07e534ba
+2026-04-21T21:31:55.535129Z 01O Git branch:   18-9-stable
+2026-04-21T21:31:55.535129Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-21T21:31:55.535129Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-21T21:31:55.535129Z 01O OS/Arch:      windows/amd64
+2026-04-21T21:31:55.553004Z 01O Uploading artifacts...
+2026-04-21T21:31:55.722485Z 01E Runtime platform                                    arch=amd64 os=windows pid=3492 revision=07e534ba version=18.9.0
+2026-04-21T21:31:55.722485Z 01E out/assign-logs/*: found 1 matching artifact files and directories 
+2026-04-21T21:31:58.234335Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KPRZ9Z451JV2M9SBPPTYYG2T id=26707160 responseStatus=201 Created token=64_KSwnsm
+2026-04-21T21:31:58.465755Z 00O section_end:1776807118:upload_artifacts_on_failure
+2026-04-21T21:31:58.465755Z 00O+section_start:1776807118:cleanup_file_variables
+2026-04-21T21:31:58.465755Z 00O+Cleaning up project directory and file based variables
+2026-04-21T21:32:00.048862Z 00O section_end:1776807120:cleanup_file_variables
+2026-04-21T21:32:00.048862Z 00O+
+2026-04-21T21:32:00.050690Z 00O ERROR: Job failed: exit status 1
