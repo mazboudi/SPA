@@ -145,7 +145,7 @@ $ErrorActionPreference = 'Stop'
 # ── Import workbench modules ─────────────────────────────────────────────────
 . (Join-Path $PSScriptRoot 'lib' 'Prompt-PackagingLifecycle.ps1')
 . (Join-Path $PSScriptRoot 'lib' 'Prompt-DeploymentConfig.ps1')
-. (Join-Path $PSScriptRoot 'lib' 'Build-DeployApplication.ps1')
+. (Join-Path $PSScriptRoot 'lib' 'ConvertTo-LifecycleYaml.ps1')
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  INTERACTIVE PROMPTS — only shown when parameters are not provided
@@ -720,6 +720,9 @@ terraform-jamf-modules/
 tf-deploy/
 .DS_Store
 .vscode/
+
+# Generated at build time from lifecycle.yaml — do not commit
+windows/src/Invoke-AppDeployToolkit.ps1
 "@
 
 # ── Initialize-GitLab.ps1 ────────────────────────────────────────────────────
@@ -1048,24 +1051,23 @@ $depsJson
 # Expected: $sourceFile
 "@
 
-    # ── windows/src/Invoke-AppDeployToolkit.ps1 (PSADT v4) ───────────────────
-    if ($lifecycleConfig) {
-        $deployAppContent = Build-DeployApplication `
-            -Lifecycle $lifecycleConfig `
-            -DisplayName $DisplayName `
-            -Publisher $Publisher `
-            -Version $Version `
-            -PackageId $PackageId `
-            -FrameworkVersion '4.1.0'
+    # ── windows/lifecycle.yaml (declarative — PSADT script generated at build time) ──
+    $lifecycleToSerialize = if ($lifecycleConfig) {
+        $lifecycleConfig
     } else {
         # Fallback: build a lifecycle config from the legacy prompts
-        $fallbackLifecycle = @{
-            PreInstall    = @{ Actions = @(@{ Type = 'CloseApps'; Apps = $CloseApps }) }
+        @{
+            PreInstall    = @{
+                Actions = @(@{ Type = 'CloseApps'; Apps = $CloseApps })
+                CloseApps = $CloseApps
+            }
             Install       = @{ Actions = @(
                 if ($InstallerType -eq 'msi') {
-                    @{ Type = 'MsiInstall'; FilePath = $msiFile; ArgumentList = '/QN /norestart' }
+                    @{ Type = 'MsiInstall'; FilePath = $sourceFile; ArgumentList = '/QN /norestart' }
                 } else {
-                    @{ Type = 'ExeInstall'; FilePath = 'TODO_INSTALLER.exe'; ArgumentList = '/S' }
+                    $exeF = if ($ExeSourceFilename) { $ExeSourceFilename } else { 'TODO_INSTALLER.exe' }
+                    $exeA = if ($ExeInstallArgs) { $ExeInstallArgs } else { '/S' }
+                    @{ Type = 'ExeInstall'; FilePath = $exeF; ArgumentList = $exeA }
                 }
             )}
             PostInstall   = @{ Actions = @(
@@ -1073,12 +1075,16 @@ $depsJson
                     @{ Type = 'RegistryMarker'; PackageId = $PackageId; DisplayName = $DisplayName; Publisher = $Publisher; Version = $Version }
                 }
             )}
-            PreUninstall  = @{ Actions = @(@{ Type = 'CloseApps'; Apps = $CloseApps }) }
+            PreUninstall  = @{
+                Actions = @(@{ Type = 'CloseApps'; Apps = $CloseApps })
+            }
             Uninstall     = @{ Actions = @(
                 if ($InstallerType -eq 'msi') {
                     @{ Type = 'MsiUninstall'; AppName = $DisplayName; ProductCode = $productCode }
                 } else {
-                    @{ Type = 'ExeUninstall'; FilePath = 'C:\Program Files\TODO\uninstall.exe'; ArgumentList = '/S' }
+                    $euPath = if ($ExeUninstallPath) { $ExeUninstallPath } else { 'C:\Program Files\TODO\uninstall.exe' }
+                    $euArgs = if ($ExeUninstallArgs) { $ExeUninstallArgs } else { '/S' }
+                    @{ Type = 'ExeUninstall'; FilePath = $euPath; ArgumentList = $euArgs }
                 }
             )}
             PostUninstall = @{ Actions = @(
@@ -1091,15 +1097,13 @@ $depsJson
             Repair        = @{ Actions = @() }
             PostRepair    = @{ Actions = @() }
         }
-        $deployAppContent = Build-DeployApplication `
-            -Lifecycle $fallbackLifecycle `
-            -DisplayName $DisplayName `
-            -Publisher $Publisher `
-            -Version $Version `
-            -PackageId $PackageId `
-            -FrameworkVersion '4.1.0'
     }
-    Write-File (Join-Path $titleDir 'windows\src\Invoke-AppDeployToolkit.ps1') $deployAppContent
+
+    $lifecycleYaml = ConvertTo-LifecycleYaml -Lifecycle $lifecycleToSerialize
+    Write-File (Join-Path $titleDir 'windows\lifecycle.yaml') $lifecycleYaml
+
+    # ── windows/src/scripts/ (custom lifecycle scripts, if any) ──────────────
+    Mkd (Join-Path $titleDir 'windows\src\scripts')
 
     # ── windows/detection/detect.ps1 (only for script detection mode) ─────────
     if ($DetectionMode -eq 'script') {
@@ -1324,13 +1328,13 @@ if ($Platform -in @('windows','both')) {
     } elseif ($InstallerType -eq 'msi') {
         Write-Host "  2w. Extract ProductCode (MSI path was not provided during scaffold):"
         Write-Host "       pwsh -File scripts\Get-MsiMetadata.ps1 -MsiPath <path-to-installer.msi>"
-        Write-Host "       Then update ProductCode in windows\package.yaml and Invoke-AppDeployToolkit.ps1"
+        Write-Host "       Then update ProductCode in windows\package.yaml"
     } else {
         Write-Host "  2w. Drop the installer binary into windows\src\Files\ (NOT committed to git)"
     }
     Write-Host "  3w. Replace Entra ID group IDs in windows\intune\assignments.json"
     if ($DetectionMode -eq 'registry-marker') {
-        Write-Host "  4w. Verify the registry marker path in package.yaml matches Invoke-AppDeployToolkit.ps1"
+        Write-Host "  4w. Verify the registry marker path in package.yaml"
     }
 }
 

@@ -104,7 +104,6 @@ function Invoke-DeploymentConfigPrompts {
 
     # ── Minimum Windows release ──────────────────────────────────────────────
     $minWinRelease = Show-ChoiceMenu -Title "Minimum Windows release:" -Options @(
-        '2004', '20H2', '21H2', '22H2',
         'Windows11_21H2', 'Windows11_22H2', 'Windows11_23H2', 'Windows11_24H2'
     ) -Default '22H2'
 

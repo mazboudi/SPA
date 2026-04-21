@@ -260,6 +260,168 @@ function Get-FileBytes {
 
 #endregion
 
+#region ── Lifecycle YAML Import ───────────────────────────────────────────────
+
+function Import-LifecycleYaml {
+    <#
+    .SYNOPSIS
+      Reads lifecycle.yaml and converts it to the hashtable format expected
+      by Build-DeployApplication.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [string] $PackageId   = '',
+        [string] $DisplayName = '',
+        [string] $Publisher   = '',
+        [string] $Version     = '',
+        [string] $CloseApps   = '',
+        [string] $InstallerType = 'msi',
+        [string] $ProductCode = ''
+    )
+
+    if (!(Test-Path $Path)) {
+        throw "lifecycle.yaml not found: $Path"
+    }
+
+    $yaml = ConvertFrom-SimpleYaml (Get-Content $Path -Raw)
+
+    # ── Snake_case → PascalCase action type map ──────────────────────────────
+    $typeMap = @{
+        'msi_install'             = 'MsiInstall'
+        'exe_install'             = 'ExeInstall'
+        'msi_uninstall'           = 'MsiUninstall'
+        'exe_uninstall'           = 'ExeUninstall'
+        'folder_copy'             = 'FolderCopy'
+        'folder_remove'           = 'FolderRemove'
+        'registry_marker'         = 'RegistryMarker'
+        'remove_registry_marker'  = 'RemoveRegistryMarker'
+        'set_registry_key'        = 'SetRegistryKey'
+        'remove_registry_key'     = 'RemoveRegistryKey'
+        'set_env_variable'        = 'SetEnvVariable'
+        'remove_env_variable'     = 'RemoveEnvVariable'
+        'show_completion'         = 'ShowCompletion'
+        'custom_script'           = 'CustomScript'
+    }
+
+    function Convert-Actions {
+        param([object] $PhaseData)
+        $actions = @()
+        if (-not $PhaseData -or -not $PhaseData.actions) { return $actions }
+
+        foreach ($a in $PhaseData.actions) {
+            $actionType = $typeMap[$a.type]
+            if (-not $actionType) {
+                Write-Warning "Unknown lifecycle action type: $($a.type) — skipping"
+                continue
+            }
+
+            $action = @{ Type = $actionType }
+
+            # Map YAML properties to hashtable properties
+            if ($a.file_path)     { $action.FilePath     = $a.file_path }
+            if ($a.arguments)     { $action.ArgumentList = $a.arguments }
+            if ($a.app_name)      { $action.AppName      = $a.app_name }
+            if ($a.product_code)  { $action.ProductCode  = $a.product_code }
+            if ($a.source)        { $action.Source        = $a.source }
+            if ($a.destination)   { $action.Destination   = $a.destination }
+            if ($a.path)          { $action.Path          = $a.path }
+            if ($a.name)          { $action.Name          = $a.name }
+            if ($a.value)         { $action.Value         = $a.value }
+            if ($a.reg_type)      { $action.RegType       = $a.reg_type }
+
+            # CustomScript: inline the script content from file
+            if ($actionType -eq 'CustomScript' -and $a.script_path) {
+                $scriptFile = $a.script_path
+                if (Test-Path $scriptFile) {
+                    $action.Path    = $scriptFile
+                    $action.Content = Get-Content $scriptFile -Raw
+                } else {
+                    Write-Warning "Custom script not found: $scriptFile"
+                    $action.Content = "# TODO: Script not found at build time: $scriptFile"
+                }
+            }
+
+            # RegistryMarker: inject package metadata from caller
+            if ($actionType -eq 'RegistryMarker') {
+                $action.PackageId   = $PackageId
+                $action.DisplayName = $DisplayName
+                $action.Publisher   = $Publisher
+                $action.Version     = $Version
+            }
+            if ($actionType -eq 'RemoveRegistryMarker') {
+                $action.PackageId = $PackageId
+            }
+
+            $actions += $action
+        }
+        return $actions
+    }
+
+    function Convert-WelcomePhase {
+        param([object] $PhaseData, [string] $FallbackCloseApps)
+        $actions = @()
+
+        # Welcome-phase properties → synthetic actions
+        $closeApps = if ($PhaseData.close_apps) { $PhaseData.close_apps } else { $FallbackCloseApps }
+        if ($closeApps) {
+            $actions += @{ Type = 'CloseApps'; Apps = $closeApps }
+        }
+        if ($PhaseData.check_disk_space -eq $true) {
+            $actions += @{ Type = 'CheckDiskSpace' }
+        }
+        if ($PhaseData.allow_defer -and [int]$PhaseData.allow_defer -gt 0) {
+            $actions += @{ Type = 'AllowDefer'; DeferTimes = [int]$PhaseData.allow_defer }
+        }
+        if ($PhaseData.show_progress -eq $true) {
+            $actions += @{ Type = 'ShowProgress' }
+        }
+
+        # Plus any typed actions
+        $actions += Convert-Actions $PhaseData
+
+        return $actions
+    }
+
+    # ── Build lifecycle hashtable ─────────────────────────────────────────────
+    $lifecycle = @{
+        PreInstall    = @{ Actions = @(Convert-WelcomePhase $yaml.pre_install $CloseApps) }
+        Install       = @{ Actions = @(Convert-Actions $yaml.install) }
+        PostInstall   = @{ Actions = @(Convert-Actions $yaml.post_install) }
+        PreUninstall  = @{ Actions = @(Convert-WelcomePhase $yaml.pre_uninstall $CloseApps) }
+        Uninstall     = @{ Actions = @(Convert-Actions $yaml.uninstall) }
+        PostUninstall = @{ Actions = @(Convert-Actions $yaml.post_uninstall) }
+        RepairMode    = if ($yaml.repair_mode) { $yaml.repair_mode } else { 'mirror' }
+        PreRepair     = @{ Actions = @() }
+        Repair        = @{ Actions = @() }
+        PostRepair    = @{ Actions = @() }
+    }
+
+    # Custom repair phases (only when repair_mode is 'custom')
+    if ($lifecycle.RepairMode -eq 'custom') {
+        $lifecycle.PreRepair  = @{ Actions = @(Convert-WelcomePhase $yaml.pre_repair '') }
+        $lifecycle.Repair     = @{ Actions = @(Convert-Actions $yaml.repair) }
+        $lifecycle.PostRepair = @{ Actions = @(Convert-Actions $yaml.post_repair) }
+    }
+
+    # Propagate welcome-phase metadata for Build-DeployApplication compatibility
+    if ($yaml.pre_install.close_apps) {
+        $lifecycle.PreInstall.CloseApps = $yaml.pre_install.close_apps
+    } elseif ($CloseApps) {
+        $lifecycle.PreInstall.CloseApps = $CloseApps
+    }
+    if ($yaml.pre_install.check_disk_space) {
+        $lifecycle.PreInstall.CheckDiskSpace = $true
+    }
+    if ($yaml.pre_install.allow_defer) {
+        $lifecycle.PreInstall.DeferTimes = [int]$yaml.pre_install.allow_defer
+    }
+
+    return $lifecycle
+}
+
+#endregion
+
 Export-ModuleMember -Function @(
     'Write-Log',
     'Get-GraphToken',
@@ -268,5 +430,6 @@ Export-ModuleMember -Function @(
     'Get-SafeName',
     'Get-FileSha256',
     'Import-PackageYaml',
-    'Get-FileBytes'
+    'Get-FileBytes',
+    'Import-LifecycleYaml'
 )
