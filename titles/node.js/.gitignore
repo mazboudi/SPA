@@ -12,3 +12,6 @@ terraform-jamf-modules/
 tf-deploy/
 .DS_Store
 .vscode/
+
+# Generated at build time from lifecycle.yaml — do not commit
+windows/src/Invoke-AppDeployToolkit.ps1

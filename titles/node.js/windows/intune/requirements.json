@@ -1,5 +1,5 @@
 {
-  "minimumSupportedWindowsRelease": "2004",
+  "minimumSupportedWindowsRelease": "Windows11_21H2",
   "applicableArchitectures": "x64",
   "minimumFreeDiskSpaceInMB": 500,
   "minimumMemoryInMB": 2048,

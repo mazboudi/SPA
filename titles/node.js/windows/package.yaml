@@ -4,15 +4,24 @@ display_name: "Node.js"
 version: "25.8.1"
 packaging_version: "1"
 installer_type: msi
-source_filename: TODO_INSTALLER.msi
+source_filename: node-v25.8.1-x64.msi
 max_install_time: 60
 
-install_command: 'msiexec.exe /i "Files\TODO_INSTALLER.msi" /qn /norestart'
-uninstall_command: 'msiexec.exe /x "{TODO-PRODUCT-CODE-GUID}" /qn /norestart'
+install_command: 'msiexec.exe /i "Files\node-v25.8.1-x64.msi" /qn /norestart'
+uninstall_command: 'msiexec.exe /x "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}" /qn /norestart'
 
 detection_mode: msi-product-code
 detection:
-  product_code: "{TODO-PRODUCT-CODE-GUID}"
+  product_code: "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}"
   version_operator: greaterThanOrEqual
   version: "25.8.1"
 
+restart_behavior: suppress
+install_experience: system
+
+msi_information:
+  product_code: "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}"
+  product_version: "25.8.1"
+  product_name: "Node.js"
+  upgrade_code: "{47C07A3A-42EF-4213-A85D-8F5A59077C28}"
+  manufacturer: "Node.js Foundation"
