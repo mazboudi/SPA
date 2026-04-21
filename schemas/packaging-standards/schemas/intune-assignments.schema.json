@@ -27,6 +27,18 @@
       "filterId": {
         "type": "string",
         "description": "Intune assignment filter ID. Required when filterMode is 'include' or 'exclude'."
+      },
+      "notifications": {
+        "type": "string",
+        "enum": ["showAll", "showReboot", "hideAll"],
+        "default": "showAll",
+        "description": "Toast notification behavior for this assignment."
+      },
+      "deliveryOptimizationPriority": {
+        "type": "string",
+        "enum": ["notConfigured", "foreground"],
+        "default": "notConfigured",
+        "description": "Delivery optimization priority for content download."
       }
     }
   }

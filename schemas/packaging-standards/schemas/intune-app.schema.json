@@ -49,6 +49,20 @@
       "type": "string",
       "description": "Owner or team responsible for this app in Intune."
     },
+    "developer": {
+      "type": "string",
+      "description": "Developer of the application (shown in Intune admin console)."
+    },
+    "roleScopeTagIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of Intune scope tag IDs for role-based access control."
+    },
+    "categories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of Intune app category IDs."
+    },
     "installCommandLine": {
       "type": "string",
       "description": "Command line to execute for silent install (e.g. 'Invoke-AppDeployToolkit.exe')."

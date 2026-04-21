@@ -67,10 +67,10 @@ $assignBody = @{
                 intent        = $a.intent ?? 'required'
                 settings      = @{
                     '@odata.type'                   = '#microsoft.graph.win32LobAppAssignmentSettings'
-                    notifications                   = 'showAll'
+                    notifications                   = $a.notifications ?? 'showAll'
                     installTimeSettings             = $null
                     restartSettings                 = $null
-                    deliveryOptimizationPriority    = 'notConfigured'
+                    deliveryOptimizationPriority    = $a.deliveryOptimizationPriority ?? 'notConfigured'
                 }
             }
         }

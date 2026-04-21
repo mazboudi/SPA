@@ -98,6 +98,7 @@ $appBody = @{
     displayVersion = $vendorVersion
     publisher      = $intuneMeta.publisher ?? 'Unknown'
     description    = $intuneMeta.description ?? $displayName
+    developer      = $intuneMeta.developer ?? ''
 
     # REQUIRED CREATE-TIME FIELDS
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)

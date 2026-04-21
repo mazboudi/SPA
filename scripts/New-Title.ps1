@@ -250,6 +250,37 @@ if (!(Test-Path $OutDir)) {
     Write-Host "  Created: $OutDir" -ForegroundColor Green
 }
 
+# ── Windows-specific prompts ──────────────────────────────────────────────────────
+$CloseApps          = ''
+$RestartBehavior    = 'suppress'
+$MaxInstallTime     = 60
+$ReturnCodes        = ''
+$SupersedesAppId    = ''
+$SupersedenceType   = 'update'
+$MsiPath            = ''
+$MsiProductCode     = ''
+$MsiProductVersion  = ''
+$MsiProductName     = ''
+$MsiUpgradeCode     = ''
+$MsiManufacturer    = ''
+$MsiFileName        = ''
+# EXE-specific fields
+$ExeSourceFilename  = ''
+$ExeInstallArgs     = ''
+$ExeUninstallPath   = ''
+$ExeUninstallArgs   = ''
+# File detection sub-fields
+$FileDetPath        = ''
+$FileDetName        = ''
+$FileDetType        = ''
+$FileDetOperator    = ''
+$FileDetValue       = ''
+# Registry detection sub-fields
+$RegCheck32Bit      = $false
+# Script detection sub-fields
+$ScriptRunAs32Bit           = $false
+$ScriptEnforceSignature     = $false
+
 # ── Choice menus ──────────────────────────────────────────────────────────────
 if (-not $Category) {
     $Category = Show-Menu -Title "Select a category:" -Options @(
@@ -263,24 +294,6 @@ if (-not $Platform) {
         'windows', 'macos', 'both'
     ) -Default 'windows'
 }
-
-# ── Windows-specific prompts ──────────────────────────────────────────────────
-$CloseApps        = ''
-$RestartBehavior  = 'suppress'
-$MaxInstallTime   = 60
-$ReturnCodes      = ''
-$SupersedesAppId  = ''
-$MsiPath          = ''
-$MsiProductCode   = ''
-$MsiProductVersion = ''
-$MsiProductName   = ''
-$MsiFileName      = ''
-# File detection sub-fields
-$FileDetPath      = ''
-$FileDetName      = ''
-$FileDetType      = ''
-$FileDetOperator  = ''
-$FileDetValue     = ''
 
 if ($Platform -in @('windows','both')) {
     if (-not $InstallerType) {
@@ -306,11 +319,15 @@ if ($Platform -in @('windows','both')) {
                     $MsiProductCode    = [string]$msiMeta.ProductCode
                     $MsiProductVersion = [string]$msiMeta.ProductVersion
                     $MsiProductName    = [string]$msiMeta.ProductName
+                    $MsiUpgradeCode    = [string]$msiMeta.UpgradeCode
+                    $MsiManufacturer   = [string]$msiMeta.Manufacturer
                     $MsiFileName       = [string][System.IO.Path]::GetFileName($MsiPath)
 
                     Write-Host "  ✓ ProductCode    : $MsiProductCode" -ForegroundColor Green
                     Write-Host "    ProductVersion : $MsiProductVersion" -ForegroundColor White
                     Write-Host "    ProductName    : $MsiProductName" -ForegroundColor White
+                    Write-Host "    UpgradeCode    : $MsiUpgradeCode" -ForegroundColor White
+                    Write-Host "    Manufacturer   : $MsiManufacturer" -ForegroundColor White
                     Write-Host "    FileName       : $MsiFileName" -ForegroundColor White
                 } catch {
                     Write-Host "  ⚠ Could not parse MSI metadata. You'll need to fill in ProductCode manually." -ForegroundColor Yellow
@@ -324,10 +341,28 @@ if ($Platform -in @('windows','both')) {
         }
     }
 
+    # EXE-specific prompts
+    if ($InstallerType -eq 'exe') {
+        Write-Host ""
+        Write-Host "── EXE Installer Details ──" -ForegroundColor DarkCyan
+        $ExeSourceFilename = Read-Required "EXE installer filename (e.g. 'Setup.exe')" -AllowTodo
+        $ExeInstallArgs    = Read-Deferrable "Silent install arguments (e.g. '/S /v/qn')" -Default '/S' -FieldName 'install_arguments'
+        $ExeUninstallPath  = Read-Deferrable "Uninstall executable path (e.g. 'C:\Program Files\App\uninstall.exe')" -FieldName 'uninstall_path'
+        $ExeUninstallArgs  = Read-Deferrable "Uninstall arguments (e.g. '/S')" -Default '/S' -FieldName 'uninstall_arguments'
+    }
+
     if (-not $DetectionMode) {
         $DetectionMode = Show-Menu -Title "Windows detection mode:" -Options @(
             'msi-product-code', 'registry-marker', 'file', 'script'
         ) -Default $(if ($InstallerType -eq 'msi') { 'msi-product-code' } else { 'registry-marker' })
+    }
+
+    # Registry detection sub-prompts
+    if ($DetectionMode -eq 'registry-marker') {
+        $regCheck32Choice = Show-Menu -Title "Check 32-bit registry on 64-bit systems?" -Options @(
+            'no', 'yes'
+        ) -Default 'no'
+        $RegCheck32Bit = ($regCheck32Choice -eq 'yes')
     }
 
     # File detection sub-prompts
@@ -335,14 +370,33 @@ if ($Platform -in @('windows','both')) {
         $FileDetPath = Read-Required "File detection — folder path (e.g. 'C:\Program Files\MyApp')" -AllowTodo
         $FileDetName = Read-Required "File detection — file or folder name (e.g. 'MyApp.exe')" -AllowTodo
         $FileDetType = Show-Menu -Title "File detection — what to check:" -Options @(
-            'exists', 'doesNotExist', 'version', 'sizeInMB'
+            'exists', 'doesNotExist', 'version', 'sizeInMB', 'modifiedDate'
         ) -Default 'exists'
-        if ($FileDetType -in @('version', 'sizeInMB')) {
+        if ($FileDetType -in @('version', 'sizeInMB', 'modifiedDate')) {
             $FileDetOperator = Show-Menu -Title "Comparison operator:" -Options @(
                 'greaterThanOrEqual', 'equal', 'notEqual', 'greaterThan', 'lessThan', 'lessThanOrEqual'
             ) -Default 'greaterThanOrEqual'
-            $FileDetValue = Read-Required "Comparison value (version string or size in MB)" -AllowTodo
+            if ($FileDetType -eq 'modifiedDate') {
+                $FileDetValue = Read-Required "Comparison date (ISO 8601, e.g. '2025-01-15T00:00:00Z')" -AllowTodo
+            } else {
+                $FileDetValue = Read-Required "Comparison value (version string or size in MB)" -AllowTodo
+            }
         }
+    }
+
+    # Script detection sub-prompts
+    if ($DetectionMode -eq 'script') {
+        Write-Host ""
+        Write-Host "── Script Detection Options ──" -ForegroundColor DarkCyan
+        $scriptRunAs32Choice = Show-Menu -Title "Run detection script as 32-bit?" -Options @(
+            'no', 'yes'
+        ) -Default 'no'
+        $ScriptRunAs32Bit = ($scriptRunAs32Choice -eq 'yes')
+
+        $scriptSigChoice = Show-Menu -Title "Enforce script signature check?" -Options @(
+            'no', 'yes'
+        ) -Default 'no'
+        $ScriptEnforceSignature = ($scriptSigChoice -eq 'yes')
     }
 
     # Close apps
@@ -361,15 +415,20 @@ if ($Platform -in @('windows','both')) {
         $MaxInstallTime = [int]$maxInput
     }
 
-    # Return codes
+    # Return codes (optional)
     Write-Host ""
     Write-Host "Custom return codes (Intune defaults: 0=success, 3010=softReboot, 1618=retry)" -ForegroundColor DarkGray
     $ReturnCodes = Read-Host "Custom return codes (format: '3010=softReboot,1234=success') — press Enter for defaults"
     $ReturnCodes = $ReturnCodes.Trim()
 
-    # Supersedence
+    # Supersedence (optional — skip entire section if not applicable)
     Write-Host ""
-    $SupersedesAppId = Read-Deferrable "Intune App ID this title supersedes" -FieldName 'supersedes_app_id'
+    $SupersedesAppId = Read-Deferrable "Intune App ID this title supersedes (press Enter to skip)" -FieldName 'supersedes_app_id'
+    if ($SupersedesAppId -and $SupersedesAppId -notmatch '^TODO:') {
+        $SupersedenceType = Show-Menu -Title "Supersedence type:" -Options @(
+            'update', 'replace'
+        ) -Default 'update'
+    }
 }
 # Apply defaults for non-interactive use when Platform is Windows-only
 if (-not $InstallerType)  { $InstallerType  = 'msi' }
@@ -684,15 +743,17 @@ if ($Platform -in @('windows','both')) {
     $msiFile     = if ($MsiFileName)    { $MsiFileName }    else { 'TODO_INSTALLER.msi' }
 
     # ── Install / uninstall commands ──────────────────────────────────────────
-    $installCmd   = if ($InstallerType -eq 'msi') {
-        "msiexec.exe /i `"Files\$msiFile`" /qn /norestart"
+    if ($InstallerType -eq 'msi') {
+        $installCmd   = "msiexec.exe /i `"Files\$msiFile`" /qn /norestart"
+        $uninstallCmd = "msiexec.exe /x `"$productCode`" /qn /norestart"
     } else {
-        '"Files\TODO_INSTALLER.exe" /S'
-    }
-    $uninstallCmd = if ($InstallerType -eq 'msi') {
-        "msiexec.exe /x `"$productCode`" /qn /norestart"
-    } else {
-        '"C:\Program Files\TODO\uninstall.exe" /S'
+        # EXE: use prompted values or defaults
+        $exeFile      = if ($ExeSourceFilename) { $ExeSourceFilename } else { 'TODO_INSTALLER.exe' }
+        $exeArgs      = if ($ExeInstallArgs)    { $ExeInstallArgs }    else { '/S' }
+        $installCmd   = "`"Files\$exeFile`" $exeArgs"
+        $exeUnPath    = if ($ExeUninstallPath)  { $ExeUninstallPath }  else { 'C:\Program Files\TODO\uninstall.exe' }
+        $exeUnArgs    = if ($ExeUninstallArgs)  { $ExeUninstallArgs }  else { '/S' }
+        $uninstallCmd = "`"$exeUnPath`" $exeUnArgs"
     }
 
     # ── Detection block ───────────────────────────────────────────────────────
@@ -715,6 +776,7 @@ detection:
   value_name: Version
   operator: greaterThanOrEqual
   value: "$Version"
+  check32BitOn64System: $($RegCheck32Bit.ToString().ToLower())
 "@
         }
         'file' {
@@ -723,7 +785,7 @@ detection:
             $fdName = if ($FileDetName) { $FileDetName } else { 'TODO.exe' }
             $fdType = if ($FileDetType) { $FileDetType } else { 'exists' }
 
-            if ($fdType -in @('version', 'sizeInMB')) {
+            if ($fdType -in @('version', 'sizeInMB', 'modifiedDate')) {
                 $fdOp  = if ($FileDetOperator) { $FileDetOperator } else { 'greaterThanOrEqual' }
                 $fdVal = if ($FileDetValue) { $FileDetValue } else { $Version }
 @"
@@ -750,6 +812,9 @@ detection:
         'script' {
 @"
 detection_mode: script
+detection:
+  run_as_32bit: $($ScriptRunAs32Bit.ToString().ToLower())
+  enforce_signature_check: $($ScriptEnforceSignature.ToString().ToLower())
 # Place your detection script at: windows/detection/detect.ps1
 # Script must output to stdout and exit 0 (detected) or 1 (not detected).
 "@
@@ -759,18 +824,72 @@ detection_mode: script
     # ── Return codes block (for package.yaml) ─────────────────────────────────
     $returnCodesBlock = ''
     if ($ReturnCodes) {
-        $returnCodesBlock = "`nreturn_codes: '$ReturnCodes'"
+        # Parse "3010=softReboot,1234=success" into structured YAML
+        $rcLines = @('return_codes:')
+        foreach ($entry in ($ReturnCodes -split ',')) {
+            $parts = $entry.Trim() -split '='
+            if ($parts.Count -eq 2) {
+                $rcLines += "  - returnCode: $($parts[0].Trim())"
+                $rcLines += "    type: $($parts[1].Trim())"
+            }
+        }
+        $returnCodesBlock = $rcLines -join "`n"
     }
+
+    # ── Close apps block ──────────────────────────────────────────────────────
+    $closeAppsBlock = ''
+    if ($CloseApps) {
+        $closeAppsBlock = "close_apps: '$CloseApps'"
+    }
+
+    # ── Behavioral blocks ─────────────────────────────────────────────────────
+    $restartBlock = "restart_behavior: $RestartBehavior"
+    $appInstCtxResolved = if ($deploymentConfig.InstallContext) { $deploymentConfig.InstallContext } else { 'system' }
+    $installExpBlock = "install_experience: $appInstCtxResolved"
 
     # ── Max install time block ────────────────────────────────────────────────
     $maxTimeBlock = "max_install_time: $MaxInstallTime"
 
+    # ── Supersedes block (conditional) ────────────────────────────────────────
+    $supersedesBlock = ''
+    if ($SupersedesAppId -and $SupersedesAppId -notmatch '^TODO:') {
+        $supersedesBlock = @"
+supersedes:
+  app_id: "$SupersedesAppId"
+  uninstall_previous: true
+"@
+    }
+
+    # ── MSI information block (conditional) ───────────────────────────────────
+    $msiInfoBlock = ''
+    if ($InstallerType -eq 'msi' -and $MsiProductCode) {
+        $msiInfoLines = @('msi_information:')
+        $msiInfoLines += "  product_code: `"$MsiProductCode`""
+        if ($MsiProductVersion) { $msiInfoLines += "  product_version: `"$MsiProductVersion`"" }
+        if ($MsiProductName)    { $msiInfoLines += "  product_name: `"$MsiProductName`"" }
+        if ($MsiUpgradeCode)    { $msiInfoLines += "  upgrade_code: `"$MsiUpgradeCode`"" }
+        if ($MsiManufacturer)   { $msiInfoLines += "  manufacturer: `"$MsiManufacturer`"" }
+        $msiInfoBlock = $msiInfoLines -join "`n"
+    }
+
     # ── Resolve source filename ────────────────────────────────────────────────
-    $sourceFile = if ($msiFile -and $msiFile -ne 'TODO_INSTALLER.msi') { $msiFile }
-                  elseif ($InstallerType -eq 'msi') { 'TODO_INSTALLER.msi' }
-                  else { "TODO_INSTALLER.$InstallerType" }
+    $sourceFile = if ($InstallerType -eq 'msi') {
+        if ($msiFile -and $msiFile -ne 'TODO_INSTALLER.msi') { $msiFile } else { 'TODO_INSTALLER.msi' }
+    } else {
+        if ($ExeSourceFilename) { $ExeSourceFilename } else { 'TODO_INSTALLER.exe' }
+    }
 
     # ── windows/package.yaml ──────────────────────────────────────────────────
+    # Build optional lines — only include when values are present
+    $yamlOptionalLines = @()
+    if ($closeAppsBlock)    { $yamlOptionalLines += $closeAppsBlock }
+    $yamlOptionalLines += $restartBlock
+    $yamlOptionalLines += $installExpBlock
+    if ($returnCodesBlock)  { $yamlOptionalLines += ''; $yamlOptionalLines += $returnCodesBlock }
+    if ($supersedesBlock)   { $yamlOptionalLines += ''; $yamlOptionalLines += $supersedesBlock }
+    if ($msiInfoBlock)      { $yamlOptionalLines += ''; $yamlOptionalLines += $msiInfoBlock }
+    $yamlOptionalContent = $yamlOptionalLines -join "`n"
+
     Write-File (Join-Path $titleDir 'windows\package.yaml') @"
 # $DisplayName $Version — Windows package definition
 package_id: $PackageId
@@ -785,7 +904,8 @@ install_command: '$installCmd'
 uninstall_command: '$uninstallCmd'
 
 $detectionBlock
-$returnCodesBlock
+
+$yamlOptionalContent
 "@
 
     # ── windows/intune/app.json ───────────────────────────────────────────────
@@ -793,9 +913,30 @@ $returnCodesBlock
     $appInfoUrl      = if ($deploymentConfig.InformationUrl) { $deploymentConfig.InformationUrl } else { '' }
     $appPrivacyUrl   = if ($deploymentConfig.PrivacyUrl)     { $deploymentConfig.PrivacyUrl }     else { '' }
     $appOwner        = if ($deploymentConfig.Owner)          { $deploymentConfig.Owner }          else { 'EUC Packaging' }
+    $appDeveloper    = if ($deploymentConfig.Developer)      { $deploymentConfig.Developer }      else { '' }
     $appNotes        = if ($deploymentConfig.Notes)          { $deploymentConfig.Notes }          else { 'Managed by SPA pipeline.' }
     $appInstCtx      = if ($deploymentConfig.InstallContext) { $deploymentConfig.InstallContext } else { 'system' }
     $appFeatured     = if ($deploymentConfig -and $deploymentConfig.IsFeatured) { 'true' } else { 'false' }
+    $appArch         = if ($deploymentConfig.Architecture)   { $deploymentConfig.Architecture }   else { 'x64' }
+    $appMinWin       = if ($deploymentConfig.MinWinRelease)  { $deploymentConfig.MinWinRelease }  else { '22H2' }
+
+    # Build optional JSON fields — only include when values are present
+    $appJsonOptional = @()
+    if ($appDeveloper)    { $appJsonOptional += "  `"developer`": `"$appDeveloper`"" }
+    # Scope tags (only if provided)
+    if ($deploymentConfig -and $deploymentConfig.ScopeTags -and $deploymentConfig.ScopeTags.Count -gt 0) {
+        $stJson = ($deploymentConfig.ScopeTags | ForEach-Object { "`"$_`"" }) -join ', '
+        $appJsonOptional += "  `"roleScopeTagIds`": [$stJson]"
+    }
+    # Categories (only if provided)
+    if ($deploymentConfig -and $deploymentConfig.Categories -and $deploymentConfig.Categories.Count -gt 0) {
+        $catJson = ($deploymentConfig.Categories | ForEach-Object { "`"$_`"" }) -join ', '
+        $appJsonOptional += "  `"categories`": [$catJson]"
+    }
+    $appJsonOptionalBlock = ''
+    if ($appJsonOptional.Count -gt 0) {
+        $appJsonOptionalBlock = ",`n" + ($appJsonOptional -join ",`n")
+    }
 
     Write-File (Join-Path $titleDir 'windows\intune\app.json') @"
 {
@@ -810,12 +951,12 @@ $returnCodesBlock
   "owner": "$appOwner",
   "installCommandLine": "Invoke-AppDeployToolkit.exe",
   "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall",
-  "applicableArchitectures": "x64",
-  "minimumSupportedWindowsRelease": "2004",
+  "applicableArchitectures": "$appArch",
+  "minimumSupportedWindowsRelease": "$appMinWin",
   "displayVersion": "$Version",
   "allowAvailableUninstall": true,
   "installContext": "$appInstCtx",
-  "restartBehavior": "$RestartBehavior"
+  "restartBehavior": "$RestartBehavior"$appJsonOptionalBlock
 }
 "@
 
@@ -829,10 +970,15 @@ $returnCodesBlock
             } else {
                 $filterBlock = ",`n    `"filterMode`": `"none`""
             }
+            # Per-assignment optional fields
+            $notifVal = if ($a.Notifications) { $a.Notifications } else { 'showAll' }
+            $delOptVal = if ($a.DeliveryOptimizationPriority) { $a.DeliveryOptimizationPriority } else { 'notConfigured' }
             $assignmentEntries += @"
   {
     "intent": "$($a.Intent)",
-    "groupId": "$($a.GroupId)"$filterBlock
+    "groupId": "$($a.GroupId)"$filterBlock,
+    "notifications": "$notifVal",
+    "deliveryOptimizationPriority": "$delOptVal"
   }
 "@
         }
@@ -841,7 +987,9 @@ $returnCodesBlock
   {
     "intent": "available",
     "groupId": "TODO-ENTRA-ID-GROUP-OBJECT-ID",
-    "filterMode": "none"
+    "filterMode": "none",
+    "notifications": "showAll",
+    "deliveryOptimizationPriority": "notConfigured"
   }
 "@
     }
@@ -874,8 +1022,8 @@ $depsJson
     # ── windows/intune/requirements.json ──────────────────────────────────────
     Write-File (Join-Path $titleDir 'windows\intune\requirements.json') @"
 {
-  "minimumSupportedWindowsRelease": "2004",
-  "applicableArchitectures": "x64",
+  "minimumSupportedWindowsRelease": "$appMinWin",
+  "applicableArchitectures": "$appArch",
   "minimumFreeDiskSpaceInMB": 500,
   "minimumMemoryInMB": 2048,
   "minimumNumberOfProcessors": null,
@@ -884,11 +1032,11 @@ $depsJson
 "@
 
     # ── windows/intune/supersedence.json (only if superseding) ────────────────
-    if ($SupersedesAppId) {
+    if ($SupersedesAppId -and $SupersedesAppId -notmatch '^TODO:') {
         Write-File (Join-Path $titleDir 'windows\intune\supersedence.json') @"
 {
   "supersededAppId": "$SupersedesAppId",
-  "supersedenceType": "update"
+  "supersedenceType": "$SupersedenceType"
 }
 "@
     }
@@ -897,7 +1045,7 @@ $depsJson
     Mkd (Join-Path $titleDir 'windows\src\Files')
     Write-File (Join-Path $titleDir 'windows\src\Files\.gitkeep') @"
 # Drop installer binary here. Do NOT commit binaries to git.
-# Expected: $msiFile
+# Expected: $sourceFile
 "@
 
     # ── windows/src/Invoke-AppDeployToolkit.ps1 (PSADT v4) ───────────────────
@@ -971,6 +1119,16 @@ if (Test-Path `$appPath) {
     exit 0
 } else {
     exit 1
+}
+"@
+
+        # Detection config sidecar — consumed by Resolve-DetectionRules.ps1
+        $scriptRunAs32   = $ScriptRunAs32Bit.ToString().ToLower()
+        $scriptEnforceSig = $ScriptEnforceSignature.ToString().ToLower()
+        Write-File (Join-Path $titleDir 'windows\detection\detection-config.json') @"
+{
+  "runAs32Bit": $scriptRunAs32,
+  "enforceSignatureCheck": $scriptEnforceSig
 }
 "@
     }

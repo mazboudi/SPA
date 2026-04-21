@@ -84,6 +84,7 @@ function Invoke-DeploymentConfigPrompts {
     $infoUrl     = Read-OptionalInput "Information URL (press Enter to skip)"
     $privacyUrl  = Read-OptionalInput "Privacy URL (press Enter to skip)"
     $owner       = Read-OptionalInput "App owner" -Default 'EUC Packaging'
+    $developer   = Read-OptionalInput "Developer (press Enter to skip)"
     $notes       = Read-OptionalInput "Notes" -Default 'Managed by SPA pipeline.'
 
     # ── Install context ───────────────────────────────────────────────────────
@@ -95,6 +96,17 @@ function Invoke-DeploymentConfigPrompts {
     Write-Host ""
     $featuredChoice = Read-Host "Featured app in Company Portal? (y/N)"
     $isFeatured = ($featuredChoice -in @('y', 'Y', 'yes'))
+
+    # ── Architecture ─────────────────────────────────────────────────────────
+    $architecture = Show-ChoiceMenu -Title "Applicable architecture:" -Options @(
+        'x64', 'x86', 'arm', 'neutral'
+    ) -Default 'x64'
+
+    # ── Minimum Windows release ──────────────────────────────────────────────
+    $minWinRelease = Show-ChoiceMenu -Title "Minimum Windows release:" -Options @(
+        '2004', '20H2', '21H2', '22H2',
+        'Windows11_21H2', 'Windows11_22H2', 'Windows11_23H2', 'Windows11_24H2'
+    ) -Default '22H2'
 
     # ── Restart override ──────────────────────────────────────────────────────
     if (-not $RestartBehavior -or $RestartBehavior -eq 'suppress') {
@@ -163,6 +175,19 @@ function Invoke-DeploymentConfigPrompts {
             FilterMode = $filterMode
             FilterId   = $filterId
         }
+
+        # Per-assignment notification behavior
+        $notifications = Show-ChoiceMenu -Title "  Notification behavior:" -Options @(
+            'showAll', 'showReboot', 'hideAll'
+        ) -Default 'showAll'
+        $assignments[-1].Notifications = $notifications
+
+        # Per-assignment delivery optimization
+        $delOptPriority = Show-ChoiceMenu -Title "  Delivery optimization priority:" -Options @(
+            'notConfigured', 'foreground'
+        ) -Default 'notConfigured'
+        $assignments[-1].DeliveryOptimizationPriority = $delOptPriority
+
         $groupInput = Read-Host "Another Group ID (press Enter to finish)"
         if ([string]::IsNullOrWhiteSpace($groupInput)) { $addMore = $false }
     }
@@ -182,9 +207,12 @@ function Invoke-DeploymentConfigPrompts {
         InformationUrl   = $infoUrl
         PrivacyUrl       = $privacyUrl
         Owner            = $owner
+        Developer        = $developer
         Notes            = $notes
         InstallContext   = $installContext
         IsFeatured       = $isFeatured
+        Architecture     = $architecture
+        MinWinRelease    = $minWinRelease
         RestartBehavior  = $RestartBehavior
         ScopeTags        = $scopeTags
         Categories       = $categories

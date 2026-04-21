@@ -9,11 +9,12 @@
     2. Resolve (or create) the GitLab subgroup chain
     3. Create the GitLab project
     4. Initialize git, commit all files, push to main
-    5. Tag the initial version and push the tag (triggers pipeline)
+    5. Optionally tag the initial version and push the tag (triggers pipeline)
 
-.PARAMETER GitLabToken
-  GitLab personal access token with 'api' scope.
-  Can also be set via the GITLAB_TOKEN environment variable.
+  Prerequisites:
+    - Set the GITLAB_TOKEN environment variable with a PAT that has 'api' scope.
+    - Git credentials must be pre-configured (credential helper, SSH key,
+      or git-credential-store). The script does NOT inject tokens into URLs.
 
 .PARAMETER GitLabUrl
   GitLab instance base URL. Defaults to "https://gitlab.onefiserv.net".
@@ -25,22 +26,23 @@
   Subgroup category. If not specified, reads from the directory structure
   or prompts interactively.
 
-.PARAMETER SkipTag
-  If specified, skips creating and pushing the version tag.
+.PARAMETER Tag
+  If specified, creates and pushes the initial version tag after the push.
+  Omit this flag to push code only (useful for testing before triggering
+  the pipeline).
 
 .EXAMPLE
-  pwsh -File Initialize-GitLab.ps1 -GitLabToken $env:GITLAB_TOKEN
+  pwsh -File Initialize-GitLab.ps1
 
 .EXAMPLE
-  pwsh -File Initialize-GitLab.ps1 -GitLabToken "glpat-xxxx" -Category "utilities"
+  pwsh -File Initialize-GitLab.ps1 -Category "utilities" -Tag
 #>
 [CmdletBinding()]
 param(
-    [string] $GitLabToken   = $env:GITLAB_TOKEN,
     [string] $GitLabUrl     = 'https://gitlab.onefiserv.net',
     [string] $GitLabGroup   = 'euc/software-package-automation',
     [string] $Category      = '',
-    [switch] $SkipTag
+    [switch] $Tag
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,8 +51,9 @@ $gitLabApiBase = "$GitLabUrl/api/v4"
 # ══════════════════════════════════════════════════════════════════════════════
 #  VALIDATE
 # ══════════════════════════════════════════════════════════════════════════════
+$GitLabToken = $env:GITLAB_TOKEN
 if (-not $GitLabToken) {
-    throw "GitLab token is required. Pass -GitLabToken or set the GITLAB_TOKEN environment variable."
+    throw "GITLAB_TOKEN environment variable is not set. Set it to a PAT with 'api' scope."
 }
 
 $appJsonPath = Join-Path $PSScriptRoot 'app.json'
@@ -230,8 +233,8 @@ $origLocation = Get-Location
 try {
     Set-Location $PSScriptRoot
 
-    # Build authenticated remote URL
-    $remoteUrl = $httpUrlToRepo -replace '(https?://)', "`$1oauth2:$GitLabToken@"
+    # Use the plain HTTP URL — git credentials must be pre-configured
+    $remoteUrl = $httpUrlToRepo
 
     # Check if already a git repo
     $isGitRepo = Test-Path (Join-Path $PSScriptRoot '.git')
@@ -264,9 +267,9 @@ try {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  STEP 4: Tag and push (triggers pipeline)
+#  STEP 4: Tag and push (optional — triggers pipeline)
 # ══════════════════════════════════════════════════════════════════════════════
-if (-not $SkipTag) {
+if ($Tag) {
     Write-Host ""
     Write-Host "[4/4] Tagging initial version..." -ForegroundColor Cyan
 
@@ -287,7 +290,8 @@ if (-not $SkipTag) {
     }
 } else {
     Write-Host ""
-    Write-Host "[4/4] Skipping tag (use -SkipTag was specified)" -ForegroundColor DarkGray
+    Write-Host "[4/4] Skipping tag (pass -Tag when ready to trigger the pipeline)" -ForegroundColor DarkGray
+    Write-Host "      To tag later: git tag v$version-1 && git push origin v$version-1" -ForegroundColor DarkGray
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -299,5 +303,9 @@ Write-Host "  ✓ Done! Project is live at:" -ForegroundColor Green
 Write-Host "  $projectUrl" -ForegroundColor White
 Write-Host "" 
 Write-Host "  CI/CD variables are inherited from the software-titles group." -ForegroundColor DarkGray
-Write-Host "  The pipeline will trigger automatically from the tag push." -ForegroundColor DarkGray
+if (-not $Tag) {
+    Write-Host "  Run with -Tag when ready to trigger the build pipeline." -ForegroundColor DarkGray
+} else {
+    Write-Host "  The pipeline will trigger automatically from the tag push." -ForegroundColor DarkGray
+}
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Green

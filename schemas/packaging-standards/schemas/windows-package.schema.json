@@ -85,7 +85,8 @@
             "key_path":   { "type": "string" },
             "value_name": { "type": "string" },
             "operator":   { "type": "string", "enum": ["exists", "notExists", "equal", "notEqual", "greaterThanOrEqual"], "default": "exists" },
-            "value":      { "type": "string" }
+            "value":      { "type": "string" },
+            "check32BitOn64System": { "type": "boolean", "default": false, "description": "Whether to check the 32-bit registry view on 64-bit systems." }
           }
         },
         "file": {
@@ -96,8 +97,11 @@
           "properties": {
             "path":               { "type": "string" },
             "file_or_folder":     { "type": "string" },
-            "operator":           { "type": "string", "enum": ["exists", "notExists", "equal", "greaterThanOrEqual"], "default": "exists" },
+            "operator":           { "type": "string", "enum": ["exists", "notExists", "equal", "greaterThanOrEqual", "greaterThan", "lessThan", "lessThanOrEqual"], "default": "exists" },
             "version":            { "type": "string" },
+            "sizeInMB":           { "type": "number", "description": "File size in MB for sizeInMB detection type." },
+            "dateTimeValue":      { "type": "string", "format": "date-time", "description": "ISO 8601 date for modifiedDate detection type." },
+            "detection_type":     { "type": "string", "enum": ["exists", "doesNotExist", "version", "sizeInMB", "modifiedDate"], "default": "exists", "description": "What aspect of the file/folder to check." },
             "check32BitOn64System": { "type": "boolean", "default": false }
           }
         }
@@ -169,6 +173,18 @@
           "default": true,
           "description": "Whether to uninstall the previous version before installing this one."
         }
+      }
+    },
+    "msi_information": {
+      "type": "object",
+      "description": "MSI-specific metadata extracted from the installer. Only present for MSI packages.",
+      "additionalProperties": false,
+      "properties": {
+        "product_code":    { "type": "string", "description": "MSI ProductCode GUID." },
+        "product_version": { "type": "string", "description": "MSI ProductVersion." },
+        "product_name":    { "type": "string", "description": "MSI ProductName." },
+        "upgrade_code":    { "type": "string", "description": "MSI UpgradeCode GUID." },
+        "manufacturer":    { "type": "string", "description": "MSI Manufacturer." }
       }
     }
   },

@@ -89,6 +89,7 @@ switch ($detectionMode) {
         $valueName = Get-DetectionField 'value_name'
         $operator  = Get-DetectionField 'operator'
         $value     = Get-DetectionField 'value'
+        $check32   = Get-DetectionField 'check32BitOn64System'
 
         if (-not $keyPath) {
             throw "package.yaml: detection.key_path is required for registry-marker mode"
@@ -97,6 +98,7 @@ switch ($detectionMode) {
         if (-not $hive)      { $hive = 'HKLM' }
         if (-not $valueName) { $valueName = 'Version' }
         if (-not $operator)  { $operator = 'exists' }
+        $check32Bool = ($check32 -eq 'true')
 
         if ($hive -notin @('HKLM','HKCU')) {
             throw "package.yaml: detection.hive must be HKLM or HKCU"
@@ -123,7 +125,7 @@ switch ($detectionMode) {
 
         $rule = @{
             '@odata.type'            = '#microsoft.graph.win32LobAppRegistryDetection'
-            check32BitOn64System     = $false
+            check32BitOn64System     = $check32Bool
             keyPath                  = $keyPath
             valueName                = $valueName
             detectionType            = $detectionType
@@ -224,6 +226,27 @@ switch ($detectionMode) {
             throw "script detection requires windows/detection/detect.ps1"
         }
 
+        # Read detection config sidecar if present
+        $runAs32   = $false
+        $enforceSig = $false
+        $configPath = 'windows/detection/detection-config.json'
+        if (Test-Path $configPath) {
+            try {
+                $detConfig = Get-Content $configPath -Raw | ConvertFrom-Json
+                $runAs32   = [bool]$detConfig.runAs32Bit
+                $enforceSig = [bool]$detConfig.enforceSignatureCheck
+                Write-Host "  Detection config: runAs32Bit=$runAs32, enforceSignatureCheck=$enforceSig"
+            } catch {
+                Write-Host "  ⚠ Could not parse detection-config.json — using defaults" -ForegroundColor Yellow
+            }
+        } else {
+            # Fallback: read from package.yaml detection block
+            $yamlRunAs32 = Get-DetectionField 'run_as_32bit'
+            $yamlEnforceSig = Get-DetectionField 'enforce_signature_check'
+            if ($yamlRunAs32 -eq 'true') { $runAs32 = $true }
+            if ($yamlEnforceSig -eq 'true') { $enforceSig = $true }
+        }
+
         $encoded = [Convert]::ToBase64String(
             [Text.Encoding]::Unicode.GetBytes(
                 (Get-Content $scriptPath -Raw)
@@ -233,8 +256,8 @@ switch ($detectionMode) {
         return @(@{
             '@odata.type'         = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
             scriptContent         = $encoded
-            runAs32Bit            = $false
-            enforceSignatureCheck = $false
+            runAs32Bit            = $runAs32
+            enforceSignatureCheck = $enforceSig
         })
     }
 
