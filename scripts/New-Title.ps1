@@ -855,7 +855,7 @@ detection:
 
     # ── Supersedes block (conditional) ────────────────────────────────────────
     $supersedesBlock = ''
-    if ($SupersedesAppId -and $SupersedesAppId -notmatch '^TODO:') {
+    if ($SupersedesAppId -and $SupersedesAppId.Trim() -ne '' -and $SupersedesAppId -notmatch '^TODO:') {
         $supersedesBlock = @"
 supersedes:
   app_id: "$SupersedesAppId"
@@ -1035,7 +1035,7 @@ $depsJson
 "@
 
     # ── windows/intune/supersedence.json (only if superseding) ────────────────
-    if ($SupersedesAppId -and $SupersedesAppId -notmatch '^TODO:') {
+    if ($SupersedesAppId -and $SupersedesAppId.Trim() -ne '' -and $SupersedesAppId -notmatch '^TODO:') {
         Write-File (Join-Path $titleDir 'windows\intune\supersedence.json') @"
 {
   "supersededAppId": "$SupersedesAppId",
