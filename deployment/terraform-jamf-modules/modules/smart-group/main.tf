@@ -1,6 +1,6 @@
 ##=============================================================================
 ## modules/smart-group/main.tf
-## Creates a Jamf Pro smart computer group.
+## Creates a Jamf Pro smart computer group (v2 API).
 ##=============================================================================
 
 terraform {
@@ -12,7 +12,7 @@ terraform {
   }
 }
 
-resource "jamfpro_smart_computer_group" "this" {
+resource "jamfpro_smart_computer_group_v2" "this" {
   name    = var.name
   site_id = var.site_id
 
@@ -31,11 +31,11 @@ resource "jamfpro_smart_computer_group" "this" {
 }
 
 output "id" {
-  value       = jamfpro_smart_computer_group.this.id
+  value       = jamfpro_smart_computer_group_v2.this.id
   description = "Jamf Pro smart group ID."
 }
 
 output "name" {
-  value       = jamfpro_smart_computer_group.this.name
+  value       = jamfpro_smart_computer_group_v2.this.name
   description = "Jamf Pro smart group name."
 }

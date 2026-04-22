@@ -15,8 +15,8 @@ terraform {
 resource "jamfpro_computer_extension_attribute" "this" {
   name        = var.name
   description = var.description
-  data_type   = "String"
-  input_type  = "script"
+  data_type   = "STRING"
+  input_type  = "SCRIPT"
   enabled     = true
 
   # Shell script to detect and report the installed version
