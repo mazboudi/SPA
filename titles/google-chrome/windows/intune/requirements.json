@@ -1,6 +1,0 @@
-{
-  "minimumSupportedWindowsRelease": "2004",
-  "applicableArchitectures": "x64",
-  "minimumFreeDiskSpaceInMB": 500,
-  "minimumMemoryInMB": 4096
-}

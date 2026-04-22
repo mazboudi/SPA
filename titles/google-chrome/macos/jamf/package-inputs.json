@@ -1,5 +1,7 @@
 {
-  "package_name": "Google Chrome 134.0.6998.89",
-  "category": "Browsers",
-  "notes": "Deployed by SPA pipeline. Do not modify directly in Jamf."
+  "package_name": "Google Chrome Test 147.0.7727.102",
+  "category_id": "-1",
+  "notes": "Deployed by SPA pipeline. Do not modify directly in Jamf.",
+  "reboot_required": false,
+  "os_requirements": ""
 }

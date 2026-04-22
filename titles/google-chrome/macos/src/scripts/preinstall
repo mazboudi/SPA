@@ -1,3 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# =============================================================================
+# preinstall — Google Chrome Test macOS pre-install
+# Runs before the installer payload is extracted.
+# =============================================================================
 set -euo pipefail
-echo "Google Chrome preinstall placeholder"
+
+echo "[preinstall] Google Chrome Test pre-install starting..."
+
+# TODO: Add pre-install logic here, e.g.:
+# - Kill running app processes
+# - Remove previous versions
+# - Check prerequisites
+
+echo "[preinstall] Google Chrome Test pre-install complete."
+exit 0

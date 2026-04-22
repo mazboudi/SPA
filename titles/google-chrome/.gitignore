@@ -1,26 +1,17 @@
-# Build outputs
 dist/
-*.zip
+out/
+*.intunewin
+*.pkg
 *.tar.gz
-
-# Downloaded framework bundles (fetched by CI runners at build time)
+*.zip
 psadt-framework-*/
 macos-framework-*/
 tools/
 intune-modules/
 terraform-jamf-modules/
-
-# IntuneWinAppUtil
-IntuneWinAppUtil.exe
-
-# Build artifacts
-out/
 tf-deploy/
-
-# macOS
 .DS_Store
-*.DS_Store
-
-# Editor
 .vscode/
-*.swp
+
+# Generated at build time from lifecycle.yaml — do not commit
+windows/src/Invoke-AppDeployToolkit.ps1

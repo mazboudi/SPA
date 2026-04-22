@@ -1,9 +1,11 @@
 {
-  "_comment": "Replace computer_groups values with real Jamf smart group IDs",
+  "_comment": "Replace computer_groups values with real Jamf smart/static group IDs",
   "scope_groups": {
     "computer_groups": [
-      1001,
-      1002
+      "TODO-JAMF-SMART-GROUP-ID"
     ]
+  },
+  "exclusion_groups": {
+    "computer_groups": []
   }
 }

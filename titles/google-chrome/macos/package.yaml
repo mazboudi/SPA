@@ -1,9 +1,10 @@
-vendor_version: "134.0.6998.89"
+# Google Chrome Test 147.0.7727.102 — macOS package definition
+vendor_version: "147.0.7727.102"
 packaging_version: 1
 source_type: pkg
-source_filename: GoogleChrome.pkg
+source_filename: TODO_INSTALLER.pkg
 receipt_id: com.google.chrome
-bundle_id: com.google.Chrome
+bundle_id: com.google.chrome
 minimum_os: "13.0"
 architecture: universal
 jamf_category: Browsers

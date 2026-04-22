@@ -1,16 +1,16 @@
 {
-  "title": "Google Chrome",
-  "publisher": "Google LLC",
+  "title": "Google Chrome Test",
+  "publisher": "Google Inc",
   "package_id": "google-chrome",
-  "version": "134.0.6998.89",
+  "version": "147.0.7727.102",
   "owners": {
     "team": "euc-packaging",
-    "contact_email": "euc-packaging@yourorg.com"
+    "contact_email": "euc-packaging@fiserv.com"
   },
   "lifecycle": "active",
   "platforms": {
     "windows": {
-      "enabled": true,
+      "enabled": false,
       "framework": "psadt-enterprise",
       "framework_version": "4.1.0"
     },

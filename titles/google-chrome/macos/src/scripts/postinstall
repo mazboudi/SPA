@@ -1,3 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# =============================================================================
+# postinstall — Google Chrome Test macOS post-install
+# Runs after the installer payload is extracted.
+# =============================================================================
 set -euo pipefail
-echo "Google Chrome postinstall placeholder"
+
+echo "[postinstall] Google Chrome Test post-install starting..."
+
+# TODO: Add post-install logic here, e.g.:
+# - Register app with LaunchServices
+# - Remove quarantine attributes
+# - Set default preferences
+
+# Example: Remove quarantine attribute
+# APP_PATH="/Applications/TODO.app"
+# if [[ -d "$APP_PATH" ]]; then
+#   xattr -r -d com.apple.quarantine "$APP_PATH" 2>/dev/null || true
+# fi
+
+echo "[postinstall] Google Chrome Test post-install complete."
+exit 0
