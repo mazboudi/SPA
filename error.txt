@@ -1,76 +1,184 @@
-2026-04-21T21:31:38.457709Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-21T21:31:38.457709Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-21T21:31:38.457709Z 00O Resolving secrets
-2026-04-21T21:31:38.457709Z 00O section_start:1776807098:prepare_executor
-2026-04-21T21:31:38.457709Z 00O+Preparing the "shell" executor
-2026-04-21T21:31:38.458433Z 00O Using Shell (pwsh) executor...
-2026-04-21T21:31:38.458433Z 00O section_end:1776807098:prepare_executor
-2026-04-21T21:31:38.458433Z 00O+section_start:1776807098:prepare_script
-2026-04-21T21:31:38.458433Z 00O+Preparing environment
-2026-04-21T21:31:39.589695Z 01O Running on vm-psa-runner-p...
-2026-04-21T21:31:39.870626Z 00O section_end:1776807099:prepare_script
-2026-04-21T21:31:39.870626Z 00O+section_start:1776807099:get_sources
-2026-04-21T21:31:39.871671Z 00O+Getting source from Git repository
-2026-04-21T21:31:42.022197Z 01O Gitaly correlation ID: 01KPRZ9DERQ8NFYC2Z6VZH0FXH
-2026-04-21T21:31:42.407861Z 01O Fetching changes with git depth set to 20...
-2026-04-21T21:31:42.483934Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/node.js/.git/
-2026-04-21T21:31:44.628401Z 01O Checking out 239d84fd as detached HEAD (ref is main)...
-2026-04-21T21:31:44.763661Z 01O Removing intune-modules/
-2026-04-21T21:31:44.763661Z 01O Removing out/
-2026-04-21T21:31:45.002959Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-21T21:31:45.640128Z 01O 
-2026-04-21T21:31:45.640128Z 01O Skipping Git submodules setup
-2026-04-21T21:31:45.865105Z 00O section_end:1776807105:get_sources
-2026-04-21T21:31:45.865105Z 00O+section_start:1776807105:download_artifacts
-2026-04-21T21:31:45.866185Z 00O+Downloading artifacts
-2026-04-21T21:31:47.334325Z 01O Version:      18.9.0
-2026-04-21T21:31:47.334325Z 01O Git revision: 07e534ba
-2026-04-21T21:31:47.334325Z 01O Git branch:   18-9-stable
-2026-04-21T21:31:47.334325Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-21T21:31:47.334325Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-21T21:31:47.334325Z 01O OS/Arch:      windows/amd64
-2026-04-21T21:31:47.349491Z 01O Downloading artifacts for windows_publish_intune (26707159)...
-2026-04-21T21:31:47.535730Z 01E Runtime platform                                    arch=amd64 os=windows pid=10232 revision=07e534ba version=18.9.0
-2026-04-21T21:31:48.047129Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KPRZ9Q4AQJ7EEEDAQ9FSHPBN host=gitlab.onefiserv.net id=26707159 responseStatus=200 OK token=64_KSwnsm
-2026-04-21T21:31:48.306042Z 00O section_end:1776807108:download_artifacts
-2026-04-21T21:31:48.306042Z 00O+section_start:1776807108:step_script
-2026-04-21T21:31:48.306552Z 00O+Executing "step_script" stage of the job script
-2026-04-21T21:31:49.626257Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-21T21:31:51.932348Z 01O Intune modules ready in: intune-modules
-2026-04-21T21:31:51.936416Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-21T21:31:52.066537Z 01O [2026-04-21 21:31:52] [INFO] Loading 1 assignment(s) for app: 4d333198-13f8-4d4c-9fcc-7b11c3c25f07
-2026-04-21T21:31:52.078551Z 01O [2026-04-21 21:31:52] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-04-21T21:31:52.205002Z 01O [2026-04-21 21:31:52] [INFO] Token acquired (length=2130)
-2026-04-21T21:31:52.216200Z 01O [2026-04-21 21:31:52] [INFO] Posting assignments to Graph...
-2026-04-21T21:31:52.244003Z 01O [2026-04-21 21:31:52] [DEBUG] Request body JSON: {"mobileAppAssignments":[{"@odata.type":"#microsoft.graph.mobileAppAssignment","target":{"@odata.type":"#microsoft.graph.groupAssignmentTarget","groupId":"207ca967-c626-436e-8983-498d95d17384"},"intent":"available","settings":{"deliveryOptimizationPriority":"notConfigured","@odata.type":"#microsoft.graph.win32LobAppAssignmentSettings","installTimeSettings":null,"notifications":"showAll","restartSettings":null}}]}
-2026-04-21T21:31:53.022161Z 01O [2026-04-21 21:31:53] [INFO] ✅ Assignments applied for app: 4d333198-13f8-4d4c-9fcc-7b11c3c25f07
-2026-04-21T21:31:53.023882Z 01O ✅ Assignments applied.
-2026-04-21T21:31:53.120529Z 01O [2026-04-21 21:31:53] [INFO] Setting 1 supersedence relationship(s) for app: 4d333198-13f8-4d4c-9fcc-7b11c3c25f07
-2026-04-21T21:31:53.122238Z 01O [2026-04-21 21:31:53] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-04-21T21:31:53.242137Z 01O [2026-04-21 21:31:53] [INFO] Token acquired (length=2130)
-2026-04-21T21:31:53.245243Z 01O [2026-04-21 21:31:53] [DEBUG] Request body JSON: {"targetId":"b3b5bed0-9929-454e-88a2-4c6c9a3bbbb8","@odata.type":"#microsoft.graph.mobileAppSupersedence","supersedenceType":"update"}
-2026-04-21T21:31:53.557761Z 01O [2026-04-21 21:31:53] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/4d333198-13f8-4d4c-9fcc-7b11c3c25f07/relationships]: Response status code does not indicate success: 400 (Bad Request).
-2026-04-21T21:31:53.781391Z 01E Invoke-RestMethod:  {   "error": {     "code": "No method match route template",     "message": "No OData route exists that match template
-2026-04-21T21:31:53.781391Z 01E ~/singleton/navigation/key/navigation with http verb POST for request
-2026-04-21T21:31:53.781391Z 01E /AppLifecycle_2603/StatelessAppMetadataFEService/deviceAppManagement/mobileApps(\u00274d333198-13f8-4d4c-9fcc-7b11c3c25f
-2026-04-21T21:31:53.781391Z 01E 07\u0027)/relationships.",     "innerError": {       "date": "2026-04-21T21:31:53",       "request-id":
-2026-04-21T21:31:53.781391Z 01E "2effee7a-8727-48e5-ba5f-3edc611e9215",       "client-request-id": "2effee7a-8727-48e5-ba5f-3edc611e9215"     }   } }
-2026-04-21T21:31:54.041929Z 00O section_end:1776807114:step_script
-2026-04-21T21:31:54.041929Z 00O+section_start:1776807114:upload_artifacts_on_failure
-2026-04-21T21:31:54.043534Z 00O+Uploading artifacts for failed job
-2026-04-21T21:31:55.535129Z 01O Version:      18.9.0
-2026-04-21T21:31:55.535129Z 01O Git revision: 07e534ba
-2026-04-21T21:31:55.535129Z 01O Git branch:   18-9-stable
-2026-04-21T21:31:55.535129Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-21T21:31:55.535129Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-21T21:31:55.535129Z 01O OS/Arch:      windows/amd64
-2026-04-21T21:31:55.553004Z 01O Uploading artifacts...
-2026-04-21T21:31:55.722485Z 01E Runtime platform                                    arch=amd64 os=windows pid=3492 revision=07e534ba version=18.9.0
-2026-04-21T21:31:55.722485Z 01E out/assign-logs/*: found 1 matching artifact files and directories 
-2026-04-21T21:31:58.234335Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KPRZ9Z451JV2M9SBPPTYYG2T id=26707160 responseStatus=201 Created token=64_KSwnsm
-2026-04-21T21:31:58.465755Z 00O section_end:1776807118:upload_artifacts_on_failure
-2026-04-21T21:31:58.465755Z 00O+section_start:1776807118:cleanup_file_variables
-2026-04-21T21:31:58.465755Z 00O+Cleaning up project directory and file based variables
-2026-04-21T21:32:00.048862Z 00O section_end:1776807120:cleanup_file_variables
-2026-04-21T21:32:00.048862Z 00O+
-2026-04-21T21:32:00.050690Z 00O ERROR: Job failed: exit status 1
+Running with gitlab-runner 16.3.3 (ed9cebb1)
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-xknfh M5kfmq4n, system ID: r_ZvNAyVnd6l2x
+Resolving secrets
+00:00
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab-prod
+Using Kubernetes executor with image hashicorp/terraform:1.7 ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:06
+Waiting for pod gitlab-prod/runner-m5kfmq4n-project-86264-concurrent-0-2mh2l3e7 to be running, status is Pending
+Waiting for pod gitlab-prod/runner-m5kfmq4n-project-86264-concurrent-0-2mh2l3e7 to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+Running on runner-m5kfmq4n-project-86264-concurrent-0-2mh2l3e7 via gitlab-runner-generic-16-3-3-74cb5cfbf6-xknfh...
+Getting source from Git repository
+00:01
+Fetching changes with git depth set to 1...
+Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
+Created fresh repository.
+Checking out 6669cfc9 as detached HEAD (ref is main)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:05
+$ set -euo pipefail # collapsed multi-line command
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
+(1/2) Installing readline (8.2.1-r2)
+(2/2) Installing bash (5.2.21-r0)
+Executing bash-5.2.21-r0.post-install
+Executing busybox-1.36.1-r15.trigger
+OK: 27 MiB in 37 packages
+Validating module: category
+│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
+╵
+Error: Missing required provider
+This configuration requires provider registry.terraform.io/danjamf/jamfpro,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+  ✗ category failed validation
+Validating module: extension-attribute
+│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
+╵
+Error: Missing required provider
+This configuration requires provider registry.terraform.io/danjamf/jamfpro,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+  ✗ extension-attribute failed validation
+Validating module: package
+│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
+╵
+Error: Missing required provider
+This configuration requires provider registry.terraform.io/danjamf/jamfpro,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+  ✗ package failed validation
+Validating module: policy
+│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
+╵
+Error: Missing required provider
+This configuration requires provider registry.terraform.io/danjamf/jamfpro,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+  ✗ policy failed validation
+Validating module: smart-group
+│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
+╵
+Error: Missing required provider
+This configuration requires provider registry.terraform.io/danjamf/jamfpro,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+  ✗ smart-group failed validation
+Validating root versions.tf...
+│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
+╵
+Error: Missing required provider
+This configuration requires provider registry.terraform.io/danjamf/jamfpro,
+but that provider isn't available. You may be able to install it
+automatically by running:
+  terraform init
+  ✗ root
+❌ 6 module(s) failed Terraform validation.
+Cleaning up project directory and file based variables
+00:01
+ERROR: Job failed: command terminated with exit code 1
+
+
+
+Running with gitlab-runner 16.3.3 (ed9cebb1)
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-pjb4s 7x-4VwWQ, system ID: r_oaTdHJMhWWL9
+Resolving secrets
+00:00
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab-prod
+Using Kubernetes executor with image hashicorp/terraform:1.7 ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:06
+Waiting for pod gitlab-prod/runner-7x-4vwwq-project-86264-concurrent-0-c8w9vzdq to be running, status is Pending
+Waiting for pod gitlab-prod/runner-7x-4vwwq-project-86264-concurrent-0-c8w9vzdq to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+Running on runner-7x-4vwwq-project-86264-concurrent-0-c8w9vzdq via gitlab-runner-generic-16-3-3-74cb5cfbf6-pjb4s...
+Getting source from Git repository
+00:01
+Fetching changes with git depth set to 1...
+Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
+Created fresh repository.
+Checking out 6669cfc9 as detached HEAD (ref is main)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:01
+$ set -euo pipefail # collapsed multi-line command
+modules/extension-attribute/main.tf
+--- old/modules/extension-attribute/main.tf
++++ new/modules/extension-attribute/main.tf
+@@ -13,15 +13,15 @@
+ }
+ 
+ resource "jamfpro_computer_extension_attribute" "this" {
+-  name              = var.name
+-  description       = var.description
+-  data_type         = "String"
+-  input_type        = "script"
+-  enabled           = true
++  name        = var.name
++  description = var.description
++  data_type   = "String"
++  input_type  = "script"
++  enabled     = true
+ 
+   # Shell script to detect and report the installed version
+   # Uses detect-receipt.sh pattern — reads from pkgutil
+-  script_contents   = <<-SCRIPT
++  script_contents = <<-SCRIPT
+     #!/bin/bash
+     RECEIPT="${var.receipt_id}"
+     VERSION=$(pkgutil --pkg-info "$RECEIPT" 2>/dev/null | awk '/version:/{print $2}')
+modules/extension-attribute/variables.tf
+--- old/modules/extension-attribute/variables.tf
++++ new/modules/extension-attribute/variables.tf
+@@ -4,8 +4,8 @@
+ }
+ 
+ variable "description" {
+-  type        = string
+-  default     = "Reports installed application version. Managed by SPA pipeline."
++  type    = string
++  default = "Reports installed application version. Managed by SPA pipeline."
+ }
+ 
+ variable "receipt_id" {
+modules/smart-group/main.tf
+--- old/modules/smart-group/main.tf
++++ new/modules/smart-group/main.tf
+@@ -19,11 +19,11 @@
+   dynamic "criteria" {
+     for_each = var.criteria
+     content {
+-      name         = criteria.value.name
+-      priority     = criteria.value.priority
+-      and_or       = criteria.value.and_or
+-      search_type  = criteria.value.search_type
+-      value        = criteria.value.value
++      name          = criteria.value.name
++      priority      = criteria.value.priority
++      and_or        = criteria.value.and_or
++      search_type   = criteria.value.search_type
++      value         = criteria.value.value
+       opening_paren = try(criteria.value.opening_paren, false)
+       closing_paren = try(criteria.value.closing_paren, false)
+     }
+❌ Terraform files are not formatted.
+Run 'terraform fmt -recursive' to fix.
+Cleaning up project directory and file based variables
+00:01
+ERROR: Job failed: command terminated with exit code 1
