@@ -1,6 +1,6 @@
 ##=============================================================================
 ## modules/package/main.tf
-## Uploads a .pkg to Jamf Pro as a package record.
+## Uploads a .pkg/.dmg to Jamf Pro as a package record via Cloud DP.
 ##=============================================================================
 
 terraform {
@@ -13,24 +13,29 @@ terraform {
 }
 
 resource "jamfpro_package" "this" {
-  package_name     = var.display_name
-  file_path        = var.pkg_path
-  category_id      = var.category_id
-  info             = var.info
-  notes            = var.notes
-  priority         = var.priority
-  reboot_required  = var.reboot_required
-  fill_user_template             = false
-  fill_existing_users            = false
-  boot_volume_required           = false
-  allow_uninstalled              = false
-  os_requirements                = ""
-  required_processor             = "None"
-  switch_with_package            = ""
-  install_if_reported_available  = false
-  reinstall_option               = "Do Not Reinstall"
-  triggering_files               = ""
-  send_notification              = false
+  package_name        = var.package_name
+  package_file_source = var.package_file_source
+  category_id         = var.category_id
+  info                = var.info
+  notes               = var.notes
+  priority            = var.priority
+
+  # Required boolean flags
+  reboot_required       = var.reboot_required
+  fill_user_template    = false
+  fill_existing_users   = false
+  os_install            = false
+  suppress_updates      = false
+  suppress_from_dock    = false
+  suppress_eula         = false
+  suppress_registration = false
+
+  # Optional
+  os_requirements = var.os_requirements
+
+  timeouts {
+    create = var.upload_timeout
+  }
 }
 
 output "id" {

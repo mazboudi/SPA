@@ -669,7 +669,6 @@ if ($Platform -in @('windows','both')) {
     $includeFiles.Add("      - 'templates/windows-deploy-intune.yml'")
 }
 if ($Platform -in @('macos','both')) {
-    $includeFiles.Add("      - 'templates/macos-build.yml'")
     $includeFiles.Add("      - 'templates/macos-deploy-jamf.yml'")
 }
 $includeBlock = $includeFiles -join "`n"
@@ -1167,8 +1166,10 @@ post_install_script: postinstall.sh
     Write-File (Join-Path $titleDir 'macos\jamf\package-inputs.json') @"
 {
   "package_name": "$DisplayName $Version",
-  "category": "$JamfCategory",
-  "notes": "Deployed by SPA pipeline. Do not modify directly in Jamf."
+  "category_id": "-1",
+  "notes": "Deployed by SPA pipeline. Do not modify directly in Jamf.",
+  "reboot_required": false,
+  "os_requirements": ""
 }
 "@
 
@@ -1176,21 +1177,27 @@ post_install_script: postinstall.sh
     Write-File (Join-Path $titleDir 'macos\jamf\policy-inputs.json') @"
 {
   "policy_name": "SPA - Install $DisplayName",
+  "enabled": true,
   "trigger": "RECURRING_CHECK_IN",
   "frequency": "Once per computer",
   "run_recon_after_install": true,
-  "self_service_enabled": $($MacSelfService.ToString().ToLower())
+  "self_service_enabled": $($MacSelfService.ToString().ToLower()),
+  "self_service_display_name": "$DisplayName",
+  "self_service_description": ""
 }
 "@
 
     # ── macos/jamf/scope-inputs.json ──────────────────────────────────────────
     Write-File (Join-Path $titleDir 'macos\jamf\scope-inputs.json') @"
 {
-  "_comment": "Replace computer_groups values with real Jamf smart group IDs",
+  "_comment": "Replace computer_groups values with real Jamf smart/static group IDs",
   "scope_groups": {
     "computer_groups": [
       "TODO-JAMF-SMART-GROUP-ID"
     ]
+  },
+  "exclusion_groups": {
+    "computer_groups": []
   }
 }
 "@

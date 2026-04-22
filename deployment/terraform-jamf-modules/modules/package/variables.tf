@@ -1,16 +1,17 @@
-variable "display_name" {
+variable "package_name" {
   type        = string
   description = "Display name for the Jamf Pro package (e.g. 'Google Chrome 134.0')."
 }
 
-variable "pkg_path" {
+variable "package_file_source" {
   type        = string
-  description = "Absolute path to the .pkg file to upload."
+  description = "Path to the .pkg or .dmg file, or an HTTP(S) URL."
 }
 
 variable "category_id" {
-  type        = number
-  description = "Jamf Pro category ID from the category module output."
+  type        = string
+  default     = "-1"
+  description = "Jamf Pro category ID. Use '-1' for no category."
 }
 
 variable "info" {
@@ -35,4 +36,16 @@ variable "reboot_required" {
   type        = bool
   default     = false
   description = "Whether a reboot is required after installation."
+}
+
+variable "os_requirements" {
+  type        = string
+  default     = ""
+  description = "Comma-separated OS requirements (e.g. 'macOS 13.0, macOS 14.0')."
+}
+
+variable "upload_timeout" {
+  type        = string
+  default     = "90m"
+  description = "Terraform create timeout for package upload."
 }

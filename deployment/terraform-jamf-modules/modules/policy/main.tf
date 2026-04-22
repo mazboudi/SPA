@@ -13,62 +13,76 @@ terraform {
 }
 
 resource "jamfpro_policy" "this" {
-  name              = var.policy_name
-  enabled           = true
-  trigger_checkin   = var.trigger == "RECURRING_CHECK_IN"
-  trigger_other     = var.trigger == "EVENT" ? "USER_INITIATED" : ""
-  frequency         = var.frequency
+  name            = var.policy_name
+  enabled         = var.enabled
+  trigger_checkin = var.trigger == "RECURRING_CHECK_IN"
+  trigger_other   = var.trigger == "EVENT" ? "USER_INITIATED" : ""
+  frequency       = var.frequency
+  category_id     = var.category_id
+  site_id         = -1
 
-  # Category
-  category {
-    id   = var.category_id
-    name = ""
-  }
-
-  # Scope — targets specific computer smart groups
+  # Scope — target computer groups
   scope {
-    all_computers = false
+    all_computers = var.scope_all_computers
 
-    dynamic "computer_group" {
-      for_each = var.scope_group_ids
+    computer_group_ids = var.scope_group_ids
+
+    dynamic "exclusions" {
+      for_each = length(var.exclusion_group_ids) > 0 ? [1] : []
       content {
-        id   = computer_group.value
-        name = ""
+        computer_group_ids = var.exclusion_group_ids
       }
     }
   }
 
   # Package payload
-  package_configuration {
-    distribution_point = "default"
-    dynamic "package" {
-      for_each = [var.package_id]
-      content {
-        id             = package.value
-        name           = ""
-        action         = "Install"
-        fill_user_template  = false
-        fill_existing_users = false
+  payloads {
+    packages {
+      distribution_point = "default"
+      package {
+        id                          = var.package_id
+        action                      = "Install"
+        fill_user_template          = false
+        fill_existing_user_template = false
       }
+    }
+
+    # Maintenance
+    maintenance {
+      recon                       = var.run_recon_after_install
+      reset_name                  = false
+      install_all_cached_packages = false
+      heal                        = false
+      prebindings                 = false
+      permissions                 = false
+      byhost                      = false
+      system_cache                = false
+      user_cache                  = false
+      verify                      = false
+    }
+
+    # Reboot
+    reboot {
+      message                        = var.reboot_message
+      specify_startup                = "Standard Restart"
+      startup_disk                   = "Current Startup Disk"
+      no_user_logged_in              = var.reboot_required ? "Restart" : "Do not restart"
+      user_logged_in                 = var.reboot_required ? "Restart" : "Do not restart"
+      minutes_until_reboot           = var.reboot_required ? 5 : 0
+      start_reboot_timer_immediately = false
+      file_vault_2_reboot            = false
     }
   }
 
-  # Maintenance
-  maintenance {
-    recon                       = var.run_recon_after_install
-    reset_name                  = false
-    install_all_cached_packages = false
-    heal                        = false
-    prebindings                 = false
-    permissions                 = false
-    byhost                      = false
-    system_cache                = false
-    user_cache                  = false
-    verify                      = false
-  }
-
+  # Self Service
   self_service {
-    use_for_self_service = var.self_service_enabled
+    use_for_self_service            = var.self_service_enabled
+    self_service_display_name       = var.self_service_display_name
+    install_button_text             = "Install"
+    reinstall_button_text           = "Reinstall"
+    self_service_description        = var.self_service_description
+    force_users_to_view_description = false
+    feature_on_main_page            = false
   }
 }
 
