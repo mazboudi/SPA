@@ -30,10 +30,11 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $JamfInputDir = 'macos/jamf',
-    [string] $PackagePath  = '',
-    [string] $ModulesDir   = 'terraform-jamf-modules/modules',
-    [string] $OutputDir    = 'tf-deploy'
+    [string] $JamfInputDir    = 'macos/jamf',
+    [string] $MacPackageYaml  = 'macos/package.yaml',
+    [string] $PackagePath     = '',
+    [string] $ModulesDir      = 'terraform-jamf-modules/modules',
+    [string] $OutputDir       = 'tf-deploy'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,6 +51,21 @@ foreach ($f in @($pkgInputFile, $policyInputFile, $scopeInputFile)) {
 $pkg    = Get-Content $pkgInputFile    -Raw | ConvertFrom-Json
 $policy = Get-Content $policyInputFile -Raw | ConvertFrom-Json
 $scope  = Get-Content $scopeInputFile  -Raw | ConvertFrom-Json
+
+# ── Read package.yaml for receipt_id ──────────────────────────────────────────
+$receiptId = ''
+if (Test-Path $MacPackageYaml) {
+    $yamlLines = Get-Content $MacPackageYaml
+    foreach ($line in $yamlLines) {
+        if ($line -match '^\s*receipt_id:\s*(.+)$') {
+            $receiptId = $Matches[1].Trim().Trim('"').Trim("'")
+            break
+        }
+    }
+    Write-Host "  Receipt ID: $receiptId" -ForegroundColor DarkCyan
+} else {
+    Write-Host "  ⚠ No package.yaml found — skipping extension attribute." -ForegroundColor Yellow
+}
 
 # ── Resolve package file path ─────────────────────────────────────────────────
 if (-not $PackagePath) {
@@ -175,6 +191,28 @@ output "policy_id" {
   value = module.policy.id
 }
 "@
+
+# ── Conditionally add Extension Attribute module ─────────────────────────────
+if ($receiptId -and $receiptId -ne 'com.vendor.todo') {
+    $eaName = Escape-Hcl "SPA - $($pkg.package_name) Version"
+    $eaBlock = @"
+
+# ── Extension Attribute ──────────────────────────────────────────────────────
+module "extension_attribute" {
+  source     = "$absModulesDir/extension-attribute"
+  name       = "$eaName"
+  receipt_id = "$receiptId"
+}
+
+output "extension_attribute_id" {
+  value = module.extension_attribute.id
+}
+"@
+    $mainTf += $eaBlock
+    Write-Host "  ✅ Extension attribute module included (receipt: $receiptId)" -ForegroundColor Green
+} else {
+    Write-Host "  ⚠ No valid receipt_id — skipping extension attribute module." -ForegroundColor Yellow
+}
 
 # ── Generate variables.tf ────────────────────────────────────────────────────
 $variablesTf = @"
