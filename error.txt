@@ -1,5 +1,5 @@
 Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-xknfh M5kfmq4n, system ID: r_ZvNAyVnd6l2x
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-ntpkv T5QL6zUm, system ID: r_Zh63XYfnVtwc
 Resolving secrets
 00:00
 Preparing the "kubernetes" executor
@@ -9,20 +9,20 @@ Using Kubernetes executor with image hashicorp/terraform:1.7 ...
 Using attach strategy to execute scripts...
 Preparing environment
 00:06
-Waiting for pod gitlab-prod/runner-m5kfmq4n-project-86264-concurrent-0-2mh2l3e7 to be running, status is Pending
-Waiting for pod gitlab-prod/runner-m5kfmq4n-project-86264-concurrent-0-2mh2l3e7 to be running, status is Pending
+Waiting for pod gitlab-prod/runner-t5ql6zum-project-86264-concurrent-0-51yauw24 to be running, status is Pending
+Waiting for pod gitlab-prod/runner-t5ql6zum-project-86264-concurrent-0-51yauw24 to be running, status is Pending
 	ContainersNotReady: "containers with unready status: [build helper]"
 	ContainersNotReady: "containers with unready status: [build helper]"
-Running on runner-m5kfmq4n-project-86264-concurrent-0-2mh2l3e7 via gitlab-runner-generic-16-3-3-74cb5cfbf6-xknfh...
+Running on runner-t5ql6zum-project-86264-concurrent-0-51yauw24 via gitlab-runner-generic-16-3-3-74cb5cfbf6-ntpkv...
 Getting source from Git repository
 00:01
 Fetching changes with git depth set to 1...
 Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
 Created fresh repository.
-Checking out 6669cfc9 as detached HEAD (ref is main)...
+Checking out 0e9884e9 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:05
+00:21
 $ set -euo pipefail # collapsed multi-line command
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
@@ -32,153 +32,54 @@ Executing bash-5.2.21-r0.post-install
 Executing busybox-1.36.1-r15.trigger
 OK: 27 MiB in 37 packages
 Validating module: category
-│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
-╵
-Error: Missing required provider
-This configuration requires provider registry.terraform.io/danjamf/jamfpro,
-but that provider isn't available. You may be able to install it
-automatically by running:
-  terraform init
-  ✗ category failed validation
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ category
 Validating module: extension-attribute
-│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
-╵
-Error: Missing required provider
-This configuration requires provider registry.terraform.io/danjamf/jamfpro,
-but that provider isn't available. You may be able to install it
-automatically by running:
-  terraform init
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Error: expected data_type to be one of ["STRING" "INTEGER" "DATE"], got String
+  with jamfpro_computer_extension_attribute.this,
+  on main.tf line 18, in resource "jamfpro_computer_extension_attribute" "this":
+  18:   data_type   = "String"
+Error: expected input_type to be one of ["SCRIPT" "TEXT" "POPUP" "DIRECTORY_SERVICE_ATTRIBUTE_MAPPING"], got script
+  with jamfpro_computer_extension_attribute.this,
+  on main.tf line 19, in resource "jamfpro_computer_extension_attribute" "this":
+  19:   input_type  = "script"
   ✗ extension-attribute failed validation
 Validating module: package
-│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
-╵
-Error: Missing required provider
-This configuration requires provider registry.terraform.io/danjamf/jamfpro,
-but that provider isn't available. You may be able to install it
-automatically by running:
-  terraform init
-  ✗ package failed validation
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ package
 Validating module: policy
-│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
-╵
-Error: Missing required provider
-This configuration requires provider registry.terraform.io/danjamf/jamfpro,
-but that provider isn't available. You may be able to install it
-automatically by running:
-  terraform init
-  ✗ policy failed validation
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ policy
 Validating module: smart-group
-│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
-╵
-Error: Missing required provider
-This configuration requires provider registry.terraform.io/danjamf/jamfpro,
-but that provider isn't available. You may be able to install it
-automatically by running:
-  terraform init
-  ✗ smart-group failed validation
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Warning: Deprecated Resource
+  with jamfpro_smart_computer_group.this,
+  on main.tf line 15, in resource "jamfpro_smart_computer_group" "this":
+  15: resource "jamfpro_smart_computer_group" "this" {
+This resource is superseded by jamfpro_smart_computer_group_v2, which uses
+newly available API endpoints. The endpoints backing
+jamfpro_smart_computer_group are likely to be deprecated. It is recommended
+to migrate to jamfpro_smart_computer_group_v2 as soon as possible. Review the
+migration guide for more details:
+https://github.com/deploymenttheory/terraform-provider-jamfpro/blob/main/docs/resource-migration-guide.md
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+  ✓ smart-group
 Validating root versions.tf...
-│ danjamf/jamfpro: no available releases match the given constraints ~> 0.16
-╵
-Error: Missing required provider
-This configuration requires provider registry.terraform.io/danjamf/jamfpro,
-but that provider isn't available. You may be able to install it
-automatically by running:
-  terraform init
-  ✗ root
-❌ 6 module(s) failed Terraform validation.
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ root
+❌ 1 module(s) failed Terraform validation.
 Cleaning up project directory and file based variables
-00:01
-ERROR: Job failed: command terminated with exit code 1
-
-
-
-Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-pjb4s 7x-4VwWQ, system ID: r_oaTdHJMhWWL9
-Resolving secrets
 00:00
-Preparing the "kubernetes" executor
-00:00
-Using Kubernetes namespace: gitlab-prod
-Using Kubernetes executor with image hashicorp/terraform:1.7 ...
-Using attach strategy to execute scripts...
-Preparing environment
-00:06
-Waiting for pod gitlab-prod/runner-7x-4vwwq-project-86264-concurrent-0-c8w9vzdq to be running, status is Pending
-Waiting for pod gitlab-prod/runner-7x-4vwwq-project-86264-concurrent-0-c8w9vzdq to be running, status is Pending
-	ContainersNotReady: "containers with unready status: [build helper]"
-	ContainersNotReady: "containers with unready status: [build helper]"
-Running on runner-7x-4vwwq-project-86264-concurrent-0-c8w9vzdq via gitlab-runner-generic-16-3-3-74cb5cfbf6-pjb4s...
-Getting source from Git repository
-00:01
-Fetching changes with git depth set to 1...
-Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
-Created fresh repository.
-Checking out 6669cfc9 as detached HEAD (ref is main)...
-Skipping Git submodules setup
-Executing "step_script" stage of the job script
-00:01
-$ set -euo pipefail # collapsed multi-line command
-modules/extension-attribute/main.tf
---- old/modules/extension-attribute/main.tf
-+++ new/modules/extension-attribute/main.tf
-@@ -13,15 +13,15 @@
- }
- 
- resource "jamfpro_computer_extension_attribute" "this" {
--  name              = var.name
--  description       = var.description
--  data_type         = "String"
--  input_type        = "script"
--  enabled           = true
-+  name        = var.name
-+  description = var.description
-+  data_type   = "String"
-+  input_type  = "script"
-+  enabled     = true
- 
-   # Shell script to detect and report the installed version
-   # Uses detect-receipt.sh pattern — reads from pkgutil
--  script_contents   = <<-SCRIPT
-+  script_contents = <<-SCRIPT
-     #!/bin/bash
-     RECEIPT="${var.receipt_id}"
-     VERSION=$(pkgutil --pkg-info "$RECEIPT" 2>/dev/null | awk '/version:/{print $2}')
-modules/extension-attribute/variables.tf
---- old/modules/extension-attribute/variables.tf
-+++ new/modules/extension-attribute/variables.tf
-@@ -4,8 +4,8 @@
- }
- 
- variable "description" {
--  type        = string
--  default     = "Reports installed application version. Managed by SPA pipeline."
-+  type    = string
-+  default = "Reports installed application version. Managed by SPA pipeline."
- }
- 
- variable "receipt_id" {
-modules/smart-group/main.tf
---- old/modules/smart-group/main.tf
-+++ new/modules/smart-group/main.tf
-@@ -19,11 +19,11 @@
-   dynamic "criteria" {
-     for_each = var.criteria
-     content {
--      name         = criteria.value.name
--      priority     = criteria.value.priority
--      and_or       = criteria.value.and_or
--      search_type  = criteria.value.search_type
--      value        = criteria.value.value
-+      name          = criteria.value.name
-+      priority      = criteria.value.priority
-+      and_or        = criteria.value.and_or
-+      search_type   = criteria.value.search_type
-+      value         = criteria.value.value
-       opening_paren = try(criteria.value.opening_paren, false)
-       closing_paren = try(criteria.value.closing_paren, false)
-     }
-❌ Terraform files are not formatted.
-Run 'terraform fmt -recursive' to fix.
-Cleaning up project directory and file based variables
-00:01
 ERROR: Job failed: command terminated with exit code 1
