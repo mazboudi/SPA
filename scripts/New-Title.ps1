@@ -1034,15 +1034,16 @@ $depsJson
 }
 "@
 
-    # ── windows/intune/supersedence.json (only if superseding) ────────────────
-    if ($SupersedesAppId -and $SupersedesAppId.Trim() -ne '' -and $SupersedesAppId -notmatch '^TODO:') {
-        Write-File (Join-Path $titleDir 'windows\intune\supersedence.json') @"
+    # ── windows/intune/supersedence.json (always generated — fill in when updating) ─
+    $resolvedSuperId = if ($SupersedesAppId -and $SupersedesAppId.Trim() -ne '' -and $SupersedesAppId -notmatch '^TODO:') {
+        $SupersedesAppId
+    } else { '' }
+    Write-File (Join-Path $titleDir 'windows\intune\supersedence.json') @"
 {
-  "supersededAppId": "$SupersedesAppId",
+  "supersededAppId": "$resolvedSuperId",
   "supersedenceType": "$SupersedenceType"
 }
 "@
-    }
 
     # ── windows/src/Files/.gitkeep ────────────────────────────────────────────
     Mkd (Join-Path $titleDir 'windows\src\Files')
