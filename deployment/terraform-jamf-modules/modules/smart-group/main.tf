@@ -19,11 +19,11 @@ resource "jamfpro_smart_computer_group" "this" {
   dynamic "criteria" {
     for_each = var.criteria
     content {
-      name         = criteria.value.name
-      priority     = criteria.value.priority
-      and_or       = criteria.value.and_or
-      search_type  = criteria.value.search_type
-      value        = criteria.value.value
+      name          = criteria.value.name
+      priority      = criteria.value.priority
+      and_or        = criteria.value.and_or
+      search_type   = criteria.value.search_type
+      value         = criteria.value.value
       opening_paren = try(criteria.value.opening_paren, false)
       closing_paren = try(criteria.value.closing_paren, false)
     }

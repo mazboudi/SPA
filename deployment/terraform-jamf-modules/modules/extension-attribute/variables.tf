@@ -4,8 +4,8 @@ variable "name" {
 }
 
 variable "description" {
-  type        = string
-  default     = "Reports installed application version. Managed by SPA pipeline."
+  type    = string
+  default = "Reports installed application version. Managed by SPA pipeline."
 }
 
 variable "receipt_id" {

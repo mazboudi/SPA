@@ -744,19 +744,9 @@ if ($Platform -in @('windows','both')) {
     $productCode = if ($MsiProductCode) { $MsiProductCode } else { '{TODO-PRODUCT-CODE-GUID}' }
     $msiFile     = if ($MsiFileName)    { $MsiFileName }    else { 'TODO_INSTALLER.msi' }
 
-    # ── Install / uninstall commands ──────────────────────────────────────────
-    if ($InstallerType -eq 'msi') {
-        $installCmd   = "msiexec.exe /i `"Files\$msiFile`" /qn /norestart"
-        $uninstallCmd = "msiexec.exe /x `"$productCode`" /qn /norestart"
-    } else {
-        # EXE: use prompted values or defaults
-        $exeFile      = if ($ExeSourceFilename) { $ExeSourceFilename } else { 'TODO_INSTALLER.exe' }
-        $exeArgs      = if ($ExeInstallArgs)    { $ExeInstallArgs }    else { '/S' }
-        $installCmd   = "`"Files\$exeFile`" $exeArgs"
-        $exeUnPath    = if ($ExeUninstallPath)  { $ExeUninstallPath }  else { 'C:\Program Files\TODO\uninstall.exe' }
-        $exeUnArgs    = if ($ExeUninstallArgs)  { $ExeUninstallArgs }  else { '/S' }
-        $uninstallCmd = "`"$exeUnPath`" $exeUnArgs"
-    }
+    # ── Install / uninstall commands (what Intune actually runs — PSADT wrapper) ─
+    $installCmd   = 'Invoke-AppDeployToolkit.exe'
+    $uninstallCmd = 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
 
     # ── Detection block ───────────────────────────────────────────────────────
     $detectionBlock = switch ($DetectionMode) {
