@@ -4,24 +4,32 @@
 
 .DESCRIPTION
   Reads windows/intune/supersedence.json and creates or updates the supersedence
-  relationships for the specified app.
+  relationships for the specified app using the updateRelationships action.
 
   If the file is missing or contains no valid entries (empty IDs), the script
   exits gracefully with exit code 0.
 
 .PARAMETER AppId
-  The Win32 app to set supersedence on.
+  The Win32 app to set supersedence on (the NEW app that supersedes older ones).
 
 .PARAMETER SupersedencePath
   Path to windows/intune/supersedence.json.
 
-.EXAMPLE supersedence.json
+.EXAMPLE supersedence.json (single)
   {
     "supersededAppId": "bbbbbbbb-0000-0000-0000-000000000001",
     "supersedenceType": "replace"
   }
-  Note: supersedenceType values: "replace" | "update"
-  The "supersededAppId" field maps to "targetId" in the Graph API call.
+
+.EXAMPLE supersedence.json (array — multiple)
+  [
+    {
+      "supersededAppId": "bbbbbbbb-0000-0000-0000-000000000001",
+      "supersedenceType": "replace"
+    }
+  ]
+
+  supersedenceType: "replace" (uninstall old, install new) | "update" (in-place)
 #>
 [CmdletBinding()]
 param(
@@ -33,7 +41,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-# Relationships API is beta-only
+# updateRelationships action is beta-only
 $GRAPH_BASE = 'https://graph.microsoft.com/beta'
 
 $moduleFile = Join-Path $PSScriptRoot 'IntuneDeployment.psm1'
@@ -64,25 +72,33 @@ Write-Log "Setting $($valid.Count) supersedence relationship(s) for app: $AppId"
 
 $token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
 
+# Build the relationships array for the updateRelationships action
+$relationships = @()
 foreach ($s in $valid) {
-    # Support both 'supersededAppId' (our file format) and 'targetId' (Graph API)
     $targetId = $s.supersededAppId ?? $s.targetId
-
-    $body = @{
+    $relationships += @{
         '@odata.type'    = '#microsoft.graph.mobileAppSupersedence'
         targetId         = $targetId
         supersedenceType = $s.supersedenceType ?? 'update'
     }
-
-    $uri = "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/relationships"
-    try {
-        Invoke-GraphRequest -Token $token -Method POST -Uri $uri -Body $body | Out-Null
-        Write-Log "Supersedence created: $targetId => $($body.supersedenceType)"
-    } catch {
-        if ($_.Exception.Message -like '*already exists*') {
-            Write-Log "Supersedence already exists for $targetId — skipping." -Level WARN
-        } else { throw }
-    }
+    Write-Log "  → $targetId ($($s.supersedenceType ?? 'update'))"
 }
 
-Write-Host "✅ Supersedence configuration complete." -ForegroundColor Green
+# POST to the updateRelationships action endpoint
+$uri = "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/updateRelationships"
+$body = @{
+    relationships = $relationships
+}
+
+try {
+    Invoke-GraphRequest -Token $token -Method POST -Uri $uri -Body $body | Out-Null
+    Write-Log "Supersedence relationships applied successfully."
+    Write-Host "✅ Supersedence configuration complete." -ForegroundColor Green
+} catch {
+    if ($_.Exception.Message -like '*already exists*') {
+        Write-Log "Supersedence relationships already exist — skipping." -Level WARN
+        Write-Host "✅ Supersedence already configured." -ForegroundColor Green
+    } else {
+        throw
+    }
+}
