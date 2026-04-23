@@ -9,8 +9,8 @@
 ##   release — create GitLab release on vX.Y.Z tag for TF_JAMF_MODULES_REF pinning
 ##
 ## Runner requirements:
-##   - Linux runner tagged [Linux] with Terraform >= 1.5.0 available
-##     (or use the official hashicorp/terraform Docker image)
+##   - Default GitLab runner with Docker/Kubernetes executor
+##   - Uses hashicorp/terraform:1.7 Docker image
 ##=============================================================================
 
 stages:
@@ -26,7 +26,6 @@ variables:
 ## ---------------------------------------------------------------------------
 terraform_validate:
   stage: test
-  tags: [Linux]
   image:
     name: hashicorp/terraform:1.7
     entrypoint: [""]
@@ -74,7 +73,6 @@ terraform_validate:
 ## ---------------------------------------------------------------------------
 terraform_fmt_check:
   stage: test
-  tags: [Linux]
   image:
     name: hashicorp/terraform:1.7
     entrypoint: [""]
@@ -97,7 +95,6 @@ terraform_fmt_check:
 ## ---------------------------------------------------------------------------
 create_release:
   stage: release
-  tags: [Linux]
   needs: [terraform_validate]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
