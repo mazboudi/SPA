@@ -674,17 +674,35 @@ if ($Platform -in @('macos','both')) {
 $includeBlock = $includeFiles -join "`n"
 
 # Build stages list based on platform
-$stageLines = @("  - build")
+$stageLines = [System.Collections.Generic.List[string]]::new()
 if ($Platform -in @('windows','both')) {
-    $stageLines += "  - publish"
-    $stageLines += "  - assign"
+    $stageLines.Add("  - build")
+    $stageLines.Add("  - publish")
+    $stageLines.Add("  - assign")
 }
 if ($Platform -in @('macos','both')) {
-    $stageLines += "  - deploy"
+    $stageLines.Add("  - deploy")
 }
 # Deduplicate while preserving order
 $stageLines = $stageLines | Select-Object -Unique
 $stagesBlock = $stageLines -join "`n"
+
+# Build variables block based on platform
+$varLines = [System.Collections.Generic.List[string]]::new()
+if ($Platform -eq 'both') {
+    $varLines.Add("  WINDOWS_ENABLED: `"$winEnabled`"")
+    $varLines.Add("  MACOS_ENABLED:   `"$macEnabled`"")
+}
+if ($Platform -in @('windows','both')) {
+    $varLines.Add("  PSADT_FRAMEWORK_VERSION: `"4.1.0`"")
+}
+if ($Platform -in @('macos','both')) {
+    $varLines.Add("  MACOS_ENABLED: `"true`"")
+    $varLines.Add("  TF_JAMF_MODULES_REF: `"main`"")
+}
+# Deduplicate
+$varLines = $varLines | Select-Object -Unique
+$varsBlock = $varLines -join "`n"
 
 Write-File (Join-Path $titleDir '.gitlab-ci.yml') @"
 include:
@@ -697,10 +715,7 @@ stages:
 $stagesBlock
 
 variables:
-  WINDOWS_ENABLED: "$winEnabled"
-  MACOS_ENABLED:   "$macEnabled"
-  PSADT_FRAMEWORK_VERSION: "4.1.0"
-  MACOS_FRAMEWORK_VERSION: "1.0.0"
+$varsBlock
 "@
 
 # ── .gitignore ────────────────────────────────────────────────────────────────
