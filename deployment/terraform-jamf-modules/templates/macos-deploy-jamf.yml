@@ -1,24 +1,18 @@
 ##=============================================================================
-## macos-deploy-jamf.yml — CI Template
-##=============================================================================
-## Deploys a macOS .pkg/.dmg to Jamf Pro via Terraform.
+## macos-deploy-jamf.yml — macOS Jamf Pro deploy via Terraform CI template
+## Include: project: <group>/gitlab-ci-templates, file: templates/macos-deploy-jamf.yml
 ##
-## Prerequisites:
-##   - CI/CD variables (inherited from group):
-##       JAMF_INSTANCE_URL  — Jamf Pro FQDN (e.g. yourinstance.jamfcloud.com)
-##       JAMF_CLIENT_ID     — API client ID
-##       JAMF_CLIENT_SECRET — API client secret
-##       GITLAB_READ_TOKEN  — For cloning terraform-jamf-modules
+## Variables consumed:
+##   MACOS_ENABLED                — Must be 'true'
+##   JAMF_INSTANCE_URL            — Jamf Pro FQDN (e.g. yourorg.jamfcloud.com)
+##   JAMF_CLIENT_ID               — Jamf API client ID (OAuth)
+##   JAMF_CLIENT_SECRET           — Jamf API client secret (protected CI var)
+##   GITLAB_READ_TOKEN            — Token to clone terraform-jamf-modules
+##   TF_JAMF_MODULES_REF          — ref/tag for terraform-jamf-modules (default: main)
 ##
-##   - The package file (.pkg or .dmg) must be in macos/src/Files/
-##
-##   - Title repo must contain:
-##       macos/jamf/package-inputs.json
-##       macos/jamf/policy-inputs.json
-##       macos/jamf/scope-inputs.json
-##
-## Terraform state is managed by GitLab (HTTP backend).
 ## No macOS runner required — runs on default GitLab runners.
+## No build stage dependency — uses pre-packaged .pkg/.dmg from macos/src/Files/.
+## Terraform state is managed by GitLab (HTTP backend).
 ##=============================================================================
 
 macos_deploy_jamf:
@@ -28,9 +22,11 @@ macos_deploy_jamf:
     entrypoint: [""]
   needs: []
   rules:
-    - if: $CI_COMMIT_TAG =~ /^v/
+    - if: $CI_COMMIT_TAG =~ /^v/ && $MACOS_ENABLED == "true"
       when: on_success
-    - when: never
+    - if: $MACOS_ENABLED == "true"
+      when: manual
+      allow_failure: true
   variables:
     TF_JAMF_MODULES_REF: "main"
     TF_STATE_NAME: "jamf-deploy"

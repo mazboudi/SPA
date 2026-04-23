@@ -24,7 +24,9 @@ macos_deploy_jamf:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/ && $MACOS_ENABLED == "true"
       when: on_success
-    - when: never
+    - if: $MACOS_ENABLED == "true"
+      when: manual
+      allow_failure: true
   variables:
     TF_JAMF_MODULES_REF: "main"
     TF_STATE_NAME: "jamf-deploy"
