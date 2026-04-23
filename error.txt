@@ -1,5 +1,5 @@
 Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-ntpkv T5QL6zUm, system ID: r_Zh63XYfnVtwc
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-t9xll -HnqvnMa, system ID: r_9gnMlfhPowvL
 Resolving secrets
 00:00
 Preparing the "kubernetes" executor
@@ -8,78 +8,35 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image hashicorp/terraform:1.7 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:06
-Waiting for pod gitlab-prod/runner-t5ql6zum-project-86264-concurrent-0-51yauw24 to be running, status is Pending
-Waiting for pod gitlab-prod/runner-t5ql6zum-project-86264-concurrent-0-51yauw24 to be running, status is Pending
+00:10
+Waiting for pod gitlab-prod/runner--hnqvnma-project-87869-concurrent-0-nodjpb96 to be running, status is Pending
+Waiting for pod gitlab-prod/runner--hnqvnma-project-87869-concurrent-0-nodjpb96 to be running, status is Pending
 	ContainersNotReady: "containers with unready status: [build helper]"
 	ContainersNotReady: "containers with unready status: [build helper]"
-Running on runner-t5ql6zum-project-86264-concurrent-0-51yauw24 via gitlab-runner-generic-16-3-3-74cb5cfbf6-ntpkv...
+Waiting for pod gitlab-prod/runner--hnqvnma-project-87869-concurrent-0-nodjpb96 to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+Running on runner--hnqvnma-project-87869-concurrent-0-nodjpb96 via gitlab-runner-generic-16-3-3-74cb5cfbf6-t9xll...
 Getting source from Git repository
 00:01
-Fetching changes with git depth set to 1...
-Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
+Fetching changes with git depth set to 20...
+Initialized empty Git repository in /builds/euc/software-package-automation/software-titles/google-chrome/.git/
 Created fresh repository.
-Checking out 0e9884e9 as detached HEAD (ref is main)...
+Checking out 80dda490 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:21
-$ set -euo pipefail # collapsed multi-line command
+00:02
+$ apk add --no-cache bash git pwsh 2>/dev/null || true
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
-(1/2) Installing readline (8.2.1-r2)
-(2/2) Installing bash (5.2.21-r0)
-Executing bash-5.2.21-r0.post-install
-Executing busybox-1.36.1-r15.trigger
-OK: 27 MiB in 37 packages
-Validating module: category
-you run "terraform init" in the future.
-Terraform has been successfully initialized!
-Success! The configuration is valid.
-  ✓ category
-Validating module: extension-attribute
-you run "terraform init" in the future.
-Terraform has been successfully initialized!
-Error: expected data_type to be one of ["STRING" "INTEGER" "DATE"], got String
-  with jamfpro_computer_extension_attribute.this,
-  on main.tf line 18, in resource "jamfpro_computer_extension_attribute" "this":
-  18:   data_type   = "String"
-Error: expected input_type to be one of ["SCRIPT" "TEXT" "POPUP" "DIRECTORY_SERVICE_ATTRIBUTE_MAPPING"], got script
-  with jamfpro_computer_extension_attribute.this,
-  on main.tf line 19, in resource "jamfpro_computer_extension_attribute" "this":
-  19:   input_type  = "script"
-  ✗ extension-attribute failed validation
-Validating module: package
-you run "terraform init" in the future.
-Terraform has been successfully initialized!
-Success! The configuration is valid.
-  ✓ package
-Validating module: policy
-you run "terraform init" in the future.
-Terraform has been successfully initialized!
-Success! The configuration is valid.
-  ✓ policy
-Validating module: smart-group
-you run "terraform init" in the future.
-Terraform has been successfully initialized!
-Warning: Deprecated Resource
-  with jamfpro_smart_computer_group.this,
-  on main.tf line 15, in resource "jamfpro_smart_computer_group" "this":
-  15: resource "jamfpro_smart_computer_group" "this" {
-This resource is superseded by jamfpro_smart_computer_group_v2, which uses
-newly available API endpoints. The endpoints backing
-jamfpro_smart_computer_group are likely to be deprecated. It is recommended
-to migrate to jamfpro_smart_computer_group_v2 as soon as possible. Review the
-migration guide for more details:
-https://github.com/deploymenttheory/terraform-provider-jamfpro/blob/main/docs/resource-migration-guide.md
-Success! The configuration is valid, but there were some validation warnings
-as shown above.
-  ✓ smart-group
-Validating root versions.tf...
-you run "terraform init" in the future.
-Terraform has been successfully initialized!
-Success! The configuration is valid.
-  ✓ root
-❌ 1 module(s) failed Terraform validation.
+$ set -euo pipefail # collapsed multi-line command
+═══════════════════════════════════════════════════════
+  macOS Jamf Deployment — google-chrome
+═══════════════════════════════════════════════════════
+[1/4] Cloning terraform-jamf-modules (ref: main)...
+Cloning into 'terraform-jamf-modules'...
+remote: The project you were looking for could not be found or you don't have permission to view it.
+fatal: repository 'https://gitlab.onefiserv.net/euc/software-package-automation/spa-frameworks/terraform-jamf-modules.git/' not found
 Cleaning up project directory and file based variables
-00:00
-ERROR: Job failed: command terminated with exit code 1
+00:01
+ERROR: Job failed: command terminated with exit code 128
