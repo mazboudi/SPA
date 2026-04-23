@@ -1,5 +1,5 @@
 Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-6tlvp jvVszLvc, system ID: r_iltngUUOAXyp
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-gnpkz _tm9qKjG, system ID: r_CaGIy8K3CXwg
 Resolving secrets
 00:00
 Preparing the "kubernetes" executor
@@ -9,20 +9,20 @@ Using Kubernetes executor with image hashicorp/terraform:1.7 ...
 Using attach strategy to execute scripts...
 Preparing environment
 00:07
-Waiting for pod gitlab-prod/runner-jvvszlvc-project-87869-concurrent-0-a2kqfhts to be running, status is Pending
-Waiting for pod gitlab-prod/runner-jvvszlvc-project-87869-concurrent-0-a2kqfhts to be running, status is Pending
+Waiting for pod gitlab-prod/runner-tm9qkjg-project-87869-concurrent-0-oes38nyz to be running, status is Pending
+Waiting for pod gitlab-prod/runner-tm9qkjg-project-87869-concurrent-0-oes38nyz to be running, status is Pending
 	ContainersNotReady: "containers with unready status: [build helper]"
 	ContainersNotReady: "containers with unready status: [build helper]"
-Running on runner-jvvszlvc-project-87869-concurrent-0-a2kqfhts via gitlab-runner-generic-16-3-3-74cb5cfbf6-6tlvp...
+Running on runner-tm9qkjg-project-87869-concurrent-0-oes38nyz via gitlab-runner-generic-16-3-3-74cb5cfbf6-gnpkz...
 Getting source from Git repository
-00:32
+00:30
 Fetching changes with git depth set to 20...
 Initialized empty Git repository in /builds/euc/software-package-automation/software-titles/google-chrome/.git/
 Created fresh repository.
 Checking out 088c2986 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:09
+00:07
 $ apk add --no-cache bash git jq 2>/dev/null || true
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
@@ -78,14 +78,17 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
+Planning failed. Terraform encountered an error while generating this plan.
 ╷
-│ Error: Unsupported argument
+│ Error: Error building jamf integration
 │ 
-│   on main.tf line 17, in provider "jamfpro":
-│   17:   jamf_instance_fqdn = var.jamf_instance_url
+│   with provider["registry.terraform.io/deploymenttheory/jamfpro"],
+│   on main.tf line 16, in provider "jamfpro":
+│   16: provider "jamfpro" {
 │ 
-│ An argument named "jamf_instance_fqdn" is not expected here.
+│ error: token lifetime is shorter than buffer period. please adjust
+│ parameters
 ╵
 Cleaning up project directory and file based variables
-00:00
+00:01
 ERROR: Job failed: command terminated with exit code 1
