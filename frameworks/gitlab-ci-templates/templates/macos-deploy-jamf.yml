@@ -79,8 +79,12 @@ macos_deploy_jamf:
         -backend-config="unlock_method=DELETE" \
         -backend-config="retry_wait_min=5"
 
+      # Ensure JAMF_INSTANCE_URL has https:// prefix
+      JAMF_URL="${JAMF_INSTANCE_URL}"
+      [[ "$JAMF_URL" != https://* ]] && JAMF_URL="https://${JAMF_URL}"
+
       terraform plan \
-        -var="jamf_instance_url=${JAMF_INSTANCE_URL}" \
+        -var="jamf_instance_url=${JAMF_URL}" \
         -var="jamf_client_id=${JAMF_CLIENT_ID}" \
         -var="jamf_client_secret=${JAMF_CLIENT_SECRET}" \
         -var="package_file_path=${PKG_PATH}" \
