@@ -43,7 +43,7 @@ macos_deploy_jamf:
       # ── 1. Clone terraform-jamf-modules ──────────────────────
       echo "[1/4] Cloning terraform-jamf-modules (ref: $TF_JAMF_MODULES_REF)..."
       git clone --depth 1 --branch "$TF_JAMF_MODULES_REF" \
-        "https://gitlab-ci-token:${GITLAB_READ_TOKEN}@${CI_SERVER_HOST}/euc/software-package-automation/spa-frameworks/terraform-jamf-modules.git" \
+        "https://gitlab-ci-token:${GITLAB_READ_TOKEN}@${CI_SERVER_HOST}/euc/software-package-automation/spa-deployment/terraform-jamf-modules.git" \
         terraform-jamf-modules
 
       # ── 2. Locate the package file ───────────────────────────
