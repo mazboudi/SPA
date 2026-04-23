@@ -115,10 +115,10 @@ terraform {
 }
 
 provider "jamfpro" {
-  jamf_instance_fqdn = var.jamf_instance_url
-  client_id          = var.jamf_client_id
-  client_secret      = var.jamf_client_secret
-  auth_method        = "oauth2"
+  jamfpro_instance_fqdn = var.jamf_instance_url
+  client_id             = var.jamf_client_id
+  client_secret         = var.jamf_client_secret
+  auth_method           = "oauth2"
 }
 
 # ── Package ──────────────────────────────────────────────────────────────────
