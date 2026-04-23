@@ -1,0 +1,226 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #111827;
+  background: #f3f4f6;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, select, textarea, input { font: inherit; }
+button {
+  border: 1px solid #111827;
+  background: #111827;
+  color: #fff;
+  padding: 0.65rem 1rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+button.secondary {
+  background: #fff;
+  color: #111827;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.app-shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.hero, .panel, .summary-bar {
+  background: #fff;
+  border-radius: 1rem;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+}
+
+.hero {
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.hero h1 { margin: 0 0 0.5rem; }
+.hero p { margin: 0; max-width: 70ch; color: #4b5563; }
+.hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.file-input-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px dashed #6b7280;
+  cursor: pointer;
+}
+.file-input-label input { display: none; }
+
+.summary-bar {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 120px)) 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+.summary-bar strong { display: block; font-size: 1.3rem; }
+.summary-bar span { color: #6b7280; }
+.message { color: #1d4ed8; }
+
+.panel { margin-top: 1rem; }
+.panel-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.panel-header.with-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.panel h2 { margin: 0; font-size: 1.05rem; }
+
+.file-list {
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+.file-card {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.8rem;
+  padding: 0.75rem;
+}
+.file-card.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+.file-name { font-weight: 600; }
+.file-meta { color: #6b7280; font-size: 0.92rem; }
+
+.segmented {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.segmented button {
+  background: #fff;
+  color: #111827;
+}
+.segmented button.active {
+  background: #111827;
+  color: #fff;
+}
+
+.overlay-table-wrapper {
+  overflow: auto;
+}
+.overlay-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.overlay-table th,
+.overlay-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.9rem;
+  text-align: left;
+  vertical-align: top;
+}
+.overlay-table th {
+  position: sticky;
+  top: 0;
+  background: #f9fafb;
+  z-index: 1;
+}
+.overlay-table pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #f9fafb;
+  border-radius: 0.6rem;
+  padding: 0.65rem;
+  max-width: 340px;
+}
+.path-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92rem;
+}
+.chip {
+  display: inline-block;
+  margin-top: 0.4rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.55rem;
+}
+.chip.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+textarea {
+  min-width: 280px;
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid #d1d5db;
+  border-radius: 0.6rem;
+  padding: 0.7rem;
+}
+select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.6rem;
+  padding: 0.6rem;
+  background: #fff;
+}
+.checkbox-list {
+  margin-top: 0.75rem;
+  max-height: 150px;
+  overflow: auto;
+  display: grid;
+  gap: 0.45rem;
+}
+.action-row {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.files-affected, .error-text {
+  font-size: 0.88rem;
+}
+.error-text { color: #b91c1c; }
+.per-file-values {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 1.25rem;
+}
+.suggestion-list {
+  margin: 0;
+  padding: 1rem 1.25rem 1.25rem 2.2rem;
+  color: #374151;
+}
+
+@media (max-width: 980px) {
+  .hero {
+    flex-direction: column;
+  }
+  .summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
