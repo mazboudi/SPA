@@ -31,7 +31,7 @@ macos_deploy_jamf:
     TF_JAMF_MODULES_REF: "main"
     TF_STATE_NAME: "jamf-deploy"
   before_script:
-    - apk add --no-cache bash git pwsh 2>/dev/null || true
+    - apk add --no-cache bash git jq 2>/dev/null || true
   script:
     - |
       set -euo pipefail
@@ -58,11 +58,12 @@ macos_deploy_jamf:
 
       # ── 3. Generate Terraform config ─────────────────────────
       echo "[3/4] Generating Terraform config..."
-      pwsh -NoProfile -File terraform-jamf-modules/scripts/Build-JamfTerraform.ps1 \
-        -JamfInputDir  macos/jamf \
-        -PackagePath   "$PKG_PATH" \
-        -ModulesDir    terraform-jamf-modules/modules \
-        -OutputDir     tf-deploy
+      bash terraform-jamf-modules/scripts/Build-JamfTerraform.sh \
+        --jamf-input-dir  macos/jamf \
+        --package-yaml    macos/package.yaml \
+        --package-path    "$PKG_PATH" \
+        --modules-dir     terraform-jamf-modules/modules \
+        --output-dir      tf-deploy
 
       # ── 4. Terraform init + apply ────────────────────────────
       echo "[4/4] Running Terraform..."
