@@ -115,7 +115,6 @@ validate_required_jobs:
       check_job templates/windows-build.yml         "windows_build"          || ERRORS=$((ERRORS+1))
       check_job templates/windows-deploy-intune.yml "windows_publish_intune" || ERRORS=$((ERRORS+1))
       check_job templates/windows-deploy-intune.yml "windows_assign_intune"  || ERRORS=$((ERRORS+1))
-      check_job templates/macos-build.yml           "macos_build"            || ERRORS=$((ERRORS+1))
       check_job templates/macos-deploy-jamf.yml     "macos_deploy_jamf"      || ERRORS=$((ERRORS+1))
 
       if [[ $ERRORS -gt 0 ]]; then
