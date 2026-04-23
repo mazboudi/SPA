@@ -1,5 +1,5 @@
 Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-gnpkz _tm9qKjG, system ID: r_CaGIy8K3CXwg
+  on gitlab-runner-generic-16-3-3-74cb5cfbf6-6tlvp jvVszLvc, system ID: r_iltngUUOAXyp
 Resolving secrets
 00:00
 Preparing the "kubernetes" executor
@@ -8,21 +8,31 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image hashicorp/terraform:1.7 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:04
-Waiting for pod gitlab-prod/runner-tm9qkjg-project-87869-concurrent-0-nz35qe0q to be running, status is Pending
-Running on runner-tm9qkjg-project-87869-concurrent-0-nz35qe0q via gitlab-runner-generic-16-3-3-74cb5cfbf6-gnpkz...
+00:07
+Waiting for pod gitlab-prod/runner-jvvszlvc-project-87869-concurrent-0-a2kqfhts to be running, status is Pending
+Waiting for pod gitlab-prod/runner-jvvszlvc-project-87869-concurrent-0-a2kqfhts to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+Running on runner-jvvszlvc-project-87869-concurrent-0-a2kqfhts via gitlab-runner-generic-16-3-3-74cb5cfbf6-6tlvp...
 Getting source from Git repository
-00:25
+00:32
 Fetching changes with git depth set to 20...
 Initialized empty Git repository in /builds/euc/software-package-automation/software-titles/google-chrome/.git/
 Created fresh repository.
 Checking out 088c2986 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-00:03
-$ apk add --no-cache bash git pwsh 2>/dev/null || true
+00:09
+$ apk add --no-cache bash git jq 2>/dev/null || true
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
+(1/4) Installing readline (8.2.1-r2)
+(2/4) Installing bash (5.2.21-r0)
+Executing bash-5.2.21-r0.post-install
+(3/4) Installing oniguruma (6.9.9-r0)
+(4/4) Installing jq (1.7.1-r0)
+Executing busybox-1.36.1-r15.trigger
+OK: 28 MiB in 39 packages
 $ set -euo pipefail # collapsed multi-line command
 ═══════════════════════════════════════════════════════
   macOS Jamf Deployment — google-chrome
@@ -32,7 +42,50 @@ Cloning into 'terraform-jamf-modules'...
 [2/4] Locating package file...
   Found: macos/src/Files/Chrome-147.0.7727.102.pkg
 [3/4] Generating Terraform config...
-/scripts-87869-26834047/step_script: eval: line 228: pwsh: not found
+  Receipt ID: com.google.chrome
+Generating Terraform config for: Google Chrome 147.0.7727.102
+  Package: /builds/euc/software-package-automation/software-titles/google-chrome/macos/src/Files/Chrome-147.0.7727.102.pkg
+  ✅ Extension attribute module included (receipt: com.google.chrome)
+✅ Generated Terraform config in: tf-deploy/
+   main.tf      — package + policy modules
+   variables.tf — provider credentials + package path
+[4/4] Running Terraform...
+Initializing the backend...
+Successfully configured the backend "http"! Terraform will automatically
+use this backend unless the backend configuration changes.
+Initializing modules...
+Downloading file:///builds/euc/software-package-automation/software-titles/google-chrome/terraform-jamf-modules/modules/extension-attribute for extension_attribute...
+- extension_attribute in .terraform/modules/extension_attribute
+Downloading file:///builds/euc/software-package-automation/software-titles/google-chrome/terraform-jamf-modules/modules/package for package...
+- package in .terraform/modules/package
+Downloading file:///builds/euc/software-package-automation/software-titles/google-chrome/terraform-jamf-modules/modules/policy for policy...
+- policy in .terraform/modules/policy
+Initializing provider plugins...
+- Finding deploymenttheory/jamfpro versions matching "~> 0.37"...
+- Installing deploymenttheory/jamfpro v0.37.0...
+- Installed deploymenttheory/jamfpro v0.37.0 (self-signed, key ID DB95CA76A94A208C)
+Partner and community providers are signed by their developers.
+If you'd like to know more about provider signing, you can read about it here:
+https://www.terraform.io/docs/cli/plugins/signing.html
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+╷
+│ Error: Unsupported argument
+│ 
+│   on main.tf line 17, in provider "jamfpro":
+│   17:   jamf_instance_fqdn = var.jamf_instance_url
+│ 
+│ An argument named "jamf_instance_fqdn" is not expected here.
+╵
 Cleaning up project directory and file based variables
 00:00
-ERROR: Job failed: command terminated with exit code 127
+ERROR: Job failed: command terminated with exit code 1
