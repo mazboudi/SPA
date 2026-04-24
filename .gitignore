@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+tf-deploy/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+out/
+*.intunewin
