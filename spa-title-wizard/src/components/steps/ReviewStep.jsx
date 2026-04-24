@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import generateScaffolding from '../../lib/generateScaffolding';
 import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
+import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
@@ -10,6 +11,11 @@ export default function ReviewStep({ state }) {
   const [selectedFile, setSelectedFile] = useState(filePaths[0] || '');
   const [exporting, setExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState('');
+
+  // Schema validation
+  const validationResults = useMemo(() => validateGeneratedFiles(files), [files]);
+  const allValid = validationResults.length > 0 && validationResults.every(r => r.valid);
+  const hasErrors = validationResults.some(r => !r.valid);
 
   const handleDownloadZip = async () => {
     setExporting(true);
@@ -90,6 +96,31 @@ export default function ReviewStep({ state }) {
         {exportSuccess === 'folder' && (
           <span className="export-success animate-in">✅ Exported to folder!</span>
         )}
+      </div>
+
+      {/* Schema Validation */}
+      <div className={`validation-panel ${hasErrors ? 'validation-panel--error' : 'validation-panel--ok'}`}>
+        <div className="validation-panel__header">
+          <span className="validation-panel__icon">{hasErrors ? '⚠️' : '✅'}</span>
+          <span className="validation-panel__title">
+            {validationResults.length === 0
+              ? 'No JSON schemas to validate'
+              : hasErrors
+                ? 'Schema Validation Failed'
+                : `All ${validationResults.length} schema checks passed`}
+          </span>
+        </div>
+        {validationResults.map(r => (
+          <div key={r.file} className={`validation-item ${r.valid ? 'validation-item--ok' : 'validation-item--err'}`}>
+            <span className="validation-item__icon">{r.valid ? '✓' : '✗'}</span>
+            <span className="validation-item__file">{r.file}</span>
+            {!r.valid && (
+              <ul className="validation-item__errors">
+                {r.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* File browser */}
@@ -221,6 +252,57 @@ export default function ReviewStep({ state }) {
           padding: 2px 6px;
           border-radius: 3px;
         }
+
+        /* Validation panel */
+        .validation-panel {
+          padding: var(--space-md) var(--space-lg);
+          border-radius: var(--radius-md);
+          margin-bottom: var(--space-xl);
+          border: 1px solid;
+        }
+        .validation-panel--ok {
+          background: rgba(34, 197, 94, 0.08);
+          border-color: rgba(34, 197, 94, 0.3);
+        }
+        .validation-panel--error {
+          background: rgba(239, 68, 68, 0.08);
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+        .validation-panel__header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          margin-bottom: var(--space-sm);
+        }
+        .validation-panel__icon { font-size: 1.1rem; }
+        .validation-panel__title {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .validation-item {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          gap: var(--space-sm);
+          padding: 4px 0;
+          font-size: 0.8rem;
+        }
+        .validation-item--ok .validation-item__icon { color: var(--color-success); }
+        .validation-item--err .validation-item__icon { color: var(--color-error); font-weight: bold; }
+        .validation-item__file {
+          font-family: var(--font-mono);
+          color: var(--text-secondary);
+        }
+        .validation-item__errors {
+          width: 100%;
+          margin: 4px 0 4px 24px;
+          padding-left: var(--space-md);
+          color: var(--color-error);
+          font-size: 0.75rem;
+          font-family: var(--font-mono);
+        }
+        .validation-item__errors li { margin-bottom: 2px; }
       `}</style>
     </div>
   );

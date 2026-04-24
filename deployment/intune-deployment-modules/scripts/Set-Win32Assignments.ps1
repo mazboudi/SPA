@@ -58,12 +58,22 @@ $token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $C
 $assignBody = @{
     mobileAppAssignments = @(
         foreach ($a in $assignments) {
+            $target = @{
+                '@odata.type' = '#microsoft.graph.groupAssignmentTarget'
+                groupId       = $a.groupId
+            }
+
+            # Wire assignment filters (filterMode + filterId) when specified
+            $filterMode = $a.filterMode ?? 'none'
+            if ($filterMode -ne 'none' -and $a.filterId) {
+                $target['deviceAndAppManagementAssignmentFilterId']   = $a.filterId
+                $target['deviceAndAppManagementAssignmentFilterType'] = $filterMode   # 'include' or 'exclude'
+                Log "  Filter: mode=$filterMode, filterId=$($a.filterId)"
+            }
+
             @{
                 '@odata.type' = '#microsoft.graph.mobileAppAssignment'
-                target        = @{
-                    '@odata.type' = '#microsoft.graph.groupAssignmentTarget'
-                    groupId       = $a.groupId
-                }
+                target        = $target
                 intent        = $a.intent ?? 'required'
                 settings      = @{
                     '@odata.type'                   = '#microsoft.graph.win32LobAppAssignmentSettings'

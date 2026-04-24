@@ -7,6 +7,9 @@
 ##   PSADT_FRAMEWORK_VERSION    — e.g. '4.1.0' (matches psadt-enterprise tag)
 ##   PSADT_PROJECT_ID           — GitLab project ID of psadt-enterprise repo
 ##   GITLAB_READ_TOKEN          — Token with read_api + read_registry scope
+##   INTUNE_MODULES_PROJECT_ID  — (optional) GitLab project ID of intune-deployment-modules
+##                                 Required only when lifecycle.yaml is present (new titles)
+##   INTUNE_MODULES_REF         — (optional) Ref/tag for intune-deployment-modules (default: main)
 ##
 ## IntuneWinAppUtil.exe is bundled inside the psadt-enterprise framework zip at
 ##   tools/IntuneWinAppUtil.exe
@@ -130,6 +133,52 @@
         Write-Warning "Expected path: $psadtRuntime"
         Write-Warning "Please add the PSADT runtime to the psadt-enterprise bundle."
       }
+      ## 4a — Generate Invoke-AppDeployToolkit.ps1 from lifecycle.yaml (if present)
+      ##       New titles use lifecycle.yaml (declarative); legacy titles commit the .ps1 directly.
+      $titleDeploy = 'windows/src/Invoke-AppDeployToolkit.ps1'
+      $lifecyclePath = 'windows/lifecycle.yaml'
+
+      if (Test-Path $lifecyclePath) {
+        Write-Host "--- Generating Invoke-AppDeployToolkit.ps1 from lifecycle.yaml ---" -ForegroundColor Cyan
+
+        # Download lifecycle builder scripts from intune-deployment-modules
+        $lcModulesDir = 'intune-modules'
+        if (!(Test-Path $lcModulesDir)) { New-Item -ItemType Directory -Path $lcModulesDir | Out-Null }
+        $lcHeaders = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
+        $lcRef = $env:INTUNE_MODULES_REF ?? 'main'
+        $lcScripts = @('Build-PsadtFromLifecycle.ps1', 'Build-DeployApplication.ps1', 'IntuneDeployment.psm1')
+        foreach ($lcScript in $lcScripts) {
+          $encoded = [uri]::EscapeDataString("scripts/$lcScript")
+          $uri = "$($env:CI_API_V4_URL)/projects/$($env:INTUNE_MODULES_PROJECT_ID)/repository/files/$encoded/raw?ref=$lcRef"
+          $dest = Join-Path $lcModulesDir $lcScript
+          try {
+            Invoke-WebRequest -Uri $uri -Headers $lcHeaders -OutFile $dest -ErrorAction Stop
+          } catch {
+            throw "Failed to download $lcScript from intune-deployment-modules. Ensure INTUNE_MODULES_PROJECT_ID is set."
+          }
+        }
+
+        # Ensure output directory exists
+        $deployDir = Split-Path $titleDeploy -Parent
+        if (!(Test-Path $deployDir)) { New-Item -ItemType Directory -Path $deployDir -Force | Out-Null }
+
+        # Generate the PSADT script
+        & "$lcModulesDir/Build-PsadtFromLifecycle.ps1" `
+            -LifecyclePath  $lifecyclePath `
+            -PackageYamlPath 'windows/package.yaml' `
+            -AppJsonPath     'app.json' `
+            -OutputPath      $titleDeploy `
+            -FrameworkVersion $env:PSADT_FRAMEWORK_VERSION
+
+        if (!(Test-Path $titleDeploy)) {
+          throw "Build-PsadtFromLifecycle.ps1 did not produce $titleDeploy"
+        }
+        Write-Host "  ✓ Generated $titleDeploy from lifecycle.yaml"
+      } elseif (!(Test-Path $titleDeploy)) {
+        throw "Missing both windows/lifecycle.yaml and windows/src/Invoke-AppDeployToolkit.ps1 — cannot build."
+      } else {
+        Write-Host "Using committed Invoke-AppDeployToolkit.ps1 (no lifecycle.yaml found)"
+      }
 
       ## 5 — Build staging area
       $staging = Join-Path $env:TEMP ("psadt_build_" + [guid]::NewGuid())
@@ -139,13 +188,8 @@
       Copy-Item -Path (Join-Path $frameworkDir '*') -Destination $staging -Recurse -Force
 
       # Overlay title's Invoke-AppDeployToolkit.ps1 (PSADT v4)
-      $titleDeploy = 'windows/src/Invoke-AppDeployToolkit.ps1'
-      if (Test-Path $titleDeploy) {
-        Write-Host "Overlaying title Invoke-AppDeployToolkit.ps1..."
-        Copy-Item -Path $titleDeploy -Destination $staging -Force
-      } else {
-        throw "Missing windows/src/Invoke-AppDeployToolkit.ps1 — run New-Title to scaffold this file."
-      }
+      Write-Host "Overlaying title Invoke-AppDeployToolkit.ps1..."
+      Copy-Item -Path $titleDeploy -Destination $staging -Force
 
       # Copy installer from runner VM if WINDOWS_INSTALLER_SOURCE is set
       # Use this when the installer is pre-staged on the runner (e.g. C:\files\7-zip\7z2408-x64.msi)

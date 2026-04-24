@@ -280,8 +280,8 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
             options={[
               { value: '21H2', label: 'Windows 10 21H2' },
               { value: '22H2', label: 'Windows 10/11 22H2' },
-              { value: '23H2', label: 'Windows 11 23H2' },
-              { value: '24H2', label: 'Windows 11 24H2' },
+              { value: 'Windows11_23H2', label: 'Windows 11 23H2' },
+              { value: 'Windows11_24H2', label: 'Windows 11 24H2' },
             ]}
           />
           <SelectField label="Architecture" id="applicableArch" value={state.applicableArch}
@@ -289,7 +289,7 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
             options={[
               { value: 'x64', label: 'x64 (64-bit)' },
               { value: 'x86', label: 'x86 (32-bit)' },
-              { value: 'x64,x86', label: 'Both (x64 + x86)' },
+              { value: 'neutral', label: 'Neutral (architecture independent)' },
             ]}
           />
           <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB">
