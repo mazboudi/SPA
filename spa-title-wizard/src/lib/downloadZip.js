@@ -1,0 +1,53 @@
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+
+/**
+ * Download all files as a ZIP archive
+ */
+export async function downloadAsZip(files, packageId) {
+  const zip = new JSZip();
+  const root = zip.folder(packageId);
+
+  for (const [path, content] of Object.entries(files)) {
+    root.file(path, content);
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveAs(blob, `${packageId}.zip`);
+}
+
+/**
+ * Export files to a folder using the File System Access API
+ * Returns false if the API is not supported or user cancels
+ */
+export async function exportToFolder(files, packageId) {
+  if (!('showDirectoryPicker' in window)) {
+    return false;
+  }
+
+  try {
+    const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const rootHandle = await dirHandle.getDirectoryHandle(packageId, { create: true });
+
+    for (const [path, content] of Object.entries(files)) {
+      const parts = path.split('/');
+      let current = rootHandle;
+
+      // Create subdirectories
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = await current.getDirectoryHandle(parts[i], { create: true });
+      }
+
+      // Write file
+      const fileHandle = await current.getFileHandle(parts[parts.length - 1], { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+    }
+
+    return true;
+  } catch (err) {
+    if (err.name === 'AbortError') return false; // User cancelled
+    throw err;
+  }
+}
