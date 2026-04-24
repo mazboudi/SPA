@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "cfb": "^1.2.2",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "react": "^19.2.5",

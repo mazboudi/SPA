@@ -97,24 +97,27 @@ windows/src/Invoke-AppDeployToolkit.ps1
 
     // Detection block
     let detectionBlock = '';
+    const detOp = s.fileDetOperator || 'greaterThanOrEqual';
     switch (s.detectionMode) {
       case 'msi-product-code':
         detectionBlock = `detection_mode: msi-product-code
 detection:
   product_code: "${productCode}"
-  version_operator: greaterThanOrEqual
+  version_operator: ${detOp}
   version: "${s.version}"`;
         break;
-      case 'registry-marker':
+      case 'registry-marker': {
+        const rkp = s.regKeyPath || `SOFTWARE\\\\Fiserv\\\\InstalledApps\\\\${s.packageId}`;
         detectionBlock = `detection_mode: registry-marker
 detection:
-  hive: HKLM
-  key_path: "SOFTWARE\\\\Fiserv\\\\InstalledApps\\\\${s.packageId}"
-  value_name: Version
-  operator: greaterThanOrEqual
-  value: "${s.version}"
+  hive: ${s.regHive || 'HKLM'}
+  key_path: "${rkp}"
+  value_name: ${s.regValueName || 'Version'}
+  operator: ${s.regOperator || 'greaterThanOrEqual'}
+  value: "${s.regValue || s.version}"
   check32BitOn64System: ${s.regCheck32Bit}`;
         break;
+      }
       case 'file': {
         const fp = s.fileDetPath || 'C:\\\\Program Files\\\\TODO';
         const fn = s.fileDetName || 'TODO.exe';
@@ -190,37 +193,42 @@ ${optLines.join('\n')}
       owner: 'EUC Packaging',
       installCommandLine: 'Invoke-AppDeployToolkit.exe',
       uninstallCommandLine: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall',
-      applicableArchitectures: 'x64',
-      minimumSupportedWindowsRelease: '22H2',
+      applicableArchitectures: s.applicableArch || 'x64',
+      minimumSupportedWindowsRelease: s.minWinRelease || '22H2',
       displayVersion: s.version,
       allowAvailableUninstall: true,
       installContext: 'system',
       restartBehavior: s.restartBehavior,
     }, null, 2);
 
-    // Intune assignments.json
-    files['windows/intune/assignments.json'] = JSON.stringify([{
-      intent: 'available',
-      groupId: 'TODO-ENTRA-ID-GROUP-OBJECT-ID',
-      filterMode: 'none',
-      notifications: 'showAll',
-      deliveryOptimizationPriority: 'notConfigured',
-    }], null, 2);
+    // Intune assignments.json — use wizard assignments
+    const assignArr = s.assignments.map(a => {
+      const entry = {
+        intent: a.intent,
+        groupId: a.groupId || 'TODO-ENTRA-ID-GROUP-OBJECT-ID',
+        filterMode: a.filterMode,
+        notifications: a.notifications,
+        deliveryOptimizationPriority: a.deliveryOptPriority,
+      };
+      if (a.filterMode !== 'none' && a.filterId) entry.filterId = a.filterId;
+      return entry;
+    });
+    files['windows/intune/assignments.json'] = JSON.stringify(assignArr, null, 2);
 
     // Intune requirements.json
     files['windows/intune/requirements.json'] = JSON.stringify({
-      minimumSupportedWindowsRelease: '22H2',
-      applicableArchitectures: 'x64',
-      minimumFreeDiskSpaceInMB: 500,
-      minimumMemoryInMB: 2048,
+      minimumSupportedWindowsRelease: s.minWinRelease || '22H2',
+      applicableArchitectures: s.applicableArch || 'x64',
+      minimumFreeDiskSpaceInMB: s.minDiskSpaceMB || 500,
+      minimumMemoryInMB: s.minMemoryMB || 2048,
       minimumNumberOfProcessors: null,
       minimumCpuSpeedInMHz: null,
     }, null, 2);
 
     // Intune supersedence.json
     files['windows/intune/supersedence.json'] = JSON.stringify({
-      supersededAppId: '',
-      supersedenceType: 'update',
+      supersededAppId: s.supersedesAppId || '',
+      supersedenceType: s.supersedenceType || 'update',
     }, null, 2);
 
     // .gitkeep
@@ -228,7 +236,7 @@ ${optLines.join('\n')}
 
     // Script detection
     if (s.detectionMode === 'script') {
-      files['windows/detection/detect.ps1'] = `<#
+      const scriptBody = s.scriptContent || `<#
 .SYNOPSIS
   Intune detection script for ${s.displayName}.
   Exit 0 + stdout = detected (installed).
@@ -245,6 +253,7 @@ if (Test-Path $appPath) {
     exit 1
 }
 `;
+      files['windows/detection/detect.ps1'] = scriptBody;
       files['windows/detection/detection-config.json'] = JSON.stringify({
         runAs32Bit: s.scriptRunAs32Bit,
         enforceSignatureCheck: s.scriptEnforceSignature,

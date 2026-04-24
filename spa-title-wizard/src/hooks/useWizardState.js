@@ -37,6 +37,29 @@ const INITIAL_STATE = {
   fileDetValue: '',
   scriptRunAs32Bit: false,
   scriptEnforceSignature: false,
+  scriptContent: '', // uploaded detection script content
+
+  // Registry detection details
+  regHive: 'HKLM',
+  regKeyPath: '',
+  regValueName: 'Version',
+  regOperator: 'greaterThanOrEqual',
+  regValue: '',
+
+  // Intune Assignments
+  assignments: [
+    { intent: 'available', groupId: '', filterMode: 'none', filterId: '', notifications: 'showAll', deliveryOptPriority: 'notConfigured' },
+  ],
+
+  // Supersedence
+  supersedesAppId: '',
+  supersedenceType: 'update',
+
+  // Requirements
+  minWinRelease: '22H2',
+  applicableArch: 'x64',
+  minDiskSpaceMB: 500,
+  minMemoryMB: 2048,
 
   // Lifecycle phases (PSADT)
   lifecycle: {
