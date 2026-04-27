@@ -260,16 +260,16 @@
       $sha256 = (Get-FileHash -Path $targetPath -Algorithm SHA256).Hash.ToLower()
       $builtAt = (Get-Date -Format 'o')
 
-      $dotenv = @"
-INTUNEWIN_PATH=$targetPath
-INTUNEWIN_FILENAME=$targetName
-INTUNEWIN_SHA256=$sha256
-PACKAGE_ID=$($app.package_id)
-VENDOR_VERSION=$vendorVer
-PACKAGING_VERSION=$pkgVer
-PLATFORM=windows
-BUILT_AT=$builtAt
-"@
+      $dotenv = @(
+        "INTUNEWIN_PATH=$targetPath",
+        "INTUNEWIN_FILENAME=$targetName",
+        "INTUNEWIN_SHA256=$sha256",
+        "PACKAGE_ID=$($app.package_id)",
+        "VENDOR_VERSION=$vendorVer",
+        "PACKAGING_VERSION=$pkgVer",
+        "PLATFORM=windows",
+        "BUILT_AT=$builtAt"
+      ) -join "`n"
       $dotenv | Out-File (Join-Path $outDir 'build.env') -Encoding ascii -Force
       Write-Host "Dotenv written: out/build.env"
 
