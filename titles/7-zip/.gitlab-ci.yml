@@ -11,4 +11,5 @@ stages:
   - assign
 
 variables:
+  WINDOWS_ENABLED: "true"
   PSADT_FRAMEWORK_VERSION: "4.1.0"

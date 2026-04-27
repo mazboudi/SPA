@@ -42,11 +42,10 @@ export default function generateScaffolding(s) {
   const uniqueStages = [...new Set(stages)];
 
   const vars = [];
-  if (s.platform === 'both') {
-    vars.push(`  WINDOWS_ENABLED: "${winEnabled}"`);
-    vars.push(`  MACOS_ENABLED: "${macEnabled}"`);
+  if (isWin) {
+    vars.push('  WINDOWS_ENABLED: "true"');
+    vars.push('  PSADT_FRAMEWORK_VERSION: "4.1.0"');
   }
-  if (isWin) vars.push('  PSADT_FRAMEWORK_VERSION: "4.1.0"');
   if (isMac) {
     vars.push('  MACOS_ENABLED: "true"');
     vars.push('  TF_JAMF_MODULES_REF: "main"');
