@@ -100,12 +100,52 @@ function ConvertFrom-SimpleYaml {
 
         $parent = $stack[-1].node
 
-        # Array item
-        if ($text -match '^- (.+)$') {
+        # Array item: handles both "- value" and "- key: value" (map in array)
+        if ($text -match '^-\s+(.+)$') {
+            $itemContent = $matches[1].Trim()
+
+            # If parent is a hashtable, the last key created it as @{} but it
+            # should be an array.  Walk back and swap the entry to ArrayList.
+            if ($parent -is [hashtable]) {
+                $grandparent = if ($stack.Count -ge 2) { $stack[-2].node } else { $null }
+                if ($grandparent -is [hashtable]) {
+                    $keyToFix = $null
+                    foreach ($k in $grandparent.Keys) {
+                        if ([object]::ReferenceEquals($grandparent[$k], $parent)) {
+                            $keyToFix = $k; break
+                        }
+                    }
+                    if ($keyToFix) {
+                        $arr = [System.Collections.ArrayList]::new()
+                        $grandparent[$keyToFix] = $arr
+                        $stack[-1] = @{ indent = $stack[-1].indent; node = $arr }
+                        $parent = $arr
+                    }
+                }
+            }
+
             if (-not ($parent -is [System.Collections.IList])) {
                 throw "YAML error: array item without array context: $text"
             }
-            $parent.Add((Convert-YamlValue $matches[1]))
+
+            # Check if item is a key:value pair (start of a mapping in an array)
+            if ($itemContent -match '^([^:]+):\s*(.*)$') {
+                $arrKey = $matches[1].Trim()
+                $arrVal = $matches[2].Trim()
+                $mapItem = @{}
+                if ($arrVal -ne '') {
+                    $mapItem[$arrKey] = Convert-YamlValue $arrVal
+                } else {
+                    $child = @{}
+                    $mapItem[$arrKey] = $child
+                    # Push the child for nested keys under this array item
+                }
+                $parent.Add($mapItem) | Out-Null
+                # Push the mapItem so subsequent indented keys attach to it
+                $stack += @{ indent = $indent; node = $mapItem }
+            } else {
+                $parent.Add((Convert-YamlValue $itemContent)) | Out-Null
+            }
             continue
         }
 
@@ -115,7 +155,7 @@ function ConvertFrom-SimpleYaml {
             $val = $matches[2].Trim()
 
             if ($val -eq '') {
-                # Start nested object
+                # Start nested object — could become array later if children start with "-"
                 $child = @{}
                 $parent[$key] = $child
                 $stack += @{ indent = $indent; node = $child }
