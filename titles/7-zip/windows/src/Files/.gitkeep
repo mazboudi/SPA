@@ -1,9 +1,2 @@
-# Drop installer binaries here. These are NOT committed to git.
-# Expected file: 7z2408-x64.msi
-#
-# Download from: https://www.7-zip.org/a/7z2408-x64.msi
-# SHA-256: verify against https://www.7-zip.org/download.html before deploying.
-#
-# To verify the MSI product code matches what's in package.yaml, run:
-#   pwsh -File frameworks\psadt-enterprise\tools\Get-MsiMetadata.ps1 `
-#             -MsiPath titles\7-zip\windows\src\Files\7z2408-x64.msi
+# Drop installer binary here. Do NOT commit binaries to git.
+# Expected: 7z2600-x64.msi

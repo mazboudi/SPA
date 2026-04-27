@@ -1,19 +1,14 @@
 include:
   - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
-    ref: 'main'    # TODO: pin to 'v1.0.1' once templates are stable
+    ref: 'main'
     file:
       - 'templates/windows-build.yml'
       - 'templates/windows-deploy-intune.yml'
 
-# Stages used by the included templates.
 stages:
   - build
   - publish
   - assign
 
 variables:
-  WINDOWS_ENABLED:          "true"
-  MACOS_ENABLED:            "false"
-  PSADT_FRAMEWORK_VERSION:  "4.1.0"
-  # Installer is pre-staged on the runner VM — no download needed
-  WINDOWS_INSTALLER_SOURCE: "C:\\files\\7-zip\\7z2408-x64.msi"
+  PSADT_FRAMEWORK_VERSION: "4.1.0"

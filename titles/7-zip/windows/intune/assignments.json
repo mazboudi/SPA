@@ -1,7 +1,9 @@
 [
-    {
-        "intent": "available",
-        "groupId": "TODO-EUC-PSA-TESTING-AAD-GROUP-OBJECT-ID",
-        "filterMode": "none"
-    }
+  {
+    "intent": "available",
+    "groupId": "207ca967-c626-436e-8983-498d95d17384",
+    "filterMode": "none",
+    "notifications": "showAll",
+    "deliveryOptimizationPriority": "notConfigured"
+  }
 ]

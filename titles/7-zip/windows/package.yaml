@@ -1,15 +1,27 @@
-# 7-Zip 26.00 — Windows package definition
+# 7-Zip 26.00.00 — Windows package definition
 package_id: 7-zip
-display_name: "7-Zip 26.00"
-version: "26.00"
-packaging_version: "1"
+display_name: "7-Zip v26.00.00-4"
+version: "26.00.00"
+packaging_version: "4"
 installer_type: msi
+source_filename: 7z2600-x64.msi
+max_install_time: 60
 
-install_command: 'msiexec.exe /i "Files\7z2600-x64.msi" /qn /norestart'
-uninstall_command: 'msiexec.exe /x "{23170F69-40C1-2702-2408-000001000000}" /qn /norestart'
+install_command: 'Invoke-AppDeployToolkit.exe'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
 
 detection_mode: msi-product-code
 detection:
-  product_code: "{23170F69-40C1-2702-2408-000001000000}"
+  product_code: "{23170F69-40C1-2702-2600-000001000000}"
   version_operator: greaterThanOrEqual
-  version: "26.00"
+  version: "26.00.00"
+
+restart_behavior: suppress
+install_experience: system
+
+msi_information:
+  product_code: "{23170F69-40C1-2702-2600-000001000000}"
+  product_version: "26.00.00.0"
+  product_name: "7-Zip 26.00 (x64 edition)"
+  upgrade_code: "{23170F69-40C1-2702-0000-000004000000}"
+  manufacturer: "Igor Pavlov"
