@@ -4,6 +4,7 @@ import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
 import AssignmentsSection from '../ui/AssignmentsSection';
 import { parseMsiFile } from '../../lib/parseMsi';
+import windowsOptions from '../../config/windowsOptions.json';
 
 export default function WindowsConfigStep({ state, updateField, updateLifecycle, updateLifecycleRoot }) {
   const [showLifecycle, setShowLifecycle] = useState(false);
@@ -277,20 +278,11 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         <div className="form-grid">
           <SelectField label="Minimum Windows Release" id="minWinRelease" value={state.minWinRelease}
             onChange={v => updateField('minWinRelease', v)}
-            options={[
-              { value: '21H2', label: 'Windows 10 21H2' },
-              { value: '22H2', label: 'Windows 10/11 22H2' },
-              { value: 'Windows11_23H2', label: 'Windows 11 23H2' },
-              { value: 'Windows11_24H2', label: 'Windows 11 24H2' },
-            ]}
+            options={windowsOptions.windowsReleases}
           />
           <SelectField label="Architecture" id="applicableArch" value={state.applicableArch}
             onChange={v => updateField('applicableArch', v)}
-            options={[
-              { value: 'x64', label: 'x64 (64-bit)' },
-              { value: 'x86', label: 'x86 (32-bit)' },
-              { value: 'neutral', label: 'Neutral (architecture independent)' },
-            ]}
+            options={windowsOptions.architectures}
           />
           <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB">
             <input id="minDiskSpaceMB" type="number" min="0" value={state.minDiskSpaceMB} onChange={e => updateField('minDiskSpaceMB', parseInt(e.target.value) || 500)} />
