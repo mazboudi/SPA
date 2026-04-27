@@ -73,54 +73,58 @@ function ConvertFrom-SimpleYaml {
 
     $lines = $Yaml -split "`r?`n"
     $root  = @{}
-    $stack = @(@{ indent = -1; node = $root })
+    # Stack entries: @{ indent = <int>; node = <hashtable|ArrayList>; key = <string|$null> }
+    # 'key' tracks the last key set on the parent, so we can retroactively swap
+    # a hashtable placeholder to an ArrayList when the first "- " child appears.
+    $stack = [System.Collections.ArrayList]@(
+        @{ indent = -1; node = $root; key = $null }
+    )
 
     foreach ($raw in $lines) {
 
         $trimmed = $raw.Trim()
 
-        # Skip full-line comments
-        if ($trimmed.StartsWith('#')) {
+        # Skip full-line comments and blank lines
+        if ($trimmed -eq '' -or $trimmed.StartsWith('#')) {
             continue
         }
 
-        # Strip inline comments
+        # Strip inline comments (but not inside quoted strings)
         $line = $raw -replace '\s+#.*$', ''
         if ([string]::IsNullOrWhiteSpace($line)) {
             continue
         }
 
-        $indent = ($line -match '^(\s*)')[1].Length
+        # ── Compute indentation correctly ────────────────────────────────
+        # PowerShell's -match returns a bool and populates $Matches.
+        # We must read $Matches[1] AFTER the -match call, not chain off the bool.
+        $null = $line -match '^(\s*)'
+        $indent = $Matches[1].Length
         $text   = $line.Trim()
 
-        # Walk stack back to correct indent
-        while ($stack[-1].indent -ge $indent) {
-            $stack = $stack[0..($stack.Count - 2)]
+        # ── Walk stack back to correct parent for this indent level ───────
+        while ($stack.Count -gt 1 -and $stack[$stack.Count - 1].indent -ge $indent) {
+            $stack.RemoveAt($stack.Count - 1)
         }
 
-        $parent = $stack[-1].node
+        $parentEntry = $stack[$stack.Count - 1]
+        $parent      = $parentEntry.node
 
-        # Array item: handles both "- value" and "- key: value" (map in array)
+        # ── Array item: "- ..." ──────────────────────────────────────────
         if ($text -match '^-\s+(.+)$') {
-            $itemContent = $matches[1].Trim()
+            $itemContent = $Matches[1].Trim()
 
-            # If parent is a hashtable, the last key created it as @{} but it
-            # should be an array.  Walk back and swap the entry to ArrayList.
-            if ($parent -is [hashtable]) {
-                $grandparent = if ($stack.Count -ge 2) { $stack[-2].node } else { $null }
-                if ($grandparent -is [hashtable]) {
-                    $keyToFix = $null
-                    foreach ($k in $grandparent.Keys) {
-                        if ([object]::ReferenceEquals($grandparent[$k], $parent)) {
-                            $keyToFix = $k; break
-                        }
-                    }
-                    if ($keyToFix) {
-                        $arr = [System.Collections.ArrayList]::new()
-                        $grandparent[$keyToFix] = $arr
-                        $stack[-1] = @{ indent = $stack[-1].indent; node = $arr }
-                        $parent = $arr
-                    }
+            # If parent is a hashtable, the previous key created it as a
+            # placeholder @{}.  We need to retroactively swap it to an ArrayList.
+            if ($parent -is [hashtable] -and $stack.Count -ge 2) {
+                $gpEntry = $stack[$stack.Count - 2]
+                $gpNode  = $gpEntry.node
+                $lastKey = $parentEntry.key
+                if ($lastKey -and $gpNode -is [hashtable] -and $gpNode.ContainsKey($lastKey)) {
+                    $arr = [System.Collections.ArrayList]::new()
+                    $gpNode[$lastKey] = $arr
+                    $parentEntry.node = $arr
+                    $parent = $arr
                 }
             }
 
@@ -128,37 +132,38 @@ function ConvertFrom-SimpleYaml {
                 throw "YAML error: array item without array context: $text"
             }
 
-            # Check if item is a key:value pair (start of a mapping in an array)
+            # Array item that is a mapping: "- key: value"
             if ($itemContent -match '^([^:]+):\s*(.*)$') {
-                $arrKey = $matches[1].Trim()
-                $arrVal = $matches[2].Trim()
+                $arrKey = $Matches[1].Trim()
+                $arrVal = $Matches[2].Trim()
                 $mapItem = @{}
                 if ($arrVal -ne '') {
                     $mapItem[$arrKey] = Convert-YamlValue $arrVal
                 } else {
-                    $child = @{}
-                    $mapItem[$arrKey] = $child
-                    # Push the child for nested keys under this array item
+                    $mapItem[$arrKey] = @{}
                 }
                 $parent.Add($mapItem) | Out-Null
-                # Push the mapItem so subsequent indented keys attach to it
-                $stack += @{ indent = $indent; node = $mapItem }
-            } else {
+                # Push so subsequent indented keys (e.g. file_path, arguments)
+                # attach to this map item
+                $stack.Add(@{ indent = $indent; node = $mapItem; key = $arrKey }) | Out-Null
+            }
+            # Simple scalar array item: "- value"
+            else {
                 $parent.Add((Convert-YamlValue $itemContent)) | Out-Null
             }
             continue
         }
 
-        # Key/value
+        # ── Key: value ───────────────────────────────────────────────────
         if ($text -match '^([^:]+):\s*(.*)$') {
-            $key = $matches[1].Trim()
-            $val = $matches[2].Trim()
+            $key = $Matches[1].Trim()
+            $val = $Matches[2].Trim()
 
             if ($val -eq '') {
-                # Start nested object — could become array later if children start with "-"
+                # Empty value → start a nested object (may become array later)
                 $child = @{}
                 $parent[$key] = $child
-                $stack += @{ indent = $indent; node = $child }
+                $stack.Add(@{ indent = $indent; node = $child; key = $key }) | Out-Null
             } else {
                 $parent[$key] = Convert-YamlValue $val
             }
