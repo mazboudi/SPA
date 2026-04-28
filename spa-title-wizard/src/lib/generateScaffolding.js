@@ -45,6 +45,9 @@ export default function generateScaffolding(s) {
   if (isWin) {
     vars.push('  WINDOWS_ENABLED: "true"');
     vars.push('  PSADT_FRAMEWORK_VERSION: "4.1.0"');
+    if (s.installerSource) {
+      vars.push(`  WINDOWS_INSTALLER_SOURCE: '${s.installerSource}'`);
+    }
   }
   if (isMac) {
     vars.push('  MACOS_ENABLED: "true"');

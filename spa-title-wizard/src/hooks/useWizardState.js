@@ -97,6 +97,9 @@ const INITIAL_STATE = {
   // PSADT Deploy Mode
   deployMode: 'Silent',            // 'Silent' | 'NonInteractive' | 'Interactive'
   allowRebootPassThru: false,
+
+  // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
+  installerSource: '',             // e.g. 'C:\\files\\7-zip\\7z2600-x64.msi'
 };
 
 const CATEGORIES = [
