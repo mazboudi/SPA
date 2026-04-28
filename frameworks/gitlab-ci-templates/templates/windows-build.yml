@@ -307,14 +307,19 @@
       $dotenv | Out-File (Join-Path $outDir 'build.env') -Encoding ascii -Force
       Write-Host "Dotenv written: out/build.env"
 
-      ## 9 — Staging area diagnostics (kept for troubleshooting — runner cleanup handles removal)
-      Write-Host "=== Staging area contents ($staging) ===" -ForegroundColor DarkGray
-      Get-ChildItem -Path $staging -Recurse | ForEach-Object {
-        $rel = $_.FullName.Substring($staging.Length)
+      ## 9 — Copy staging area to project directory for troubleshooting
+      ##     The staging dir is in $env:TEMP — copy it into out/staging/ so it's
+      ##     visible on the runner alongside the .intunewin and preserved as an artifact.
+      $stagingCopy = Join-Path $outDir 'staging'
+      Write-Host "Copying staging area to: $stagingCopy" -ForegroundColor DarkGray
+      Copy-Item -Path $staging -Destination $stagingCopy -Recurse -Force
+
+      Write-Host "=== Staging area contents (out/staging/) ===" -ForegroundColor DarkGray
+      Get-ChildItem -Path $stagingCopy -Recurse | ForEach-Object {
+        $rel = $_.FullName.Substring($stagingCopy.Length)
         $size = if (!$_.PSIsContainer) { " ($($_.Length) bytes)" } else { "" }
         Write-Host "  $rel$size" -ForegroundColor DarkGray
       }
-      Write-Host "STAGING_PATH=$staging"
 
   artifacts:
     when: always
@@ -322,6 +327,7 @@
     paths:
       - out/*.intunewin
       - out/build.env
+      - out/staging/
     reports:
       dotenv: out/build.env
 
