@@ -60,8 +60,17 @@ Invoke-RestMethod -Method Put -Uri $uploadUri -Headers $headers `
     -InFile $bundlePath -ContentType 'application/octet-stream'
 Write-Host "Upload complete: $uploadUri" -ForegroundColor Green
 
-# Step 3 — Create GitLab Release
+# Step 3 — Create GitLab Release (requires a real git tag)
 $tagName = "v$Version"
+
+# Skip release creation on branch pushes — the package upload above is sufficient
+if (-not $env:CI_COMMIT_TAG) {
+    Write-Host "⚠ No git tag — skipping GitLab release creation (branch push)." -ForegroundColor Yellow
+    Write-Host "  Package uploaded successfully. To also create a release, push a tag:" -ForegroundColor Yellow
+    Write-Host "    git tag v$Version && git push origin v$Version" -ForegroundColor Yellow
+    return
+}
+
 $releaseBody = @{
     name        = "psadt-enterprise v$Version"
     tag_name    = $tagName

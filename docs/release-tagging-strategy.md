@@ -138,3 +138,79 @@ Settings → Repository → Protected tags
 ```
 
 This ensures only maintainers can create version tags.
+
+---
+
+## Baseline Tagging Checklist
+
+> **Status**: ⏳ Pending — complete this checklist once the codebase is baselined and stable.
+
+When the factory code is stable and ready for production, tag every component so that consumer pipelines can pin to known-good versions. **Order matters** — tag upstream dependencies first.
+
+### Phase 1: Frameworks (tag first — consumed by title pipelines)
+
+- [ ] **psadt-enterprise** — `spa-frameworks/psadt-enterprise`
+  ```bash
+  git tag v4.1.0 && git push origin v4.1.0
+  ```
+  - Triggers: test → build → publish (uploads ZIP to Package Registry + creates Release)
+  - Verify: Package `psadt-enterprise-4.1.0.zip` visible in project Package Registry
+
+- [ ] **gitlab-ci-templates** — `spa-frameworks/gitlab-ci-templates`
+  ```bash
+  git tag v1.0.0 && git push origin v1.0.0
+  ```
+  - Triggers: validate → release (creates GitLab Release for `ref:` pinning)
+  - Verify: Release `v1.0.0` visible under project Releases
+
+- [ ] **macos-packaging-framework** — `spa-frameworks/macos-packaging-framework`
+  ```bash
+  git tag v1.0.0 && git push origin v1.0.0
+  ```
+  - Triggers: test → build → publish (uploads tar.gz to Package Registry + creates Release)
+  - Verify: Package `macos-packaging-framework-1.0.0.tar.gz` visible in project Package Registry
+
+### Phase 2: Deployment Modules (tag second — consumed at runtime by CI templates)
+
+- [ ] **intune-deployment-modules** — `spa-deployment/intune-deployment-modules`
+  ```bash
+  git tag v1.0.0 && git push origin v1.0.0
+  ```
+  - Triggers: test → release (creates GitLab Release for `INTUNE_MODULES_REF` pinning)
+  - Verify: Release `v1.0.0` visible under project Releases
+
+- [ ] **terraform-jamf-modules** — `spa-deployment/terraform-jamf-modules`
+  ```bash
+  git tag v1.0.0 && git push origin v1.0.0
+  ```
+  - Triggers: test → release (creates GitLab Release for `TF_JAMF_MODULES_REF` pinning)
+  - Verify: Release `v1.0.0` visible under project Releases
+
+### Phase 3: Update Consumer Pipelines (after all components are tagged)
+
+- [ ] **Title `.gitlab-ci.yml` template** (in gitlab-ci-templates or spa-title-wizard output):
+  ```yaml
+  include:
+    - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
+      ref: 'v1.0.0'       # pin to tagged release
+      file:
+        - 'templates/windows-build.yml'
+        - 'templates/windows-deploy-intune.yml'
+
+  variables:
+    PSADT_FRAMEWORK_VERSION: "4.1.0"     # matches psadt-enterprise tag
+    INTUNE_MODULES_REF: "v1.0.0"         # pin intune-deployment-modules
+    TF_JAMF_MODULES_REF: "v1.0.0"        # pin terraform-jamf-modules
+  ```
+
+- [ ] **Remove branch fallback rules** from all framework/module pipelines
+  - Change `when: on_success` back to `when: manual` or remove the `main` branch rule
+  - Update this document's status to "Active"
+
+### Phase 4: Post-Baseline Cleanup
+
+- [ ] **Enable protected tags** on all 5 projects (Settings → Repository → Protected tags → `v*`)
+- [ ] **Remove testing workarounds** from release scripts (the `if (-not $env:CI_COMMIT_TAG)` skip guards)
+- [ ] **Runner cleanup** — clear stale builds/cache from the Windows runner
+- [ ] **Validate end-to-end** — run a title pipeline pinned to all tagged versions
+
