@@ -1,8 +1,8 @@
 # 7-Zip 26.00.00 — Windows package definition
 package_id: 7-zip
-display_name: "7-Zip v26.00.00-4"
+display_name: "7-Zip 26.00.00-7 (x64 edition)"
 version: "26.00.00"
-packaging_version: "4"
+packaging_version: "7"
 installer_type: msi
 source_filename: 7z2600-x64.msi
 max_install_time: 60
@@ -21,7 +21,7 @@ install_experience: system
 
 msi_information:
   product_code: "{23170F69-40C1-2702-2600-000001000000}"
-  product_version: "26.00.00.0"
+  product_version: "26.00.00"
   product_name: "7-Zip 26.00 (x64 edition)"
   upgrade_code: "{23170F69-40C1-2702-0000-000004000000}"
   manufacturer: "Igor Pavlov"
