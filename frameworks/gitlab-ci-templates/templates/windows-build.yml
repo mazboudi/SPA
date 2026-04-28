@@ -104,6 +104,22 @@
         Expand-Archive -Path $zipPath -DestinationPath $frameworkDir -Force
         Remove-Item $zipPath
         Write-Host "Framework extracted to: $frameworkDir"
+      } else {
+        Write-Host "Using cached framework: $frameworkDir"
+      }
+
+      ## 2b — Validate framework bundle contents
+      Write-Host "=== Framework bundle contents ($frameworkDir) ===" -ForegroundColor DarkGray
+      Get-ChildItem -Path $frameworkDir -Recurse -Depth 1 | ForEach-Object {
+        $rel = $_.FullName.Substring($frameworkDir.Length)
+        $size = if (!$_.PSIsContainer) { " ($($_.Length) bytes)" } else { "/" }
+        Write-Host "  $rel$size" -ForegroundColor DarkGray
+      }
+      $fwExe = Join-Path $frameworkDir 'Invoke-AppDeployToolkit.exe'
+      if (!(Test-Path $fwExe)) {
+        Write-Warning "⚠ Invoke-AppDeployToolkit.exe NOT found in framework bundle!"
+        Write-Warning "  The bundle may be empty, corrupted, or not yet published."
+        Write-Warning "  Ensure the psadt-enterprise pipeline has run its build+publish stages."
       }
 
       ## 3 — Resolve IntuneWinAppUtil.exe
@@ -223,6 +239,24 @@
           New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
           Copy-Item -Path $src -Destination $dst -Force
         }
+      }
+
+      ## 5b — Validate staging area has required PSADT files
+      $requiredFiles = @('Invoke-AppDeployToolkit.exe', 'Invoke-AppDeployToolkit.ps1')
+      foreach ($req in $requiredFiles) {
+        $reqPath = Join-Path $staging $req
+        if (!(Test-Path $reqPath)) {
+          Write-Host "❌ MISSING in staging: $req" -ForegroundColor Red
+        } else {
+          Write-Host "  ✓ Staging has: $req" -ForegroundColor Green
+        }
+      }
+      $stagingFilesDir = Join-Path $staging 'Files'
+      if (Test-Path $stagingFilesDir) {
+        $installerCount = (Get-ChildItem -Path $stagingFilesDir -File | Where-Object { $_.Name -ne '.gitkeep' }).Count
+        Write-Host "  ✓ Staging Files/ contains $installerCount installer file(s)" -ForegroundColor Green
+      } else {
+        Write-Host "⚠ Staging Files/ directory not found — no installer binary!" -ForegroundColor Yellow
       }
 
       ## 6 — Run IntuneWinAppUtil
