@@ -1,28 +1,63 @@
-Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-16-3-3-74cb5cfbf6-t9xll -HnqvnMa, system ID: r_9gnMlfhPowvL
-Resolving secrets
-00:00
-Preparing the "kubernetes" executor
-00:00
-Using Kubernetes namespace: gitlab-prod
-Using Kubernetes executor with image fmk-prod.nexus-ci.onefiserv.net/fmk/os/fmk-ubi8:FMK-05-20-24 ...
-Using attach strategy to execute scripts...
-Preparing environment
-00:04
-Waiting for pod gitlab-prod/runner--hnqvnma-project-86262-concurrent-0-09uuj0ot to be running, status is Pending
-Running on runner--hnqvnma-project-86262-concurrent-0-09uuj0ot via gitlab-runner-generic-16-3-3-74cb5cfbf6-t9xll...
-Getting source from Git repository
-00:02
-Fetching changes with git depth set to 1...
-Initialized empty Git repository in /builds/euc/software-package-automation/spa-frameworks/gitlab-ci-templates/.git/
-Created fresh repository.
-Checking out 255f795e as detached HEAD (ref is main)...
-Skipping Git submodules setup
-Executing "step_script" stage of the job script
-00:01
-$ set -euo pipefail # collapsed multi-line command
-ERROR: HTTP 422 creating release.
-{"message":"Ref is not specified"}
-Cleaning up project directory and file based variables
-00:00
-ERROR: Job failed: command terminated with exit code 1
+2026-04-28T19:59:28.282620Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-04-28T19:59:28.283251Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-04-28T19:59:28.283251Z 00O   feature flags: FF_USE_FASTZIP:true
+2026-04-28T19:59:28.283251Z 00O Resolving secrets
+2026-04-28T19:59:28.283251Z 00O section_start:1777406368:prepare_executor
+2026-04-28T19:59:28.283251Z 00O+Preparing the "shell" executor
+2026-04-28T19:59:28.283251Z 00O Using Shell (pwsh) executor...
+2026-04-28T19:59:28.283251Z 00O section_end:1777406368:prepare_executor
+2026-04-28T19:59:28.283251Z 00O+section_start:1777406368:prepare_script
+2026-04-28T19:59:28.283876Z 00O+Preparing environment
+2026-04-28T19:59:29.355406Z 01O Running on vm-psa-runner-p...
+2026-04-28T19:59:29.615713Z 00O section_end:1777406369:prepare_script
+2026-04-28T19:59:29.615713Z 00O+section_start:1777406369:get_sources
+2026-04-28T19:59:29.616453Z 00O+Getting source from Git repository
+2026-04-28T19:59:31.623371Z 01O Gitaly correlation ID: 01KQATSNDZR8QE3ZDN1PDVQY83
+2026-04-28T19:59:31.948153Z 01O Fetching changes with git depth set to 1...
+2026-04-28T19:59:32.013291Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/spa-frameworks/psadt-enterprise/.git/
+2026-04-28T19:59:33.737884Z 01O Checking out 5bb385cc as detached HEAD (ref is main)...
+2026-04-28T19:59:33.883661Z 01O Removing dist/
+2026-04-28T19:59:34.115060Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-04-28T19:59:34.742614Z 01O 
+2026-04-28T19:59:34.744168Z 01O Skipping Git submodules setup
+2026-04-28T19:59:34.947017Z 00O section_end:1777406374:get_sources
+2026-04-28T19:59:34.947017Z 00O+section_start:1777406374:download_artifacts
+2026-04-28T19:59:34.950560Z 00O+Downloading artifacts
+2026-04-28T19:59:36.374016Z 01O Version:      18.9.0
+2026-04-28T19:59:36.374016Z 01O Git revision: 07e534ba
+2026-04-28T19:59:36.374016Z 01O Git branch:   18-9-stable
+2026-04-28T19:59:36.374016Z 01O GO version:   go1.25.7 X:cacheprog
+2026-04-28T19:59:36.374016Z 01O Built:        2026-02-19T16:58:00Z
+2026-04-28T19:59:36.374016Z 01O OS/Arch:      windows/amd64
+2026-04-28T19:59:36.389234Z 01O Downloading artifacts for build_bundle (27124986)...
+2026-04-28T19:59:36.556883Z 01E Runtime platform                                    arch=amd64 os=windows pid=9176 revision=07e534ba version=18.9.0
+2026-04-28T19:59:38.433948Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KQATSYQZ22J294QGK4H13HAV host=gitlab.onefiserv.net id=27124986 responseStatus=200 OK token=64_9V_LXA
+2026-04-28T19:59:38.693679Z 00O section_end:1777406378:download_artifacts
+2026-04-28T19:59:38.693679Z 00O+section_start:1777406378:step_script
+2026-04-28T19:59:38.694187Z 00O+Executing "step_script" stage of the job script
+2026-04-28T19:59:39.944939Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-04-28T19:59:39.966897Z 01O ⚠ No tag — using latest version directory: 4.1.0
+2026-04-28T19:59:39.969023Z 01O Publishing psadt-enterprise v4.1.0 to Package Registry...
+2026-04-28T19:59:40.456446Z 01O Building bundle for version 4.1.0...
+2026-04-28T19:59:40.515286Z 01O Bundling psadt-enterprise 4.1.0...
+2026-04-28T19:59:42.360535Z 01O Bundle created: dist\psadt-enterprise-4.1.0.zip
+2026-04-28T19:59:42.418651Z 01O SHA-256: 28bff7e2b96e88091396062a5d5515c50ef59812a8cb06e2761278891c8d2777
+2026-04-28T19:59:42.443857Z 01O Checksums written: dist\checksums.json
+2026-04-28T19:59:42.445034Z 01O 
+2026-04-28T19:59:42.445545Z 01O BUNDLE_PATH=dist\psadt-enterprise-4.1.0.zip
+2026-04-28T19:59:42.446233Z 01O BUNDLE_SHA256=28bff7e2b96e88091396062a5d5515c50ef59812a8cb06e2761278891c8d2777
+2026-04-28T19:59:42.475367Z 01O Uploading psadt-enterprise-4.1.0.zip to Package Registry...
+2026-04-28T19:59:45.998298Z 01O 
+2026-04-28T19:59:46.001617Z 01O Upload complete: https://gitlab.onefiserv.net/api/v4/projects/86260/packages/generic/psadt-enterprise/4.1.0/psadt-enterprise-4.1.0.zip
+2026-04-28T19:59:46.004337Z 01O Creating GitLab release v4.1.0...
+2026-04-28T19:59:46.717568Z 01E Invoke-RestMethod: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\spa-frameworks\psadt-enterprise\scripts\New-FrameworkRelease.ps1:83
+2026-04-28T19:59:46.717568Z 01E Line |
+2026-04-28T19:59:46.717568Z 01E   83 |      Invoke-RestMethod -Method Post -Uri $releaseUri -Headers $headers …
+2026-04-28T19:59:46.717568Z 01E      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-04-28T19:59:46.717568Z 01E      |  {   "message": "Ref is not specified" }
+2026-04-28T19:59:47.083555Z 00O section_end:1777406387:step_script
+2026-04-28T19:59:47.083555Z 00O+section_start:1777406387:cleanup_file_variables
+2026-04-28T19:59:47.085278Z 00O+Cleaning up project directory and file based variables
+2026-04-28T19:59:48.531059Z 00O section_end:1777406388:cleanup_file_variables
+2026-04-28T19:59:48.531059Z 00O+
+2026-04-28T19:59:48.531573Z 00O ERROR: Job failed: exit status 1
