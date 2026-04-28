@@ -87,10 +87,31 @@ function Invoke-DeploymentConfigPrompts {
     $developer   = Read-OptionalInput "Developer (press Enter to skip)"
     $notes       = Read-OptionalInput "Notes" -Default 'Managed by SPA pipeline.'
 
+    # ── Logo ──────────────────────────────────────────────────────────────────
+    Write-Host ""
+    Write-Host "── App Logo ──" -ForegroundColor DarkCyan
+    $logoPath = Read-Host "Path to logo image (PNG/JPG, press Enter to skip)"
+    $logoPath = $logoPath.Trim().Trim('"').Trim("'")
+    if ($logoPath -and !(Test-Path $logoPath)) {
+        Write-Host "  ⚠ File not found: $logoPath — skipping logo" -ForegroundColor Yellow
+        $logoPath = ''
+    } elseif ($logoPath) {
+        Write-Host "  ✓ Logo: $logoPath" -ForegroundColor Green
+    }
+
     # ── Install context ───────────────────────────────────────────────────────
     $installContext = Show-ChoiceMenu -Title "Install context:" -Options @(
         'system', 'user'
     ) -Default 'system'
+
+    # ── PSADT Deploy Mode ────────────────────────────────────────────────────
+    $deployMode = Show-ChoiceMenu -Title "PSADT Deploy Mode (how the wrapper runs):" -Options @(
+        'Silent', 'NonInteractive', 'Interactive'
+    ) -Default 'Silent'
+
+    # ── Allow reboot passthrough ─────────────────────────────────────────────
+    $rebootPassThruChoice = Read-Host "Allow reboot passthrough from installer? (y/N)"
+    $allowRebootPassThru = ($rebootPassThruChoice -in @('y', 'Y', 'yes'))
 
     # ── Featured ──────────────────────────────────────────────────────────────
     Write-Host ""
@@ -104,8 +125,9 @@ function Invoke-DeploymentConfigPrompts {
 
     # ── Minimum Windows release ──────────────────────────────────────────────
     $minWinRelease = Show-ChoiceMenu -Title "Minimum Windows release:" -Options @(
+        'Windows10_2004', 'Windows10_21H2', 'Windows10_22H2',
         'Windows11_21H2', 'Windows11_22H2', 'Windows11_23H2', 'Windows11_24H2'
-    ) -Default '22H2'
+    ) -Default 'Windows11_22H2'
 
     # ── Restart override ──────────────────────────────────────────────────────
     if (-not $RestartBehavior -or $RestartBehavior -eq 'suppress') {
@@ -202,20 +224,23 @@ function Invoke-DeploymentConfigPrompts {
 
     # ── Build result ──────────────────────────────────────────────────────────
     return @{
-        Description      = $description
-        InformationUrl   = $infoUrl
-        PrivacyUrl       = $privacyUrl
-        Owner            = $owner
-        Developer        = $developer
-        Notes            = $notes
-        InstallContext   = $installContext
-        IsFeatured       = $isFeatured
-        Architecture     = $architecture
-        MinWinRelease    = $minWinRelease
-        RestartBehavior  = $RestartBehavior
-        ScopeTags        = $scopeTags
-        Categories       = $categories
-        Dependencies     = $dependencies
-        Assignments      = $assignments
+        Description          = $description
+        InformationUrl       = $infoUrl
+        PrivacyUrl           = $privacyUrl
+        Owner                = $owner
+        Developer            = $developer
+        Notes                = $notes
+        LogoPath             = $logoPath
+        InstallContext       = $installContext
+        DeployMode           = $deployMode
+        AllowRebootPassThru  = $allowRebootPassThru
+        IsFeatured           = $isFeatured
+        Architecture         = $architecture
+        MinWinRelease        = $minWinRelease
+        RestartBehavior      = $RestartBehavior
+        ScopeTags            = $scopeTags
+        Categories           = $categories
+        Dependencies         = $dependencies
+        Assignments          = $assignments
     }
 }

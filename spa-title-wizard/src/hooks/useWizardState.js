@@ -56,7 +56,7 @@ const INITIAL_STATE = {
   supersedenceType: 'update',
 
   // Requirements
-  minWinRelease: '22H2',
+  minWinRelease: 'Windows11_22H2',
   applicableArch: 'x64',
   minDiskSpaceMB: 500,
   minMemoryMB: 2048,
@@ -81,6 +81,22 @@ const INITIAL_STATE = {
   macSelfService: false,
   scopeGroupIds: '',
   exclusionGroupIds: '',
+
+  // Intune App Metadata
+  appDescription: '',
+  informationUrl: '',
+  privacyUrl: '',
+  appOwner: 'EUC Packaging',
+  appDeveloper: '',
+  appNotes: 'Managed by SPA pipeline.',
+  isFeatured: false,
+  installContext: 'system',
+  logoFile: null,       // File object from upload
+  logoDataUrl: '',      // base64 data URL for preview
+
+  // PSADT Deploy Mode
+  deployMode: 'Silent',            // 'Silent' | 'NonInteractive' | 'Interactive'
+  allowRebootPassThru: false,
 };
 
 const CATEGORIES = [

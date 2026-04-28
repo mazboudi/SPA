@@ -90,15 +90,49 @@ if ($pkg.return_codes) {
 # ── READ max install time ─────────────────────────────────────────────────────
 $maxInstallTime = if ($pkg.max_install_time) { [int]$pkg.max_install_time } else { 60 }
 
-# ── CREATE Win32 app (NO requirementRules!) ───────────────────────────────────
+# ── LOAD logo (if present) ────────────────────────────────────────────────────
+$intuneDir = Split-Path $AppJsonPath -Parent
+$logoFile  = Get-ChildItem -Path $intuneDir -Filter 'logo.*' -File -ErrorAction SilentlyContinue | Select-Object -First 1
+$logoPath  = if ($logoFile) { $logoFile.FullName } else { $null }
+$largeIcon = $null
+if ($logoPath -and (Test-Path $logoPath)) {
+    $logoBytes  = [System.IO.File]::ReadAllBytes((Resolve-Path $logoPath).Path)
+    $logoBase64 = [Convert]::ToBase64String($logoBytes)
+    # Detect MIME type from extension
+    $logoExt = [System.IO.Path]::GetExtension($logoPath).ToLower()
+    $logoMime = switch ($logoExt) {
+        '.png'  { 'image/png' }
+        '.jpg'  { 'image/jpeg' }
+        '.jpeg' { 'image/jpeg' }
+        '.gif'  { 'image/gif' }
+        '.bmp'  { 'image/bmp' }
+        default { 'image/png' }
+    }
+    $largeIcon = @{
+        '@odata.type' = '#microsoft.graph.mimeContent'
+        type          = $logoMime
+        value         = $logoBase64
+    }
+    Write-Log "Logo loaded: $logoPath ($($logoBytes.Length) bytes, $logoMime)" -LogFile $logFile
+} else {
+    Write-Log "No logo found at $logoPath — skipping largeIcon" -Level WARN -LogFile $logFile
+}
+
+# ── CREATE Win32 app ──────────────────────────────────────────────────────────
 $appBody = @{
     '@odata.type' = '#microsoft.graph.win32LobApp'
 
-    displayName    = $displayName
-    displayVersion = $vendorVersion
-    publisher      = $intuneMeta.publisher ?? 'Unknown'
-    description    = $intuneMeta.description ?? $displayName
-    developer      = $intuneMeta.developer ?? ''
+    # App metadata — all fields from intune/app.json
+    displayName            = $displayName
+    displayVersion         = $vendorVersion
+    publisher              = $intuneMeta.publisher ?? 'Unknown'
+    description            = $intuneMeta.description ?? $displayName
+    developer              = $intuneMeta.developer ?? ''
+    informationUrl         = $intuneMeta.informationUrl ?? ''
+    privacyInformationUrl  = $intuneMeta.privacyInformationUrl ?? ''
+    owner                  = $intuneMeta.owner ?? ''
+    notes                  = $intuneMeta.notes ?? ''
+    isFeatured             = if ($intuneMeta.isFeatured -eq $true) { $true } else { $false }
 
     # REQUIRED CREATE-TIME FIELDS
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
@@ -116,7 +150,7 @@ $appBody = @{
     minimumNumberOfProcessors      = if ($HardwareRequirements.minimumNumberOfProcessors) { $HardwareRequirements.minimumNumberOfProcessors } else { $null }
     minimumCpuSpeedInMHz           = if ($HardwareRequirements.minimumCpuSpeedInMHz) { $HardwareRequirements.minimumCpuSpeedInMHz } else { $null }
     applicableArchitectures        = if ($HardwareRequirements.applicableArchitectures) { $HardwareRequirements.applicableArchitectures } else { 'x64' }
-    minimumSupportedWindowsRelease = if ($HardwareRequirements.minimumSupportedWindowsRelease) { $HardwareRequirements.minimumSupportedWindowsRelease } else { '2004' }
+    minimumSupportedWindowsRelease = if ($HardwareRequirements.minimumSupportedWindowsRelease) { $HardwareRequirements.minimumSupportedWindowsRelease } else { 'Windows10_2004' }
 
     installCommandLine   = $pkg.install_command
     uninstallCommandLine = $pkg.uninstall_command
@@ -126,6 +160,11 @@ $appBody = @{
         deviceRestartBehavior      = $intuneMeta.restartBehavior ?? 'suppress'
         maxRunTimeInMinutes        = $maxInstallTime
     }
+}
+
+# Add logo if present (only include the key when we have an icon to avoid null-body issues)
+if ($largeIcon) {
+    $appBody['largeIcon'] = $largeIcon
 }
 
 Write-Log "Creating Win32 app (metadata + detection rules only)" -LogFile $logFile

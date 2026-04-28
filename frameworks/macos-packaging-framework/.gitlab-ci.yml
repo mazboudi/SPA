@@ -79,10 +79,17 @@ build_bundle:
   needs: [test_shell_syntax]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_BRANCH == "main"   # Testing: run without tags
   script:
     - |
       set -euo pipefail
-      VERSION="${CI_COMMIT_TAG#v}"
+      # Derive version: from tag or latest versions/ directory
+      if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
+        VERSION="${CI_COMMIT_TAG#v}"
+      else
+        VERSION=$(ls -1 versions | sort -V | tail -1)
+        echo "⚠ No tag — using latest version directory: $VERSION"
+      fi
       echo "Building bundle for version: $VERSION"
 
       bash scripts/build-framework-bundle.sh "$VERSION"
@@ -111,10 +118,18 @@ publish_bundle:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       when: on_success
+    - if: $CI_COMMIT_BRANCH == "main"   # Testing: manual publish without tags
+      when: manual
+      allow_failure: true
   script:
     - |
       set -euo pipefail
-      VERSION="${CI_COMMIT_TAG#v}"
+      if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
+        VERSION="${CI_COMMIT_TAG#v}"
+      else
+        VERSION=$(ls -1 versions | sort -V | tail -1)
+        echo "⚠ No tag — using latest version directory: $VERSION"
+      fi
       echo "Publishing macos-packaging-framework v$VERSION to Package Registry..."
 
       bash scripts/new-framework-release.sh "$VERSION"

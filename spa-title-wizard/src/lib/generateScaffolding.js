@@ -162,6 +162,18 @@ detection:
       optLines.push(...msiInfo);
     }
 
+    // ── Build install commands from deploy mode + reboot passthrough ──────
+    const psadtFlags = [];
+    if (s.deployMode && s.deployMode !== 'Silent') {
+      psadtFlags.push(`-DeployMode ${s.deployMode}`);
+    }
+    if (s.allowRebootPassThru) {
+      psadtFlags.push('-AllowRebootPassThru');
+    }
+    const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
+    const installCmd = `Invoke-AppDeployToolkit.exe${installSuffix}`;
+    const uninstallCmd = `Invoke-AppDeployToolkit.exe -DeploymentType Uninstall${installSuffix}`;
+
     files['windows/package.yaml'] = `# ${s.displayName} ${s.version} — Windows package definition
 package_id: ${s.packageId}
 display_name: "${s.displayName}"
@@ -171,8 +183,8 @@ installer_type: ${s.installerType}
 source_filename: ${sourceFile}
 max_install_time: ${s.maxInstallTime}
 
-install_command: 'Invoke-AppDeployToolkit.exe'
-uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
+install_command: '${installCmd}'
+uninstall_command: '${uninstallCmd}'
 
 ${detectionBlock}
 
@@ -182,21 +194,22 @@ ${optLines.join('\n')}
     // Intune app.json
     files['windows/intune/app.json'] = JSON.stringify({
       displayName: s.displayName,
-      description: 'TODO: Add application description.',
+      description: s.appDescription || 'TODO: Add application description.',
       publisher: s.publisher,
       appVersion: s.version,
-      informationUrl: '',
-      isFeatured: false,
-      privacyInformationUrl: '',
-      notes: 'Managed by SPA pipeline.',
-      owner: 'EUC Packaging',
-      installCommandLine: 'Invoke-AppDeployToolkit.exe',
-      uninstallCommandLine: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall',
+      informationUrl: s.informationUrl || '',
+      isFeatured: !!s.isFeatured,
+      privacyInformationUrl: s.privacyUrl || '',
+      notes: s.appNotes || 'Managed by SPA pipeline.',
+      owner: s.appOwner || 'EUC Packaging',
+      developer: s.appDeveloper || '',
+      installCommandLine: installCmd,
+      uninstallCommandLine: uninstallCmd,
       applicableArchitectures: s.applicableArch || 'x64',
-      minimumSupportedWindowsRelease: s.minWinRelease || '22H2',
+      minimumSupportedWindowsRelease: s.minWinRelease || 'Windows11_22H2',
       displayVersion: s.version,
       allowAvailableUninstall: true,
-      installContext: 'system',
+      installContext: s.installContext || 'system',
       restartBehavior: s.restartBehavior,
     }, null, 2);
 
@@ -216,7 +229,7 @@ ${optLines.join('\n')}
 
     // Intune requirements.json
     files['windows/intune/requirements.json'] = JSON.stringify({
-      minimumSupportedWindowsRelease: s.minWinRelease || '22H2',
+      minimumSupportedWindowsRelease: s.minWinRelease || 'Windows11_22H2',
       applicableArchitectures: s.applicableArch || 'x64',
       minimumFreeDiskSpaceInMB: s.minDiskSpaceMB || 500,
       minimumMemoryInMB: s.minMemoryMB || 2048,
@@ -232,6 +245,13 @@ ${optLines.join('\n')}
 
     // .gitkeep
     files['windows/src/Files/.gitkeep'] = `# Drop installer binary here. Do NOT commit binaries to git.\n# Expected: ${sourceFile}\n`;
+
+    // Logo file — include in zip if provided
+    if (s.logoFile && s.logoDataUrl) {
+      // Store as a marker; the actual binary is handled by downloadZip
+      const logoExt = s.logoFile.name.split('.').pop().toLowerCase();
+      files[`windows/intune/logo.${logoExt}`] = s.logoDataUrl;
+    }
 
     // Script detection
     if (s.detectionMode === 'script') {

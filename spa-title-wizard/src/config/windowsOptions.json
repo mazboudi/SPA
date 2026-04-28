@@ -2,51 +2,23 @@
   "_comment": "Externalized selectable values for the SPA Title Wizard. Edit this file to add new Windows releases or architectures without changing application code.",
   "windowsReleases": [
     {
-      "value": "1607",
-      "label": "Windows 10 1607 (Anniversary Update)"
-    },
-    {
-      "value": "1703",
-      "label": "Windows 10 1703 (Creators Update)"
-    },
-    {
-      "value": "1709",
-      "label": "Windows 10 1709 (Fall Creators)"
-    },
-    {
-      "value": "1803",
-      "label": "Windows 10 1803 (April 2018)"
-    },
-    {
-      "value": "1809",
-      "label": "Windows 10 1809 (October 2018)"
-    },
-    {
-      "value": "1903",
-      "label": "Windows 10 1903 (May 2019)"
-    },
-    {
-      "value": "1909",
-      "label": "Windows 10 1909 (November 2019)"
-    },
-    {
-      "value": "2004",
+      "value": "Windows10_2004",
       "label": "Windows 10 2004 (May 2020)"
     },
     {
-      "value": "20H2",
+      "value": "Windows10_20H2",
       "label": "Windows 10 20H2 (October 2020)"
     },
     {
-      "value": "21H1",
+      "value": "Windows10_21H1",
       "label": "Windows 10 21H1 (May 2021)"
     },
     {
-      "value": "21H2",
+      "value": "Windows10_21H2",
       "label": "Windows 10 21H2 (November 2021)"
     },
     {
-      "value": "22H2",
+      "value": "Windows10_22H2",
       "label": "Windows 10 22H2 (October 2022)"
     },
     {
@@ -84,6 +56,30 @@
       "label": "Neutral (architecture independent)"
     }
   ],
-  "defaultWindowsRelease": "22H2",
+  "deployModes": [
+    {
+      "value": "Silent",
+      "label": "Silent (default — no UI)"
+    },
+    {
+      "value": "NonInteractive",
+      "label": "NonInteractive (progress only, no prompts)"
+    },
+    {
+      "value": "Interactive",
+      "label": "Interactive (full PSADT UI)"
+    }
+  ],
+  "installContexts": [
+    {
+      "value": "system",
+      "label": "System (SYSTEM context)"
+    },
+    {
+      "value": "user",
+      "label": "User (logged-in user context)"
+    }
+  ],
+  "defaultWindowsRelease": "Windows11_22H2",
   "defaultArchitecture": "x64"
 }

@@ -85,10 +85,17 @@ build_bundle:
   needs: [test_template_syntax]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_BRANCH == "main"   # Testing: run without tags
   script:
     - |
       $ErrorActionPreference = "Stop"
-      $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      # Derive version: from tag or latest versions/ directory
+      if ($env:CI_COMMIT_TAG) {
+        $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      } else {
+        $VERSION = (Get-ChildItem -Path versions -Directory | Sort-Object Name | Select-Object -Last 1).Name
+        Write-Host "⚠ No tag — using latest version directory: $VERSION" -ForegroundColor Yellow
+      }
       Write-Host "Building bundle for version: $VERSION"
 
       pwsh -NoProfile -ExecutionPolicy Bypass `
@@ -123,10 +130,18 @@ publish_bundle:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       when: on_success
+    - if: $CI_COMMIT_BRANCH == "main"   # Testing: manual publish without tags
+      when: manual
+      allow_failure: true
   script:
     - |
       $ErrorActionPreference = "Stop"
-      $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      if ($env:CI_COMMIT_TAG) {
+        $VERSION = $env:CI_COMMIT_TAG -replace '^v', ''
+      } else {
+        $VERSION = (Get-ChildItem -Path versions -Directory | Sort-Object Name | Select-Object -Last 1).Name
+        Write-Host "⚠ No tag — using latest version directory: $VERSION" -ForegroundColor Yellow
+      }
       Write-Host "Publishing psadt-enterprise v$VERSION to Package Registry..."
 
       pwsh -NoProfile -ExecutionPolicy Bypass `

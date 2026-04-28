@@ -9,7 +9,13 @@ export async function downloadAsZip(files, packageId) {
   const root = zip.folder(packageId);
 
   for (const [path, content] of Object.entries(files)) {
-    root.file(path, content);
+    if (typeof content === 'string' && content.startsWith('data:')) {
+      // Binary file from data URL (e.g. logo upload)
+      const base64 = content.split(',')[1];
+      root.file(path, base64, { base64: true });
+    } else {
+      root.file(path, content);
+    }
   }
 
   const blob = await zip.generateAsync({ type: 'blob' });
@@ -41,7 +47,14 @@ export async function exportToFolder(files, packageId) {
       // Write file
       const fileHandle = await current.getFileHandle(parts[parts.length - 1], { create: true });
       const writable = await fileHandle.createWritable();
-      await writable.write(content);
+      if (typeof content === 'string' && content.startsWith('data:')) {
+        // Binary file from data URL (e.g. logo upload)
+        const resp = await fetch(content);
+        const blob = await resp.blob();
+        await writable.write(blob);
+      } else {
+        await writable.write(content);
+      }
       await writable.close();
     }
 

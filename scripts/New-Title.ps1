@@ -760,8 +760,17 @@ if ($Platform -in @('windows','both')) {
     $msiFile     = if ($MsiFileName)    { $MsiFileName }    else { 'TODO_INSTALLER.msi' }
 
     # ── Install / uninstall commands (what Intune actually runs — PSADT wrapper) ─
-    $installCmd   = 'Invoke-AppDeployToolkit.exe'
-    $uninstallCmd = 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
+    # Build command line from deploy mode + reboot passthrough options
+    $psadtFlags = @()
+    if ($deploymentConfig.DeployMode -and $deploymentConfig.DeployMode -ne 'Silent') {
+        $psadtFlags += "-DeployMode $($deploymentConfig.DeployMode)"
+    }
+    if ($deploymentConfig.AllowRebootPassThru) {
+        $psadtFlags += '-AllowRebootPassThru'
+    }
+    $installSuffix = if ($psadtFlags.Count -gt 0) { ' ' + ($psadtFlags -join ' ') } else { '' }
+    $installCmd   = "Invoke-AppDeployToolkit.exe$installSuffix"
+    $uninstallCmd = "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall$installSuffix"
 
     # ── Detection block ───────────────────────────────────────────────────────
     $detectionBlock = switch ($DetectionMode) {
@@ -925,7 +934,7 @@ $yamlOptionalContent
     $appInstCtx      = if ($deploymentConfig.InstallContext) { $deploymentConfig.InstallContext } else { 'system' }
     $appFeatured     = if ($deploymentConfig -and $deploymentConfig.IsFeatured) { 'true' } else { 'false' }
     $appArch         = if ($deploymentConfig.Architecture)   { $deploymentConfig.Architecture }   else { 'x64' }
-    $appMinWin       = if ($deploymentConfig.MinWinRelease)  { $deploymentConfig.MinWinRelease }  else { '22H2' }
+    $appMinWin       = if ($deploymentConfig.MinWinRelease)  { $deploymentConfig.MinWinRelease }  else { 'Windows11_22H2' }
 
     # Build optional JSON fields — only include when values are present
     $appJsonOptional = @()
@@ -956,8 +965,8 @@ $yamlOptionalContent
   "privacyInformationUrl": "$appPrivacyUrl",
   "notes": "$appNotes",
   "owner": "$appOwner",
-  "installCommandLine": "Invoke-AppDeployToolkit.exe",
-  "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall",
+  "installCommandLine": "$installCmd",
+  "uninstallCommandLine": "$uninstallCmd",
   "applicableArchitectures": "$appArch",
   "minimumSupportedWindowsRelease": "$appMinWin",
   "displayVersion": "$Version",
@@ -1055,6 +1064,15 @@ $depsJson
 # Drop installer binary here. Do NOT commit binaries to git.
 # Expected: $sourceFile
 "@
+
+    # ── windows/intune/logo.png (copy from user-provided path) ───────────────
+    if ($deploymentConfig.LogoPath -and (Test-Path $deploymentConfig.LogoPath)) {
+        $logoExt  = [System.IO.Path]::GetExtension($deploymentConfig.LogoPath).ToLower()
+        $logoName = "logo$logoExt"
+        $logoDest = Join-Path $titleDir "windows\intune\$logoName"
+        Copy-Item -Path $deploymentConfig.LogoPath -Destination $logoDest -Force
+        Write-Host "  ✓ Logo copied: $logoDest" -ForegroundColor Green
+    }
 
     # ── windows/lifecycle.yaml (declarative — PSADT script generated at build time) ──
     $lifecycleToSerialize = if ($lifecycleConfig) {

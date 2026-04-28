@@ -273,8 +273,14 @@
       $dotenv | Out-File (Join-Path $outDir 'build.env') -Encoding ascii -Force
       Write-Host "Dotenv written: out/build.env"
 
-      ## 9 — Cleanup staging
-      Remove-Item -Path $staging -Recurse -Force -ErrorAction SilentlyContinue
+      ## 9 — Staging area diagnostics (kept for troubleshooting — runner cleanup handles removal)
+      Write-Host "=== Staging area contents ($staging) ===" -ForegroundColor DarkGray
+      Get-ChildItem -Path $staging -Recurse | ForEach-Object {
+        $rel = $_.FullName.Substring($staging.Length)
+        $size = if (!$_.PSIsContainer) { " ($($_.Length) bytes)" } else { "" }
+        Write-Host "  $rel$size" -ForegroundColor DarkGray
+      }
+      Write-Host "STAGING_PATH=$staging"
 
   artifacts:
     when: always

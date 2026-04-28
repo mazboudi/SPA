@@ -272,6 +272,73 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         </div>
       </div>
 
+      {/* ═══ PSADT DEPLOY MODE ═══ */}
+      <div className="config-section">
+        <h3 className="section-title">PSADT Deploy Mode</h3>
+        <div className="form-grid">
+          <SelectField label="Deploy Mode" id="deployMode" value={state.deployMode}
+            hint="Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only."
+            onChange={v => updateField('deployMode', v)}
+            options={windowsOptions.deployModes}
+          />
+          <SelectField label="Install Context" id="installContext" value={state.installContext}
+            onChange={v => updateField('installContext', v)}
+            options={windowsOptions.installContexts}
+          />
+        </div>
+        <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
+      </div>
+
+      {/* ═══ INTUNE APP METADATA ═══ */}
+      <div className="config-section">
+        <h3 className="section-title">Intune App Metadata</h3>
+        <div className="form-grid">
+          <FormField label="Description" id="appDescription">
+            <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription} onChange={e => updateField('appDescription', e.target.value)} />
+          </FormField>
+          <FormField label="Owner" id="appOwner">
+            <input id="appOwner" type="text" value={state.appOwner} onChange={e => updateField('appOwner', e.target.value)} />
+          </FormField>
+          <FormField label="Developer" id="appDeveloper">
+            <input id="appDeveloper" type="text" placeholder="e.g. Microsoft, Adobe" value={state.appDeveloper} onChange={e => updateField('appDeveloper', e.target.value)} />
+          </FormField>
+          <FormField label="Information URL" id="informationUrl" hint="Link to app docs or vendor site">
+            <input id="informationUrl" type="url" placeholder="https://" value={state.informationUrl} onChange={e => updateField('informationUrl', e.target.value)} />
+          </FormField>
+          <FormField label="Privacy URL" id="privacyUrl">
+            <input id="privacyUrl" type="url" placeholder="https://" value={state.privacyUrl} onChange={e => updateField('privacyUrl', e.target.value)} />
+          </FormField>
+          <FormField label="Notes" id="appNotes">
+            <input id="appNotes" type="text" value={state.appNotes} onChange={e => updateField('appNotes', e.target.value)} />
+          </FormField>
+        </div>
+        <ToggleSwitch label="Featured app in Company Portal" checked={state.isFeatured} onChange={v => updateField('isFeatured', v)} id="isFeatured" />
+      </div>
+
+      {/* ═══ APP LOGO ═══ */}
+      <div className="config-section">
+        <h3 className="section-title">App Logo <span className="section-optional">Optional</span></h3>
+        <div className="logo-upload-area">
+          <label className="btn btn-secondary">
+            🖼️ Upload Logo (PNG/JPG)
+            <input type="file" accept=".png,.jpg,.jpeg,.gif,.bmp" onChange={e => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              updateField('logoFile', file);
+              const reader = new FileReader();
+              reader.onload = () => updateField('logoDataUrl', reader.result);
+              reader.readAsDataURL(file);
+            }} style={{ display: 'none' }} />
+          </label>
+          {state.logoDataUrl && (
+            <div className="logo-preview">
+              <img src={state.logoDataUrl} alt="App logo" style={{ maxWidth: 64, maxHeight: 64, borderRadius: 'var(--radius-sm)' }} />
+              <span className="msi-status msi-status--ok">✅ {state.logoFile?.name}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ═══ REQUIREMENTS ═══ */}
       <div className="config-section">
         <h3 className="section-title">Requirements</h3>
@@ -385,11 +452,12 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         .config-section:last-child { border-bottom: none; }
         .section-title { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm); }
         .section-optional { font-size: 0.7rem; font-weight: 400; color: var(--text-muted); background: var(--bg-hover); padding: 2px 8px; border-radius: var(--radius-sm); }
-        .msi-upload-area, .script-upload-area { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); }
+        .msi-upload-area, .script-upload-area, .logo-upload-area { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); }
         .msi-upload-btn { cursor: pointer; }
         .msi-status { font-size: 0.8rem; color: var(--text-secondary); }
         .msi-status--ok { color: var(--color-success); }
         .msi-status--err { color: var(--color-error); }
+        .logo-preview { display: flex; align-items: center; gap: var(--space-md); }
         .script-preview { margin-top: var(--space-sm); padding: var(--space-md); background: rgba(8,10,20,0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); max-height: 200px; overflow-y: auto; }
         .script-preview pre { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); white-space: pre-wrap; margin: 0; }
         .lifecycle-toggle { display: flex; align-items: center; gap: var(--space-sm); background: none; border: none; cursor: pointer; padding: 0; font-family: var(--font-sans); width: 100%; }
