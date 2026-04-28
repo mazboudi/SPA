@@ -139,12 +139,18 @@ create_release:
     - |
       set -euo pipefail
 
+      # Release creation requires an actual git tag — skip on branch pushes
+      if [[ -z "${CI_COMMIT_TAG:-}" ]]; then
+        echo "⚠ No git tag — skipping release creation (branch push)."
+        echo "  To create a release, push a tag: git tag v1.0.0 && git push origin v1.0.0"
+        exit 0
+      fi
+
       if ! command -v jq &>/dev/null; then
         yum install -y jq 2>/dev/null || apt-get install -y jq 2>/dev/null || true
       fi
 
-      # Use tag name if present, otherwise fall back to commit-based dev label
-      TAG_NAME="${CI_COMMIT_TAG:-dev-${CI_COMMIT_SHORT_SHA}}"
+      TAG_NAME="$CI_COMMIT_TAG"
       RELEASE_JSON=$(jq -n \
         --arg name "gitlab-ci-templates ${TAG_NAME}" \
         --arg tag  "${TAG_NAME}" \

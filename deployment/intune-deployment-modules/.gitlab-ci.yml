@@ -79,7 +79,14 @@ create_release:
   script:
     - |
       set -euo pipefail
-      TAG_NAME="${CI_COMMIT_TAG:-dev-${CI_COMMIT_SHORT_SHA}}"
+
+      # Release creation requires an actual git tag — skip on branch pushes
+      if [[ -z "${CI_COMMIT_TAG:-}" ]]; then
+        echo "⚠ No git tag — skipping release creation (branch push)."
+        exit 0
+      fi
+
+      TAG_NAME="$CI_COMMIT_TAG"
       PAYLOAD=$(python3 -c "
       import json
       print(json.dumps({
