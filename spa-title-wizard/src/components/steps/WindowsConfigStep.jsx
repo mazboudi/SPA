@@ -71,11 +71,13 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
           />
         </div>
         <FormField label="Installer Source (Runner Path)" id="installerSource"
-          value={state.installerSource}
-          onChange={e => updateField('installerSource', e.target.value)}
-          placeholder="C:\files\7-zip\7z2600-x64.msi"
-          hint="Full path to the installer pre-staged on the runner. Leave empty if the installer is committed to git in windows/src/Files/."
-        />
+          hint="Full path to the installer pre-staged on the runner. Leave empty if the installer is committed to git in windows/src/Files/.">
+          <input id="installerSource" type="text"
+            value={state.installerSource}
+            onChange={e => updateField('installerSource', e.target.value)}
+            placeholder="C:\files\7-zip\7z2600-x64.msi"
+          />
+        </FormField>
       </div>
 
       {/* ═══ MSI METADATA (with file upload) ═══ */}

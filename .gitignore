@@ -17,5 +17,5 @@ tf-deploy/
 .idea/
 
 # Build artifacts
-# out/
-# *.intunewin
+out/
+*.intunewin
