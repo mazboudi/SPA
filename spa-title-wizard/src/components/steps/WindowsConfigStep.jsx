@@ -5,12 +5,86 @@ import ToggleSwitch from '../ui/ToggleSwitch';
 import AssignmentsSection from '../ui/AssignmentsSection';
 import { parseMsiFile } from '../../lib/parseMsi';
 import windowsOptions from '../../config/windowsOptions.json';
+import { PHASE_KEYS, PHASE_META, ACTION_TYPE_MAP, getActionsForPhase, getCategoriesForPhase, createAction } from '../../config/actionTypes';
 
-export default function WindowsConfigStep({ state, updateField, updateLifecycle, updateLifecycleRoot }) {
+/** Inline action card — editable, deletable, reorderable */
+function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
+  const def = ACTION_TYPE_MAP[action.type];
+  const icon = def?.icon || '▪️';
+  const label = def?.label || action.type;
+
+  return (
+    <div className={`action-card ${!action.enabled ? 'action-card--disabled' : ''}`}>
+      <div className="action-card__header">
+        <span className="action-card__icon">{icon}</span>
+        <span className="action-card__label">{label}</span>
+        <div className="action-card__controls">
+          <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
+          <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
+          <button className="action-btn action-btn--toggle" onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })} title={action.enabled ? 'Disable' : 'Enable'}>{action.enabled ? '✓' : '○'}</button>
+          <button className="action-btn action-btn--del" onClick={() => onRemove(phaseKey, index)} title="Remove">✕</button>
+        </div>
+      </div>
+      {action.enabled && def?.fields?.length > 0 && (
+        <div className="action-card__fields">
+          {def.fields.map(f => (
+            <div key={f.key} className="action-field">
+              <label className="action-field__label">{f.label}</label>
+              {f.type === 'boolean' ? (
+                <input type="checkbox" checked={!!action[f.key]} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.checked })} />
+              ) : f.type === 'number' ? (
+                <input type="number" value={action[f.key] ?? f.default ?? 0} onChange={e => onUpdate(phaseKey, index, { [f.key]: parseInt(e.target.value) || 0 })} />
+              ) : f.type === 'guids' ? (
+                <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
+              ) : (
+                <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {action.enabled && action.raw && (
+        <div className="action-card__raw" title="Original PowerShell command">
+          <code>{action.raw}</code>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Add action picker — dropdown grouped by category */
+function AddActionPicker({ phaseKey, onAdd }) {
+  const [open, setOpen] = useState(false);
+  const categories = getCategoriesForPhase(phaseKey);
+  const actions = getActionsForPhase(phaseKey);
+
+  return (
+    <div className="add-action">
+      <button className="add-action__btn" onClick={() => setOpen(!open)}>＋ Add Action</button>
+      {open && (
+        <div className="add-action__dropdown">
+          {categories.map(cat => (
+            <div key={cat} className="add-action__group">
+              <span className="add-action__cat">{cat}</span>
+              {actions.filter(a => a.category === cat).map(a => (
+                <button key={a.type} className="add-action__item" onClick={() => { onAdd(phaseKey, createAction(a.type)); setOpen(false); }}>
+                  <span>{a.icon}</span> {a.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function WindowsConfigStep({ state, updateField, addAction, removeAction, updateAction, moveAction, updateLifecycleRoot }) {
   const [showLifecycle, setShowLifecycle] = useState(false);
   const [msiParsing, setMsiParsing] = useState(false);
   const [msiParseResult, setMsiParseResult] = useState(null);
   const [msiManualEntry, setMsiManualEntry] = useState(false);
+  const [expandedPhases, setExpandedPhases] = useState({});
   const scriptFileRef = useRef(null);
   const lc = state.lifecycle;
 
@@ -76,7 +150,7 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
           <input id="installerSource" type="text"
             value={state.installerSource}
             onChange={e => updateField('installerSource', e.target.value)}
-            placeholder="C:\files\7-zip\7z2600-x64.msi"
+            placeholder="C:/files/7-zip/7z2600-x64.msi"
           />
         </FormField>
       </div>
@@ -290,23 +364,6 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         </div>
       </div>
 
-      {/* ═══ PSADT DEPLOY MODE ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">PSADT Deploy Mode</h3>
-        <div className="form-grid">
-          <SelectField label="Deploy Mode" id="deployMode" value={state.deployMode}
-            hint="Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only."
-            onChange={v => updateField('deployMode', v)}
-            options={windowsOptions.deployModes}
-          />
-          <SelectField label="Install Context" id="installContext" value={state.installContext}
-            onChange={v => updateField('installContext', v)}
-            options={windowsOptions.installContexts}
-          />
-        </div>
-        <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
-      </div>
-
       {/* ═══ INTUNE APP METADATA ═══ */}
       <div className="config-section">
         <h3 className="section-title">Intune App Metadata</h3>
@@ -401,68 +458,77 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         </div>
       </div>
 
-      {/* ═══ PSADT LIFECYCLE ═══ */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* GROUP B: PSADT LIFECYCLE PHASES                                    */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      <div className="section-divider">
+        <span className="section-divider__line" />
+        <span className="section-divider__label">PSADT Lifecycle Phases</span>
+        <span className="section-divider__line" />
+      </div>
+
+      {/* Deploy Mode */}
       <div className="config-section">
-        <button type="button" className="lifecycle-toggle" onClick={() => setShowLifecycle(!showLifecycle)}>
-          <span className="lifecycle-toggle__icon">{showLifecycle ? '▾' : '▸'}</span>
-          <h3 className="section-title" style={{ marginBottom: 0 }}>
-            PSADT Lifecycle Phases <span className="section-optional">Advanced</span>
-          </h3>
-        </button>
-        {!showLifecycle && <p className="lifecycle-hint">Configure how PSADT handles install/uninstall. Click to customize.</p>}
-        {showLifecycle && (
-          <div className="lifecycle-panels animate-slide">
-            <div className="lifecycle-phase">
-              <h4 className="phase-title">📥 Pre-Install</h4>
-              <ToggleSwitch label="Close apps before install" checked={!!lc.preInstall.closeApps || !!state.closeApps} onChange={v => updateLifecycle('preInstall', 'closeApps', v ? (state.closeApps || 'TODO') : '')} id="lc-pre-closeApps" />
-              <ToggleSwitch label="Check disk space" checked={lc.preInstall.checkDiskSpace} onChange={v => updateLifecycle('preInstall', 'checkDiskSpace', v)} id="lc-pre-diskSpace" />
-              <ToggleSwitch label="Show progress message" checked={lc.preInstall.showProgress} onChange={v => updateLifecycle('preInstall', 'showProgress', v)} id="lc-pre-progress" />
-              <FormField label="User deferrals allowed" id="lc-pre-defer" hint="0 = no deferrals">
-                <input id="lc-pre-defer" type="number" min="0" value={lc.preInstall.allowDefer} onChange={e => updateLifecycle('preInstall', 'allowDefer', parseInt(e.target.value) || 0)} />
-              </FormField>
-            </div>
-            <div className="lifecycle-phase">
-              <h4 className="phase-title">⚙️ Install</h4>
-              <SelectField label="Install Method" id="lc-install-type" value={lc.install.type} onChange={v => updateLifecycle('install', 'type', v)}
-                options={[
-                  { value: 'auto', label: `Auto (${state.installerType.toUpperCase()})` },
-                  { value: 'msi', label: 'MSI install' },
-                  { value: 'exe', label: 'EXE install' },
-                  { value: 'copy', label: 'File/folder copy' },
-                ]}
-              />
-            </div>
-            <div className="lifecycle-phase">
-              <h4 className="phase-title">✅ Post-Install</h4>
-              <ToggleSwitch label="Write Fiserv registry marker" checked={lc.postInstall.registryMarker || state.detectionMode === 'registry-marker'} onChange={v => updateLifecycle('postInstall', 'registryMarker', v)} id="lc-post-regMarker" />
-              <ToggleSwitch label="Show completion message" checked={lc.postInstall.showCompletion} onChange={v => updateLifecycle('postInstall', 'showCompletion', v)} id="lc-post-completion" />
-            </div>
-            <div className="lifecycle-phase">
-              <h4 className="phase-title">🗑️ Uninstall</h4>
-              <SelectField label="Uninstall Method" id="lc-uninstall-type" value={lc.uninstall.type} onChange={v => updateLifecycle('uninstall', 'type', v)}
-                options={[
-                  { value: 'auto', label: `Auto (${state.installerType.toUpperCase()})` },
-                  { value: 'msi', label: 'MSI uninstall' },
-                  { value: 'exe', label: 'EXE uninstall' },
-                  { value: 'folder', label: 'Folder removal' },
-                ]}
-              />
-            </div>
-            <div className="lifecycle-phase">
-              <h4 className="phase-title">🧹 Post-Uninstall</h4>
-              <ToggleSwitch label="Remove registry marker" checked={lc.postUninstall.removeRegistryMarker || state.detectionMode === 'registry-marker'} onChange={v => updateLifecycle('postUninstall', 'removeRegistryMarker', v)} id="lc-postUn-regMarker" />
-            </div>
-            <div className="lifecycle-phase">
-              <h4 className="phase-title">🔧 Repair</h4>
-              <SelectField label="Repair Mode" id="lc-repairMode" value={lc.repairMode} onChange={v => updateLifecycleRoot('repairMode', v)}
-                options={[
-                  { value: 'mirror', label: 'Mirror Install (default)' },
-                  { value: 'custom', label: 'Custom Repair Actions' },
-                ]}
-              />
-            </div>
-          </div>
-        )}
+        <h3 className="section-title">PSADT Deploy Mode</h3>
+        <div className="form-grid">
+          <SelectField label="Deploy Mode" id="deployMode" value={state.deployMode}
+            hint="Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only."
+            onChange={v => updateField('deployMode', v)}
+            options={windowsOptions.deployModes}
+          />
+          <SelectField label="Install Context" id="installContext" value={state.installContext}
+            onChange={v => updateField('installContext', v)}
+            options={windowsOptions.installContexts}
+          />
+        </div>
+        <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
+        <div style={{ marginTop: 'var(--space-md)' }}>
+          <SelectField label="Repair Mode" id="lc-repairMode" value={lc.repairMode} onChange={v => updateLifecycleRoot('repairMode', v)}
+            options={[
+              { value: 'mirror', label: 'Mirror Install (default)' },
+              { value: 'custom', label: 'Custom Repair Actions' },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* ═══ PHASE PANELS ═══ */}
+      <div className="config-section">
+        <h3 className="section-title">Lifecycle Phases <span className="section-optional">{state.wizardMode === 'refactor' ? 'Imported' : '10 phases'}</span></h3>
+        <div className="lifecycle-panels">
+          {PHASE_KEYS.map(phaseKey => {
+            const meta = PHASE_META[phaseKey];
+            const phaseData = lc.phases?.[phaseKey] || { actions: [] };
+            const actions = phaseData.actions || [];
+            const isExpanded = expandedPhases[phaseKey] || (state.wizardMode === 'refactor' && actions.length > 0);
+            const togglePhase = () => setExpandedPhases(prev => ({ ...prev, [phaseKey]: !isExpanded }));
+
+            return (
+              <div key={phaseKey} className={`lifecycle-phase ${isExpanded ? 'lifecycle-phase--open' : ''}`}>
+                <button type="button" className="phase-header" onClick={togglePhase}>
+                  <span className="phase-header__icon">{meta.icon}</span>
+                  <span className="phase-header__label">{meta.label}</span>
+                  {actions.length > 0 && (
+                    <span className="phase-header__badge">{actions.length} action{actions.length !== 1 ? 's' : ''}</span>
+                  )}
+                  <span className="phase-header__chevron">{isExpanded ? '▾' : '▸'}</span>
+                </button>
+                {isExpanded && (
+                  <div className="phase-body">
+                    {actions.length === 0 && (
+                      <p className="phase-empty">No actions configured. Add one below.</p>
+                    )}
+                    {actions.map((action, i) => (
+                      <ActionCard key={i} action={action} index={i} total={actions.length} phaseKey={phaseKey}
+                        onUpdate={updateAction} onRemove={removeAction} onMove={moveAction} />
+                    ))}
+                    <AddActionPicker phaseKey={phaseKey} onAdd={addAction} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <style>{`
@@ -481,13 +547,56 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         .logo-preview { display: flex; align-items: center; gap: var(--space-md); }
         .script-preview { margin-top: var(--space-sm); padding: var(--space-md); background: rgba(8,10,20,0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); max-height: 200px; overflow-y: auto; }
         .script-preview pre { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); white-space: pre-wrap; margin: 0; }
-        .lifecycle-toggle { display: flex; align-items: center; gap: var(--space-sm); background: none; border: none; cursor: pointer; padding: 0; font-family: var(--font-sans); width: 100%; }
-        .lifecycle-toggle__icon { font-size: 0.8rem; color: var(--text-muted); width: 16px; }
-        .lifecycle-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: var(--space-sm); margin-left: 24px; }
-        .lifecycle-panels { margin-top: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); }
-        .lifecycle-phase { padding: var(--space-md); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
-        .phase-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-md); }
+
+        /* ── Section Divider ── */
+        .section-divider { display: flex; align-items: center; gap: var(--space-md); margin: var(--space-xl) 0; padding: 0 var(--space-xl); }
+        .section-divider__line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border-subtle), transparent); }
+        .section-divider__label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-accent, #7c8aff); white-space: nowrap; }
+
+        /* ── Phase Panels ── */
+        .lifecycle-panels { display: flex; flex-direction: column; gap: 6px; }
+        .lifecycle-phase { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; transition: border-color 0.2s; }
+        .lifecycle-phase--open { border-color: rgba(99,140,255,0.3); }
+        .phase-header { display: flex; align-items: center; gap: var(--space-sm); width: 100%; padding: 10px var(--space-md); background: var(--bg-card, rgba(255,255,255,0.02)); border: none; cursor: pointer; font-family: inherit; color: inherit; }
+        .phase-header:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+        .phase-header__icon { font-size: 1rem; flex-shrink: 0; }
+        .phase-header__label { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); flex: 1; text-align: left; }
+        .phase-header__badge { font-size: 0.65rem; font-weight: 700; background: rgba(99,140,255,0.15); color: var(--text-accent, #7c8aff); padding: 2px 8px; border-radius: 10px; }
+        .phase-header__chevron { font-size: 0.7rem; color: var(--text-muted); width: 14px; }
+        .phase-body { padding: var(--space-sm) var(--space-md) var(--space-md); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px; }
+        .phase-empty { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin: 0; padding: 4px 0; }
+
+        /* ── Action Cards ── */
+        .action-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); overflow: hidden; transition: opacity 0.2s; }
+        .action-card--disabled { opacity: 0.5; }
+        .action-card__header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(255,255,255,0.02); }
+        .action-card__icon { font-size: 0.9rem; }
+        .action-card__label { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); flex: 1; }
+        .action-card__controls { display: flex; gap: 2px; }
+        .action-btn { background: none; border: 1px solid transparent; border-radius: 3px; cursor: pointer; color: var(--text-muted); font-size: 0.65rem; padding: 2px 5px; font-family: inherit; line-height: 1; }
+        .action-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+        .action-btn:disabled { opacity: 0.3; cursor: default; }
+        .action-btn--toggle { color: var(--color-success, #22c55e); font-weight: bold; }
+        .action-btn--del { color: var(--color-error, #ef4444); }
+        .action-card__fields { padding: 6px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .action-field { display: flex; flex-direction: column; gap: 2px; }
+        .action-field__label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); }
+        .action-field input[type="text"], .action-field input[type="number"], .action-field textarea { font-size: 0.75rem; padding: 4px 6px; background: var(--bg-surface, rgba(0,0,0,0.3)); border: 1px solid var(--border-subtle); border-radius: 3px; color: var(--text-primary); font-family: var(--font-mono, monospace); }
+        .action-field textarea { grid-column: 1 / -1; font-size: 0.7rem; }
+        .action-card__raw { padding: 4px 10px 6px; }
+        .action-card__raw code { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono, monospace); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ── Add Action Picker ── */
+        .add-action { position: relative; }
+        .add-action__btn { background: none; border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; width: 100%; font-family: inherit; transition: all 0.15s; }
+        .add-action__btn:hover { border-color: var(--text-accent, #7c8aff); color: var(--text-accent, #7c8aff); background: rgba(99,140,255,0.05); }
+        .add-action__dropdown { position: absolute; bottom: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: var(--bg-surface, #0d0f1a); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; padding: 6px 0; }
+        .add-action__group { padding: 4px 0; }
+        .add-action__cat { display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 2px 12px 4px; }
+        .add-action__item { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 12px; background: none; border: none; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; font-family: inherit; text-align: left; }
+        .add-action__item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-primary); }
       `}</style>
     </div>
   );
 }
+

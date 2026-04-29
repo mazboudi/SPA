@@ -1,14 +1,53 @@
+import { useState } from 'react';
 import useWizardState from './hooks/useWizardState';
 import WizardStepper from './components/WizardStepper';
 import BasicInfoStep from './components/steps/BasicInfoStep';
 import PlatformStep from './components/steps/PlatformStep';
-import WindowsConfigStep from './components/steps/WindowsConfigStep';
+import PsadtLifecycleStep from './components/steps/PsadtLifecycleStep';
+import InstallerDetectionStep from './components/steps/InstallerDetectionStep';
+import IntuneConfigStep from './components/steps/IntuneConfigStep';
 import MacConfigStep from './components/steps/MacConfigStep';
 import ReviewStep from './components/steps/ReviewStep';
+import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
 
 export default function App() {
   const wizard = useWizardState();
   const currentStepId = wizard.steps[wizard.currentStep]?.id;
+  const [showModeSelector, setShowModeSelector] = useState(true);
+  const [psadtParsing, setPsadtParsing] = useState(false);
+  const [psadtError, setPsadtError] = useState(null);
+  const [psadtResult, setPsadtResult] = useState(null);
+
+  // ── PSADT file upload handler ────────────────────────────────────────
+  const handlePsadtUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPsadtParsing(true);
+    setPsadtError(null);
+    setPsadtResult(null);
+    try {
+      const parsed = await parsePsadtFile(file);
+      const wizardFields = toWizardState(parsed);
+      setPsadtResult(parsed);
+      wizard.importPsadtState(parsed, wizardFields);
+      setShowModeSelector(false);
+    } catch (err) {
+      setPsadtError(err.message);
+    } finally {
+      setPsadtParsing(false);
+    }
+  };
+
+  const handleNewTitle = () => {
+    setShowModeSelector(false);
+  };
+
+  const handleStartOver = () => {
+    wizard.reset();
+    setShowModeSelector(true);
+    setPsadtResult(null);
+    setPsadtError(null);
+  };
 
   const renderStep = () => {
     switch (currentStepId) {
@@ -16,8 +55,12 @@ export default function App() {
         return <BasicInfoStep state={wizard.state} updateField={wizard.updateField} CATEGORIES={wizard.CATEGORIES} />;
       case 'platform':
         return <PlatformStep state={wizard.state} updateField={wizard.updateField} />;
-      case 'windows':
-        return <WindowsConfigStep state={wizard.state} updateField={wizard.updateField} updateLifecycle={wizard.updateLifecycle} updateLifecycleRoot={wizard.updateLifecycleRoot} />;
+      case 'psadt':
+        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} />;
+      case 'installer':
+        return <InstallerDetectionStep state={wizard.state} updateField={wizard.updateField} />;
+      case 'intune':
+        return <IntuneConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'macos':
         return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':
@@ -35,54 +78,90 @@ export default function App() {
           <span className="app-header__logo">📦</span>
           <div>
             <h1 className="app-header__title">SPA Title Wizard</h1>
-            <p className="app-header__subtitle">Software Package Automation — New Title Scaffolding</p>
+            <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
           </div>
         </div>
-        {wizard.currentStep > 0 && (
-          <button className="btn btn-ghost" onClick={wizard.reset}>
+        {!showModeSelector && (
+          <button className="btn btn-ghost" onClick={handleStartOver}>
             ↻ Start Over
           </button>
         )}
       </header>
 
-      {/* Stepper */}
-      <WizardStepper
-        steps={wizard.steps}
-        currentStep={wizard.currentStep}
-        onStepClick={wizard.goToStep}
-      />
+      {/* Mode Selector (pre-step gate) */}
+      {showModeSelector ? (
+        <main className="app-main glass-panel">
+          <div className="mode-selector">
+            <h2 className="mode-selector__title">What would you like to do?</h2>
+            <p className="mode-selector__subtitle">Create a new title or refactor an existing PSADT package.</p>
+            <div className="mode-selector__cards">
+              <button className="mode-card" onClick={handleNewTitle} id="mode-new-title">
+                <span className="mode-card__icon">🆕</span>
+                <h3 className="mode-card__title">New Title</h3>
+                <p className="mode-card__desc">Start from scratch — define app metadata, detection, and lifecycle phases interactively.</p>
+              </button>
 
-      {/* Main content */}
-      <main className="app-main glass-panel">
-        {renderStep()}
-      </main>
+              <label className="mode-card mode-card--refactor" id="mode-refactor-title">
+                <span className="mode-card__icon">🔄</span>
+                <h3 className="mode-card__title">Refactor Existing</h3>
+                <p className="mode-card__desc">Upload a PSADT v3 or v4 script — we&apos;ll parse it and pre-fill the wizard.</p>
+                <input
+                  type="file"
+                  accept=".ps1"
+                  onChange={handlePsadtUpload}
+                  style={{ display: 'none' }}
+                />
+                {psadtParsing && <span className="mode-card__status">⏳ Parsing script...</span>}
+                {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
+              </label>
+            </div>
+            <p className="mode-selector__hint">
+              Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
+            </p>
+          </div>
+        </main>
+      ) : (
+        <>
+          {/* Stepper */}
+          <WizardStepper
+            steps={wizard.steps}
+            currentStep={wizard.currentStep}
+            onStepClick={wizard.goToStep}
+          />
 
-      {/* Navigation */}
-      <div className="app-nav">
-        <button
-          className="btn btn-secondary"
-          onClick={wizard.prevStep}
-          disabled={wizard.currentStep === 0}
-        >
-          ← Back
-        </button>
+          {/* Main content */}
+          <main className="app-main glass-panel">
+            {renderStep()}
+          </main>
 
-        <div className="app-nav__info">
-          Step {wizard.currentStep + 1} of {wizard.steps.length}
-        </div>
+          {/* Navigation */}
+          <div className="app-nav">
+            <button
+              className="btn btn-secondary"
+              onClick={wizard.prevStep}
+              disabled={wizard.currentStep === 0}
+            >
+              ← Back
+            </button>
 
-        {currentStepId !== 'review' ? (
-          <button
-            className="btn btn-primary"
-            onClick={wizard.nextStep}
-            disabled={!wizard.canProceed}
-          >
-            Next →
-          </button>
-        ) : (
-          <div />
-        )}
-      </div>
+            <div className="app-nav__info">
+              Step {wizard.currentStep + 1} of {wizard.steps.length}
+            </div>
+
+            {currentStepId !== 'review' ? (
+              <button
+                className="btn btn-primary"
+                onClick={wizard.nextStep}
+                disabled={!wizard.canProceed}
+              >
+                Next →
+              </button>
+            ) : (
+              <div />
+            )}
+          </div>
+        </>
+      )}
 
       <style>{`
         .app {
@@ -138,7 +217,91 @@ export default function App() {
           font-size: 0.8rem;
           color: var(--text-muted);
         }
+
+        /* ── Mode Selector ── */
+        .mode-selector {
+          padding: var(--space-xl);
+          text-align: center;
+        }
+        .mode-selector__title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          background: var(--accent-gradient);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: var(--space-sm);
+        }
+        .mode-selector__subtitle {
+          color: var(--text-secondary);
+          font-size: 0.95rem;
+          margin-bottom: var(--space-xl);
+        }
+        .mode-selector__cards {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-lg);
+          max-width: 700px;
+          margin: 0 auto var(--space-lg);
+        }
+        @media (max-width: 640px) {
+          .mode-selector__cards { grid-template-columns: 1fr; }
+        }
+        .mode-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--space-sm);
+          padding: var(--space-xl) var(--space-lg);
+          background: var(--bg-card, rgba(255,255,255,0.03));
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-lg, 12px);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+          font-family: inherit;
+          color: inherit;
+        }
+        .mode-card:hover {
+          border-color: var(--text-accent, #7c8aff);
+          background: var(--bg-hover, rgba(255,255,255,0.06));
+          transform: translateY(-2px);
+          box-shadow: 0 8px 32px rgba(99, 140, 255, 0.12);
+        }
+        .mode-card__icon {
+          font-size: 2.5rem;
+          margin-bottom: var(--space-sm);
+        }
+        .mode-card__title {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .mode-card__desc {
+          font-size: 0.82rem;
+          color: var(--text-muted);
+          line-height: 1.5;
+        }
+        .mode-card__status {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          margin-top: var(--space-sm);
+        }
+        .mode-card__status--err {
+          color: var(--color-error, #ef4444);
+        }
+        .mode-selector__hint {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+        .mode-selector__hint code {
+          background: var(--bg-hover);
+          padding: 1px 5px;
+          border-radius: var(--radius-sm);
+          font-size: 0.73rem;
+        }
       `}</style>
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
 
-export default function AssignmentsSection({ assignments, onChange }) {
+export default function AssignmentsSection({ assignments, onChange, validationErrors = {} }) {
   const updateAssignment = (index, field, value) => {
     const updated = assignments.map((a, i) => i === index ? { ...a, [field]: value } : a);
     onChange(updated);
@@ -35,8 +35,10 @@ export default function AssignmentsSection({ assignments, onChange }) {
                 { value: 'uninstall', label: 'Uninstall' },
               ]}
             />
-            <FormField label="Entra ID Group Object ID" id={`assign-group-${i}`} required hint="Azure AD group GUID">
-              <input id={`assign-group-${i}`} type="text" placeholder="00000000-0000-0000-0000-000000000000" value={a.groupId} onChange={e => updateAssignment(i, 'groupId', e.target.value)} />
+            <FormField label="Entra ID Group Object ID" id={`assign-group-${i}`} required hint="Azure AD group GUID" error={validationErrors[`assignment_${i}_groupId`]}>
+              <input id={`assign-group-${i}`} type="text" placeholder="00000000-0000-0000-0000-000000000000"
+                className={validationErrors[`assignment_${i}_groupId`] ? 'input--error' : ''}
+                value={a.groupId} onChange={e => updateAssignment(i, 'groupId', e.target.value)} />
             </FormField>
             <SelectField label="Filter Mode" id={`assign-filter-${i}`} value={a.filterMode} onChange={v => updateAssignment(i, 'filterMode', v)}
               options={[
@@ -46,8 +48,10 @@ export default function AssignmentsSection({ assignments, onChange }) {
               ]}
             />
             {a.filterMode !== 'none' && (
-              <FormField label="Filter ID" id={`assign-filterId-${i}`}>
-                <input id={`assign-filterId-${i}`} type="text" placeholder="Filter GUID" value={a.filterId} onChange={e => updateAssignment(i, 'filterId', e.target.value)} />
+              <FormField label="Filter ID" id={`assign-filterId-${i}`} error={validationErrors[`assignment_${i}_filterId`]}>
+                <input id={`assign-filterId-${i}`} type="text" placeholder="Filter GUID"
+                  className={validationErrors[`assignment_${i}_filterId`] ? 'input--error' : ''}
+                  value={a.filterId} onChange={e => updateAssignment(i, 'filterId', e.target.value)} />
               </FormField>
             )}
             <SelectField label="Notifications" id={`assign-notif-${i}`} value={a.notifications} onChange={v => updateAssignment(i, 'notifications', v)}

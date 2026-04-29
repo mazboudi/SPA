@@ -1,0 +1,62 @@
+/* Shared styles for Windows wizard steps */
+
+.config-section { margin-bottom: var(--space-xl); padding-bottom: var(--space-lg); border-bottom: 1px solid var(--border-subtle); }
+.config-section:last-child { border-bottom: none; }
+.section-title { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm); }
+.section-optional { font-size: 0.7rem; font-weight: 400; color: var(--text-muted); background: var(--bg-hover); padding: 2px 8px; border-radius: var(--radius-sm); }
+
+/* MSI/Script/Logo upload areas */
+.msi-upload-area, .script-upload-area, .logo-upload-area { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); }
+.msi-upload-btn { cursor: pointer; }
+.msi-status { font-size: 0.8rem; color: var(--text-secondary); }
+.msi-status--ok { color: var(--color-success); }
+.msi-status--err { color: var(--color-error); }
+.link-btn { background: none; border: none; color: var(--color-accent, #7c8aff); cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0; font-family: inherit; }
+.link-btn:hover { color: var(--text-primary); }
+.msi-manual-banner { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); background: var(--bg-hover); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-secondary); }
+.logo-preview { display: flex; align-items: center; gap: var(--space-md); }
+.script-preview { margin-top: var(--space-sm); padding: var(--space-md); background: rgba(8,10,20,0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); max-height: 200px; overflow-y: auto; }
+.script-preview pre { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); white-space: pre-wrap; margin: 0; }
+
+/* ── Phase Panels ── */
+.lifecycle-panels { display: flex; flex-direction: column; gap: 6px; }
+.lifecycle-phase { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; transition: border-color 0.2s; }
+.lifecycle-phase--open { border-color: rgba(99,140,255,0.3); }
+.phase-header { display: flex; align-items: center; gap: var(--space-sm); width: 100%; padding: 10px var(--space-md); background: var(--bg-card, rgba(255,255,255,0.02)); border: none; cursor: pointer; font-family: inherit; color: inherit; }
+.phase-header:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+.phase-header__icon { font-size: 1rem; flex-shrink: 0; }
+.phase-header__label { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); flex: 1; text-align: left; }
+.phase-header__badge { font-size: 0.65rem; font-weight: 700; background: rgba(99,140,255,0.15); color: var(--text-accent, #7c8aff); padding: 2px 8px; border-radius: 10px; }
+.phase-header__chevron { font-size: 0.7rem; color: var(--text-muted); width: 14px; }
+.phase-body { padding: var(--space-sm) var(--space-md) var(--space-md); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px; }
+.phase-empty { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin: 0; padding: 4px 0; }
+
+/* ── Action Cards ── */
+.action-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); overflow: hidden; transition: opacity 0.2s; }
+.action-card--disabled { opacity: 0.5; }
+.action-card__header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(255,255,255,0.02); }
+.action-card__icon { font-size: 0.9rem; }
+.action-card__label { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); flex: 1; }
+.action-card__controls { display: flex; gap: 2px; }
+.action-btn { background: none; border: 1px solid transparent; border-radius: 3px; cursor: pointer; color: var(--text-muted); font-size: 0.65rem; padding: 2px 5px; font-family: inherit; line-height: 1; }
+.action-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.action-btn:disabled { opacity: 0.3; cursor: default; }
+.action-btn--toggle { color: var(--color-success, #22c55e); font-weight: bold; }
+.action-btn--del { color: var(--color-error, #ef4444); }
+.action-card__fields { padding: 6px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.action-field { display: flex; flex-direction: column; gap: 2px; }
+.action-field__label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); }
+.action-field input[type="text"], .action-field input[type="number"], .action-field textarea { font-size: 0.75rem; padding: 4px 6px; background: var(--bg-surface, rgba(0,0,0,0.3)); border: 1px solid var(--border-subtle); border-radius: 3px; color: var(--text-primary); font-family: var(--font-mono, monospace); }
+.action-field textarea { grid-column: 1 / -1; font-size: 0.7rem; }
+.action-card__raw { padding: 4px 10px 6px; }
+.action-card__raw code { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono, monospace); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Add Action Picker ── */
+.add-action { position: relative; }
+.add-action__btn { background: none; border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; width: 100%; font-family: inherit; transition: all 0.15s; }
+.add-action__btn:hover { border-color: var(--text-accent, #7c8aff); color: var(--text-accent, #7c8aff); background: rgba(99,140,255,0.05); }
+.add-action__dropdown { position: absolute; bottom: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: var(--bg-surface, #0d0f1a); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; padding: 6px 0; }
+.add-action__group { padding: 4px 0; }
+.add-action__cat { display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 2px 12px 4px; }
+.add-action__item { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 12px; background: none; border: none; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; font-family: inherit; text-align: left; }
+.add-action__item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-primary); }

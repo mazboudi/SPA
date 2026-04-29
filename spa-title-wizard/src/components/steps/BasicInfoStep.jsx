@@ -4,10 +4,28 @@ import SelectField from '../ui/SelectField';
 export default function BasicInfoStep({ state, updateField, CATEGORIES }) {
   return (
     <div className="step-content animate-in">
+      {/* Refactor import banner */}
+      {state.wizardMode === 'refactor' && (
+        <div className="import-banner animate-in">
+          <div className="import-banner__icon">🔄</div>
+          <div className="import-banner__body">
+            <strong>Imported from PSADT {state.psadtVersion?.toUpperCase()}</strong>
+            {state.psadtScriptVersion && (
+              <span className="import-banner__version">v{state.psadtScriptVersion}</span>
+            )}
+            <p>
+              Parsed from <code>{state.psadtFileName || 'uploaded script'}</code>.
+              Review and adjust the pre-filled fields below.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="step-header">
         <h2>📋 Basic Information</h2>
         <p>Define the application identity. These values are used across all generated files.</p>
       </div>
+
 
       <div className="form-grid">
         <FormField label="Display Name" required id="displayName" hint="Human-readable name, e.g. 'Google Chrome'">
@@ -129,6 +147,54 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES }) {
           font-family: var(--font-mono);
           font-size: 0.8rem;
           color: var(--text-accent);
+        }
+
+        /* ── Import Banner ── */
+        .import-banner {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--space-md);
+          padding: var(--space-md) var(--space-lg);
+          margin: 0 var(--space-xl) var(--space-lg);
+          background: linear-gradient(135deg, rgba(99,140,255,0.08), rgba(168,85,247,0.06));
+          border: 1px solid rgba(99,140,255,0.2);
+          border-radius: var(--radius-sm);
+          border-left: 3px solid var(--text-accent, #7c8aff);
+        }
+        .import-banner__icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        .import-banner__body {
+          font-size: 0.85rem;
+          line-height: 1.5;
+        }
+        .import-banner__body strong {
+          color: var(--text-primary);
+        }
+        .import-banner__version {
+          display: inline-block;
+          margin-left: var(--space-sm);
+          padding: 1px 6px;
+          background: rgba(99,140,255,0.15);
+          border-radius: var(--radius-sm);
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: var(--text-accent, #7c8aff);
+          font-family: var(--font-mono, monospace);
+        }
+        .import-banner__body p {
+          margin-top: var(--space-xs, 4px);
+          color: var(--text-secondary);
+          font-size: 0.8rem;
+        }
+        .import-banner__body code {
+          background: rgba(255,255,255,0.06);
+          padding: 1px 5px;
+          border-radius: 3px;
+          font-size: 0.75rem;
+          font-family: var(--font-mono, monospace);
         }
       `}</style>
     </div>

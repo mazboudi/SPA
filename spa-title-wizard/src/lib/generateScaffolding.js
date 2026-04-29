@@ -425,8 +425,8 @@ fi
 }
 
 /**
- * Generate lifecycle.yaml — mirrors ConvertTo-LifecycleYaml.ps1 output.
- * Produces YAML describing PSADT lifecycle phases for Build-PsadtFromLifecycle.ps1.
+ * Generate lifecycle.yaml — produces YAML describing PSADT lifecycle phases.
+ * Consumes the new 10-phase actions model from lifecycle.phases.
  */
 function generateLifecycleYaml(s) {
   const lc = s.lifecycle;
@@ -441,119 +441,122 @@ function generateLifecycleYaml(s) {
   lines.push(`repair_mode: ${lc.repairMode}`);
   lines.push('');
 
-  // Resolve install/uninstall type from 'auto' to the actual installer type
-  const resolvedInstallType = lc.install.type === 'auto' ? s.installerType : lc.install.type;
-  const resolvedUninstallType = lc.uninstall.type === 'auto' ? s.installerType : lc.uninstall.type;
+  // Phase key → YAML key mapping
+  const phaseYamlMap = {
+    variableDeclaration: 'variable_declaration',
+    preInstall: 'pre_install',
+    install: 'install',
+    postInstall: 'post_install',
+    preUninstall: 'pre_uninstall',
+    uninstall: 'uninstall',
+    postUninstall: 'post_uninstall',
+    preRepair: 'pre_repair',
+    repair: 'repair',
+    postRepair: 'post_repair',
+  };
 
-  // Source file references
-  const sourceFile = s.installerType === 'msi'
-    ? (s.msiFileName || lc.install.msiFile || 'TODO_INSTALLER.msi')
-    : (s.exeSourceFilename || lc.install.exeFile || 'TODO_INSTALLER.exe');
-  const productCode = s.msiProductCode || '{TODO-PRODUCT-CODE-GUID}';
+  const phases = lc.phases || {};
 
-  // ── Pre-Install ─────────────────────────────────────────────────────────
-  const preInstallLines = [];
-  const closeApps = lc.preInstall.closeApps || s.closeApps;
-  if (closeApps) preInstallLines.push(`  close_apps: "${closeApps}"`);
-  if (lc.preInstall.checkDiskSpace) preInstallLines.push('  check_disk_space: true');
-  if (lc.preInstall.allowDefer > 0) preInstallLines.push(`  allow_defer: ${lc.preInstall.allowDefer}`);
-  if (lc.preInstall.showProgress) preInstallLines.push('  show_progress: true');
+  for (const [phaseKey, yamlKey] of Object.entries(phaseYamlMap)) {
+    const phaseData = phases[phaseKey];
+    if (!phaseData) continue;
+    const actions = (phaseData.actions || []).filter(a => a.enabled !== false);
+    if (actions.length === 0) continue;
 
-  if (preInstallLines.length) {
-    lines.push('pre_install:');
-    lines.push(...preInstallLines);
-    lines.push('');
-  }
-
-  // ── Install ─────────────────────────────────────────────────────────────
-  lines.push('install:');
-  lines.push('  actions:');
-  if (resolvedInstallType === 'msi') {
-    const msiFile = lc.install.msiFile || sourceFile;
-    const msiArgs = lc.install.msiArgs || '/QN /norestart';
-    lines.push('    - type: msi_install');
-    lines.push(`      file_path: "${msiFile}"`);
-    lines.push(`      arguments: "${msiArgs}"`);
-  } else if (resolvedInstallType === 'exe') {
-    const exeFile = lc.install.exeFile || sourceFile;
-    const exeArgs = lc.install.exeArgs || s.exeInstallArgs || '/S';
-    lines.push('    - type: exe_install');
-    lines.push(`      file_path: "${exeFile}"`);
-    lines.push(`      arguments: "${exeArgs}"`);
-  } else if (resolvedInstallType === 'copy') {
-    lines.push('    - type: folder_copy');
-    lines.push('      source: "TODO"');
-    lines.push('      destination: "C:\\"');
-  }
-  lines.push('');
-
-  // ── Post-Install ────────────────────────────────────────────────────────
-  const postInstallActions = [];
-  if (lc.postInstall.registryMarker || s.detectionMode === 'registry-marker') {
-    postInstallActions.push('    - type: registry_marker');
-  }
-  if (lc.postInstall.envVar) {
-    postInstallActions.push('    - type: set_env_variable');
-    postInstallActions.push(`      name: "${lc.postInstall.envVar}"`);
-    postInstallActions.push(`      value: "${lc.postInstall.envValue}"`);
-  }
-  if (lc.postInstall.showCompletion) {
-    postInstallActions.push('    - type: show_completion');
-  }
-
-  if (postInstallActions.length) {
-    lines.push('post_install:');
+    lines.push(`${yamlKey}:`);
     lines.push('  actions:');
-    lines.push(...postInstallActions);
-    lines.push('');
-  }
 
-  // ── Pre-Uninstall ───────────────────────────────────────────────────────
-  const preUnLines = [];
-  const unCloseApps = lc.preUninstall.closeApps || s.closeApps;
-  if (unCloseApps) preUnLines.push(`  close_apps: "${unCloseApps}"`);
-  if (lc.preUninstall.showProgress) preUnLines.push('  show_progress: true');
+    for (const action of actions) {
+      lines.push(`    - type: ${action.type}`);
 
-  if (preUnLines.length) {
-    lines.push('pre_uninstall:');
-    lines.push(...preUnLines);
-    lines.push('');
-  }
-
-  // ── Uninstall ───────────────────────────────────────────────────────────
-  lines.push('uninstall:');
-  lines.push('  actions:');
-  if (resolvedUninstallType === 'msi') {
-    const appName = lc.uninstall.appName || s.displayName;
-    lines.push('    - type: msi_uninstall');
-    lines.push(`      app_name: "${appName}"`);
-    if (productCode) lines.push(`      product_code: "${productCode}"`);
-  } else if (resolvedUninstallType === 'exe') {
-    const unExe = lc.uninstall.exeFile || s.exeUninstallPath || 'C:\\Program Files\\TODO\\uninstall.exe';
-    const unArgs = lc.uninstall.exeArgs || s.exeUninstallArgs || '/S';
-    lines.push('    - type: exe_uninstall');
-    lines.push(`      file_path: "${unExe}"`);
-    lines.push(`      arguments: "${unArgs}"`);
-  } else if (resolvedUninstallType === 'folder') {
-    lines.push('    - type: folder_remove');
-    lines.push(`      path: "${lc.uninstall.folderPath || 'C:\\\\Program Files\\\\TODO'}"`);
-  }
-  lines.push('');
-
-  // ── Post-Uninstall ──────────────────────────────────────────────────────
-  const postUnActions = [];
-  if (lc.postUninstall.removeRegistryMarker || s.detectionMode === 'registry-marker') {
-    postUnActions.push('    - type: remove_registry_marker');
-  }
-  if (lc.postUninstall.removeEnvVar) {
-    postUnActions.push('    - type: remove_env_variable');
-    postUnActions.push(`      name: "${lc.postUninstall.removeEnvVar}"`);
-  }
-
-  if (postUnActions.length) {
-    lines.push('post_uninstall:');
-    lines.push('  actions:');
-    lines.push(...postUnActions);
+      // Serialize known fields per action type
+      switch (action.type) {
+        case 'msi_install':
+          if (action.file) lines.push(`      file_path: "${action.file}"`);
+          lines.push(`      arguments: "${action.args || '/QN /norestart'}"`);
+          break;
+        case 'msi_uninstall':
+          if (action.appName) lines.push(`      app_name: "${action.appName}"`);
+          if (action.productCode) lines.push(`      product_code: "${action.productCode}"`);
+          if (action.args) lines.push(`      arguments: "${action.args}"`);
+          break;
+        case 'msi_uninstall_batch': {
+          const guids = Array.isArray(action.guids) ? action.guids : [];
+          if (guids.length > 0) {
+            lines.push('      guids:');
+            for (const g of guids) lines.push(`        - "${g}"`);
+          }
+          break;
+        }
+        case 'exe_install':
+        case 'exe_uninstall':
+          if (action.file) lines.push(`      file_path: "${action.file}"`);
+          lines.push(`      arguments: "${action.args || '/S'}"`);
+          break;
+        case 'execute_process':
+          if (action.file) lines.push(`      file_path: "${action.file}"`);
+          if (action.args) lines.push(`      arguments: "${action.args}"`);
+          break;
+        case 'stop_process':
+          if (action.closeApps) lines.push(`      close_apps: "${action.closeApps}"`);
+          break;
+        case 'file_copy':
+          if (action.source) lines.push(`      source: "${action.source}"`);
+          if (action.dest) lines.push(`      destination: "${action.dest}"`);
+          break;
+        case 'file_remove':
+          if (action.path) lines.push(`      path: "${action.path}"`);
+          break;
+        case 'create_folder':
+          if (action.path) lines.push(`      path: "${action.path}"`);
+          break;
+        case 'registry_set':
+          if (action.key) lines.push(`      key: "${action.key}"`);
+          if (action.name) lines.push(`      name: "${action.name}"`);
+          if (action.value) lines.push(`      value: "${action.value}"`);
+          break;
+        case 'registry_remove':
+          if (action.key) lines.push(`      key: "${action.key}"`);
+          break;
+        case 'registry_marker':
+          lines.push('      # Auto-generated from app metadata');
+          break;
+        case 'remove_registry_marker':
+          lines.push('      # Auto-generated from app metadata');
+          break;
+        case 'env_variable':
+          if (action.name) lines.push(`      name: "${action.name}"`);
+          if (action.value) lines.push(`      value: "${action.value}"`);
+          break;
+        case 'remove_env_variable':
+          if (action.name) lines.push(`      name: "${action.name}"`);
+          break;
+        case 'show_welcome':
+          if (action.closeApps) lines.push(`      close_apps: "${action.closeApps}"`);
+          if (action.deferTimes) lines.push(`      defer_times: ${action.deferTimes}`);
+          if (action.checkDiskSpace) lines.push('      check_disk_space: true');
+          break;
+        case 'show_progress':
+          break; // no params
+        case 'show_completion':
+          break; // no params
+        case 'custom_variable':
+          if (action.name) lines.push(`      name: "${action.name}"`);
+          if (action.value) lines.push(`      value: "${action.value}"`);
+          break;
+        case 'sleep':
+          lines.push(`      seconds: ${action.seconds || 5}`);
+          break;
+        default:
+          // For unrecognized types, serialize all non-meta fields
+          for (const [k, v] of Object.entries(action)) {
+            if (['type', 'enabled', 'raw', 'desc'].includes(k)) continue;
+            if (v !== undefined && v !== null && v !== '') {
+              lines.push(`      ${k}: ${typeof v === 'string' ? `"${v}"` : v}`);
+            }
+          }
+      }
+    }
     lines.push('');
   }
 

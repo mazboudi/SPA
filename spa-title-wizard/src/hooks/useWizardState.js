@@ -1,6 +1,13 @@
 import { useState, useCallback, useMemo } from 'react';
 
 const INITIAL_STATE = {
+  // Wizard mode: 'new' or 'refactor'
+  wizardMode: 'new',
+  psadtVersion: '',         // 'v3' or 'v4' when refactoring
+  psadtScriptVersion: '',   // e.g. '3.8.3' or '4.1.7'
+  psadtFileName: '',        // original uploaded filename
+  parsedPhases: {},          // per-phase action arrays from parser
+
   // Step 1: Basic Info
   packageId: '',
   displayName: '',
@@ -61,15 +68,21 @@ const INITIAL_STATE = {
   minDiskSpaceMB: 500,
   minMemoryMB: 2048,
 
-  // Lifecycle phases (PSADT)
+  // Lifecycle phases (PSADT) — 10-phase model with actions arrays
   lifecycle: {
     repairMode: 'mirror', // 'mirror' or 'custom'
-    preInstall: { closeApps: '', checkDiskSpace: false, allowDefer: 0, showProgress: false },
-    install: { type: 'auto', msiFile: '', msiArgs: '/QN /norestart', exeFile: '', exeArgs: '/S' },
-    postInstall: { registryMarker: false, envVar: '', envValue: '', regPath: '', regName: '', regValue: '', showCompletion: false },
-    preUninstall: { closeApps: '', showProgress: false },
-    uninstall: { type: 'auto', appName: '', productCode: '', exeFile: '', exeArgs: '/S', folderPath: '' },
-    postUninstall: { removeRegistryMarker: false, removeEnvVar: '', removeRegPath: '' },
+    phases: {
+      variableDeclaration: { actions: [] },
+      preInstall:    { actions: [] },
+      install:       { actions: [] },
+      postInstall:   { actions: [] },
+      preUninstall:  { actions: [] },
+      uninstall:     { actions: [] },
+      postUninstall: { actions: [] },
+      preRepair:     { actions: [] },
+      repair:        { actions: [] },
+      postRepair:    { actions: [] },
+    },
   },
 
   // Step 3b: macOS Config
@@ -172,16 +185,44 @@ export default function useWizardState() {
     setState(prev => ({ ...prev, ...fields }));
   }, []);
 
-  const updateLifecycle = useCallback((phase, field, value) => {
-    setState(prev => ({
-      ...prev,
-      lifecycle: {
-        ...prev.lifecycle,
-        [phase]: typeof prev.lifecycle[phase] === 'object'
-          ? { ...prev.lifecycle[phase], [field]: value }
-          : value,
-      },
-    }));
+  // ── Lifecycle action CRUD ──────────────────────────────────────────────
+  const addAction = useCallback((phaseKey, action) => {
+    setState(prev => {
+      const phases = { ...prev.lifecycle.phases };
+      phases[phaseKey] = { ...phases[phaseKey], actions: [...(phases[phaseKey]?.actions || []), action] };
+      return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
+    });
+  }, []);
+
+  const removeAction = useCallback((phaseKey, index) => {
+    setState(prev => {
+      const phases = { ...prev.lifecycle.phases };
+      const actions = [...(phases[phaseKey]?.actions || [])];
+      actions.splice(index, 1);
+      phases[phaseKey] = { ...phases[phaseKey], actions };
+      return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
+    });
+  }, []);
+
+  const updateAction = useCallback((phaseKey, index, updates) => {
+    setState(prev => {
+      const phases = { ...prev.lifecycle.phases };
+      const actions = [...(phases[phaseKey]?.actions || [])];
+      actions[index] = { ...actions[index], ...updates };
+      phases[phaseKey] = { ...phases[phaseKey], actions };
+      return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
+    });
+  }, []);
+
+  const moveAction = useCallback((phaseKey, fromIndex, toIndex) => {
+    setState(prev => {
+      const phases = { ...prev.lifecycle.phases };
+      const actions = [...(phases[phaseKey]?.actions || [])];
+      const [item] = actions.splice(fromIndex, 1);
+      actions.splice(toIndex, 0, item);
+      phases[phaseKey] = { ...phases[phaseKey], actions };
+      return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
+    });
   }, []);
 
   const updateLifecycleRoot = useCallback((field, value) => {
@@ -199,7 +240,9 @@ export default function useWizardState() {
     ];
 
     if (state.platform === 'windows' || state.platform === 'both') {
-      base.push({ id: 'windows', label: 'Windows', icon: '🪟' });
+      base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
+      base.push({ id: 'installer', label: 'Installer', icon: '📦' });
+      base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
     if (state.platform === 'macos' || state.platform === 'both') {
       base.push({ id: 'macos', label: 'macOS', icon: '🍎' });
@@ -220,10 +263,12 @@ export default function useWizardState() {
         return !!(state.displayName.trim() && state.version.trim() && state.category);
       case 'platform':
         return !!state.platform;
-      case 'windows':
-        return true; // Windows has sensible defaults
+      case 'psadt':
+      case 'installer':
+      case 'intune':
+        return true; // These all have sensible defaults
       case 'macos':
-        return true; // macOS has sensible defaults
+        return true;
       case 'review':
         return true;
       default:
@@ -248,6 +293,45 @@ export default function useWizardState() {
     setCurrentStep(0);
   }, []);
 
+  /**
+   * Import parsed PSADT fields into wizard state.
+   * Called after parsePsadtFile() + toWizardState() succeeds.
+   * @param {Object} parsedResult - from parsePsadtFile()
+   * @param {Object} wizardFields - from toWizardState()
+   */
+  const importPsadtState = useCallback((parsedResult, wizardFields) => {
+    setState(prev => {
+      const next = { ...prev, ...wizardFields };
+      next.wizardMode = 'refactor';
+      next.psadtVersion = parsedResult.psadtVersion || '';
+      next.psadtScriptVersion = parsedResult.psadtScriptVersion || '';
+      next.psadtFileName = parsedResult.fileName || '';
+      next.parsedPhases = parsedResult.parsedPhases || {};
+
+      // Populate lifecycle phases from parsed actions
+      if (parsedResult.parsedPhases) {
+        const phases = { ...prev.lifecycle.phases };
+        for (const [phaseKey, actions] of Object.entries(parsedResult.parsedPhases)) {
+          if (phases[phaseKey]) {
+            phases[phaseKey] = {
+              ...phases[phaseKey],
+              actions: actions.map(a => ({ ...a, enabled: true })),
+            };
+          }
+        }
+        next.lifecycle = { ...prev.lifecycle, phases };
+      }
+
+      // Auto-derive packageId if displayName was set
+      if (next.displayName && (!next.packageId || next.packageId === prev.packageId)) {
+        next.packageId = toKebabCase(next.displayName);
+      }
+
+      return next;
+    });
+    setCurrentStep(0);
+  }, []);
+
   return {
     state,
     currentStep,
@@ -255,8 +339,12 @@ export default function useWizardState() {
     canProceed,
     updateField,
     updateFields,
-    updateLifecycle,
+    addAction,
+    removeAction,
+    updateAction,
+    moveAction,
     updateLifecycleRoot,
+    importPsadtState,
     nextStep,
     prevStep,
     goToStep,
