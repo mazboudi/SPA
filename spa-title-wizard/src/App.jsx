@@ -77,7 +77,7 @@ export default function App() {
         <div className="app-header__brand">
           <span className="app-header__logo">📦</span>
           <div>
-            <h1 className="app-header__title">SPA Title Wizard</h1>
+            <h1 className="app-header__title">SPA Packaging Workbench</h1>
             <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
           </div>
         </div>

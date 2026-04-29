@@ -15,8 +15,8 @@ export default function WizardStepper({ steps, currentStep, onStepClick }) {
             <button
               key={step.id}
               className={classes}
-              onClick={() => isCompleted && onStepClick(i)}
-              disabled={!isCompleted && !isActive}
+              onClick={() => onStepClick(i)}
+              disabled={false}
               aria-current={isActive ? 'step' : undefined}
             >
               <span className="wizard-stepper__icon">
@@ -50,12 +50,16 @@ export default function WizardStepper({ steps, currentStep, onStepClick }) {
           font-family: var(--font-sans);
           font-size: 0.8rem;
           font-weight: 500;
-          cursor: default;
+          cursor: pointer;
           padding: var(--space-sm) var(--space-md);
           border-radius: var(--radius-sm);
           transition: all var(--transition-fast);
           white-space: nowrap;
           position: relative;
+        }
+        .wizard-stepper__step:hover {
+          background: var(--bg-hover);
+          color: var(--text-secondary);
         }
         .wizard-stepper__step--completed {
           color: var(--color-success);

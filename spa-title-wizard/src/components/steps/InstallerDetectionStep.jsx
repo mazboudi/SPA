@@ -67,8 +67,8 @@ export default function InstallerDetectionStep({ state, updateField }) {
             ]}
           />
         </div>
-        <FormField label="Installer Source (Runner Path)" id="installerSource"
-          hint="Full path to the installer pre-staged on the runner. Leave empty if the installer is committed to git in windows/src/Files/.">
+        <FormField label="Installer Source (Runner Path)" id="installerSource" required
+          hint="Full path to the installer on the runner or network share. Required for pipeline packaging.">
           <input id="installerSource" type="text"
             value={state.installerSource}
             onChange={e => updateField('installerSource', e.target.value)}

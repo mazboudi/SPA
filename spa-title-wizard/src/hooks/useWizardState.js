@@ -264,9 +264,11 @@ export default function useWizardState() {
       case 'platform':
         return !!state.platform;
       case 'psadt':
+        return true;
       case 'installer':
+        return !!(state.installerSource && state.installerSource.trim());
       case 'intune':
-        return true; // These all have sensible defaults
+        return true;
       case 'macos':
         return true;
       case 'review':
