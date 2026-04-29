@@ -10,6 +10,7 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
   const [showLifecycle, setShowLifecycle] = useState(false);
   const [msiParsing, setMsiParsing] = useState(false);
   const [msiParseResult, setMsiParseResult] = useState(null);
+  const [msiManualEntry, setMsiManualEntry] = useState(false);
   const scriptFileRef = useRef(null);
   const lc = state.lifecycle;
 
@@ -84,19 +85,28 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
       {state.installerType === 'msi' && (
         <div className="config-section animate-slide">
           <h3 className="section-title">MSI Metadata</h3>
-          <div className="msi-upload-area">
-            <label className="msi-upload-btn btn btn-secondary">
-              📂 Upload .msi to auto-extract
-              <input type="file" accept=".msi" onChange={handleMsiUpload} style={{ display: 'none' }} />
-            </label>
-            {msiParsing && <span className="msi-status">⏳ Parsing...</span>}
-            {msiParseResult && !msiParseResult.error && (
-              <span className="msi-status msi-status--ok">✅ Extracted {Object.values(msiParseResult).filter(v => v && v !== msiParseResult.fileName).length} fields</span>
-            )}
-            {msiParseResult?.error && <span className="msi-status msi-status--err">❌ {msiParseResult.error}</span>}
-          </div>
+          {!msiManualEntry && (
+            <div className="msi-upload-area">
+              <label className="msi-upload-btn btn btn-secondary">
+                📂 Upload .msi to auto-extract
+                <input type="file" accept=".msi" onChange={handleMsiUpload} style={{ display: 'none' }} />
+              </label>
+              {msiParsing && <span className="msi-status">⏳ Parsing...</span>}
+              {msiParseResult && !msiParseResult.error && (
+                <span className="msi-status msi-status--ok">✅ Extracted {Object.values(msiParseResult).filter(v => v && v !== msiParseResult.fileName).length} fields</span>
+              )}
+              {msiParseResult?.error && <span className="msi-status msi-status--err">❌ {msiParseResult.error}</span>}
+              <button type="button" className="link-btn" onClick={() => setMsiManualEntry(true)}>or enter manually</button>
+            </div>
+          )}
+          {msiManualEntry && (
+            <div className="msi-manual-banner">
+              <span>✏️ Manual entry mode</span>
+              <button type="button" className="link-btn" onClick={() => setMsiManualEntry(false)}>Switch back to file upload</button>
+            </div>
+          )}
           <div className="form-grid">
-            <FormField label="Product Code (GUID)" id="msiProductCode" hint="Auto-filled from MSI upload">
+            <FormField label="Product Code (GUID)" id="msiProductCode" hint={msiManualEntry ? 'Run: Get-AppLockerFileInformation .\\installer.msi | Select -Expand Publisher' : 'Auto-filled from MSI upload'}>
               <input id="msiProductCode" type="text" placeholder="{GUID}" value={state.msiProductCode} onChange={e => updateField('msiProductCode', e.target.value)} />
             </FormField>
             <FormField label="Source Filename" id="msiFileName">
@@ -465,6 +475,9 @@ export default function WindowsConfigStep({ state, updateField, updateLifecycle,
         .msi-status { font-size: 0.8rem; color: var(--text-secondary); }
         .msi-status--ok { color: var(--color-success); }
         .msi-status--err { color: var(--color-error); }
+        .link-btn { background: none; border: none; color: var(--color-accent, #7c8aff); cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0; font-family: inherit; }
+        .link-btn:hover { color: var(--text-primary); }
+        .msi-manual-banner { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); background: var(--bg-hover); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-secondary); }
         .logo-preview { display: flex; align-items: center; gap: var(--space-md); }
         .script-preview { margin-top: var(--space-sm); padding: var(--space-md); background: rgba(8,10,20,0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); max-height: 200px; overflow-y: auto; }
         .script-preview pre { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); white-space: pre-wrap; margin: 0; }
