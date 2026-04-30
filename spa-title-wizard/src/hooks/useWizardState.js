@@ -301,41 +301,19 @@ export default function useWizardState() {
 
       if (prev.installerType === 'msi') {
         const msiFile = prev.msiFileName || srcFile || 'installer.msi';
-        mkPhase('preInstall', [
-          { type: 'show_welcome', enabled: true, closeApps: prev.closeApps || '', deferTimes: 0, checkDiskSpace: false },
-        ]);
         mkPhase('install', [
-          { type: 'show_progress', enabled: true },
           { type: 'msi_install', enabled: true, file: msiFile, args: '/QN /norestart' },
         ]);
-        mkPhase('postInstall', [
-          { type: 'registry_marker', enabled: true },
-        ]);
         mkPhase('uninstall', [
-          { type: 'show_progress', enabled: true },
           { type: 'msi_uninstall', enabled: true, appName: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
-        ]);
-        mkPhase('postUninstall', [
-          { type: 'remove_registry_marker', enabled: true },
         ]);
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
-        mkPhase('preInstall', [
-          { type: 'show_welcome', enabled: true, closeApps: prev.closeApps || '', deferTimes: 0, checkDiskSpace: false },
-        ]);
         mkPhase('install', [
-          { type: 'show_progress', enabled: true },
           { type: 'exe_install', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
         ]);
-        mkPhase('postInstall', [
-          { type: 'registry_marker', enabled: true },
-        ]);
         mkPhase('uninstall', [
-          { type: 'show_progress', enabled: true },
           { type: 'exe_uninstall', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
-        ]);
-        mkPhase('postUninstall', [
-          { type: 'remove_registry_marker', enabled: true },
         ]);
       }
 
