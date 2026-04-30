@@ -1,0 +1,26 @@
+# PK Protect 20.35.0008 — Windows package definition
+package_id: pk-protect
+display_name: "PK Protect"
+version: "20.35.0008"
+packaging_version: "1"
+installer_type: msi
+source_filename: PK Protect 20.35.0008.msi
+max_install_time: 60
+
+install_command: 'Invoke-AppDeployToolkit.exe -DeployMode Interactive'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Interactive'
+
+detection_mode: msi-product-code
+detection:
+  product_code: "{000000000000000010230130130103}"
+  version_operator: greaterThanOrEqual
+  version: "20.35.0008"
+
+restart_behavior: suppress
+install_experience: system
+
+msi_information:
+  product_code: "{000000000000000010230130130103}"
+
+# Pipeline will auto-convert v3 → v4 using Convert-ADTDeployment
+v3_conversion: true

@@ -151,8 +151,10 @@
       }
       ## 4a — Generate Invoke-AppDeployToolkit.ps1 from lifecycle.yaml (if present)
       ##       New titles use lifecycle.yaml (declarative); legacy titles commit the .ps1 directly.
+      ##       Refactored v3 titles include Deploy-Application.ps1 + v3_conversion flag.
       $titleDeploy = 'windows/src/Invoke-AppDeployToolkit.ps1'
       $lifecyclePath = 'windows/lifecycle.yaml'
+      $v3Script = 'windows/src/Deploy-Application.ps1'
 
       if (Test-Path $lifecyclePath) {
         Write-Host "--- Generating Invoke-AppDeployToolkit.ps1 from lifecycle.yaml ---" -ForegroundColor Cyan
@@ -190,8 +192,66 @@
           throw "Build-PsadtFromLifecycle.ps1 did not produce $titleDeploy"
         }
         Write-Host "  ✓ Generated $titleDeploy from lifecycle.yaml"
+
+      } elseif (Test-Path $v3Script) {
+        ## 4b — v3 → v4 conversion (refactored title with Deploy-Application.ps1)
+        Write-Host "--- Converting v3 Deploy-Application.ps1 to v4 ---" -ForegroundColor Cyan
+        Install-Module -Name PSAppDeployToolkit.Tools -Scope CurrentUser -AllowPrerelease -Force -ErrorAction Stop
+
+        # Run compatibility report first
+        Write-Host "Running Test-ADTCompatibility..." -ForegroundColor DarkCyan
+        $compatReport = Test-ADTCompatibility -FilePath $v3Script -Format List 2>&1
+        $compatReport | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+
+        # Convert v3 → v4
+        Write-Host "Running Convert-ADTDeployment..." -ForegroundColor DarkCyan
+        Convert-ADTDeployment -Path $v3Script -ErrorAction Stop
+
+        # Convert-ADTDeployment creates the v4 script in the same directory
+        if (Test-Path $titleDeploy) {
+          Write-Host "  ✓ Converted to v4: $titleDeploy" -ForegroundColor Green
+
+          ## 4c — Graduate: commit v4 back to repo, remove v3 script + flag
+          ##      This makes the conversion a one-time migration. Future builds use v4 directly.
+          Write-Host "--- Graduating title to v4 (committing back to repo) ---" -ForegroundColor Cyan
+          try {
+            # Configure git for the commit
+            git config user.email "spa-pipeline@fiserv.com"
+            git config user.name "SPA Pipeline"
+
+            # Stage the new v4 script
+            git add $titleDeploy
+
+            # Remove the old v3 script
+            if (Test-Path $v3Script) {
+              git rm $v3Script 2>$null
+            }
+
+            # Strip v3_conversion flag from package.yaml
+            $pkgYamlPath = 'windows/package.yaml'
+            if (Test-Path $pkgYamlPath) {
+              $pkgContent = Get-Content $pkgYamlPath -Raw
+              $pkgContent = $pkgContent -replace '(?m)^\s*#\s*Pipeline will auto-convert.*\r?\n', ''
+              $pkgContent = $pkgContent -replace '(?m)^\s*v3_conversion:\s*true\s*\r?\n?', ''
+              $pkgContent | Set-Content $pkgYamlPath -NoNewline
+              git add $pkgYamlPath
+            }
+
+            # Commit and push
+            git commit -m "chore: graduate v3 → v4 (auto-converted by pipeline)" --allow-empty
+            git push "https://gitlab-ci-token:$($env:GITLAB_PUSH_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_COMMIT_REF_NAME)
+            Write-Host "  ✓ v4 script committed — future builds will use v4 directly" -ForegroundColor Green
+          } catch {
+            Write-Warning "⚠ Could not commit v4 back to repo: $_"
+            Write-Warning "  The build will continue, but the v3 script will be re-converted on next build."
+            Write-Warning "  To fix: set GITLAB_PUSH_TOKEN with write access, or manually commit the v4 script."
+          }
+        } else {
+          throw "Convert-ADTDeployment did not produce $titleDeploy — check compatibility report above."
+        }
+
       } elseif (!(Test-Path $titleDeploy)) {
-        throw "Missing both windows/lifecycle.yaml and windows/src/Invoke-AppDeployToolkit.ps1 — cannot build."
+        throw "Missing windows/lifecycle.yaml, windows/src/Deploy-Application.ps1, and windows/src/Invoke-AppDeployToolkit.ps1 — cannot build."
       } else {
         Write-Host "Using committed Invoke-AppDeployToolkit.ps1 (no lifecycle.yaml found)"
       }

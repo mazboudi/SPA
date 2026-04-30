@@ -18,17 +18,31 @@ export default function App() {
   const [psadtError, setPsadtError] = useState(null);
   const [psadtResult, setPsadtResult] = useState(null);
 
-  // ── PSADT file upload handler ────────────────────────────────────────
+  // ── PSADT file/folder upload handler (Refactor mode) ─────────────────
   const handlePsadtUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     setPsadtParsing(true);
     setPsadtError(null);
     setPsadtResult(null);
     try {
-      const parsed = await parsePsadtFile(file);
+      // Find the .ps1 script (Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1)
+      const psFile = files.find(f => /Deploy-Application\.ps1$/i.test(f.name) || /Invoke-AppDeployToolkit\.ps1$/i.test(f.name))
+        || files.find(f => f.name.endsWith('.ps1'));
+      if (!psFile) throw new Error('No .ps1 script found in upload. Upload a Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1 file.');
+
+      // Parse in refactor mode (variables only, no phase parsing)
+      const parsed = await parsePsadtFile(psFile, 'refactor');
       const wizardFields = toWizardState(parsed);
       setPsadtResult(parsed);
+
+      // Collect supplementary files (Files/, SupportFiles/, config) for scaffolding
+      const packageFiles = files.filter(f => f !== psFile).map(f => ({
+        name: f.webkitRelativePath || f.name,
+        file: f,
+      }));
+      parsed.packageFiles = packageFiles;
+
       wizard.importPsadtState(parsed, wizardFields);
       setShowModeSelector(false);
     } catch (err) {
@@ -56,7 +70,7 @@ export default function App() {
       case 'platform':
         return <PlatformStep state={wizard.state} updateField={wizard.updateField} />;
       case 'psadt':
-        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} />;
+        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':
         return <InstallerDetectionStep state={wizard.state} updateField={wizard.updateField} />;
       case 'intune':
@@ -104,10 +118,12 @@ export default function App() {
               <label className="mode-card mode-card--refactor" id="mode-refactor-title">
                 <span className="mode-card__icon">🔄</span>
                 <h3 className="mode-card__title">Refactor Existing</h3>
-                <p className="mode-card__desc">Upload a PSADT v3 or v4 script — we&apos;ll parse it and pre-fill the wizard.</p>
+                <p className="mode-card__desc">Upload a PSADT package folder or script &mdash; we&apos;ll extract metadata and pass the script to the pipeline.</p>
                 <input
                   type="file"
-                  accept=".ps1"
+                  accept=".ps1,.zip"
+                  multiple
+                  webkitdirectory=""
                   onChange={handlePsadtUpload}
                   style={{ display: 'none' }}
                 />
@@ -116,7 +132,7 @@ export default function App() {
               </label>
             </div>
             <p className="mode-selector__hint">
-              Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
+              Upload a folder or <code>.ps1</code> file &bull; Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
             </p>
           </div>
         </main>

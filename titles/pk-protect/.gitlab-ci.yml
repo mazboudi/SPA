@@ -1,0 +1,16 @@
+include:
+  - project: 'euc/software-package-automation/spa-frameworks/gitlab-ci-templates'
+    ref: 'main'
+    file:
+      - 'templates/windows-build.yml'
+      - 'templates/windows-deploy-intune.yml'
+
+stages:
+  - build
+  - publish
+  - assign
+
+variables:
+  WINDOWS_ENABLED: "true"
+  PSADT_FRAMEWORK_VERSION: "4.1.0"
+  WINDOWS_INSTALLER_SOURCE: 'c:\files\Pkprotect\Pookiesprotect.msi'

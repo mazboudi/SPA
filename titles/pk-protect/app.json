@@ -1,0 +1,27 @@
+{
+  "title": "PK Protect",
+  "publisher": "PKWARE, Inc",
+  "package_id": "pk-protect",
+  "version": "20.35.0008",
+  "owners": {
+    "team": "euc-packaging",
+    "contact_email": "euc-packaging@fiserv.com"
+  },
+  "lifecycle": "active",
+  "platforms": {
+    "windows": {
+      "enabled": true,
+      "framework": "psadt-enterprise",
+      "framework_version": "4.1.0"
+    },
+    "macos": {
+      "enabled": false,
+      "framework": "macos-packaging-framework",
+      "framework_version": "1.0.0"
+    }
+  },
+  "deployment": {
+    "windows": "intune",
+    "macos": "jamf"
+  }
+}

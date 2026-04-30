@@ -176,12 +176,13 @@ export const ACTION_TYPES = [
   },
   {
     type: 'registry_remove',
-    label: 'Remove Registry Key',
+    label: 'Remove Registry Key / Value',
     icon: '🔑',
     category: 'Registry',
     phases: ['postUninstall', 'postInstall', 'preInstall'],
     fields: [
       { key: 'key', label: 'Registry Key Path', type: 'text', placeholder: 'HKLM:\\SOFTWARE\\...', required: true },
+      { key: 'name', label: 'Value Name (blank = entire key)', type: 'text', placeholder: 'Leave empty to remove entire key' },
     ],
   },
   {
@@ -276,6 +277,19 @@ export const ACTION_TYPES = [
     phases: PHASE_KEYS,
     fields: [
       { key: 'seconds', label: 'Seconds', type: 'number', default: 5, required: true },
+    ],
+  },
+
+  // ── Custom / Unmatched ─────────────────────────────────────────────────
+  {
+    type: 'custom_script',
+    label: 'Custom PowerShell',
+    icon: '📜',
+    category: 'Custom',
+    phases: PHASE_KEYS,
+    fields: [
+      { key: 'code', label: 'PowerShell Code', type: 'textarea', placeholder: '# Custom PowerShell commands', required: true },
+      { key: 'note', label: 'Note', type: 'text', placeholder: 'Brief description of what this does' },
     ],
   },
 ];

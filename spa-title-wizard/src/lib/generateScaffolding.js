@@ -176,6 +176,10 @@ detection:
     const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
     const installCmd = `Invoke-AppDeployToolkit.exe${installSuffix}`;
     const uninstallCmd = `Invoke-AppDeployToolkit.exe -DeploymentType Uninstall${installSuffix}`;
+    // Add v3_conversion flag when refactoring a v3 script
+    const v3Flag = (s.wizardMode === 'refactor' && s._psadtResult?.psadtVersion === 'v3')
+      ? '\n# Pipeline will auto-convert v3 → v4 using Convert-ADTDeployment\nv3_conversion: true\n'
+      : '';
 
     files['windows/package.yaml'] = `# ${s.displayName} ${s.version} — Windows package definition
 package_id: ${s.packageId}
@@ -192,7 +196,8 @@ uninstall_command: '${uninstallCmd}'
 ${detectionBlock}
 
 ${optLines.join('\n')}
-`;
+${v3Flag}`;
+
 
     // Intune app.json
     files['windows/intune/app.json'] = JSON.stringify({
@@ -282,8 +287,20 @@ if (Test-Path $appPath) {
       }, null, 2);
     }
 
-    // ── windows/lifecycle.yaml ───────────────────────────────────────────
-    files['windows/lifecycle.yaml'] = generateLifecycleYaml(s);
+    // ── windows/lifecycle.yaml OR committed .ps1 ──────────────────────────
+    if (s.wizardMode === 'refactor' && s._psadtResult?.scriptContent) {
+      // Refactor mode: commit the original .ps1 directly (no lifecycle.yaml)
+      const isV3 = s._psadtResult?.psadtVersion === 'v3';
+      if (isV3) {
+        // v3 scripts go as Deploy-Application.ps1 — pipeline converts to v4
+        files['windows/src/Deploy-Application.ps1'] = s._psadtResult.scriptContent;
+      } else {
+        files['windows/src/Invoke-AppDeployToolkit.ps1'] = s._psadtResult.scriptContent;
+      }
+    } else {
+      // New title mode: declarative lifecycle.yaml
+      files['windows/lifecycle.yaml'] = generateLifecycleYaml(s);
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -517,6 +534,7 @@ function generateLifecycleYaml(s) {
           break;
         case 'registry_remove':
           if (action.key) lines.push(`      key: "${action.key}"`);
+          if (action.name) lines.push(`      name: "${action.name}"`);
           break;
         case 'registry_marker':
           lines.push('      # Auto-generated from app metadata');
@@ -546,6 +564,19 @@ function generateLifecycleYaml(s) {
           break;
         case 'sleep':
           lines.push(`      seconds: ${action.seconds || 5}`);
+          break;
+        case 'custom_script':
+          if (action.note) lines.push(`      note: "${action.note}"`);
+          if (action.code) {
+            // Multi-line code gets block-style YAML
+            const codeLines = action.code.split('\n');
+            if (codeLines.length === 1) {
+              lines.push(`      code: "${action.code.replace(/"/g, '\\"')}"`);
+            } else {
+              lines.push('      code: |');
+              for (const cl of codeLines) lines.push(`        ${cl}`);
+            }
+          }
           break;
         default:
           // For unrecognized types, serialize all non-meta fields

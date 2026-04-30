@@ -1,0 +1,9 @@
+[
+  {
+    "intent": "available",
+    "groupId": "",
+    "filterMode": "none",
+    "notifications": "showAll",
+    "deliveryOptimizationPriority": "notConfigured"
+  }
+]

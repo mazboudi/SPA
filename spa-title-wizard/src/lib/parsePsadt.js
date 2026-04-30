@@ -14,9 +14,10 @@
 /**
  * Parse a PSADT .ps1 file and return extracted wizard state fields.
  * @param {File} file - The .ps1 File object from a file input
- * @returns {Promise<Object>} - { psadtVersion, fields: {...partialWizardState}, warnings: string[] }
+ * @param {'new'|'refactor'} mode - 'refactor' skips phase parsing, returns raw script for passthrough
+ * @returns {Promise<Object>} - { psadtVersion, fields, parsedPhases?, scriptContent?, warnings }
  */
-export async function parsePsadtFile(file) {
+export async function parsePsadtFile(file, mode = 'new') {
   const text = await file.text();
   const warnings = [];
 
@@ -38,19 +39,33 @@ export async function parsePsadtFile(file) {
   // Set platform to windows (PSADT is Windows-only)
   fields.platform = 'windows';
 
-  // Extract per-phase actions for display
-  const parsedPhases = version === 'v4'
-    ? extractAllPhasesV4(text)
-    : extractAllPhasesV3(text);
-
-  return {
+  const result = {
     psadtVersion: version,
     psadtScriptVersion: extractScriptVersion(text, version),
     fileName: file.name,
     fields,
-    parsedPhases,
     warnings,
   };
+
+  if (mode === 'refactor') {
+    // Refactor mode: return raw script for pipeline passthrough, skip heavy parsing
+    result.scriptContent = text;
+    // Still extract variable declarations (needed for Intune metadata + pipeline config)
+    const varDeclActions = extractVarDeclarations(text);
+    if (varDeclActions.length > 0) {
+      result.parsedPhases = { variableDeclaration: varDeclActions };
+    }
+    if (version === 'v3') {
+      warnings.push('v3 script detected — Convert-ADTDeployment will be run in the pipeline to convert to v4.');
+    }
+  } else {
+    // New title mode: full phase parsing for lifecycle editor
+    result.parsedPhases = version === 'v4'
+      ? extractAllPhasesV4(text)
+      : extractAllPhasesV3(text);
+  }
+
+  return result;
 }
 
 // ─── Version Detection ─────────────────────────────────────────────────────
@@ -339,9 +354,14 @@ function extractArrayValue(block, key) {
 /** Extract a v3 phase block between phase markers */
 function extractV3Phase(text, phaseName) {
   // Phase blocks are delimited by: [string]$installPhase = 'Pre-Installation'
-  // and the next phase marker or end of deployment type block
-  const phaseStart = text.indexOf(`'${phaseName}'`);
-  if (phaseStart === -1) return null;
+  // and the next phase marker or end of deployment type block.
+  // Use regex to find the actual $installPhase assignment, not just any occurrence of the name.
+  const escapedName = phaseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const phaseRe = new RegExp("\\$installPhase\\s*=\\s*'" + escapedName + "'", "i");
+  const phaseMatch = text.match(phaseRe);
+  if (!phaseMatch) return null;
+
+  const phaseStart = text.indexOf(phaseMatch[0]) + phaseMatch[0].length;
 
   // Find the next phase marker or end marker
   const afterPhase = text.substring(phaseStart);
@@ -570,12 +590,14 @@ function extractBlockActions(block) {
   for (const line of lines) {
     const t = line.trim();
     if (!t || t.startsWith('#') || t.startsWith('##') || t.startsWith('[string]') || t.startsWith('[String]') || t.startsWith('[int') || t.startsWith('[Int')) continue;
-    if (/^\s*If\s*\(\$useDefaultMsi/i.test(t)) continue; // skip zero-config boilerplate
+    if (/^\s*If\s*\(\$useDefaultMsi/i.test(t)) continue;
     if (/^\$ExecuteDefaultMSISplat/i.test(t)) continue;
     if (/^Execute-MSI\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
     if (/^\}$/.test(t) || /^\{$/.test(t) || /^try\s*\{/i.test(t) || /^catch\s*\{/i.test(t) || /^\}\s*$/.test(t)) continue;
     if (/^\[hashtable\]/i.test(t)) continue;
     if (t.length < 3) continue;
+
+    let matched = false;
 
     // Execute-MSI
     const msiMatch = t.match(/Execute-MSI\s+.*-Action\s+['"]?(\w+)['"]?/i);
@@ -585,110 +607,216 @@ function extractBlockActions(block) {
       const paramsMatch = t.match(/-Parameters\s+['"]([^'"]+)['"]/i);
       const path = pathMatch ? pathMatch[1].replace(/.*[\\]/, '').replace(/^\$\w+\\/, '') : '';
       actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action}: ${path || 'default'}`, file: path, args: paramsMatch?.[1] || '', raw: t });
-      continue;
+      matched = true;
     }
 
     // Start-ADTMsiProcess (v4)
-    const adtMsiMatch = t.match(/Start-ADTMsiProcess\b.*-FilePath\s+['"]([^'"]+)['"]/i);
-    if (adtMsiMatch) {
-      const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
-      const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
-      const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
-      actions.push({ type: `msi_${(actionMatch?.[1] || 'install').toLowerCase()}`, desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argMatch?.[1] || '', raw: t });
-      continue;
+    if (!matched) {
+      const adtMsiMatch = t.match(/Start-ADTMsiProcess\b.*-FilePath\s+['"]([^'"]+)['"]/i);
+      if (adtMsiMatch) {
+        const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
+        const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
+        const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
+        actions.push({ type: `msi_${(actionMatch?.[1] || 'install').toLowerCase()}`, desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argMatch?.[1] || '', raw: t });
+        matched = true;
+      }
     }
 
     // Uninstall-ADTApplication (v4)
-    const unAppMatch = t.match(/Uninstall-ADTApplication\s+-Name\s+['"]([^'"]+)['"]/i);
-    if (unAppMatch) {
-      actions.push({ type: 'msi_uninstall', desc: `Uninstall by name: ${unAppMatch[1]}`, appName: unAppMatch[1], raw: t });
-      continue;
+    if (!matched) {
+      const unAppMatch = t.match(/Uninstall-ADTApplication\s+-Name\s+['"]([^'"]+)['"]/i);
+      if (unAppMatch) {
+        actions.push({ type: 'msi_uninstall', desc: `Uninstall by name: ${unAppMatch[1]}`, appName: unAppMatch[1], raw: t });
+        matched = true;
+      }
     }
 
     // Remove-MSIApplications (v3)
-    const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
-    if (rmMsiMatch) {
-      actions.push({ type: 'msi_uninstall', desc: `Remove MSI: ${rmMsiMatch[1]}`, appName: rmMsiMatch[1], raw: t });
-      continue;
+    if (!matched) {
+      const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
+      if (rmMsiMatch) {
+        actions.push({ type: 'msi_uninstall', desc: `Remove MSI: ${rmMsiMatch[1]}`, appName: rmMsiMatch[1], raw: t });
+        matched = true;
+      }
     }
 
     // Execute-Process / Start-ADTProcess
-    const procMatch = t.match(/(?:Execute-Process|Start-ADTProcess(?:AsUser)?)\s+.*-(?:Path|FilePath)\s+['"]([^'"]+)['"]/i);
-    if (procMatch) {
-      const paramMatch = t.match(/-(?:Parameters|ArgumentList)\s+['"]([^'"]+)['"]/i);
-      actions.push({ type: 'execute_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramMatch?.[1] || '', raw: t });
-      continue;
+    if (!matched) {
+      const procMatch = t.match(/(?:Execute-Process|Start-ADTProcess(?:AsUser)?)\s+.*-(?:Path|FilePath)\s+['"]([^'"]+)['"]/i);
+      if (procMatch) {
+        const paramMatch = t.match(/-(?:Parameters|ArgumentList)\s+['"]([^'"]+)['"]/i);
+        actions.push({ type: 'execute_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramMatch?.[1] || '', raw: t });
+        matched = true;
+      }
+    }
+
+    // Native PowerShell: Start-Process -FilePath ...
+    if (!matched) {
+      const startProcMatch = t.match(/Start-Process\s+.*-FilePath\s+['"]?([^\s'"}{]+)/i);
+      if (startProcMatch) {
+        const spArgMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
+        actions.push({ type: 'execute_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgMatch?.[1] || '', raw: t });
+        matched = true;
+      }
     }
 
     // Copy-Item / Copy-ADTFile
-    const copyMatch = t.match(/(?:Copy-Item|Copy-ADTFile)\s+.*-(?:Path|Source)\s+['"]([^'"]+)['"].*-Destination\s+['"]([^'"]+)['"]/i);
-    if (copyMatch) {
-      actions.push({ type: 'file_copy', desc: `Copy: ${copyMatch[1].replace(/.*[\\]/, '')} → ${copyMatch[2]}`, source: copyMatch[1], dest: copyMatch[2], raw: t });
-      continue;
+    if (!matched) {
+      const copyMatch = t.match(/(?:Copy-Item|Copy-ADTFile)\s+.*-(?:Path|Source)\s+['"]([^'"]+)['"].*-Destination\s+['"]([^'"]+)['"]/i);
+      if (copyMatch) {
+        actions.push({ type: 'file_copy', desc: `Copy: ${copyMatch[1].replace(/.*[\\]/, '')} \u2192 ${copyMatch[2]}`, source: copyMatch[1], dest: copyMatch[2], raw: t });
+        matched = true;
+      }
     }
 
-    // Remove-Item / Remove-File / Remove-ADTFolder
-    const removeMatch = t.match(/(?:Remove-Item|Remove-File|Remove-ADTFolder)\s+.*-(?:Path|LiteralPath)\s+['"]([^'"]+)['"]/i);
-    if (removeMatch) {
-      actions.push({ type: 'file_remove', desc: `Remove: ${removeMatch[1]}`, path: removeMatch[1], raw: t });
-      continue;
+    // Piped removal: Get-ChildItem '...' | Remove-Item
+    if (!matched) {
+      const pipedRemoveMatch = t.match(/Get-ChildItem\s+['"]([^'"]+)['"]\s*\|\s*Remove-Item/i);
+      if (pipedRemoveMatch) {
+        actions.push({ type: 'file_remove', desc: `Remove (piped): ${pipedRemoveMatch[1]}`, path: pipedRemoveMatch[1], raw: t });
+        matched = true;
+      }
+    }
+
+    // Remove-Item / Remove-File / Remove-ADTFolder (with -Path flag)
+    if (!matched) {
+      const removeMatch = t.match(/(?:Remove-Item|Remove-File|Remove-ADTFolder)\s+.*-(?:Path|LiteralPath)\s+['"]([^'"]+)['"]/i);
+      if (removeMatch) {
+        actions.push({ type: 'file_remove', desc: `Remove: ${removeMatch[1]}`, path: removeMatch[1], raw: t });
+        matched = true;
+      }
     }
 
     // Set-RegistryKey / Set-ADTRegistryKey
-    const regSetMatch = t.match(/(?:Set-RegistryKey|Set-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"].*-Name\s+['"]([^'"]+)['"].*-Value\s+['"]?([^'"\s]+)/i);
-    if (regSetMatch) {
-      actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], raw: t });
-      continue;
+    if (!matched) {
+      const regSetMatch = t.match(/(?:Set-RegistryKey|Set-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"].*-Name\s+['"]([^'"]+)['"].*-Value\s+['"]?([^'"\s]+)/i);
+      if (regSetMatch) {
+        actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], raw: t });
+        matched = true;
+      }
     }
 
-    // Remove-RegistryKey / Remove-ADTRegistryKey
-    const regRemoveMatch = t.match(/(?:Remove-RegistryKey|Remove-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"]/i);
-    if (regRemoveMatch) {
-      actions.push({ type: 'registry_remove', desc: `Remove reg: ${regRemoveMatch[1]}`, key: regRemoveMatch[1], raw: t });
-      continue;
+    // Native PowerShell: Set-ItemProperty -Path ... -Name ... -Value ...
+    if (!matched) {
+      const setIPMatch = t.match(/Set-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
+      if (setIPMatch) {
+        actions.push({ type: 'registry_set', desc: `Registry (native): ${setIPMatch[2]} = ${setIPMatch[3]}`, key: setIPMatch[1], name: setIPMatch[2], value: setIPMatch[3], raw: t });
+        matched = true;
+      }
+    }
+
+    // Native PowerShell: New-ItemProperty -Path ... -Name ... -Value ...
+    if (!matched) {
+      const newIPMatch = t.match(/New-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
+      if (newIPMatch) {
+        actions.push({ type: 'registry_set', desc: `Registry (new): ${newIPMatch[2]} = ${newIPMatch[3]}`, key: newIPMatch[1], name: newIPMatch[2], value: newIPMatch[3], raw: t });
+        matched = true;
+      }
+    }
+
+    // Remove-RegistryKey / Remove-ADTRegistryKey (with optional -Name for value removal)
+    if (!matched) {
+      const regRemoveMatch = t.match(/(?:Remove-RegistryKey|Remove-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"]/i);
+      if (regRemoveMatch) {
+        const regNameMatch = t.match(/-Name\s+['"]([^'"]+)['"]/i);
+        const nameVal = regNameMatch ? regNameMatch[1] : '';
+        const descSuffix = nameVal ? ` \u2192 ${nameVal}` : '';
+        actions.push({ type: 'registry_remove', desc: `Remove reg: ${regRemoveMatch[1]}${descSuffix}`, key: regRemoveMatch[1], name: nameVal, raw: t });
+        matched = true;
+      }
+    }
+
+    // Native PowerShell: Remove-ItemProperty -Path ... -Name ...
+    if (!matched) {
+      const removeIPMatch = t.match(/Remove-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]?([^\s'"}{]+)/i);
+      if (removeIPMatch) {
+        actions.push({ type: 'registry_remove', desc: `Remove reg value (native): ${removeIPMatch[2]}`, key: removeIPMatch[1], name: removeIPMatch[2], raw: t });
+        matched = true;
+      }
     }
 
     // New-ADTFolder
-    const mkdirMatch = t.match(/New-ADTFolder\s+.*-LiteralPath\s+['"]([^'"]+)['"]/i);
-    if (mkdirMatch) {
-      actions.push({ type: 'create_folder', desc: `Create: ${mkdirMatch[1]}`, path: mkdirMatch[1], raw: t });
-      continue;
+    if (!matched) {
+      const mkdirMatch = t.match(/New-ADTFolder\s+.*-LiteralPath\s+['"]([^'"]+)['"]/i);
+      if (mkdirMatch) {
+        actions.push({ type: 'create_folder', desc: `Create: ${mkdirMatch[1]}`, path: mkdirMatch[1], raw: t });
+        matched = true;
+      }
     }
 
     // SetEnvironmentVariable
-    const envMatch = t.match(/SetEnvironmentVariable\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/i);
-    if (envMatch) {
-      actions.push({ type: 'env_variable', desc: `Env: ${envMatch[1]} = ${envMatch[2]}`, name: envMatch[1], value: envMatch[2], raw: t });
-      continue;
+    if (!matched) {
+      const envMatch = t.match(/SetEnvironmentVariable\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/i);
+      if (envMatch) {
+        actions.push({ type: 'env_variable', desc: `Env: ${envMatch[1]} = ${envMatch[2]}`, name: envMatch[1], value: envMatch[2], raw: t });
+        matched = true;
+      }
     }
 
     // Show-InstallationWelcome / Show-ADTInstallationWelcome
-    const welcomeMatch = t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
-    if (welcomeMatch) {
-      const closeMatch = welcomeMatch[1].match(/-Close(?:Apps|Processes)\s+['"]?([^'"\s-]+)/i);
-      actions.push({ type: 'show_welcome', desc: `Welcome dialog${closeMatch ? ` (close: ${closeMatch[1]})` : ''}`, closeApps: closeMatch?.[1] || '', raw: t });
-      continue;
+    if (!matched) {
+      const welcomeMatch = t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
+      if (welcomeMatch) {
+        const closeMatch = welcomeMatch[1].match(/-Close(?:Apps|Processes)\s+['"]?([^'"\s-]+)/i);
+        actions.push({ type: 'show_welcome', desc: `Welcome dialog${closeMatch ? ` (close: ${closeMatch[1]})` : ''}`, closeApps: closeMatch?.[1] || '', raw: t });
+        matched = true;
+      }
     }
 
     // Show-InstallationProgress / Show-ADTInstallationProgress
-    if (/Show-(?:ADT)?InstallationProgress/i.test(t)) {
+    if (!matched && /Show-(?:ADT)?InstallationProgress/i.test(t)) {
       actions.push({ type: 'show_progress', desc: 'Show progress dialog', raw: t });
-      continue;
+      matched = true;
     }
 
     // ForEach-Object with Execute-MSI (multi-GUID uninstall pattern)
-    const foreachMsi = t.match(/ForEach-Object\s*\{\s*Execute-MSI\s+-Action\s+['"]?(\w+)['"]?/i);
-    if (foreachMsi) {
-      // Look back for GUIDs in preceding lines
-      actions.push({ type: `msi_${foreachMsi[1].toLowerCase()}_batch`, desc: `Batch MSI ${foreachMsi[1]} (multiple GUIDs)`, raw: t });
-      continue;
+    // Matches both: ForEach-Object { Execute-MSI ... } and | ForEach-Object { Execute-MSI ... }
+    if (!matched) {
+      const foreachMsi = t.match(/\|?\s*ForEach-Object\s*\{\s*Execute-MSI\s+-Action\s+['"]?(\w+)['"]?/i);
+      if (foreachMsi) {
+        actions.push({ type: `msi_${foreachMsi[1].toLowerCase()}_batch`, desc: `Batch MSI ${foreachMsi[1]} (multiple GUIDs)`, raw: t });
+        matched = true;
+      }
     }
 
     // Start-Sleep
-    const sleepMatch = t.match(/Start-Sleep\s+-Seconds\s+(\d+)/i);
-    if (sleepMatch) {
-      actions.push({ type: 'sleep', desc: `Wait ${sleepMatch[1]}s`, seconds: parseInt(sleepMatch[1]), raw: t });
-      continue;
+    if (!matched) {
+      const sleepMatch = t.match(/Start-Sleep\s+-Seconds\s+(\d+)/i);
+      if (sleepMatch) {
+        actions.push({ type: 'sleep', desc: `Wait ${sleepMatch[1]}s`, seconds: parseInt(sleepMatch[1]), raw: t });
+        matched = true;
+      }
+    }
+
+    // Write-Log (informational, skip silently)
+    if (!matched && /^Write-Log\b/i.test(t)) {
+      matched = true;
+    }
+
+    // ── Unmatched line — surface as custom_script ──────────────────────
+    if (!matched) {
+      // Skip trivial lines: control flow, variable assignments, braces
+      if (/^(?:if|else|elseif|switch|foreach|for|while|do|return|break|continue|exit)\b/i.test(t)) continue;
+      if (/^\$\w+\s*=/i.test(t)) continue;
+      if (/^\}.*\{/.test(t)) continue;
+      if (/^\)\s*$/.test(t)) continue;
+      if (/^\|\s*\w+/i.test(t)) continue;
+      if (/^[)\]}]+\s*$/i.test(t)) continue;
+      if (/^Select\b|^Sort\b|^Where\b|^ForEach\b/i.test(t)) continue;
+      // Skip phase label lines (e.g. 'Pre-Installation')
+      if (/^'[A-Za-z-]+'\s*$/.test(t)) continue;
+      // Skip bare property names from multi-line Select/Sort pipelines
+      if (/^\w+,?\s*$/.test(t)) continue;
+      // Skip pipeline continuation lines starting with $
+      if (/^\$\w+\s*\|/i.test(t)) continue;
+      // Skip bare property/variable refs ending with pipe (multi-line pipeline)
+      if (/^\w+\s*\|?\s*$/.test(t)) continue;
+      // Skip bare GUID lines from multi-line batch uninstall patterns
+      // e.g. "{203D4C43-...}", <# comment #>`
+      if (/^"\{[0-9A-Fa-f-]{36}\}"/.test(t)) continue;
+
+      // Meaningful unmatched command
+      actions.push({ type: 'custom_script', desc: `Unmatched: ${t.substring(0, 60)}${t.length > 60 ? '\u2026' : ''}`, code: t, note: 'Auto-detected \u2014 could not be mapped to a known action type', raw: t });
     }
   }
 
@@ -710,6 +838,11 @@ function extractGuidsFromBlock(block) {
 /** Extract all phase actions from a v3 script */
 function extractAllPhasesV3(text) {
   const phases = {};
+
+  // ── Variable Declaration phase ──────────────────────────────────────
+  const varDeclActions = extractVarDeclarations(text);
+  if (varDeclActions.length > 0) phases['variableDeclaration'] = varDeclActions;
+
   const phaseNames = {
     'Pre-Installation': 'preInstall',
     'Installation': 'install',
@@ -740,6 +873,51 @@ function extractAllPhasesV3(text) {
     if (actions.length > 0) phases[key] = actions;
   }
   return phases;
+}
+
+/**
+ * Extract app variable declarations from the VARIABLE DECLARATION block.
+ * Captures [string]$appVendor, $appName, $appVersion, etc.
+ */
+function extractVarDeclarations(text) {
+  // Find the VARIABLE DECLARATION block
+  const startMarker = text.indexOf('VARIABLE DECLARATION');
+  if (startMarker === -1) return [];
+
+  // End at the DoNotModify region or the first $installPhase
+  const afterStart = text.substring(startMarker);
+  const endMarkers = [
+    afterStart.indexOf('#region DoNotModify'),
+    afterStart.indexOf('Do not modify section below'),
+    afterStart.indexOf("$installPhase"),
+  ].filter(i => i > 0);
+  const endPos = endMarkers.length > 0 ? Math.min(...endMarkers) : Math.min(afterStart.length, 1500);
+
+  const block = afterStart.substring(0, endPos);
+  const actions = [];
+  const lines = block.split('\n');
+
+  for (const line of lines) {
+    const t = line.trim();
+    // Match: [string]$varName = 'value' or [string]$varName = "value"
+    const m = t.match(/^\[(?:string|String)\]\$(\w+)\s*=\s*['"](.*?)['"]$/);
+    if (m) {
+      const varName = m[1];
+      const varValue = m[2];
+      // Skip empty values and boilerplate vars
+      if (!varValue && !['installName', 'installTitle'].includes(varName)) continue;
+      actions.push({
+        type: 'custom_variable',
+        desc: `$${varName} = '${varValue}'`,
+        name: `$${varName}`,
+        value: varValue,
+        enabled: true,
+        raw: t,
+      });
+    }
+  }
+
+  return actions;
 }
 
 /** Extract all phase actions from a v4 script */

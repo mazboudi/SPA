@@ -310,10 +310,14 @@ export default function useWizardState() {
       next.psadtFileName = parsedResult.fileName || '';
       next.parsedPhases = parsedResult.parsedPhases || {};
 
-      // Populate lifecycle phases from parsed actions
-      if (parsedResult.parsedPhases) {
+      // Store raw result for scaffolding (refactor mode needs scriptContent)
+      next._psadtResult = parsedResult;
+
+      // Populate lifecycle phases from parsed actions (both modes may have variable declarations)
+      const phaseSrc = parsedResult.parsedPhases || {};
+      if (Object.keys(phaseSrc).length > 0) {
         const phases = { ...prev.lifecycle.phases };
-        for (const [phaseKey, actions] of Object.entries(parsedResult.parsedPhases)) {
+        for (const [phaseKey, actions] of Object.entries(phaseSrc)) {
           if (phases[phaseKey]) {
             phases[phaseKey] = {
               ...phases[phaseKey],

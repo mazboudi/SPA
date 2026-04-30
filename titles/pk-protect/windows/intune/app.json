@@ -1,0 +1,20 @@
+{
+  "displayName": "PK Protect",
+  "description": "TODO: Add application description.",
+  "publisher": "PKWARE, Inc",
+  "appVersion": "20.35.0008",
+  "informationUrl": "",
+  "isFeatured": false,
+  "privacyInformationUrl": "",
+  "notes": "Managed by SPA pipeline.",
+  "owner": "EUC Packaging",
+  "developer": "",
+  "installCommandLine": "Invoke-AppDeployToolkit.exe -DeployMode Interactive",
+  "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Interactive",
+  "applicableArchitectures": "x64",
+  "minimumSupportedWindowsRelease": "Windows11_22H2",
+  "displayVersion": "20.35.0008",
+  "allowAvailableUninstall": true,
+  "installContext": "system",
+  "restartBehavior": "suppress"
+}
