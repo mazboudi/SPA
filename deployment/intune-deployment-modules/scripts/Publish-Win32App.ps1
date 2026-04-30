@@ -60,7 +60,7 @@ Write-Log "IntuneWin: $IntuneWinPath" -LogFile $logFile
 $token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
 
 # ── BUILD return codes ────────────────────────────────────────────────────────
-# Intune defaults + any custom codes from package.yaml
+# Priority: app.json returnCodes array > package.yaml return_codes > defaults
 $defaultReturnCodes = @(
     @{ returnCode = 0;    type = 'success' }
     @{ returnCode = 1707; type = 'success' }
@@ -69,10 +69,18 @@ $defaultReturnCodes = @(
     @{ returnCode = 1618; type = 'retry' }
 )
 
-# Merge custom return codes from package.yaml (if present)
 $returnCodes = $defaultReturnCodes
-if ($pkg.return_codes) {
-    # Parse custom return codes: "3010=softReboot,1234=success" format
+
+# First check app.json for returnCodes array (new wizard format)
+if ($intuneMeta.returnCodes -and $intuneMeta.returnCodes.Count -gt 0) {
+    $returnCodes = @()
+    foreach ($rc in $intuneMeta.returnCodes) {
+        $returnCodes += @{ returnCode = [int]$rc.returnCode; type = $rc.type }
+    }
+    Write-Log "Using return codes from app.json ($($returnCodes.Count) codes)" -LogFile $logFile
+}
+# Fallback: package.yaml return_codes (legacy "3010=softReboot" format)
+elseif ($pkg.return_codes) {
     $customCodes = @()
     foreach ($entry in ($pkg.return_codes -split ',')) {
         $parts = $entry.Trim() -split '='
@@ -81,7 +89,6 @@ if ($pkg.return_codes) {
         }
     }
     if ($customCodes.Count -gt 0) {
-        # Replace defaults with custom set
         $returnCodes = $customCodes
         Write-Log "Using custom return codes from package.yaml" -LogFile $logFile
     }
@@ -133,6 +140,7 @@ $appBody = @{
     owner                  = $intuneMeta.owner ?? ''
     notes                  = $intuneMeta.notes ?? ''
     isFeatured             = if ($intuneMeta.isFeatured -eq $true) { $true } else { $false }
+    allowAvailableUninstall = if ($intuneMeta.allowAvailableUninstall -eq $true) { $true } else { $false }
 
     # REQUIRED CREATE-TIME FIELDS
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
@@ -188,6 +196,22 @@ Write-Log "Starting content upload..." -LogFile $logFile
     -AppId         $appId `
     -Token         $token `
     -LogFile       $logFile
+
+# ── Set categories (post-creation relationship) ──────────────────────────────
+if ($intuneMeta.categories -and $intuneMeta.categories.Count -gt 0) {
+    foreach ($catId in $intuneMeta.categories) {
+        try {
+            Invoke-GraphRequest `
+                -Token  $token `
+                -Method POST `
+                -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId/categories/`$ref" `
+                -Body   @{ '@odata.id' = "$GRAPH_BASE/deviceAppManagement/mobileAppCategories/$catId" }
+            Write-Log "Category assigned: $catId" -LogFile $logFile
+        } catch {
+            Write-Log "Warning: Could not assign category $catId - $($_.Exception.Message)" WARN -LogFile $logFile
+        }
+    }
+}
 
 # ── Write dotenv for downstream jobs ──────────────────────────────────────────
 "APP_ID=$appId" | Out-File 'out/app.env' -Encoding ascii -Force
