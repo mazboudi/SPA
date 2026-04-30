@@ -102,7 +102,6 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
     const version = psadtResult.psadtVersion || 'v3';
     const isV3 = version === 'v3';
     const vars = lc.phases?.variableDeclaration?.actions || [];
-    const pkgFiles = psadtResult.packageFiles || [];
 
     return (
       <div className="step-content animate-in">
@@ -225,22 +224,6 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
             <p className="phase-empty">No variable declarations found in the script.</p>
           )}
         </div>
-
-        {/* Uploaded package files */}
-        {pkgFiles.length > 0 && (
-          <div className="config-section">
-            <h3 className="section-title">📁 Uploaded Package Files <span className="section-optional">{pkgFiles.length} files</span></h3>
-            <div className="refactor-files-list">
-              {pkgFiles.slice(0, 20).map((f, i) => (
-                <div key={i} className="refactor-file-item">
-                  <span className="refactor-file-icon">📄</span>
-                  <span className="refactor-file-name">{f.name}</span>
-                </div>
-              ))}
-              {pkgFiles.length > 20 && <p className="phase-empty">...and {pkgFiles.length - 20} more</p>}
-            </div>
-          </div>
-        )}
 
         {/* Script preview (collapsible) */}
         <div className="config-section">

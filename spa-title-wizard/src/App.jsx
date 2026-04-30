@@ -29,19 +29,11 @@ export default function App() {
       // Find the .ps1 script (Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1)
       const psFile = files.find(f => /Deploy-Application\.ps1$/i.test(f.name) || /Invoke-AppDeployToolkit\.ps1$/i.test(f.name))
         || files.find(f => f.name.endsWith('.ps1'));
-      if (!psFile) throw new Error('No .ps1 script found in upload. Upload a Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1 file.');
+      if (!psFile) throw new Error('No .ps1 script found. Please upload a Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1 file.');
 
       // Parse in refactor mode (variables only, no phase parsing)
       const parsed = await parsePsadtFile(psFile, 'refactor');
       const wizardFields = toWizardState(parsed);
-
-      // Collect supplementary files (Files/, SupportFiles/, config) for scaffolding
-      // Must be attached BEFORE setPsadtResult so React state has the complete object
-      const packageFiles = files.filter(f => f !== psFile).map(f => ({
-        name: f.webkitRelativePath || f.name,
-        file: f,
-      }));
-      parsed.packageFiles = packageFiles;
 
       setPsadtResult(parsed);
       wizard.importPsadtState(parsed, wizardFields);
@@ -116,23 +108,25 @@ export default function App() {
                 <p className="mode-card__desc">Start from scratch — define app metadata, detection, and lifecycle phases interactively.</p>
               </button>
 
-              <label className="mode-card mode-card--refactor" id="mode-refactor-title">
+              <div className="mode-card mode-card--refactor" id="mode-refactor-title">
                 <span className="mode-card__icon">🔄</span>
                 <h3 className="mode-card__title">Refactor Existing</h3>
-                <p className="mode-card__desc">Upload a PSADT package folder or script &mdash; we&apos;ll extract metadata and pass the script to the pipeline.</p>
-                <input
-                  type="file"
-                  multiple
-                  webkitdirectory=""
-                  onChange={handlePsadtUpload}
-                  style={{ display: 'none' }}
-                />
+                <p className="mode-card__desc">Upload your PSADT script &mdash; we&apos;ll extract metadata and pass it to the pipeline.</p>
+                <label className="btn btn-secondary mode-card__upload-btn">
+                  📄 Upload .ps1 Script
+                  <input
+                    type="file"
+                    accept=".ps1"
+                    onChange={handlePsadtUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
                 {psadtParsing && <span className="mode-card__status">⏳ Parsing script...</span>}
                 {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
-              </label>
+              </div>
             </div>
             <p className="mode-selector__hint">
-              Upload a folder or <code>.ps1</code> file &bull; Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
+              Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
             </p>
           </div>
         </main>
@@ -305,6 +299,12 @@ export default function App() {
         }
         .mode-card__status--err {
           color: var(--color-error, #ef4444);
+        }
+        .mode-card__upload-btn {
+          cursor: pointer;
+          font-size: 0.82rem;
+          padding: 8px 16px;
+          margin-top: var(--space-md);
         }
         .mode-selector__hint {
           font-size: 0.75rem;
