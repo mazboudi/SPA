@@ -1,0 +1,15 @@
+Intune section Allow available uninstall option 
+
+Restart behavior needs to be better defined for the 4 options (match wording from Intune) 
+
+Ability to add additional return codes besides the defaults (see return code structure of an Intune w32 app) 
+
+Requirements – add min # of logical processors and min CPU speed 
+
+Requirements – ability to add custom requirement rules (File, Registry, or Script) 
+
+Requirements – Options for “Check OS architecture” should be either “No, Allow this app to be installed on all systems” or “Yes, Specify the systems the app can be installed on” which should then reveal checkboxes for install on x86, x64, ARM64. 
+
+Detection – Options should be either “Manually configure detection rules” with type either MSI, File, or Registry (can have only 1 MSI rule but can have multiple file and registry rules) or “Use custom script detection” where users would supply a ps1 file. Options for custom script detection beyond ps1 file are “run script as 32-bit process on 64-bit clients” and “enforce script signature check and run script silently.” 
+
+App dependencies and supersedence options via App ID with proper options for both (dependencies – Automatically install yes/no, supersedence – uninstall previous version yes/no).  
