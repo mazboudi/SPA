@@ -124,6 +124,45 @@ export function checkV3Compatibility(scriptContent) {
   const findings = [];
   const lines = scriptContent.split('\n');
 
+  // ── Build a section map: lineIndex → section name ─────────────────────
+  // v3 scripts use markers like:  ##*=======================================
+  //                                ##* PRE-INSTALLATION
+  //                                ##*=======================================
+  const SECTION_MARKERS = [
+    { regex: /^\s*##\*.*VARIABLE\s+DECLARATION/i, label: 'Variable Declaration' },
+    { regex: /^\s*##\*.*PRE-INSTALL/i,            label: 'Pre-Installation' },
+    { regex: /^\s*##\*.*POST-INSTALL/i,           label: 'Post-Installation' },
+    { regex: /^\s*##\*.*INSTALL/i,                label: 'Installation' },
+    { regex: /^\s*##\*.*PRE-UNINSTALL/i,          label: 'Pre-Uninstallation' },
+    { regex: /^\s*##\*.*POST-UNINSTALL/i,         label: 'Post-Uninstallation' },
+    { regex: /^\s*##\*.*UNINSTALL/i,              label: 'Uninstallation' },
+    { regex: /^\s*##\*.*PRE-REPAIR/i,             label: 'Pre-Repair' },
+    { regex: /^\s*##\*.*POST-REPAIR/i,            label: 'Post-Repair' },
+    { regex: /^\s*##\*.*REPAIR/i,                 label: 'Repair' },
+  ];
+
+  // Build ordered section boundaries
+  const sectionBounds = []; // { startLine, label }
+  lines.forEach((line, idx) => {
+    // Check most specific markers first (pre-install before install, etc.)
+    for (const marker of SECTION_MARKERS) {
+      if (marker.regex.test(line)) {
+        sectionBounds.push({ startLine: idx, label: marker.label });
+        break;
+      }
+    }
+  });
+
+  // Resolve section for a given line number
+  const getSectionForLine = (lineIdx) => {
+    let section = 'Script Header';
+    for (const bound of sectionBounds) {
+      if (lineIdx >= bound.startLine) section = bound.label;
+      else break;
+    }
+    return section;
+  };
+
   // 1. Scan for renamed functions (auto-resolved by Convert-ADTDeployment)
   for (const [v3Name, v4Name] of Object.entries(FUNCTION_MAP)) {
     const regex = new RegExp(`\\b${v3Name}\\b`, 'g');
@@ -134,6 +173,7 @@ export function checkV3Compatibility(scriptContent) {
           severity: 'warning',
           autoResolved: true,
           line: idx + 1,
+          section: getSectionForLine(idx),
           v3: v3Name,
           v4: v4Name,
           context: line.trim().substring(0, 100),
@@ -162,6 +202,7 @@ export function checkV3Compatibility(scriptContent) {
         severity: info.severity,
         autoResolved: true,
         line: firstOccurrence,
+        section: getSectionForLine(firstOccurrence - 1),
         v3: varName,
         v4: info.replacement,
         count,
@@ -179,6 +220,7 @@ export function checkV3Compatibility(scriptContent) {
           severity: 'info',
           autoResolved: true,
           line: idx + 1,
+          section: getSectionForLine(idx),
           v3: line.trim().match(check.pattern)?.[0] || '',
           v4: check.replacement,
           context: check.context,
@@ -212,6 +254,7 @@ export function checkV3Compatibility(scriptContent) {
           severity: 'caution',
           autoResolved: false,
           line: idx + 1,
+          section: getSectionForLine(idx),
           v3: trimmed.substring(0, 80),
           v4: mp.reason,
           context: trimmed.substring(0, 100),

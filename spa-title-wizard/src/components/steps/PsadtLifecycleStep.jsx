@@ -160,11 +160,12 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
               <div className="compat-section compat-section--manual">
                 <h4 className="compat-section__title">🛑 Needs Your Review</h4>
                 <table className="compat-table">
-                  <thead><tr><th>Line</th><th>Code</th><th>What to Check</th></tr></thead>
+                  <thead><tr><th>Line</th><th>Section</th><th>Code</th><th>What to Check</th></tr></thead>
                   <tbody>
                     {compatReport.manualFindings.map((f, i) => (
                       <tr key={i} className="compat-row compat-row--caution">
                         <td className="compat-line">{f.line}</td>
+                        <td className="compat-section-cell">{f.section}</td>
                         <td><code className="compat-code-snippet">{f.v3}</code></td>
                         <td className="compat-reason">{f.v4}</td>
                       </tr>
@@ -181,11 +182,12 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
                   ✅ Auto-resolved by pipeline ({compatReport.autoFindings.length} items)
                 </summary>
                 <table className="compat-table">
-                  <thead><tr><th>Line</th><th>Type</th><th>v3</th><th>v4 Replacement</th></tr></thead>
+                  <thead><tr><th>Line</th><th>Section</th><th>Type</th><th>v3</th><th>v4 Replacement</th></tr></thead>
                   <tbody>
                     {compatReport.autoFindings.map((f, i) => (
                       <tr key={i} className="compat-row compat-row--auto">
                         <td className="compat-line">{f.line}</td>
+                        <td className="compat-section-cell">{f.section}</td>
                         <td className="compat-type">
                           {f.type === 'renamed' && '⚠ Renamed'}
                           {f.type === 'deprecated_var' && 'ℹ Deprecated'}

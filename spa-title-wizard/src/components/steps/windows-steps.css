@@ -111,6 +111,7 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
 .compat-table td { padding: 4px 8px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.04)); vertical-align: top; }
 .compat-table code { font-size: 0.72rem; }
 .compat-line { color: var(--text-muted); font-family: var(--font-mono, monospace); font-size: 0.7rem; white-space: nowrap; }
+.compat-section-cell { font-size: 0.7rem; font-weight: 600; color: var(--text-accent, #7c8aff); white-space: nowrap; }
 .compat-type { white-space: nowrap; }
 .compat-row--warning td { color: #f59e0b; }
 .compat-row--info td { color: var(--text-secondary); }
