@@ -97,58 +97,42 @@ windows/src/Invoke-AppDeployToolkit.ps1
       ? (s.msiFileName || 'TODO_INSTALLER.msi')
       : (s.exeSourceFilename || 'TODO_INSTALLER.exe');
 
-    // Detection block
+    // Detection block — new model uses detectionMethod + detectionRules array
     let detectionBlock = '';
-    const detOp = s.fileDetOperator || 'greaterThanOrEqual';
-    switch (s.detectionMode) {
-      case 'msi-product-code':
-        detectionBlock = `detection_mode: msi-product-code
-detection:
-  product_code: "${productCode}"
-  version_operator: ${detOp}
-  version: "${s.version}"`;
-        break;
-      case 'registry-marker': {
-        const rkp = s.regKeyPath || `SOFTWARE\\\\Fiserv\\\\InstalledApps\\\\${s.packageId}`;
-        detectionBlock = `detection_mode: registry-marker
-detection:
-  hive: ${s.regHive || 'HKLM'}
-  key_path: "${rkp}"
-  value_name: ${s.regValueName || 'Version'}
-  operator: ${s.regOperator || 'greaterThanOrEqual'}
-  value: "${s.regValue || s.version}"
-  check32BitOn64System: ${s.regCheck32Bit}`;
-        break;
-      }
-      case 'file': {
-        const fp = s.fileDetPath || 'C:\\\\Program Files\\\\TODO';
-        const fn = s.fileDetName || 'TODO.exe';
-        if (['version', 'sizeInMB', 'modifiedDate'].includes(s.fileDetType)) {
-          detectionBlock = `detection_mode: file
-detection:
-  path: "${fp}"
-  file_or_folder: "${fn}"
-  detection_type: ${s.fileDetType}
-  operator: ${s.fileDetOperator}
-  value: "${s.fileDetValue || s.version}"
-  check_32bit: false`;
-        } else {
-          detectionBlock = `detection_mode: file
-detection:
-  path: "${fp}"
-  file_or_folder: "${fn}"
-  detection_type: ${s.fileDetType}
-  check_32bit: false`;
-        }
-        break;
-      }
-      case 'script':
-        detectionBlock = `detection_mode: script
+    if (s.detectionMethod === 'script') {
+      detectionBlock = `detection_method: script
 detection:
   run_as_32bit: ${s.scriptRunAs32Bit}
   enforce_signature_check: ${s.scriptEnforceSignature}
 # Place your detection script at: windows/detection/detect.ps1`;
-        break;
+    } else {
+      // Manual rules
+      const rules = (s.detectionRules || []).map(r => {
+        if (r.ruleType === 'msi') {
+          return `  - type: msi\n    product_code: "${r.productCode}"\n    version_operator: ${r.productVersionOperator}\n    version: "${r.productVersion}"`;
+        } else if (r.ruleType === 'file') {
+          let rule = `  - type: file\n    path: "${r.path}"\n    file_or_folder: "${r.fileOrFolder}"\n    detection_type: ${r.detectionType}`;
+          if (!['exists', 'doesNotExist'].includes(r.detectionType)) {
+            rule += `\n    operator: ${r.operator}\n    value: "${r.detectionValue}"`;
+          }
+          rule += `\n    check_32bit: ${r.check32BitOn64}`;
+          return rule;
+        } else if (r.ruleType === 'registry') {
+          let rule = `  - type: registry\n    hive: ${r.hive}\n    key_path: "${r.keyPath}"\n    value_name: "${r.valueName}"\n    detection_type: ${r.detectionType}`;
+          if (!['exists', 'doesNotExist'].includes(r.detectionType)) {
+            rule += `\n    operator: ${r.operator}\n    value: "${r.detectionValue}"`;
+          }
+          rule += `\n    check_32bit: ${r.check32BitOn64}`;
+          return rule;
+        }
+        return '';
+      }).filter(Boolean);
+
+      if (rules.length > 0) {
+        detectionBlock = `detection_method: manual\ndetection_rules:\n${rules.join('\n')}`;
+      } else {
+        detectionBlock = `detection_method: manual\ndetection_rules: []\n# TODO: Add at least one detection rule`;
+      }
     }
 
     // Optional YAML lines
@@ -199,6 +183,16 @@ ${optLines.join('\n')}
 ${v3Flag}`;
 
 
+    // Compute applicable architectures from new checkbox model
+    const getApplicableArchitectures = () => {
+      if (!s.archCheckEnabled) return 'x64'; // all = default x64
+      const archs = [];
+      if (s.archX86) archs.push('x86');
+      if (s.archX64) archs.push('x64');
+      if (s.archArm64) archs.push('arm64');
+      return archs.join(',') || 'x64';
+    };
+
     // Intune app.json
     files['windows/intune/app.json'] = JSON.stringify({
       displayName: s.displayName,
@@ -213,12 +207,16 @@ ${v3Flag}`;
       developer: s.appDeveloper || '',
       installCommandLine: installCmd,
       uninstallCommandLine: uninstallCmd,
-      applicableArchitectures: s.applicableArch || 'x64',
+      applicableArchitectures: getApplicableArchitectures(),
       minimumSupportedWindowsRelease: s.minWinRelease || 'Windows11_22H2',
       displayVersion: s.version,
-      allowAvailableUninstall: true,
+      allowAvailableUninstall: !!s.allowAvailableUninstall,
       installContext: s.installContext || 'system',
       restartBehavior: s.restartBehavior,
+      returnCodes: (s.returnCodes || []).map(rc => ({
+        returnCode: parseInt(rc.code) || 0,
+        type: rc.type || 'success',
+      })),
     }, null, 2);
 
     // Intune assignments.json — use wizard assignments
@@ -236,20 +234,35 @@ ${v3Flag}`;
     files['windows/intune/assignments.json'] = JSON.stringify(assignArr, null, 2);
 
     // Intune requirements.json
-    files['windows/intune/requirements.json'] = JSON.stringify({
+    const reqObj = {
       minimumSupportedWindowsRelease: s.minWinRelease || 'Windows11_22H2',
-      applicableArchitectures: s.applicableArch || 'x64',
+      applicableArchitectures: getApplicableArchitectures(),
       minimumFreeDiskSpaceInMB: s.minDiskSpaceMB || 500,
       minimumMemoryInMB: s.minMemoryMB || 2048,
-      minimumNumberOfProcessors: null,
-      minimumCpuSpeedInMHz: null,
-    }, null, 2);
+      minimumNumberOfProcessors: s.minLogicalProcessors || null,
+      minimumCpuSpeedInMHz: s.minCpuSpeedMHz || null,
+    };
+    if ((s.customRequirements || []).length > 0) {
+      reqObj.customRequirementRules = s.customRequirements;
+    }
+    files['windows/intune/requirements.json'] = JSON.stringify(reqObj, null, 2);
 
     // Intune supersedence.json
     files['windows/intune/supersedence.json'] = JSON.stringify({
       supersededAppId: s.supersedesAppId || '',
       supersedenceType: s.supersedenceType || 'update',
     }, null, 2);
+
+    // Intune dependencies.json
+    if ((s.dependencies || []).length > 0) {
+      files['windows/intune/dependencies.json'] = JSON.stringify(
+        s.dependencies.map(d => ({
+          appId: d.appId,
+          autoInstall: !!d.autoInstall,
+        })),
+        null, 2
+      );
+    }
 
     // .gitkeep
     files['windows/src/Files/.gitkeep'] = `# Drop installer binary here. Do NOT commit binaries to git.\n# Expected: ${sourceFile}\n`;
@@ -262,7 +275,7 @@ ${v3Flag}`;
     }
 
     // Script detection
-    if (s.detectionMode === 'script') {
+    if (s.detectionMethod === 'script') {
       const scriptBody = s.scriptContent || `<#
 .SYNOPSIS
   Intune detection script for ${s.displayName}.

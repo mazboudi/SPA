@@ -1,85 +1,37 @@
 {
   "_comment": "Externalized selectable values for the SPA Title Wizard. Edit this file to add new Windows releases or architectures without changing application code.",
   "windowsReleases": [
-    {
-      "value": "Windows10_2004",
-      "label": "Windows 10 2004 (May 2020)"
-    },
-    {
-      "value": "Windows10_20H2",
-      "label": "Windows 10 20H2 (October 2020)"
-    },
-    {
-      "value": "Windows10_21H1",
-      "label": "Windows 10 21H1 (May 2021)"
-    },
-    {
-      "value": "Windows10_21H2",
-      "label": "Windows 10 21H2 (November 2021)"
-    },
-    {
-      "value": "Windows10_22H2",
-      "label": "Windows 10 22H2 (October 2022)"
-    },
-    {
-      "value": "Windows11_21H2",
-      "label": "Windows 11 21H2 (October 2021)"
-    },
-    {
-      "value": "Windows11_22H2",
-      "label": "Windows 11 22H2 (September 2022)"
-    },
-    {
-      "value": "Windows11_23H2",
-      "label": "Windows 11 23H2 (October 2023)"
-    },
-    {
-      "value": "Windows11_24H2",
-      "label": "Windows 11 24H2 (October 2024)"
-    }
+    { "value": "Windows10_2004", "label": "Windows 10 2004 (May 2020)" },
+    { "value": "Windows10_20H2", "label": "Windows 10 20H2 (October 2020)" },
+    { "value": "Windows10_21H1", "label": "Windows 10 21H1 (May 2021)" },
+    { "value": "Windows10_21H2", "label": "Windows 10 21H2 (November 2021)" },
+    { "value": "Windows10_22H2", "label": "Windows 10 22H2 (October 2022)" },
+    { "value": "Windows11_21H2", "label": "Windows 11 21H2 (October 2021)" },
+    { "value": "Windows11_22H2", "label": "Windows 11 22H2 (September 2022)" },
+    { "value": "Windows11_23H2", "label": "Windows 11 23H2 (October 2023)" },
+    { "value": "Windows11_24H2", "label": "Windows 11 24H2 (October 2024)" }
   ],
-  "architectures": [
-    {
-      "value": "x64",
-      "label": "x64 (64-bit)"
-    },
-    {
-      "value": "x86",
-      "label": "x86 (32-bit)"
-    },
-    {
-      "value": "arm",
-      "label": "ARM"
-    },
-    {
-      "value": "neutral",
-      "label": "Neutral (architecture independent)"
-    }
+  "restartBehaviors": [
+    { "value": "basedOnReturnCode", "label": "Determine behavior based on return codes" },
+    { "value": "allow", "label": "App install may force a device restart" },
+    { "value": "suppress", "label": "Intune will attempt to suppress any restarts" },
+    { "value": "force", "label": "Intune will force a mandatory device restart" }
+  ],
+  "returnCodeTypes": [
+    { "value": "success", "label": "Success" },
+    { "value": "failed", "label": "Failed" },
+    { "value": "softReboot", "label": "Soft reboot" },
+    { "value": "hardReboot", "label": "Hard reboot" },
+    { "value": "retry", "label": "Retry" }
   ],
   "deployModes": [
-    {
-      "value": "Silent",
-      "label": "Silent (default — no UI)"
-    },
-    {
-      "value": "NonInteractive",
-      "label": "NonInteractive (progress only, no prompts)"
-    },
-    {
-      "value": "Interactive",
-      "label": "Interactive (full PSADT UI)"
-    }
+    { "value": "Silent", "label": "Silent (default — no UI)" },
+    { "value": "NonInteractive", "label": "NonInteractive (progress only, no prompts)" },
+    { "value": "Interactive", "label": "Interactive (full PSADT UI)" }
   ],
   "installContexts": [
-    {
-      "value": "system",
-      "label": "System (SYSTEM context)"
-    },
-    {
-      "value": "user",
-      "label": "User (logged-in user context)"
-    }
+    { "value": "system", "label": "System (SYSTEM context)" },
+    { "value": "user", "label": "User (logged-in user context)" }
   ],
-  "defaultWindowsRelease": "Windows11_22H2",
-  "defaultArchitecture": "x64"
+  "defaultWindowsRelease": "Windows11_22H2"
 }

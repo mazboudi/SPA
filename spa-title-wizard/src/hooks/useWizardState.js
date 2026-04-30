@@ -33,25 +33,27 @@ const INITIAL_STATE = {
   exeUninstallPath: '',
   exeUninstallArgs: '/S',
   closeApps: '',
-  restartBehavior: 'suppress',
+  restartBehavior: 'basedOnReturnCode',
   maxInstallTime: 60,
-  returnCodes: '',
-  regCheck32Bit: false,
-  fileDetPath: '',
-  fileDetName: '',
-  fileDetType: 'exists',
-  fileDetOperator: 'greaterThanOrEqual',
-  fileDetValue: '',
+  allowAvailableUninstall: true,
+
+  // Return codes (Intune Win32 app defaults)
+  returnCodes: [
+    { code: 0,    type: 'success' },
+    { code: 1707, type: 'success' },
+    { code: 3010, type: 'softReboot' },
+    { code: 1641, type: 'hardReboot' },
+    { code: 1618, type: 'retry' },
+  ],
+
+  // Detection — method: 'manual' or 'script'
+  detectionMethod: 'manual',
+  // Manual detection rules (array of typed rule objects)
+  detectionRules: [],
+  // Script detection
   scriptRunAs32Bit: false,
   scriptEnforceSignature: false,
-  scriptContent: '', // uploaded detection script content
-
-  // Registry detection details
-  regHive: 'HKLM',
-  regKeyPath: '',
-  regValueName: 'Version',
-  regOperator: 'greaterThanOrEqual',
-  regValue: '',
+  scriptContent: '',
 
   // Intune Assignments
   assignments: [
@@ -60,13 +62,22 @@ const INITIAL_STATE = {
 
   // Supersedence
   supersedesAppId: '',
-  supersedenceType: 'update',
+  supersedenceType: 'update', // 'update' = uninstall previous, 'replace' = side-by-side
+
+  // Dependencies
+  dependencies: [],  // [{ appId: '', autoInstall: false }]
 
   // Requirements
   minWinRelease: 'Windows11_22H2',
-  applicableArch: 'x64',
+  archCheckEnabled: false,       // false = all architectures, true = specify
+  archX86: false,
+  archX64: true,
+  archArm64: false,
   minDiskSpaceMB: 500,
   minMemoryMB: 2048,
+  minLogicalProcessors: null,
+  minCpuSpeedMHz: null,
+  customRequirements: [],  // [{ type: 'file'|'registry', ...fields }]
 
   // Lifecycle phases (PSADT) — 10-phase model with actions arrays
   lifecycle: {
@@ -172,10 +183,7 @@ export default function useWizardState() {
         next._receiptIdManual = true;
       }
 
-      // Auto-set default detection mode when installer type changes
-      if (field === 'installerType') {
-        next.detectionMode = value === 'msi' ? 'msi-product-code' : 'registry-marker';
-      }
+      // Note: Detection rules are now managed in the Detection step via detectionRules array
 
       return next;
     });
@@ -241,6 +249,7 @@ export default function useWizardState() {
 
     if (state.platform === 'windows' || state.platform === 'both') {
       base.push({ id: 'installer', label: 'Installer', icon: '📦' });
+      base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
       base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }

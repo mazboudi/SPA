@@ -4,7 +4,8 @@ import WizardStepper from './components/WizardStepper';
 import BasicInfoStep from './components/steps/BasicInfoStep';
 import PlatformStep from './components/steps/PlatformStep';
 import PsadtLifecycleStep from './components/steps/PsadtLifecycleStep';
-import InstallerDetectionStep from './components/steps/InstallerDetectionStep';
+import InstallerStep from './components/steps/InstallerStep';
+import DetectionStep from './components/steps/DetectionStep';
 import IntuneConfigStep from './components/steps/IntuneConfigStep';
 import MacConfigStep from './components/steps/MacConfigStep';
 import ReviewStep from './components/steps/ReviewStep';
@@ -65,7 +66,9 @@ export default function App() {
       case 'psadt':
         return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':
-        return <InstallerDetectionStep state={wizard.state} updateField={wizard.updateField} />;
+        return <InstallerStep state={wizard.state} updateField={wizard.updateField} />;
+      case 'detection':
+        return <DetectionStep state={wizard.state} updateField={wizard.updateField} />;
       case 'intune':
         return <IntuneConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'macos':
