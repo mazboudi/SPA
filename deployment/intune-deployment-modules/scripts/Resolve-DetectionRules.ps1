@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
   Builds Intune Win32 detection rules from package.yaml.
-  Reads detection fields directly from raw YAML using regex (no custom parser).
+  Supports both the new format (detection_method + detection_rules array)
+  and legacy format (detection_mode + detection object).
 #>
 
 [CmdletBinding()]
@@ -35,15 +36,249 @@ function Get-TopLevelField {
     return $null
 }
 
-$detectionMode = Get-TopLevelField 'detection_mode'
+# ── Determine which format to use ─────────────────────────────────────────────
+# New format: detection_method + detection_rules (array)
+# Legacy format: detection_mode + detection (object)
+$detectionMethod = Get-TopLevelField 'detection_method'
+$detectionMode   = Get-TopLevelField 'detection_mode'
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  NEW FORMAT: detection_method + detection_rules
+# ══════════════════════════════════════════════════════════════════════════════
+if ($detectionMethod) {
+    Write-Host "Using new detection format: detection_method=$detectionMethod"
+
+    if ($detectionMethod -eq 'script') {
+        # Script detection — same as legacy script mode
+        $scriptPath = 'windows/detection/detect.ps1'
+        if (!(Test-Path $scriptPath)) {
+            throw "script detection requires windows/detection/detect.ps1"
+        }
+
+        $runAs32    = $false
+        $enforceSig = $false
+        $configPath = 'windows/detection/detection-config.json'
+        if (Test-Path $configPath) {
+            try {
+                $detConfig  = Get-Content $configPath -Raw | ConvertFrom-Json
+                $runAs32    = [bool]$detConfig.runAs32Bit
+                $enforceSig = [bool]$detConfig.enforceSignatureCheck
+                Write-Host "  Detection config: runAs32Bit=$runAs32, enforceSignatureCheck=$enforceSig"
+            } catch {
+                Write-Host "  Warning: Could not parse detection-config.json - using defaults" -ForegroundColor Yellow
+            }
+        } else {
+            $yamlRunAs32    = Get-DetectionField 'run_as_32bit'
+            $yamlEnforceSig = Get-DetectionField 'enforce_signature_check'
+            if ($yamlRunAs32 -eq 'true') { $runAs32 = $true }
+            if ($yamlEnforceSig -eq 'true') { $enforceSig = $true }
+        }
+
+        $encoded = [Convert]::ToBase64String(
+            [Text.Encoding]::Unicode.GetBytes(
+                (Get-Content $scriptPath -Raw)
+            )
+        )
+
+        return @(@{
+            '@odata.type'         = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
+            scriptContent         = $encoded
+            runAs32Bit            = $runAs32
+            enforceSignatureCheck = $enforceSig
+        })
+    }
+
+    # Manual detection — parse detection_rules array from YAML
+    # Use powershell-yaml module if available, otherwise regex parse
+    $rules = @()
+
+    try {
+        Import-Module powershell-yaml -ErrorAction Stop
+        $parsed = ConvertFrom-Yaml $yamlRaw
+        $yamlRules = $parsed.detection_rules
+    } catch {
+        # Fallback: regex-based array parsing
+        Write-Host "  powershell-yaml not available, using regex parser"
+        $yamlRules = @()
+
+        # Match each "- type: xxx" block in detection_rules
+        $inRules = $false
+        $currentRule = $null
+        foreach ($line in $yamlRaw -split "`n") {
+            $trimmed = $line.TrimEnd()
+
+            # Detect start of detection_rules array
+            if ($trimmed -match '^detection_rules:') {
+                $inRules = $true
+                continue
+            }
+
+            # Exit when we hit a non-indented line (next top-level key)
+            if ($inRules -and $trimmed -match '^\S' -and $trimmed -notmatch '^\s*#') {
+                if ($currentRule) { $yamlRules += $currentRule }
+                $inRules = $false
+                continue
+            }
+
+            if (-not $inRules) { continue }
+
+            # New array item
+            if ($trimmed -match '^\s+-\s+type:\s*(.+)$') {
+                if ($currentRule) { $yamlRules += $currentRule }
+                $currentRule = @{ type = $Matches[1].Trim().Trim('"').Trim("'") }
+            }
+            # Key-value within current item
+            elseif ($currentRule -and $trimmed -match '^\s+(\w[\w_]*):\s*(.+)$') {
+                $k = $Matches[1].Trim()
+                $v = $Matches[2].Trim().Trim('"').Trim("'")
+                $currentRule[$k] = $v
+            }
+        }
+        if ($currentRule) { $yamlRules += $currentRule }
+    }
+
+    if (-not $yamlRules -or $yamlRules.Count -eq 0) {
+        throw "package.yaml: detection_rules array is empty or could not be parsed"
+    }
+
+    foreach ($r in $yamlRules) {
+        $ruleType = $r.type
+        Write-Host "  Processing rule: type=$ruleType"
+
+        switch ($ruleType) {
+            'msi' {
+                $productCode     = $r.product_code
+                $versionOperator = if ($r.version_operator) { $r.version_operator } else { 'greaterThanOrEqual' }
+                $version         = $r.version
+
+                if (-not $productCode) {
+                    throw "detection_rules: product_code is required for msi rule"
+                }
+
+                if ($versionOperator -eq 'exists') { $versionOperator = 'notConfigured' }
+
+                Write-Host "    product_code    : $productCode"
+                Write-Host "    version         : $version"
+                Write-Host "    version_operator: $versionOperator"
+
+                $rules += @{
+                    '@odata.type'          = '#microsoft.graph.win32LobAppProductCodeDetection'
+                    productCode            = $productCode
+                    productVersion         = $version
+                    productVersionOperator = $versionOperator
+                }
+            }
+
+            'file' {
+                $path         = $r.path
+                $fileOrFolder = $r.file_or_folder
+                $detType      = if ($r.detection_type) { $r.detection_type } else { 'exists' }
+                $operator     = if ($r.operator) { $r.operator } else { 'notConfigured' }
+                $value        = $r.value
+                $check32      = ($r.check_32bit -eq 'true' -or $r.check_32bit -eq $true)
+
+                if (-not $path -or -not $fileOrFolder) {
+                    throw "detection_rules: path and file_or_folder are required for file rule"
+                }
+
+                $graphOperator = 'notConfigured'
+                $graphValue    = $null
+
+                if ($detType -notin @('exists', 'doesNotExist')) {
+                    $graphOperator = $operator
+                    $graphValue    = $value
+                    if (-not $graphValue) {
+                        throw "detection_rules: value is required when detection_type is '$detType'"
+                    }
+                }
+
+                Write-Host "    path           : $path"
+                Write-Host "    file_or_folder : $fileOrFolder"
+                Write-Host "    detection_type : $detType"
+
+                $rule = @{
+                    '@odata.type'        = '#microsoft.graph.win32LobAppFileSystemDetection'
+                    path                 = $path
+                    fileOrFolderName     = $fileOrFolder
+                    detectionType        = $detType
+                    check32BitOn64System = $check32
+                }
+                if ($detType -notin @('exists', 'doesNotExist')) {
+                    $rule['operator']       = $graphOperator
+                    $rule['detectionValue'] = $graphValue
+                }
+                $rules += $rule
+            }
+
+            'registry' {
+                $hive      = if ($r.hive) { $r.hive } else { 'HKLM' }
+                $keyPath   = $r.key_path
+                $valueName = if ($r.value_name) { $r.value_name } else { 'Version' }
+                $detType   = if ($r.detection_type) { $r.detection_type } else { 'exists' }
+                $operator  = if ($r.operator) { $r.operator } else { 'notConfigured' }
+                $value     = $r.value
+                $check32   = ($r.check_32bit -eq 'true' -or $r.check_32bit -eq $true)
+
+                if (-not $keyPath) {
+                    throw "detection_rules: key_path is required for registry rule"
+                }
+
+                # Map detection_type to Graph API fields
+                $graphDetType  = 'version'
+                $graphOperator = 'greaterThanOrEqual'
+
+                switch ($detType) {
+                    'exists'       { $graphDetType = 'exists';       $graphOperator = 'notConfigured' }
+                    'doesNotExist' { $graphDetType = 'doesNotExist'; $graphOperator = 'notConfigured' }
+                    'string'       { $graphDetType = 'string';       $graphOperator = $operator }
+                    'integer'      { $graphDetType = 'integer';      $graphOperator = $operator }
+                    'version'      { $graphDetType = 'version';      $graphOperator = $operator }
+                    default        { $graphDetType = 'exists';       $graphOperator = 'notConfigured' }
+                }
+
+                Write-Host "    hive       : $hive"
+                Write-Host "    key_path   : $keyPath"
+                Write-Host "    value_name : $valueName"
+
+                $rule = @{
+                    '@odata.type'        = '#microsoft.graph.win32LobAppRegistryDetection'
+                    check32BitOn64System = $check32
+                    keyPath              = $keyPath
+                    valueName            = $valueName
+                    detectionType        = $graphDetType
+                }
+                if ($graphDetType -notin @('exists', 'doesNotExist')) {
+                    $rule['operator']       = $graphOperator
+                    $rule['detectionValue'] = $value
+                }
+                $rules += $rule
+            }
+
+            default {
+                throw "detection_rules: unknown rule type '$ruleType'"
+            }
+        }
+    }
+
+    if ($rules.Count -eq 0) {
+        throw "No detection rules could be built from detection_rules array"
+    }
+
+    Write-Host "Built $($rules.Count) detection rule(s) from detection_rules array"
+    return $rules
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  LEGACY FORMAT: detection_mode + detection object
+# ══════════════════════════════════════════════════════════════════════════════
 if (-not $detectionMode) { $detectionMode = 'registry-marker' }
 
-Write-Host "Building detection rules for mode: $detectionMode"
+Write-Host "Building detection rules for legacy mode: $detectionMode"
 
 switch ($detectionMode) {
 
     # ─────────────────────────────────────────────────────────────────────────
-    # MSI PRODUCT CODE DETECTION (FIXED)
+    # MSI PRODUCT CODE DETECTION
     # ─────────────────────────────────────────────────────────────────────────
     'msi-product-code' {
 
@@ -104,14 +339,7 @@ switch ($detectionMode) {
             throw "package.yaml: detection.hive must be HKLM or HKCU"
         }
 
-        # Graph API uses two separate fields:
-        #   detectionType = value type: exists | doesNotExist | string | integer | version
-        #   operator      = comparison: notConfigured | equal | notEqual | greaterThanOrEqual | ...
-        #
-        # The package.yaml 'operator' field maps to BOTH — we infer detectionType from it.
-
-        # Map package.yaml operators → Graph detectionType + operator
-        $detectionType = 'version'       # default: compare as version string
+        $detectionType = 'version'
         $graphOperator = 'greaterThanOrEqual'
 
         switch ($operator) {
@@ -131,7 +359,6 @@ switch ($detectionMode) {
             detectionType            = $detectionType
         }
 
-        # Only include operator and detectionValue when doing a comparison
         if ($detectionType -notin @('exists', 'doesNotExist')) {
             $rule['operator']        = $graphOperator
             $rule['detectionValue']  = $value
@@ -152,8 +379,6 @@ switch ($detectionMode) {
         $detValue       = Get-DetectionField 'value'
         $check32        = Get-DetectionField 'check_32bit'
 
-        # Backward compat: if 'operator' is set but 'detection_type' is not,
-        # infer detection_type from the operator (legacy package.yaml format)
         if (-not $detType -and $operator) {
             switch ($operator) {
                 'exists'             { $detType = 'exists' }
@@ -172,12 +397,6 @@ switch ($detectionMode) {
         if (-not $detType) { $detType = 'exists' }
         $check32Bool = ($check32 -eq 'true')
 
-        # Graph API uses:
-        #   detectionType = exists | doesNotExist | version | sizeInMB | modifiedDate
-        #   operator      = notConfigured | equal | notEqual | greaterThan |
-        #                   greaterThanOrEqual | lessThan | lessThanOrEqual
-        #   detectionValue = comparison value (only when detectionType is version/sizeInMB/modifiedDate)
-
         $graphOperator  = 'notConfigured'
         $graphValue     = $null
 
@@ -193,12 +412,6 @@ switch ($detectionMode) {
             }
         }
 
-        Write-Host "  path            : $path"
-        Write-Host "  file_or_folder  : $fileOrFolder"
-        Write-Host "  detection_type  : $detType"
-        Write-Host "  operator        : $graphOperator"
-        Write-Host "  value           : $graphValue"
-
         $rule = @{
             '@odata.type'            = '#microsoft.graph.win32LobAppFileSystemDetection'
             path                     = $path
@@ -207,7 +420,6 @@ switch ($detectionMode) {
             check32BitOn64System     = $check32Bool
         }
 
-        # Only include operator and detectionValue when doing a comparison
         if ($detType -notin @('exists', 'doesNotExist')) {
             $rule['operator']        = $graphOperator
             $rule['detectionValue']  = $graphValue
@@ -226,7 +438,6 @@ switch ($detectionMode) {
             throw "script detection requires windows/detection/detect.ps1"
         }
 
-        # Read detection config sidecar if present
         $runAs32   = $false
         $enforceSig = $false
         $configPath = 'windows/detection/detection-config.json'
@@ -237,10 +448,9 @@ switch ($detectionMode) {
                 $enforceSig = [bool]$detConfig.enforceSignatureCheck
                 Write-Host "  Detection config: runAs32Bit=$runAs32, enforceSignatureCheck=$enforceSig"
             } catch {
-                Write-Host "  ⚠ Could not parse detection-config.json — using defaults" -ForegroundColor Yellow
+                Write-Host "  Warning: Could not parse detection-config.json - using defaults" -ForegroundColor Yellow
             }
         } else {
-            # Fallback: read from package.yaml detection block
             $yamlRunAs32 = Get-DetectionField 'run_as_32bit'
             $yamlEnforceSig = Get-DetectionField 'enforce_signature_check'
             if ($yamlRunAs32 -eq 'true') { $runAs32 = $true }
