@@ -240,8 +240,8 @@ export default function useWizardState() {
     ];
 
     if (state.platform === 'windows' || state.platform === 'both') {
-      base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
       base.push({ id: 'installer', label: 'Installer', icon: '📦' });
+      base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
     if (state.platform === 'macos' || state.platform === 'both') {
@@ -278,17 +278,90 @@ export default function useWizardState() {
     }
   }, [steps, currentStep, state]);
 
+  // ── Auto-seed default lifecycle actions for new titles ─────────────────
+  const seedDefaultLifecycleActions = useCallback((targetStepId) => {
+    if (targetStepId !== 'psadt') return;
+    setState(prev => {
+      // Only seed for new title mode
+      if (prev.wizardMode === 'refactor') return prev;
+
+      // Only seed if all phases are empty (user hasn't added anything yet)
+      const allEmpty = Object.values(prev.lifecycle.phases).every(p => !p.actions || p.actions.length === 0);
+      if (!allEmpty) return prev;
+
+      const phases = { ...prev.lifecycle.phases };
+      const mkPhase = (key, actions) => {
+        phases[key] = { ...phases[key], actions };
+      };
+
+      // Derive source filename from installerSource path
+      const srcFile = prev.installerSource
+        ? prev.installerSource.split(/[\\/]/).pop()
+        : '';
+
+      if (prev.installerType === 'msi') {
+        const msiFile = prev.msiFileName || srcFile || 'installer.msi';
+        mkPhase('preInstall', [
+          { type: 'show_welcome', enabled: true, closeApps: prev.closeApps || '', deferTimes: 0, checkDiskSpace: false },
+        ]);
+        mkPhase('install', [
+          { type: 'show_progress', enabled: true },
+          { type: 'msi_install', enabled: true, file: msiFile, args: '/QN /norestart' },
+        ]);
+        mkPhase('postInstall', [
+          { type: 'registry_marker', enabled: true },
+        ]);
+        mkPhase('uninstall', [
+          { type: 'show_progress', enabled: true },
+          { type: 'msi_uninstall', enabled: true, appName: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
+        ]);
+        mkPhase('postUninstall', [
+          { type: 'remove_registry_marker', enabled: true },
+        ]);
+      } else if (prev.installerType === 'exe') {
+        const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
+        mkPhase('preInstall', [
+          { type: 'show_welcome', enabled: true, closeApps: prev.closeApps || '', deferTimes: 0, checkDiskSpace: false },
+        ]);
+        mkPhase('install', [
+          { type: 'show_progress', enabled: true },
+          { type: 'exe_install', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
+        ]);
+        mkPhase('postInstall', [
+          { type: 'registry_marker', enabled: true },
+        ]);
+        mkPhase('uninstall', [
+          { type: 'show_progress', enabled: true },
+          { type: 'exe_uninstall', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
+        ]);
+        mkPhase('postUninstall', [
+          { type: 'remove_registry_marker', enabled: true },
+        ]);
+      }
+
+      return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
+    });
+  }, []);
+
   const nextStep = useCallback(() => {
-    if (currentStep < steps.length - 1) setCurrentStep(c => c + 1);
-  }, [currentStep, steps.length]);
+    if (currentStep < steps.length - 1) {
+      const targetId = steps[currentStep + 1]?.id;
+      seedDefaultLifecycleActions(targetId);
+      setCurrentStep(c => c + 1);
+    }
+  }, [currentStep, steps, seedDefaultLifecycleActions]);
 
   const prevStep = useCallback(() => {
     if (currentStep > 0) setCurrentStep(c => c - 1);
   }, [currentStep]);
 
   const goToStep = useCallback((index) => {
-    if (index >= 0 && index < steps.length) setCurrentStep(index);
-  }, [steps.length]);
+    if (index >= 0 && index < steps.length) {
+      const targetId = steps[index]?.id;
+      seedDefaultLifecycleActions(targetId);
+      setCurrentStep(index);
+    }
+  }, [steps, seedDefaultLifecycleActions]);
 
   const reset = useCallback(() => {
     setState(INITIAL_STATE);
