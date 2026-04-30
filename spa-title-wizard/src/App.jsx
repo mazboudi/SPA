@@ -34,15 +34,16 @@ export default function App() {
       // Parse in refactor mode (variables only, no phase parsing)
       const parsed = await parsePsadtFile(psFile, 'refactor');
       const wizardFields = toWizardState(parsed);
-      setPsadtResult(parsed);
 
       // Collect supplementary files (Files/, SupportFiles/, config) for scaffolding
+      // Must be attached BEFORE setPsadtResult so React state has the complete object
       const packageFiles = files.filter(f => f !== psFile).map(f => ({
         name: f.webkitRelativePath || f.name,
         file: f,
       }));
       parsed.packageFiles = packageFiles;
 
+      setPsadtResult(parsed);
       wizard.importPsadtState(parsed, wizardFields);
       setShowModeSelector(false);
     } catch (err) {
@@ -121,7 +122,6 @@ export default function App() {
                 <p className="mode-card__desc">Upload a PSADT package folder or script &mdash; we&apos;ll extract metadata and pass the script to the pipeline.</p>
                 <input
                   type="file"
-                  accept=".ps1,.zip"
                   multiple
                   webkitdirectory=""
                   onChange={handlePsadtUpload}
