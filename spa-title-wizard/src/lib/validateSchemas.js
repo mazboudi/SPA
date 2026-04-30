@@ -14,6 +14,8 @@ import appSchema from '../../../schemas/packaging-standards/schemas/app.schema.j
 import intuneAppSchema from '../../../schemas/packaging-standards/schemas/intune-app.schema.json';
 import intuneAssignmentsSchema from '../../../schemas/packaging-standards/schemas/intune-assignments.schema.json';
 import intuneRequirementsSchema from '../../../schemas/packaging-standards/schemas/intune-requirements.schema.json';
+import intuneDependenciesSchema from '../../../schemas/packaging-standards/schemas/intune-dependencies.schema.json';
+import intuneSupersedenceSchema from '../../../schemas/packaging-standards/schemas/intune-supersedence.schema.json';
 
 // Map of generated file paths → their schema
 const SCHEMA_MAP = {
@@ -21,6 +23,8 @@ const SCHEMA_MAP = {
   'windows/intune/app.json': intuneAppSchema,
   'windows/intune/assignments.json': intuneAssignmentsSchema,
   'windows/intune/requirements.json': intuneRequirementsSchema,
+  'windows/intune/dependencies.json': intuneDependenciesSchema,
+  'windows/intune/supersedence.json': intuneSupersedenceSchema,
 };
 
 /**

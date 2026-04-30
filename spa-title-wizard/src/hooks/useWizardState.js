@@ -65,7 +65,7 @@ const INITIAL_STATE = {
   supersedenceType: 'update', // 'update' = uninstall previous, 'replace' = side-by-side
 
   // Dependencies
-  dependencies: [],  // [{ appId: '', autoInstall: false }]
+  dependencies: [],  // [{ appId: '', dependencyType: 'autoInstall' }]  — 'autoInstall' | 'detect'
 
   // Requirements
   minWinRelease: 'Windows11_22H2',

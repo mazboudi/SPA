@@ -72,7 +72,7 @@ export default function IntuneConfigStep({ state, updateField }) {
   // ── Dependencies helpers ──────────────────────────────────────────────
   const dependencies = state.dependencies || [];
   const addDependency = () => {
-    updateField('dependencies', [...dependencies, { appId: '', autoInstall: false }]);
+    updateField('dependencies', [...dependencies, { appId: '', dependencyType: 'autoInstall' }]);
   };
   const updateDependency = (idx, field, value) => {
     const updated = dependencies.map((d, i) => i === idx ? { ...d, [field]: value } : d);
@@ -321,7 +321,12 @@ export default function IntuneConfigStep({ state, updateField }) {
                 className={errors[`dep_${idx}_appId`] ? 'input--error' : ''}
                 value={dep.appId} onChange={e => updateDependency(idx, 'appId', e.target.value)} />
             </FormField>
-            <ToggleSwitch label="Automatically install" checked={dep.autoInstall} onChange={v => updateDependency(idx, 'autoInstall', v)} id={`dep-auto-${idx}`} />
+            <SelectField label="Dependency Type" id={`dep-type-${idx}`} value={dep.dependencyType}
+              onChange={v => updateDependency(idx, 'dependencyType', v)}
+              options={[
+                { value: 'autoInstall', label: 'Auto install' },
+                { value: 'detect', label: 'Detect only' },
+              ]} />
             <button type="button" className="action-btn action-btn--del" onClick={() => removeDependency(idx)} title="Remove dependency">✕</button>
           </div>
         ))}

@@ -258,7 +258,7 @@ ${v3Flag}`;
       files['windows/intune/dependencies.json'] = JSON.stringify(
         s.dependencies.map(d => ({
           appId: d.appId,
-          autoInstall: !!d.autoInstall,
+          dependencyType: d.dependencyType || 'autoInstall',
         })),
         null, 2
       );

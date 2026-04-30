@@ -9,8 +9,7 @@
     "packaging_version",
     "installer_type",
     "install_command",
-    "uninstall_command",
-    "detection"
+    "uninstall_command"
   ],
   "properties": {
     "package_id": {
@@ -53,12 +52,45 @@
     "detection_mode": {
       "type": "string",
       "enum": ["registry-marker", "file", "msi-product-code", "script"],
-      "description": "Detection method used when building Intune detection rules.",
+      "description": "Legacy detection mode. Prefer detection_method + detection_rules for new titles.",
       "default": "registry-marker"
+    },
+    "detection_method": {
+      "type": "string",
+      "enum": ["manual", "script"],
+      "description": "Detection method: 'manual' uses detection_rules array, 'script' uses a custom PowerShell script.",
+      "default": "manual"
+    },
+    "detection_rules": {
+      "type": "array",
+      "description": "Array of detection rules (MSI, file, or registry). Used when detection_method is 'manual'.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["msi", "file", "registry"],
+            "description": "The detection rule type."
+          },
+          "product_code": { "type": "string", "description": "MSI product code GUID (for msi type)." },
+          "version_operator": { "type": "string", "description": "Version comparison operator." },
+          "version": { "type": "string", "description": "Expected version string." },
+          "path": { "type": "string", "description": "File/folder path (for file type)." },
+          "file_or_folder": { "type": "string", "description": "File or folder name (for file type)." },
+          "detection_type": { "type": "string", "description": "Detection check type." },
+          "operator": { "type": "string", "description": "Comparison operator." },
+          "value": { "type": "string", "description": "Expected value for comparison." },
+          "hive": { "type": "string", "description": "Registry hive (for registry type)." },
+          "key_path": { "type": "string", "description": "Registry key path (for registry type)." },
+          "value_name": { "type": "string", "description": "Registry value name (for registry type)." },
+          "check_32bit": { "type": "boolean", "description": "Check 32-bit location on 64-bit systems.", "default": false }
+        }
+      }
     },
     "detection": {
       "type": "object",
-      "description": "Detection parameters. Required keys vary by detection_mode. For msi-product-code: product_code, version, version_operator. For registry-marker: registry sub-object. For file: file sub-object.",
+      "description": "Legacy detection parameters (used with detection_mode). For new titles, use detection_method + detection_rules instead.",
       "additionalProperties": true,
       "properties": {
         "product_code": {
@@ -104,7 +136,9 @@
             "detection_type":     { "type": "string", "enum": ["exists", "doesNotExist", "version", "sizeInMB", "modifiedDate"], "default": "exists", "description": "What aspect of the file/folder to check." },
             "check32BitOn64System": { "type": "boolean", "default": false }
           }
-        }
+        },
+        "run_as_32bit": { "type": "boolean", "description": "Run detection script as 32-bit process.", "default": false },
+        "enforce_signature_check": { "type": "boolean", "description": "Enforce script signature check.", "default": false }
       }
     },
     "max_install_time": {
