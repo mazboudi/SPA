@@ -34,33 +34,43 @@ export async function exportToFolder(files, packageId) {
   try {
     const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     const rootHandle = await dirHandle.getDirectoryHandle(packageId, { create: true });
+    const skipped = [];
 
     for (const [path, content] of Object.entries(files)) {
       const parts = path.split('/');
       let current = rootHandle;
 
-      // Create subdirectories
-      for (let i = 0; i < parts.length - 1; i++) {
-        current = await current.getDirectoryHandle(parts[i], { create: true });
-      }
+      try {
+        // Create subdirectories
+        for (let i = 0; i < parts.length - 1; i++) {
+          current = await current.getDirectoryHandle(parts[i], { create: true });
+        }
 
-      // Write file
-      const fileHandle = await current.getFileHandle(parts[parts.length - 1], { create: true });
-      const writable = await fileHandle.createWritable();
-      if (typeof content === 'string' && content.startsWith('data:')) {
-        // Binary file from data URL (e.g. logo upload)
-        const resp = await fetch(content);
-        const blob = await resp.blob();
-        await writable.write(blob);
-      } else {
-        await writable.write(content);
+        // Write file
+        const fileHandle = await current.getFileHandle(parts[parts.length - 1], { create: true });
+        const writable = await fileHandle.createWritable();
+        if (typeof content === 'string' && content.startsWith('data:')) {
+          const resp = await fetch(content);
+          const blob = await resp.blob();
+          await writable.write(blob);
+        } else {
+          await writable.write(content);
+        }
+        await writable.close();
+      } catch (fileErr) {
+        // macOS/Chrome may reject dot-files (.gitlab-ci.yml, .gitignore)
+        console.warn(`Skipped file: ${path}`, fileErr.message);
+        skipped.push(path);
       }
-      await writable.close();
+    }
+
+    if (skipped.length > 0) {
+      alert(`⚠️ ${skipped.length} file(s) could not be written (browser restriction on dot-files):\n\n${skipped.join('\n')}\n\nUse "Download ZIP" instead to get all files including dot-files.`);
     }
 
     return true;
   } catch (err) {
-    if (err.name === 'AbortError') return false; // User cancelled
+    if (err.name === 'AbortError') return false;
     throw err;
   }
 }

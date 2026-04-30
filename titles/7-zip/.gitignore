@@ -1,4 +1,6 @@
 dist/
+out/
+*.intunewin
 *.pkg
 *.tar.gz
 *.zip

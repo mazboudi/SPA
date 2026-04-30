@@ -73,8 +73,7 @@
     },
     "applicableArchitectures": {
       "type": "string",
-      "enum": ["x86", "x64", "arm", "neutral"],
-      "description": "CPU architectures this app supports."
+      "description": "CPU architectures this app supports (e.g. 'x64' or 'x86,x64,arm64')."
     },
     "minimumSupportedWindowsRelease": {
       "type": "string",
@@ -100,6 +99,26 @@
       "enum": ["suppress", "allow", "basedOnReturnCode", "force"],
       "default": "suppress",
       "description": "Device restart behavior after installation completes."
+    },
+    "returnCodes": {
+      "type": "array",
+      "description": "Array of return code mappings that tell Intune how to handle specific installer exit codes.",
+      "items": {
+        "type": "object",
+        "required": ["returnCode", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "returnCode": {
+            "type": "integer",
+            "description": "The installer exit code."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["success", "failed", "softReboot", "hardReboot", "retry"],
+            "description": "The Intune behavior for this exit code."
+          }
+        }
+      }
     }
   }
 }

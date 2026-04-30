@@ -1,11 +1,11 @@
 {
   "displayName": "7-Zip",
-  "description": "7-Zip 26.00 (x64 edition)",
-  "publisher": "Igor Pavlov",
+  "description": "Application Description",
+  "publisher": "Publisher",
   "appVersion": "26.00.00",
-  "informationUrl": "https://me@where.co",
+  "informationUrl": "http://localhost:5173/",
   "isFeatured": false,
-  "privacyInformationUrl": "https://me@where.co",
+  "privacyInformationUrl": "http://localhost:5173/",
   "notes": "Managed by SPA pipeline.",
   "owner": "EUC Packaging",
   "developer": "Igor Pavlov",
@@ -16,5 +16,31 @@
   "displayVersion": "26.00.00",
   "allowAvailableUninstall": true,
   "installContext": "system",
-  "restartBehavior": "suppress"
+  "restartBehavior": "basedOnReturnCode",
+  "returnCodes": [
+    {
+      "returnCode": 0,
+      "type": "success"
+    },
+    {
+      "returnCode": 1707,
+      "type": "success"
+    },
+    {
+      "returnCode": 3010,
+      "type": "softReboot"
+    },
+    {
+      "returnCode": 1641,
+      "type": "hardReboot"
+    },
+    {
+      "returnCode": 1618,
+      "type": "retry"
+    },
+    {
+      "returnCode": 1111,
+      "type": "success"
+    }
+  ]
 }

@@ -13,4 +13,4 @@ stages:
 variables:
   WINDOWS_ENABLED: "true"
   PSADT_FRAMEWORK_VERSION: "4.1.0"
-  WINDOWS_INSTALLER_SOURCE: 'C:\files\7-zip\7z2600-x64.msi'
+  WINDOWS_INSTALLER_SOURCE: 'c:\files\7-zip\7z2601-x64.msi'

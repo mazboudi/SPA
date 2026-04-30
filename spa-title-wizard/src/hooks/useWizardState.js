@@ -183,6 +183,11 @@ export default function useWizardState() {
         next._receiptIdManual = true;
       }
 
+      // Auto-derive developer from MSI manufacturer
+      if (field === 'msiManufacturer' && value) {
+        next.appDeveloper = value;
+      }
+
       // Note: Detection rules are now managed in the Detection step via detectionRules array
 
       return next;
@@ -276,6 +281,8 @@ export default function useWizardState() {
         return true;
       case 'installer':
         return !!(state.installerSource && state.installerSource.trim());
+      case 'detection':
+        return true;
       case 'intune':
         return true;
       case 'macos':

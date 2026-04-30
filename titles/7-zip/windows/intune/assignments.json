@@ -1,7 +1,7 @@
 [
   {
     "intent": "available",
-    "groupId": "207ca967-c626-436e-8983-498d95d17384",
+    "groupId": "TODO-ENTRA-ID-GROUP-OBJECT-ID",
     "filterMode": "none",
     "notifications": "showAll",
     "deliveryOptimizationPriority": "notConfigured"
