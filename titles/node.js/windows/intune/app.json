@@ -1,20 +1,42 @@
 {
-  "displayName": "Node.js-Test",
-  "description": "Description",
-  "publisher": "Node,js Foundation",
+  "displayName": "Node.js",
+  "description": "Cross-platform JavaScript runtime environment ",
+  "publisher": "Node.js Foundation",
   "appVersion": "25.8.1",
-  "informationUrl": "",
+  "informationUrl": "https://me@where.co",
   "isFeatured": false,
-  "privacyInformationUrl": "",
-  "notes": "Notes",
-  "owner": "App Owner",
+  "privacyInformationUrl": "https://me@where.co",
+  "notes": "Managed by SPA pipeline.",
+  "owner": "EUC Packaging",
+  "developer": "Node.js Foundation",
   "installCommandLine": "Invoke-AppDeployToolkit.exe",
   "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall",
   "applicableArchitectures": "x64",
-  "minimumSupportedWindowsRelease": "Windows11_21H2",
+  "minimumSupportedWindowsRelease": "Windows11_22H2",
   "displayVersion": "25.8.1",
   "allowAvailableUninstall": true,
   "installContext": "system",
-  "restartBehavior": "suppress",
-  "developer": "Developer"
+  "restartBehavior": "basedOnReturnCode",
+  "returnCodes": [
+    {
+      "returnCode": 0,
+      "type": "success"
+    },
+    {
+      "returnCode": 1707,
+      "type": "success"
+    },
+    {
+      "returnCode": 3010,
+      "type": "softReboot"
+    },
+    {
+      "returnCode": 1641,
+      "type": "hardReboot"
+    },
+    {
+      "returnCode": 1618,
+      "type": "retry"
+    }
+  ]
 }

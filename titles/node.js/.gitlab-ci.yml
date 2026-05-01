@@ -12,6 +12,5 @@ stages:
 
 variables:
   WINDOWS_ENABLED: "true"
-  MACOS_ENABLED:   "false"
   PSADT_FRAMEWORK_VERSION: "4.1.0"
-  MACOS_FRAMEWORK_VERSION: "1.0.0"
+  WINDOWS_INSTALLER_SOURCE: 'C:\Files\Node.js\25.8.1\Files\node-v25.8.1-x64.msi'

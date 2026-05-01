@@ -1,7 +1,7 @@
 {
-  "title": "Node.js-Test",
-  "publisher": "Node,js Foundation",
-  "package_id": "node.js",
+  "title": "Node.js",
+  "publisher": "Node.js Foundation",
+  "package_id": "nodejs",
   "version": "25.8.1",
   "owners": {
     "team": "euc-packaging",

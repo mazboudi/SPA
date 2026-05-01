@@ -1,22 +1,23 @@
-# Node.js-Test 25.8.1 — Windows package definition
-package_id: node.js
-display_name: "Node.js-Test"
+# Node.js 25.8.1 — Windows package definition
+package_id: nodejs
+display_name: "Node.js v25.8.1-1 Test"
 version: "25.8.1"
 packaging_version: "1"
 installer_type: msi
 source_filename: node-v25.8.1-x64.msi
 max_install_time: 60
 
-install_command: 'msiexec.exe /i "Files\node-v25.8.1-x64.msi" /qn /norestart'
-uninstall_command: 'msiexec.exe /x "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}" /qn /norestart'
+install_command: 'Invoke-AppDeployToolkit.exe'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
 
-detection_mode: msi-product-code
-detection:
-  product_code: "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}"
-  version_operator: greaterThanOrEqual
-  version: "25.8.1"
+detection_method: manual
+detection_rules:
+  - type: msi
+    product_code: "{E1584CEF-9AE1-423A-82CF-F1047AA3827E}"
+    version_operator: greaterThanOrEqual
+    version: "25.8.1"
 
-restart_behavior: suppress
+restart_behavior: basedOnReturnCode
 install_experience: system
 
 msi_information:
