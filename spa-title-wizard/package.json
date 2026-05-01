@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fetch-jamf-categories": "node scripts/fetch-jamf-categories.js"
   },
   "dependencies": {
     "ajv": "^8.20.0",

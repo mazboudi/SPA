@@ -362,27 +362,31 @@ post_install_script: postinstall.sh
 
     files['macos/jamf/package-inputs.json'] = JSON.stringify({
       package_name: `${s.displayName} ${s.version}`,
-      category_id: '-1',
+      category_id: s.jamfCategoryId || '-1',
       notes: 'Deployed by SPA pipeline. Do not modify directly in Jamf.',
       reboot_required: false,
       os_requirements: '',
     }, null, 2);
 
-    files['macos/jamf/policy-inputs.json'] = JSON.stringify({
+    const policyInputs = {
       policy_name: `SPA - Install ${s.displayName}`,
       enabled: true,
       trigger: 'RECURRING_CHECK_IN',
-      frequency: 'Once per computer',
+      frequency: 'Ongoing',
       run_recon_after_install: true,
       self_service_enabled: s.macSelfService,
       self_service_display_name: s.displayName,
       self_service_description: '',
-    }, null, 2);
+    };
+    if (s.selfServiceCategoryId) {
+      policyInputs.self_service_category_id = s.selfServiceCategoryId;
+    }
+    files['macos/jamf/policy-inputs.json'] = JSON.stringify(policyInputs, null, 2);
 
     // Scope inputs
     const scopeIds = s.scopeGroupIds
       ? s.scopeGroupIds.split(',').map(s => s.trim()).filter(Boolean)
-      : ['TODO-JAMF-SMART-GROUP-ID'];
+      : [];
     const exclusionIds = s.exclusionGroupIds
       ? s.exclusionGroupIds.split(',').map(s => s.trim()).filter(Boolean)
       : [];
@@ -434,13 +438,15 @@ bash "$SCRIPT_DIR/scripts/postinstall"
 
     files['macos/src/Files/.gitkeep'] = `# Drop macOS installer binary here. Do NOT commit binaries to git.\n# Expected: ${macSourceFile}\n`;
 
-    files['macos/detection/extension-attribute.sh'] = `#!/usr/bin/env bash
+    if (s.macExtensionAttribute) {
+      const appPath = s.macAppPath || '/Applications/TODO.app';
+      files['macos/detection/extension-attribute.sh'] = `#!/usr/bin/env bash
 # =============================================================================
 # extension-attribute.sh — Jamf Extension Attribute
 # Returns the installed version of ${s.displayName} for inventory reporting.
 # =============================================================================
 
-APP_PATH="/Applications/TODO.app"
+APP_PATH="${appPath}"
 PLIST_KEY="CFBundleShortVersionString"
 
 if [[ -d "$APP_PATH" ]]; then
@@ -454,6 +460,7 @@ else
     echo "<result>Not Installed</result>"
 fi
 `;
+    }
 
     files['macos/detection/receipt-check.sh'] = `#!/usr/bin/env bash
 # =============================================================================

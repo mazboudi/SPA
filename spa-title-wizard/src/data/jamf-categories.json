@@ -1,0 +1,10 @@
+[
+  { "id": "-1", "name": "No category" },
+  { "id": "1", "name": "Browsers" },
+  { "id": "2", "name": "Productivity" },
+  { "id": "3", "name": "Developer Tools" },
+  { "id": "4", "name": "Security" },
+  { "id": "5", "name": "Communication" },
+  { "id": "6", "name": "Utilities" },
+  { "id": "7", "name": "Endpoint Management" }
+]

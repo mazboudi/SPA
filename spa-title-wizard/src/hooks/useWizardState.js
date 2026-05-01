@@ -102,9 +102,13 @@ const INITIAL_STATE = {
   receiptId: '',
   _receiptIdManual: false,
   jamfCategory: '',
+  jamfCategoryId: '',
   macSelfService: false,
-  scopeGroupIds: '',
+  scopeGroupIds: '31',
   exclusionGroupIds: '',
+  selfServiceCategoryId: '27',
+  macAppPath: '',              // e.g. '/Applications/Google Chrome.app'
+  macExtensionAttribute: false, // whether to generate the Jamf extension attribute script
 
   // Intune App Metadata
   appDescription: '',

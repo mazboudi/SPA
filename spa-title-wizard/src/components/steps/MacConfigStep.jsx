@@ -1,8 +1,24 @@
+import { useMemo } from 'react';
 import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import jamfCategoriesData from '../../data/jamf-categories.json';
 
 export default function MacConfigStep({ state, updateField }) {
+  const categoryOptions = useMemo(() =>
+    jamfCategoriesData.map(c => ({
+      value: c.id,
+      label: c.name,
+    })),
+    []
+  );
+
+  const handleCategoryChange = (id) => {
+    const cat = jamfCategoriesData.find(c => c.id === id);
+    updateField('jamfCategoryId', id);
+    updateField('jamfCategory', cat ? cat.name : '');
+  };
+
   return (
     <div className="step-content animate-in">
       <div className="step-header">
@@ -51,19 +67,9 @@ export default function MacConfigStep({ state, updateField }) {
           <SelectField
             label="Jamf Category"
             id="jamfCategory"
-            value={state.jamfCategory}
-            onChange={v => updateField('jamfCategory', v)}
-            options={[
-              { value: 'Browsers', label: 'Browsers' },
-              { value: 'Productivity', label: 'Productivity' },
-              { value: 'Developer Tools', label: 'Developer Tools' },
-              { value: 'Security', label: 'Security' },
-              { value: 'Communication', label: 'Communication' },
-              { value: 'Utilities', label: 'Utilities' },
-              { value: 'Endpoint Management', label: 'Endpoint Management' },
-              { value: 'Custom', label: 'Custom' },
-              { value: 'No category', label: 'No category' },
-            ]}
+            value={state.jamfCategoryId || ''}
+            onChange={handleCategoryChange}
+            options={categoryOptions}
           />
           <FormField label="Scope Group IDs" id="scopeGroupIds" hint="Comma-separated Jamf smart/static group IDs">
             <input
@@ -90,12 +96,48 @@ export default function MacConfigStep({ state, updateField }) {
           onChange={v => updateField('macSelfService', v)}
           id="macSelfService"
         />
+        {state.macSelfService && (
+          <div className="form-grid" style={{ marginTop: 'var(--space-sm)' }}>
+            <FormField label="Self-Service Category ID" id="selfServiceCategoryId" hint="Jamf category ID for Self Service display">
+              <input
+                id="selfServiceCategoryId"
+                type="text"
+                placeholder="e.g. 27"
+                value={state.selfServiceCategoryId}
+                onChange={e => updateField('selfServiceCategoryId', e.target.value)}
+              />
+            </FormField>
+          </div>
+        )}
       </div>
 
-      {state.receiptId && (
+      <div className="config-section">
+        <h3 className="section-title">Detection</h3>
+        <ToggleSwitch
+          label="Generate Jamf Extension Attribute"
+          checked={state.macExtensionAttribute}
+          onChange={v => updateField('macExtensionAttribute', v)}
+          id="macExtensionAttribute"
+        />
+        {state.macExtensionAttribute && (
+          <div className="form-grid" style={{ marginTop: 'var(--space-sm)' }}>
+            <FormField label="Application Path" id="macAppPath" required hint="Full path to the .app bundle, e.g. /Applications/Google Chrome.app">
+              <input
+                id="macAppPath"
+                type="text"
+                placeholder="/Applications/AppName.app"
+                value={state.macAppPath}
+                onChange={e => updateField('macAppPath', e.target.value)}
+              />
+            </FormField>
+          </div>
+        )}
+      </div>
+
+      {state.macExtensionAttribute && state.macAppPath && (
         <div className="step-preview-badge animate-in">
           <span className="badge-label">Extension Attribute</span>
-          <code>SPA - {state.displayName} {state.version} Version → pkgutil --pkg-info {state.receiptId}</code>
+          <code>defaults read &quot;{state.macAppPath}/Contents/Info&quot; CFBundleShortVersionString</code>
         </div>
       )}
 
