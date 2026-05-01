@@ -379,6 +379,10 @@ export default function useWizardState() {
 
       // Store raw result for scaffolding (refactor mode needs scriptContent)
       next._psadtResult = parsedResult;
+      // Also store scriptContent directly on state for reliable access in scaffolding
+      if (parsedResult.scriptContent) {
+        next._scriptContent = parsedResult.scriptContent;
+      }
 
       // Populate lifecycle phases from parsed actions (both modes may have variable declarations)
       const phaseSrc = parsedResult.parsedPhases || {};

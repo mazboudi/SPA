@@ -301,14 +301,15 @@ if (Test-Path $appPath) {
     }
 
     // ── windows/lifecycle.yaml OR committed .ps1 ──────────────────────────
-    if (s.wizardMode === 'refactor' && s._psadtResult?.scriptContent) {
+    const refactorScript = s._psadtResult?.scriptContent || s._scriptContent;
+    if (s.wizardMode === 'refactor' && refactorScript) {
       // Refactor mode: commit the original .ps1 directly (no lifecycle.yaml)
-      const isV3 = s._psadtResult?.psadtVersion === 'v3';
+      const isV3 = s._psadtResult?.psadtVersion === 'v3' || s.psadtVersion === 'v3';
       if (isV3) {
         // v3 scripts go as Deploy-Application.ps1 — pipeline converts to v4
-        files['windows/src/Deploy-Application.ps1'] = s._psadtResult.scriptContent;
+        files['windows/src/Deploy-Application.ps1'] = refactorScript;
       } else {
-        files['windows/src/Invoke-AppDeployToolkit.ps1'] = s._psadtResult.scriptContent;
+        files['windows/src/Invoke-AppDeployToolkit.ps1'] = refactorScript;
       }
     } else {
       // New title mode: declarative lifecycle.yaml
