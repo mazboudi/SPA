@@ -1,80 +1,116 @@
-2026-04-30T20:09:18.603887Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-04-30T20:09:18.603887Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-04-30T20:09:18.603887Z 00O Resolving secrets
-2026-04-30T20:09:18.603887Z 00O section_start:1777579758:prepare_executor
-2026-04-30T20:09:18.603887Z 00O+Preparing the "shell" executor
-2026-04-30T20:09:18.604490Z 00O Using Shell (pwsh) executor...
-2026-04-30T20:09:18.604490Z 00O section_end:1777579758:prepare_executor
-2026-04-30T20:09:18.604490Z 00O+section_start:1777579758:prepare_script
-2026-04-30T20:09:18.604490Z 00O+Preparing environment
-2026-04-30T20:09:19.648535Z 01O Running on vm-psa-runner-p...
-2026-04-30T20:09:19.900910Z 00O section_end:1777579759:prepare_script
-2026-04-30T20:09:19.900910Z 00O+section_start:1777579759:get_sources
-2026-04-30T20:09:19.901946Z 00O+Getting source from Git repository
-2026-04-30T20:09:21.912751Z 01O Gitaly correlation ID: 01KQG05370RCCV9WZPMC3AMDBD
-2026-04-30T20:09:22.261236Z 01O Fetching changes with git depth set to 20...
-2026-04-30T20:09:22.327850Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/7-zip/.git/
-2026-04-30T20:09:24.419472Z 01O Checking out 8fa8ab6e as detached HEAD (ref is main)...
-2026-04-30T20:09:24.824062Z 01O Removing intune-modules/
-2026-04-30T20:09:24.824062Z 01O Removing out/
-2026-04-30T20:09:24.824062Z 01O Removing psadt-framework-4.1.0/
-2026-04-30T20:09:24.824062Z 01O Removing schemas/
-2026-04-30T20:09:24.824062Z 01O Removing windows/src/Files/7z2600-x64.msi
-2026-04-30T20:09:24.824062Z 01O Removing windows/src/Invoke-AppDeployToolkit.ps1
-2026-04-30T20:09:25.063758Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-04-30T20:09:25.685370Z 01O 
-2026-04-30T20:09:25.687065Z 01O Skipping Git submodules setup
-2026-04-30T20:09:25.893246Z 00O section_end:1777579765:get_sources
-2026-04-30T20:09:25.893246Z 00O+section_start:1777579765:download_artifacts
-2026-04-30T20:09:25.894330Z 00O+Downloading artifacts
-2026-04-30T20:09:27.330167Z 01O Version:      18.9.0
-2026-04-30T20:09:27.330167Z 01O Git revision: 07e534ba
-2026-04-30T20:09:27.330167Z 01O Git branch:   18-9-stable
-2026-04-30T20:09:27.330167Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-30T20:09:27.330167Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-30T20:09:27.330167Z 01O OS/Arch:      windows/amd64
-2026-04-30T20:09:27.345952Z 01O Downloading artifacts for windows_build (27272926)...
-2026-04-30T20:09:27.518047Z 01E Runtime platform                                    arch=amd64 os=windows pid=14588 revision=07e534ba version=18.9.0
-2026-04-30T20:09:30.861160Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KQG05DW5EA0ENSJH8B38P263 host=gitlab.onefiserv.net id=27272926 responseStatus=200 OK token=64_NvcY3x
-2026-04-30T20:09:33.159457Z 00O section_end:1777579773:download_artifacts
-2026-04-30T20:09:33.159457Z 00O+section_start:1777579773:step_script
-2026-04-30T20:09:33.159964Z 00O+Executing "step_script" stage of the job script
-2026-04-30T20:09:34.463754Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-30T20:09:38.090547Z 01O Intune modules ready in: intune-modules
-2026-04-30T20:09:38.094398Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-04-30T20:09:38.206947Z 01O Building detection rules for mode: registry-marker
-2026-04-30T20:09:38.346748Z 01E Exception: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip\intune-modules\Resolve-DetectionRules.ps1:95
-2026-04-30T20:09:38.346748Z 01E Line |
-2026-04-30T20:09:38.346748Z 01E   95 |              throw "package.yaml: detection.key_path is required for r …
-2026-04-30T20:09:38.346748Z 01E      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2026-04-30T20:09:38.346748Z 01E      | package.yaml: detection.key_path is required for registry-marker mode
-2026-04-30T20:09:38.582914Z 00O section_end:1777579778:step_script
-2026-04-30T20:09:38.582914Z 00O+section_start:1777579778:upload_artifacts_on_failure
-2026-04-30T20:09:38.584525Z 00O+Uploading artifacts for failed job
-2026-04-30T20:09:40.024066Z 01O Version:      18.9.0
-2026-04-30T20:09:40.024066Z 01O Git revision: 07e534ba
-2026-04-30T20:09:40.024066Z 01O Git branch:   18-9-stable
-2026-04-30T20:09:40.024066Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-30T20:09:40.024066Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-30T20:09:40.024066Z 01O OS/Arch:      windows/amd64
-2026-04-30T20:09:40.039223Z 01O Uploading artifacts...
-2026-04-30T20:09:40.207157Z 01E Runtime platform                                    arch=amd64 os=windows pid=5220 revision=07e534ba version=18.9.0
-2026-04-30T20:09:40.207461Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-30T20:09:40.207461Z 01E WARNING: out/publish-logs/*: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-30T20:09:40.207461Z 01E ERROR: No files to upload                          
-2026-04-30T20:09:40.387880Z 01O Version:      18.9.0
-2026-04-30T20:09:40.387880Z 01O Git revision: 07e534ba
-2026-04-30T20:09:40.387880Z 01O Git branch:   18-9-stable
-2026-04-30T20:09:40.387880Z 01O GO version:   go1.25.7 X:cacheprog
-2026-04-30T20:09:40.387880Z 01O Built:        2026-02-19T16:58:00Z
-2026-04-30T20:09:40.387880Z 01O OS/Arch:      windows/amd64
-2026-04-30T20:09:40.392725Z 01O Uploading artifacts...
-2026-04-30T20:09:40.557654Z 01E Runtime platform                                    arch=amd64 os=windows pid=5928 revision=07e534ba version=18.9.0
-2026-04-30T20:09:40.557654Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\7-zip) 
-2026-04-30T20:09:40.557654Z 01E ERROR: No files to upload                          
-2026-04-30T20:09:40.770667Z 00O section_end:1777579780:upload_artifacts_on_failure
-2026-04-30T20:09:40.770667Z 00O+section_start:1777579780:cleanup_file_variables
-2026-04-30T20:09:40.770667Z 00O+Cleaning up project directory and file based variables
-2026-04-30T20:09:42.237147Z 00O section_end:1777579782:cleanup_file_variables
-2026-04-30T20:09:42.237147Z 00O+
-2026-04-30T20:09:42.237694Z 00O ERROR: Job failed: exit status 1
+2026-05-01T15:42:13.266484Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-05-01T15:42:13.266484Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-05-01T15:42:13.266484Z 00O Resolving secrets
+2026-05-01T15:42:13.266484Z 00O section_start:1777650133:prepare_executor
+2026-05-01T15:42:13.266484Z 00O+Preparing the "shell" executor
+2026-05-01T15:42:13.267159Z 00O Using Shell (pwsh) executor...
+2026-05-01T15:42:13.267159Z 00O section_end:1777650133:prepare_executor
+2026-05-01T15:42:13.267159Z 00O+section_start:1777650133:prepare_script
+2026-05-01T15:42:13.267159Z 00O+Preparing environment
+2026-05-01T15:42:14.887605Z 01O Running on vm-psa-runner-p...
+2026-05-01T15:42:15.245664Z 00O section_end:1777650135:prepare_script
+2026-05-01T15:42:15.245664Z 00O+section_start:1777650135:get_sources
+2026-05-01T15:42:15.246809Z 00O+Getting source from Git repository
+2026-05-01T15:42:18.136393Z 01O Gitaly correlation ID: 01KQJ38SC35TVSRMA2APR0DHEQ
+2026-05-01T15:42:18.648623Z 01O Fetching changes with git depth set to 20...
+2026-05-01T15:42:18.735509Z 01O Initialized empty Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/node.js/.git/
+2026-05-01T15:42:18.848584Z 01O Created fresh repository.
+2026-05-01T15:42:21.821161Z 01O Checking out d982e7c1 as detached HEAD (ref is main)...
+2026-05-01T15:42:22.314285Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-05-01T15:42:22.977545Z 01O 
+2026-05-01T15:42:22.977545Z 01O Skipping Git submodules setup
+2026-05-01T15:42:23.189446Z 00O section_end:1777650143:get_sources
+2026-05-01T15:42:23.189446Z 00O+section_start:1777650143:restore_cache
+2026-05-01T15:42:23.190480Z 00O+Restoring cache
+2026-05-01T15:42:24.718163Z 01O Version:      18.9.0
+2026-05-01T15:42:24.718163Z 01O Git revision: 07e534ba
+2026-05-01T15:42:24.718163Z 01O Git branch:   18-9-stable
+2026-05-01T15:42:24.718163Z 01O GO version:   go1.25.7 X:cacheprog
+2026-05-01T15:42:24.718163Z 01O Built:        2026-02-19T16:58:00Z
+2026-05-01T15:42:24.718163Z 01O OS/Arch:      windows/amd64
+2026-05-01T15:42:24.737196Z 01O Checking cache for psadt-framework-4.1.0-protected...
+2026-05-01T15:42:24.911930Z 01E Runtime platform                                    arch=amd64 os=windows pid=7884 revision=07e534ba version=18.9.0
+2026-05-01T15:42:24.911930Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
+2026-05-01T15:42:24.911930Z 01E WARNING: Cache file does not exist                 
+2026-05-01T15:42:24.950239Z 01O Failed to extract cache
+2026-05-01T15:42:25.148546Z 00O section_end:1777650145:restore_cache
+2026-05-01T15:42:25.148546Z 00O+section_start:1777650145:step_script
+2026-05-01T15:42:25.149592Z 00O+Executing "step_script" stage of the job script
+2026-05-01T15:42:26.640685Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-05-01T15:42:26.643886Z 01O === Windows Build: node.js ===
+2026-05-01T15:42:26.646145Z 01O Pipeline tag   : 
+2026-05-01T15:42:26.646882Z 01O --- Verifying powershell-yaml module is present ---
+2026-05-01T15:42:27.122222Z 01O --- Downloading JSON Schemas ---
+2026-05-01T15:42:28.471074Z 01O --- Validating app.json against schema ---
+2026-05-01T15:42:28.553807Z 01O   ✓ app.json valid
+2026-05-01T15:42:28.559659Z 01O PSADT version locked to: 4.1.0
+2026-05-01T15:42:28.561272Z 01O --- Validating windows/package.yaml against schema ---
+2026-05-01T15:42:28.884141Z 01O   ✓ windows/package.yaml valid
+2026-05-01T15:42:28.888113Z 01O --- Validating windows/intune/requirements.json against schema ---
+2026-05-01T15:42:28.905915Z 01O   ✓ windows/intune/requirements.json valid
+2026-05-01T15:42:28.908130Z 01O Downloading PSADT bundle from: https://gitlab.onefiserv.net/api/v4/projects/86260/packages/generic/psadt-enterprise/4.1.0/psadt-enterprise-4.1.0.zip
+2026-05-01T15:42:33.774770Z 01O Framework extracted to: psadt-framework-4.1.0
+2026-05-01T15:42:33.776057Z 01O === Framework bundle contents (psadt-framework-4.1.0) ===
+2026-05-01T15:42:33.811865Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Config/
+2026-05-01T15:42:33.812857Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\helpers/
+2026-05-01T15:42:33.813750Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit/
+2026-05-01T15:42:33.814387Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit.Extensions/
+2026-05-01T15:42:33.814947Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Strings/
+2026-05-01T15:42:33.817700Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Deploy-Application.ps1 (4528 bytes)
+2026-05-01T15:42:33.819677Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Invoke-AppDeployToolkit.exe (216152 bytes)
+2026-05-01T15:42:33.820230Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Invoke-AppDeployToolkit.ps1 (13040 bytes)
+2026-05-01T15:42:33.820766Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\manifest.json (629 bytes)
+2026-05-01T15:42:33.823914Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Config\config.psd1 (3875 bytes)
+2026-05-01T15:42:33.824988Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\helpers\Invoke-RegistryDetection.ps1 (2145 bytes)
+2026-05-01T15:42:33.825523Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\helpers\Write-InstallLog.ps1 (1449 bytes)
+2026-05-01T15:42:33.826575Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\ADMX/
+2026-05-01T15:42:33.827121Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\Assets/
+2026-05-01T15:42:33.827675Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\Config/
+2026-05-01T15:42:33.828234Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\Frontend/
+2026-05-01T15:42:33.828765Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\lib/
+2026-05-01T15:42:33.829296Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\Strings/
+2026-05-01T15:42:33.829826Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\!README.txt (591 bytes)
+2026-05-01T15:42:33.830353Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\COPYING.Lesser (7817 bytes)
+2026-05-01T15:42:33.831399Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\PSAppDeployToolkit.cer (2626 bytes)
+2026-05-01T15:42:33.831925Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\PSAppDeployToolkit.psd1 (26301 bytes)
+2026-05-01T15:42:33.832451Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit\PSAppDeployToolkit.psm1 (1299098 bytes)
+2026-05-01T15:42:33.833508Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit.Extensions\PSAppDeployToolkit.Extensions.psd1 (4322 bytes)
+2026-05-01T15:42:33.834046Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\PSAppDeployToolkit.Extensions\PSAppDeployToolkit.Extensions.psm1 (2670 bytes)
+2026-05-01T15:42:33.834573Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js\psadt-framework-4.1.0\Strings\strings.psd1 (777 bytes)
+2026-05-01T15:42:33.836748Z 01O Using IntuneWinAppUtil: C:\tools\IntuneWinAppUtil.exe
+2026-05-01T15:42:34.007509Z 01E Exception: 
+2026-05-01T15:42:34.007509Z 01E Line |
+2026-05-01T15:42:34.007509Z 01E  557 |    throw "Missing both windows/lifecycle.yaml and windows/src/Invoke-A …
+2026-05-01T15:42:34.007509Z 01E      |    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-05-01T15:42:34.007509Z 01E      | Missing both windows/lifecycle.yaml and windows/src/Invoke-AppDeployToolkit.ps1 — cannot build.
+2026-05-01T15:42:34.280868Z 00O section_end:1777650154:step_script
+2026-05-01T15:42:34.280868Z 00O+section_start:1777650154:upload_artifacts_on_failure
+2026-05-01T15:42:34.281908Z 00O+Uploading artifacts for failed job
+2026-05-01T15:42:35.715786Z 01O Version:      18.9.0
+2026-05-01T15:42:35.715786Z 01O Git revision: 07e534ba
+2026-05-01T15:42:35.715786Z 01O Git branch:   18-9-stable
+2026-05-01T15:42:35.715786Z 01O GO version:   go1.25.7 X:cacheprog
+2026-05-01T15:42:35.715786Z 01O Built:        2026-02-19T16:58:00Z
+2026-05-01T15:42:35.715786Z 01O OS/Arch:      windows/amd64
+2026-05-01T15:42:35.731739Z 01O Uploading artifacts...
+2026-05-01T15:42:35.903351Z 01E Runtime platform                                    arch=amd64 os=windows pid=11104 revision=07e534ba version=18.9.0
+2026-05-01T15:42:35.903351Z 01E WARNING: out/*.intunewin: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-05-01T15:42:35.903351Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-05-01T15:42:35.903351Z 01E WARNING: out/staging/: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-05-01T15:42:35.903351Z 01E ERROR: No files to upload                          
+2026-05-01T15:42:36.077422Z 01O Version:      18.9.0
+2026-05-01T15:42:36.077422Z 01O Git revision: 07e534ba
+2026-05-01T15:42:36.077422Z 01O Git branch:   18-9-stable
+2026-05-01T15:42:36.077422Z 01O GO version:   go1.25.7 X:cacheprog
+2026-05-01T15:42:36.077422Z 01O Built:        2026-02-19T16:58:00Z
+2026-05-01T15:42:36.077422Z 01O OS/Arch:      windows/amd64
+2026-05-01T15:42:36.086978Z 01O Uploading artifacts...
+2026-05-01T15:42:36.256830Z 01E Runtime platform                                    arch=amd64 os=windows pid=15272 revision=07e534ba version=18.9.0
+2026-05-01T15:42:36.256830Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\node.js) 
+2026-05-01T15:42:36.256830Z 01E ERROR: No files to upload                          
+2026-05-01T15:42:36.467097Z 00O section_end:1777650156:upload_artifacts_on_failure
+2026-05-01T15:42:36.467097Z 00O+section_start:1777650156:cleanup_file_variables
+2026-05-01T15:42:36.467097Z 00O+Cleaning up project directory and file based variables
+2026-05-01T15:42:38.187944Z 00O section_end:1777650158:cleanup_file_variables
+2026-05-01T15:42:38.187944Z 00O+
+2026-05-01T15:42:38.188452Z 00O ERROR: Job failed: exit status 1
