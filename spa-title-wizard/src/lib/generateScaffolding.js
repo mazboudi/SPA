@@ -360,41 +360,82 @@ jamf_category: ${jamfCat}
 post_install_script: postinstall.sh
 `;
 
+    // ── package-inputs.json — matches jamfpro_package resource ──────────
     files['macos/jamf/package-inputs.json'] = JSON.stringify({
       package_name: `${s.displayName} ${s.version}`,
       category_id: s.jamfCategoryId || '-1',
+      info: '',
       notes: 'Deployed by SPA pipeline. Do not modify directly in Jamf.',
+      priority: 10,
       reboot_required: false,
+      fill_user_template: false,
+      fill_existing_users: false,
       os_requirements: '',
+      suppress_updates: false,
+      suppress_from_dock: false,
+      suppress_eula: false,
+      suppress_registration: false,
+      os_install: false,
     }, null, 2);
 
+    // ── policy-inputs.json — matches jamfpro_policy resource ──────────
+    const isSelfService = !!s.macSelfService;
     const policyInputs = {
-      policy_name: `SPA - Install ${s.displayName}`,
+      name: `SPA - Install ${s.displayName}`,
       enabled: true,
-      trigger: 'RECURRING_CHECK_IN',
+      trigger_checkin: !isSelfService,
+      trigger_enrollment_complete: false,
+      trigger_login: false,
+      trigger_network_state_changed: false,
+      trigger_startup: false,
+      trigger_other: isSelfService ? 'USER_INITIATED' : '',
       frequency: 'Ongoing',
-      run_recon_after_install: true,
-      self_service_enabled: s.macSelfService,
-      self_service_display_name: s.displayName,
-      self_service_description: '',
+      retry_event: 'none',
+      retry_attempts: -1,
+      notify_on_each_failed_retry: false,
+      target_drive: '/',
+      offline: false,
+      category_id: s.jamfCategoryId ? parseInt(s.jamfCategoryId) : -1,
+      site_id: -1,
+      self_service: {
+        use_for_self_service: isSelfService,
+        self_service_display_name: isSelfService ? s.displayName : '',
+        install_button_text: 'Install',
+        reinstall_button_text: 'Reinstall',
+        self_service_description: '',
+        force_users_to_view_description: false,
+        feature_on_main_page: false,
+        ...(isSelfService && s.selfServiceCategoryId ? {
+          self_service_category: {
+            id: parseInt(s.selfServiceCategoryId),
+            display_in: true,
+            feature_in: false,
+          },
+        } : {}),
+      },
+      payloads: {
+        maintenance: {
+          recon: true,
+        },
+      },
     };
-    if (s.selfServiceCategoryId) {
-      policyInputs.self_service_category_id = s.selfServiceCategoryId;
-    }
     files['macos/jamf/policy-inputs.json'] = JSON.stringify(policyInputs, null, 2);
 
-    // Scope inputs
+    // ── scope-inputs.json — matches jamfpro_policy scope block ────────
     const scopeIds = s.scopeGroupIds
-      ? s.scopeGroupIds.split(',').map(s => s.trim()).filter(Boolean)
+      ? s.scopeGroupIds.split(',').map(v => parseInt(v.trim())).filter(n => !isNaN(n))
       : [];
     const exclusionIds = s.exclusionGroupIds
-      ? s.exclusionGroupIds.split(',').map(s => s.trim()).filter(Boolean)
+      ? s.exclusionGroupIds.split(',').map(v => parseInt(v.trim())).filter(n => !isNaN(n))
       : [];
 
     files['macos/jamf/scope-inputs.json'] = JSON.stringify({
-      _comment: 'Replace computer_groups values with real Jamf smart/static group IDs',
-      scope_groups: { computer_groups: scopeIds },
-      exclusion_groups: { computer_groups: exclusionIds },
+      all_computers: false,
+      all_jss_users: false,
+      computer_group_ids: scopeIds,
+      exclusions: {
+        computer_group_ids: exclusionIds,
+      },
     }, null, 2);
 
     // Pre/post install scripts
