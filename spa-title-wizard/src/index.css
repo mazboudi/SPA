@@ -294,3 +294,26 @@ label {
 .animate-slide {
   animation: slideInRight 0.35s var(--transition-slow) both;
 }
+
+/* ── Mode card button reset (refactor card is now a <button>) ─────────── */
+button.mode-card {
+  font-family: inherit;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+}
+button.mode-card:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.mode-card__upload-hint {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  background: var(--accent-gradient);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}

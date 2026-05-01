@@ -51,7 +51,9 @@ export async function parsePsadtFile(file, mode = 'new') {
     // Refactor mode: return raw script for pipeline passthrough, skip heavy parsing
     result.scriptContent = text;
     // Still extract variable declarations (needed for Intune metadata + pipeline config)
-    const varDeclActions = extractVarDeclarations(text);
+    const varDeclActions = version === 'v4'
+      ? extractVarDeclarationsV4(text)
+      : extractVarDeclarations(text);
     if (varDeclActions.length > 0) {
       result.parsedPhases = { variableDeclaration: varDeclActions };
     }
@@ -913,6 +915,68 @@ function extractVarDeclarations(text) {
         value: varValue,
         enabled: true,
         raw: t,
+      });
+    }
+  }
+
+  return actions;
+}
+
+/**
+ * Extract app variable declarations from a v4 $adtSession = @{ ... } hashtable.
+ * Captures AppVendor, AppName, AppVersion, AppArch, AppScriptVersion, etc.
+ */
+function extractVarDeclarationsV4(text) {
+  const sessionBlock = extractAdtSession(text);
+  if (!sessionBlock) return [];
+
+  const actions = [];
+  const lines = sessionBlock.split('\n');
+
+  // Keys we want to extract as meaningful variables
+  const interestingKeys = [
+    'AppVendor', 'AppName', 'AppVersion', 'AppArch', 'AppLang',
+    'AppRevision', 'AppScriptVersion', 'AppScriptDate', 'AppScriptAuthor',
+    'InstallName', 'InstallTitle',
+  ];
+
+  for (const line of lines) {
+    const t = line.trim();
+    // Match: Key = 'value' or Key = "value"
+    const m = t.match(/^(\w+)\s*=\s*['"](.*?)['"]/);
+    if (m) {
+      const key = m[1];
+      const value = m[2];
+      if (!interestingKeys.includes(key)) continue;
+      if (!value && !['InstallName', 'InstallTitle'].includes(key)) continue;
+      actions.push({
+        type: 'custom_variable',
+        desc: `$adtSession.${key} = '${value}'`,
+        name: `$adtSession.${key}`,
+        value: value,
+        enabled: true,
+        raw: t,
+      });
+    }
+  }
+
+  // Also extract array values that are useful
+  const arrayKeys = [
+    { key: 'AppSuccessExitCodes', desc: 'Success exit codes' },
+    { key: 'AppRebootExitCodes', desc: 'Reboot exit codes' },
+    { key: 'AppProcessesToClose', desc: 'Processes to close' },
+  ];
+
+  for (const { key, desc } of arrayKeys) {
+    const arrValues = extractArrayValue(sessionBlock, key);
+    if (arrValues.length > 0) {
+      actions.push({
+        type: 'custom_variable',
+        desc: `$adtSession.${key} = @(${arrValues.join(', ')})`,
+        name: `$adtSession.${key}`,
+        value: arrValues.join(', '),
+        enabled: true,
+        raw: `${key} = @(${arrValues.join(', ')})`,
       });
     }
   }

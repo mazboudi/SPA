@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import useWizardState from './hooks/useWizardState';
 import WizardStepper from './components/WizardStepper';
 import BasicInfoStep from './components/steps/BasicInfoStep';
@@ -18,6 +18,7 @@ export default function App() {
   const [psadtParsing, setPsadtParsing] = useState(false);
   const [psadtError, setPsadtError] = useState(null);
   const [psadtResult, setPsadtResult] = useState(null);
+  const refactorInputRef = useRef(null);
 
   // ── PSADT file/folder upload handler (Refactor mode) ─────────────────
   const handlePsadtUpload = async (e) => {
@@ -111,22 +112,23 @@ export default function App() {
                 <p className="mode-card__desc">Start from scratch — define app metadata, detection, and lifecycle phases interactively.</p>
               </button>
 
-              <div className="mode-card mode-card--refactor" id="mode-refactor-title">
+              <button className="mode-card mode-card--refactor" id="mode-refactor-title"
+                onClick={() => refactorInputRef.current?.click()}
+                disabled={psadtParsing}>
                 <span className="mode-card__icon">🔄</span>
                 <h3 className="mode-card__title">Refactor Existing</h3>
                 <p className="mode-card__desc">Upload your PSADT script &mdash; we&apos;ll extract metadata and pass it to the pipeline.</p>
-                <label className="btn btn-secondary mode-card__upload-btn">
-                  📄 Upload .ps1 Script
-                  <input
-                    type="file"
-                    accept=".ps1"
-                    onChange={handlePsadtUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                <span className="mode-card__upload-hint">📄 Click to upload .ps1 script</span>
+                <input
+                  ref={refactorInputRef}
+                  type="file"
+                  accept=".ps1"
+                  onChange={handlePsadtUpload}
+                  style={{ display: 'none' }}
+                />
                 {psadtParsing && <span className="mode-card__status">⏳ Parsing script...</span>}
                 {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
-              </div>
+              </button>
             </div>
             <p className="mode-selector__hint">
               Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
