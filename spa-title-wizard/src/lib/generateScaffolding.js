@@ -383,7 +383,6 @@ post_install_script: postinstall.sh
     const policyInputs = {
       policy_name: `SPA - Install ${s.displayName}`,
       enabled: true,
-      trigger: isSelfService ? 'EVENT' : 'RECURRING_CHECK_IN',
       frequency: 'Ongoing',
       run_recon_after_install: true,
       self_service_enabled: isSelfService,

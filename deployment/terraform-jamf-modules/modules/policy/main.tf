@@ -15,8 +15,7 @@ terraform {
 resource "jamfpro_policy" "this" {
   name            = var.policy_name
   enabled         = var.enabled
-  trigger_checkin = var.trigger == "RECURRING_CHECK_IN"
-  trigger_other   = var.trigger == "EVENT" ? "USER_INITIATED" : ""
+  trigger_checkin = true
   frequency       = var.frequency
   category_id     = var.category_id
   site_id         = -1

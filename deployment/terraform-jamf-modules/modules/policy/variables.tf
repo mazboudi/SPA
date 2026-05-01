@@ -38,15 +38,7 @@ variable "exclusion_group_ids" {
   description = "List of Jamf group IDs to exclude from scope."
 }
 
-variable "trigger" {
-  type        = string
-  default     = "RECURRING_CHECK_IN"
-  description = "Policy trigger: 'RECURRING_CHECK_IN' or 'EVENT'."
-  validation {
-    condition     = contains(["RECURRING_CHECK_IN", "EVENT"], var.trigger)
-    error_message = "trigger must be 'RECURRING_CHECK_IN' or 'EVENT'."
-  }
-}
+
 
 variable "frequency" {
   type        = string

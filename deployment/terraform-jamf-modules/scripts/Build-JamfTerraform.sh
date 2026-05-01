@@ -53,7 +53,6 @@ pkg_os_reqs=$(jq -r '.os_requirements // ""' "$PKG_JSON")
 pkg_reboot=$(jq -r 'if .reboot_required == true then "true" else "false" end' "$PKG_JSON")
 
 policy_name=$(jq -r '.policy_name // ""' "$POLICY_JSON")
-policy_trigger=$(jq -r '.trigger // "RECURRING_CHECK_IN"' "$POLICY_JSON")
 policy_freq=$(jq -r '.frequency // "Once per computer"' "$POLICY_JSON")
 policy_enabled=$(jq -r 'if .enabled == false then "false" else "true" end' "$POLICY_JSON")
 policy_recon=$(jq -r 'if .run_recon_after_install == false then "false" else "true" end' "$POLICY_JSON")
@@ -142,7 +141,6 @@ module "policy" {
   package_id                = module.package.id
   category_id               = -1
   enabled                   = ${policy_enabled}
-  trigger                   = "${policy_trigger}"
   frequency                 = "${policy_freq}"
   scope_group_ids           = ${scope_groups_hcl}
   exclusion_group_ids       = ${exclusion_groups_hcl}
