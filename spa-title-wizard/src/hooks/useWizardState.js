@@ -7,6 +7,7 @@ const INITIAL_STATE = {
   psadtScriptVersion: '',   // e.g. '3.8.3' or '4.1.7'
   psadtFileName: '',        // original uploaded filename
   parsedPhases: {},          // per-phase action arrays from parser
+  refactorConvert: false,    // true = convert to lifecycle.yaml, false = passthrough
 
   // Step 1: Basic Info
   packageId: '',
@@ -302,7 +303,7 @@ export default function useWizardState() {
   const seedDefaultLifecycleActions = useCallback((targetStepId) => {
     if (targetStepId !== 'psadt') return;
     setState(prev => {
-      // Only seed for new title mode
+      // Only seed for new title mode (skip for refactors — both passthrough and convert)
       if (prev.wizardMode === 'refactor') return prev;
 
       // Only seed if all phases are empty (user hasn't added anything yet)
@@ -372,10 +373,17 @@ export default function useWizardState() {
    * @param {Object} parsedResult - from parsePsadtFile()
    * @param {Object} wizardFields - from toWizardState()
    */
-  const importPsadtState = useCallback((parsedResult, wizardFields) => {
+  /**
+   * Import parsed PSADT fields into wizard state.
+   * @param {Object} parsedResult - from parsePsadtFile()
+   * @param {Object} wizardFields - from toWizardState()
+   * @param {boolean} convertToLifecycle - true if user chose "Convert to Lifecycle"
+   */
+  const importPsadtState = useCallback((parsedResult, wizardFields, convertToLifecycle = false) => {
     setState(prev => {
       const next = { ...prev, ...wizardFields };
       next.wizardMode = 'refactor';
+      next.refactorConvert = convertToLifecycle;
       next.psadtVersion = parsedResult.psadtVersion || '';
       next.psadtScriptVersion = parsedResult.psadtScriptVersion || '';
       next.psadtFileName = parsedResult.fileName || '';

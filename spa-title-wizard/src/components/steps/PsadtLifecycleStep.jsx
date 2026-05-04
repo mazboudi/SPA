@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import DiffPreview from '../ui/DiffPreview';
 import windowsOptions from '../../config/windowsOptions.json';
 import { PHASE_KEYS, PHASE_META, ACTION_TYPE_MAP, getActionsForPhase, getCategoriesForPhase, createAction } from '../../config/actionTypes';
 import { checkV3Compatibility } from '../../lib/psadtCompatCheck';
@@ -89,16 +90,16 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
   const lc = state.lifecycle;
   const isRefactor = state.wizardMode === 'refactor';
 
-  // ── Refactor Mode: read-only view ──────────────────────────────────
-  // Compute compatibility report for v3 scripts
+  // Compute compatibility report for v3 scripts (passthrough mode only)
   const compatReport = useMemo(() => {
-    if (isRefactor && psadtResult?.scriptContent && psadtResult?.psadtVersion === 'v3') {
+    if (isRefactor && !state.refactorConvert && psadtResult?.scriptContent && psadtResult?.psadtVersion === 'v3') {
       return checkV3Compatibility(psadtResult.scriptContent);
     }
     return null;
-  }, [isRefactor, psadtResult]);
+  }, [isRefactor, state.refactorConvert, psadtResult]);
 
-  if (isRefactor && psadtResult) {
+  // ── Refactor Mode: PASSTHROUGH — read-only view (no lifecycle conversion) ─
+  if (isRefactor && !state.refactorConvert && psadtResult) {
     const version = psadtResult.psadtVersion || 'v3';
     const isV3 = version === 'v3';
     const vars = lc.phases?.variableDeclaration?.actions || [];
@@ -106,7 +107,7 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
     return (
       <div className="step-content animate-in">
         <div className="step-header">
-          <h2>⚡ PSADT Script — Refactor Mode</h2>
+          <h2>⚡ PSADT Script — Passthrough Mode</h2>
           <p>The uploaded script will be passed directly to the pipeline. Variables below are used for Intune metadata.</p>
         </div>
 
@@ -245,13 +246,54 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
     );
   }
 
-  // ── New Title Mode: full interactive lifecycle editor ───────────────
+  // ── Refactor Mode: CONVERT — compute conversion stats for the banner ──
+  const conversionStats = (isRefactor && state.refactorConvert) ? (() => {
+    const phases = lc.phases || {};
+    let totalActions = 0;
+    let customScriptCount = 0;
+    let populatedPhases = 0;
+    for (const [, phaseData] of Object.entries(phases)) {
+      const actions = (phaseData.actions || []).filter(a => a.enabled !== false);
+      if (actions.length > 0) populatedPhases++;
+      totalActions += actions.length;
+      customScriptCount += actions.filter(a => a.type === 'custom_script').length;
+    }
+    return { totalActions, customScriptCount, populatedPhases };
+  })() : null;
+
+  // ── Full interactive lifecycle editor (New Title + Refactor Convert) ──
   return (
     <div className="step-content animate-in">
       <div className="step-header">
-        <h2>⚡ PSADT Lifecycle Phases</h2>
-        <p>Configure the PowerShell App Deploy Toolkit lifecycle — the actions executed during install, uninstall, and repair.</p>
+        <h2>⚡ {conversionStats ? 'PSADT Lifecycle — Converted from Script' : 'PSADT Lifecycle Phases'}</h2>
+        <p>{conversionStats
+          ? 'Actions extracted from your uploaded script. Review, edit, reorder, or remove actions below.'
+          : 'Configure the PowerShell App Deploy Toolkit lifecycle — the actions executed during install, uninstall, and repair.'
+        }</p>
       </div>
+
+      {/* Conversion stats banner (refactor-convert mode only) */}
+      {conversionStats && (
+        <div className="config-section">
+          <div className="refactor-banner refactor-banner--v4">
+            <span className="refactor-banner__badge">CONVERTED</span>
+            <div className="refactor-banner__text">
+              <strong>Extracted {conversionStats.totalActions} action{conversionStats.totalActions !== 1 ? 's' : ''}</strong> across {conversionStats.populatedPhases} phase{conversionStats.populatedPhases !== 1 ? 's' : ''}.
+              {conversionStats.customScriptCount > 0 && (
+                <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>⚠ {conversionStats.customScriptCount} item{conversionStats.customScriptCount !== 1 ? 's' : ''}</span> could not be auto-mapped — look for the "Manual Review" badge below.</>
+              )}
+              {conversionStats.customScriptCount === 0 && (
+                <> All actions mapped to known types — ready to configure.</>  
+              )}
+            </div>
+          </div>
+
+          {/* Diff Preview */}
+          {state._scriptContent && (
+            <DiffPreview originalScript={state._scriptContent} state={state} fileName={state.psadtFileName} />
+          )}
+        </div>
+      )}
 
       {/* Deploy Mode */}
       <div className="config-section">

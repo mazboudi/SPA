@@ -181,8 +181,9 @@ detection:
     const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
     const installCmd = `Invoke-AppDeployToolkit.exe${installSuffix}`;
     const uninstallCmd = `Invoke-AppDeployToolkit.exe -DeploymentType Uninstall${installSuffix}`;
-    // Add v3_conversion flag when refactoring a v3 script
-    const v3Flag = (s.wizardMode === 'refactor' && s._psadtResult?.psadtVersion === 'v3')
+    // Add v3_conversion flag when refactoring a v3 script in PASSTHROUGH mode only.
+    // In convert mode, v3 actions are already extracted into lifecycle.yaml → no pipeline conversion needed.
+    const v3Flag = (s.wizardMode === 'refactor' && !s.refactorConvert && s._psadtResult?.psadtVersion === 'v3')
       ? '\n# Pipeline will auto-convert v3 → v4 using Convert-ADTDeployment\nv3_conversion: true\n'
       : '';
 
@@ -323,8 +324,9 @@ if (Test-Path $appPath) {
 
     // ── windows/lifecycle.yaml OR committed .ps1 ──────────────────────────
     const refactorScript = s._psadtResult?.scriptContent || s._scriptContent;
-    if (s.wizardMode === 'refactor' && refactorScript) {
-      // Refactor mode: commit the original .ps1 directly (no lifecycle.yaml)
+
+    if (s.wizardMode === 'refactor' && !s.refactorConvert && refactorScript) {
+      // Refactor PASSTHROUGH: commit the original .ps1 directly (no lifecycle.yaml)
       const isV3 = s._psadtResult?.psadtVersion === 'v3' || s.psadtVersion === 'v3';
       if (isV3) {
         // v3 scripts go as Deploy-Application.ps1 — pipeline converts to v4
@@ -333,8 +335,13 @@ if (Test-Path $appPath) {
         files['windows/src/Invoke-AppDeployToolkit.ps1'] = refactorScript;
       }
     } else {
-      // New title mode: declarative lifecycle.yaml
+      // New title mode OR refactor-convert: declarative lifecycle.yaml
       files['windows/lifecycle.yaml'] = generateLifecycleYaml(s);
+
+      // Archive the original script for reference (refactor-convert only)
+      if (s.wizardMode === 'refactor' && s.refactorConvert && refactorScript) {
+        files['windows/src/_original_script.ps1.bak'] = refactorScript;
+      }
     }
   }
 

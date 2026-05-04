@@ -14,7 +14,10 @@
 /**
  * Parse a PSADT .ps1 file and return extracted wizard state fields.
  * @param {File} file - The .ps1 File object from a file input
- * @param {'new'|'refactor'} mode - 'refactor' skips phase parsing, returns raw script for passthrough
+ * @param {'new'|'refactor'|'refactor-convert'} mode
+ *   'refactor'         — metadata + variables only, raw script for passthrough
+ *   'refactor-convert' — full phase parsing + raw script for diff preview/archive
+ *   'new'              — full phase parsing (no raw script)
  * @returns {Promise<Object>} - { psadtVersion, fields, parsedPhases?, scriptContent?, warnings }
  */
 export async function parsePsadtFile(file, mode = 'new') {
@@ -48,9 +51,8 @@ export async function parsePsadtFile(file, mode = 'new') {
   };
 
   if (mode === 'refactor') {
-    // Refactor mode: return raw script for pipeline passthrough, skip heavy parsing
+    // Refactor passthrough: return raw script, extract variables only
     result.scriptContent = text;
-    // Still extract variable declarations (needed for Intune metadata + pipeline config)
     const varDeclActions = version === 'v4'
       ? extractVarDeclarationsV4(text)
       : extractVarDeclarations(text);
@@ -59,6 +61,15 @@ export async function parsePsadtFile(file, mode = 'new') {
     }
     if (version === 'v3') {
       warnings.push('v3 script detected — Convert-ADTDeployment will be run in the pipeline to convert to v4.');
+    }
+  } else if (mode === 'refactor-convert') {
+    // Refactor conversion: full phase parsing + keep raw script for diff/archive
+    result.scriptContent = text;
+    result.parsedPhases = version === 'v4'
+      ? extractAllPhasesV4(text)
+      : extractAllPhasesV3(text);
+    if (version === 'v3') {
+      warnings.push('v3 script detected — actions have been extracted and converted to v4 action types. The pipeline will generate the v4 .ps1 from lifecycle.yaml.');
     }
   } else {
     // New title mode: full phase parsing for lifecycle editor
@@ -790,9 +801,19 @@ function extractBlockActions(block) {
       }
     }
 
-    // Write-Log (informational, skip silently)
-    if (!matched && /^Write-Log\b/i.test(t)) {
+    // Write-Log / Write-ADTLogEntry (informational, skip silently)
+    if (!matched && /^Write-(?:Log|ADTLogEntry)\b/i.test(t)) {
       matched = true;
+    }
+
+    // Stop-Process / Get-Process ... | Stop-Process
+    if (!matched) {
+      const stopProcMatch = t.match(/(?:Get-Process\s.*\|\s*)?Stop-Process\s+.*-(?:Name|Id)\s+['"]*(\w+)['"]*|Stop-Process\s+-Name\s+['"]*(\w+)['"]*|Get-Process\s+['"]*(\w+)['"]*\s*\|\s*Stop-Process/i);
+      if (stopProcMatch) {
+        const procName = stopProcMatch[1] || stopProcMatch[2] || stopProcMatch[3] || 'process';
+        actions.push({ type: 'stop_process', desc: `Stop: ${procName}`, closeApps: procName, raw: t });
+        matched = true;
+      }
     }
 
     // ── Unmatched line — surface as custom_script ──────────────────────
@@ -816,6 +837,24 @@ function extractBlockActions(block) {
       // Skip bare GUID lines from multi-line batch uninstall patterns
       // e.g. "{203D4C43-...}", <# comment #>`
       if (/^"\{[0-9A-Fa-f-]{36}\}"/.test(t)) continue;
+
+      // Skip splatting variable definitions: @{ ... } and bare @param blocks
+      if (/^@\{/i.test(t) || /^\$\w+\s*=\s*@\{/i.test(t)) continue;
+      // Skip try/catch/finally patterns (more comprehensive)
+      if (/^try\s*\{?\s*$/i.test(t) || /^catch\s*(\[[\w.]+\])?\s*\{?\s*$/i.test(t) || /^finally\s*\{?\s*$/i.test(t)) continue;
+      if (/^\}\s*catch\b/i.test(t) || /^\}\s*finally\b/i.test(t)) continue;
+      // Skip closing braces with optional comments
+      if (/^\}\s*(#.*)?$/.test(t)) continue;
+      // Skip backtick line-continuations (trailing backtick only)
+      if (/`\s*$/.test(t) && t.length < 5) continue;
+      // Skip splatting invocations: @paramVar
+      if (/^@\w+\s*$/i.test(t)) continue;
+      // Skip Write-Host / Write-Output / Write-Verbose (informational)
+      if (/^Write-(?:Host|Output|Verbose|Warning|Debug)\b/i.test(t)) continue;
+      // Skip $installPhase assignment (PSADT internal)
+      if (/^\$installPhase\s*=/i.test(t)) continue;
+      // Skip Show-ADTInstallationRestartPrompt / Show-InstallationRestartPrompt
+      if (/^Show-(?:ADT)?InstallationRestartPrompt\b/i.test(t)) continue;
 
       // Meaningful unmatched command
       actions.push({ type: 'custom_script', desc: `Unmatched: ${t.substring(0, 60)}${t.length > 60 ? '\u2026' : ''}`, code: t, note: 'Auto-detected \u2014 could not be mapped to a known action type', raw: t });

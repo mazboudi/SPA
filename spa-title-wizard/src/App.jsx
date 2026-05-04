@@ -20,7 +20,13 @@ export default function App() {
   const [psadtResult, setPsadtResult] = useState(null);
   const refactorInputRef = useRef(null);
 
-  // ── PSADT file/folder upload handler (Refactor mode) ─────────────────
+  // Pending state for the conversion choice panel
+  const [pendingPsadtFile, setPendingPsadtFile] = useState(null);
+  const [pendingParsed, setPendingParsed] = useState(null);
+  const [showConversionChoice, setShowConversionChoice] = useState(false);
+  const [convertParsing, setConvertParsing] = useState(false);
+
+  // ── PSADT file upload — parse metadata, then show conversion choice ────
   const handlePsadtUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -28,22 +34,46 @@ export default function App() {
     setPsadtError(null);
     setPsadtResult(null);
     try {
-      // Find the .ps1 script (Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1)
       const psFile = files.find(f => /Deploy-Application\.ps1$/i.test(f.name) || /Invoke-AppDeployToolkit\.ps1$/i.test(f.name))
         || files.find(f => f.name.endsWith('.ps1'));
       if (!psFile) throw new Error('No .ps1 script found. Please upload a Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1 file.');
 
-      // Parse in refactor mode (variables only, no phase parsing)
+      // Quick parse for metadata + variables only
       const parsed = await parsePsadtFile(psFile, 'refactor');
-      const wizardFields = toWizardState(parsed);
-
-      setPsadtResult(parsed);
-      wizard.importPsadtState(parsed, wizardFields);
-      setShowModeSelector(false);
+      setPendingPsadtFile(psFile);
+      setPendingParsed(parsed);
+      setShowConversionChoice(true);
     } catch (err) {
       setPsadtError(err.message);
     } finally {
       setPsadtParsing(false);
+    }
+  };
+
+  // ── User chose Passthrough ─────────────────────────────────────────────
+  const handlePassthrough = () => {
+    const wizardFields = toWizardState(pendingParsed);
+    setPsadtResult(pendingParsed);
+    wizard.importPsadtState(pendingParsed, wizardFields, false);
+    setShowConversionChoice(false);
+    setShowModeSelector(false);
+  };
+
+  // ── User chose Convert to Lifecycle ────────────────────────────────────
+  const handleConvertToLifecycle = async () => {
+    setConvertParsing(true);
+    setPsadtError(null);
+    try {
+      const fullParsed = await parsePsadtFile(pendingPsadtFile, 'refactor-convert');
+      const wizardFields = toWizardState(fullParsed);
+      setPsadtResult(fullParsed);
+      wizard.importPsadtState(fullParsed, wizardFields, true);
+      setShowConversionChoice(false);
+      setShowModeSelector(false);
+    } catch (err) {
+      setPsadtError(err.message);
+    } finally {
+      setConvertParsing(false);
     }
   };
 
@@ -54,8 +84,11 @@ export default function App() {
   const handleStartOver = () => {
     wizard.reset();
     setShowModeSelector(true);
+    setShowConversionChoice(false);
     setPsadtResult(null);
     setPsadtError(null);
+    setPendingPsadtFile(null);
+    setPendingParsed(null);
   };
 
   const renderStep = () => {
@@ -81,6 +114,53 @@ export default function App() {
     }
   };
 
+  // ── Conversion choice panel ─────────────────────────────────────────────
+  const renderConversionChoice = () => {
+    const ver = pendingParsed?.psadtVersion || 'v3';
+    const name = pendingParsed?.fields?.displayName || pendingParsed?.fileName || 'Script';
+
+    return (
+      <main className="app-main glass-panel">
+        <div className="mode-selector">
+          <h2 className="mode-selector__title">Script Parsed Successfully</h2>
+          <p className="mode-selector__subtitle">
+            <strong>{name}</strong> — detected as <code>{ver.toUpperCase()}</code>.
+            How would you like to proceed?
+          </p>
+          <div className="mode-selector__cards">
+            <button className="mode-card" onClick={handlePassthrough} id="choice-passthrough">
+              <span className="mode-card__icon">📋</span>
+              <h3 className="mode-card__title">Passthrough</h3>
+              <p className="mode-card__desc">
+                Commit the script as-is. Metadata is extracted for Intune configuration, but lifecycle actions remain in the .ps1 file.
+              </p>
+              <span className="mode-card__upload-hint">Best for scripts you don't plan to edit through the workbench</span>
+            </button>
+
+            <button
+              className="mode-card mode-card--refactor"
+              onClick={handleConvertToLifecycle}
+              disabled={convertParsing}
+              id="choice-convert"
+            >
+              <span className="mode-card__icon">🔄</span>
+              <h3 className="mode-card__title">Convert to Lifecycle</h3>
+              <p className="mode-card__desc">
+                Extract all lifecycle actions into <code>lifecycle.yaml</code> for full control. Edit, reorder, and manage actions through the workbench.
+              </p>
+              <span className="mode-card__upload-hint">Original script is archived as a .bak reference file</span>
+              {convertParsing && <span className="mode-card__status">⏳ Extracting actions...</span>}
+            </button>
+          </div>
+          {psadtError && <p className="mode-card__status mode-card__status--err" style={{ marginBottom: 'var(--space-md)' }}>❌ {psadtError}</p>}
+          <p className="mode-selector__hint">
+            <button className="link-btn" onClick={handleStartOver}>← Choose a different file</button>
+          </p>
+        </div>
+      </main>
+    );
+  };
+
   return (
     <div className="app">
       {/* Header */}
@@ -92,15 +172,17 @@ export default function App() {
             <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
           </div>
         </div>
-        {!showModeSelector && (
+        {!showModeSelector && !showConversionChoice && (
           <button className="btn btn-ghost" onClick={handleStartOver}>
             ↻ Start Over
           </button>
         )}
       </header>
 
-      {/* Mode Selector (pre-step gate) */}
-      {showModeSelector ? (
+      {/* Mode Selector → Conversion Choice → Wizard */}
+      {showConversionChoice ? (
+        renderConversionChoice()
+      ) : showModeSelector ? (
         <main className="app-main glass-panel">
           <div className="mode-selector">
             <h2 className="mode-selector__title">What would you like to do?</h2>
@@ -117,7 +199,7 @@ export default function App() {
                 disabled={psadtParsing}>
                 <span className="mode-card__icon">🔄</span>
                 <h3 className="mode-card__title">Refactor Existing</h3>
-                <p className="mode-card__desc">Upload your PSADT script &mdash; we&apos;ll extract metadata and pass it to the pipeline.</p>
+                <p className="mode-card__desc">Upload your PSADT script &mdash; we&apos;ll extract metadata and let you choose how to proceed.</p>
                 <span className="mode-card__upload-hint">📄 Click to upload .ps1 script</span>
                 <input
                   ref={refactorInputRef}
@@ -311,6 +393,12 @@ export default function App() {
           padding: 8px 16px;
           margin-top: var(--space-md);
         }
+        .mode-card__upload-hint {
+          font-size: 0.72rem;
+          color: var(--text-muted);
+          opacity: 0.7;
+          margin-top: var(--space-xs, 4px);
+        }
         .mode-selector__hint {
           font-size: 0.75rem;
           color: var(--text-muted);
@@ -325,4 +413,3 @@ export default function App() {
     </div>
   );
 }
-
