@@ -25,9 +25,9 @@
     { "value": "retry", "label": "Retry" }
   ],
   "deployModes": [
-    { "value": "Silent", "label": "Silent (default — no UI)" },
+    { "value": "Silent", "label": "Silent (no UI)" },
     { "value": "NonInteractive", "label": "NonInteractive (progress only, no prompts)" },
-    { "value": "Interactive", "label": "Interactive (full PSADT UI)" }
+    { "value": "Interactive", "label": "Interactive (full PSADT UI — PSADT default)" }
   ],
   "installContexts": [
     { "value": "system", "label": "System (SYSTEM context)" },

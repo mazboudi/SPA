@@ -172,7 +172,7 @@ detection:
 
     // ── Build install commands from deploy mode + reboot passthrough ──────
     const psadtFlags = [];
-    if (s.deployMode && s.deployMode !== 'Silent') {
+    if (s.deployMode) {
       psadtFlags.push(`-DeployMode ${s.deployMode}`);
     }
     if (s.allowRebootPassThru) {

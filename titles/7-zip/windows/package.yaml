@@ -7,8 +7,8 @@ installer_type: msi
 source_filename: 7z2601-x64.msi
 max_install_time: 60
 
-install_command: 'Invoke-AppDeployToolkit.exe'
-uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
+install_command: 'Invoke-AppDeployToolkit.exe -DeployMode Silent'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent'
 
 detection_method: manual
 detection_rules:

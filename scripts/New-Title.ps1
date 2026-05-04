@@ -762,7 +762,7 @@ if ($Platform -in @('windows','both')) {
     # ── Install / uninstall commands (what Intune actually runs — PSADT wrapper) ─
     # Build command line from deploy mode + reboot passthrough options
     $psadtFlags = @()
-    if ($deploymentConfig.DeployMode -and $deploymentConfig.DeployMode -ne 'Silent') {
+    if ($deploymentConfig.DeployMode) {
         $psadtFlags += "-DeployMode $($deploymentConfig.DeployMode)"
     }
     if ($deploymentConfig.AllowRebootPassThru) {

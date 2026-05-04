@@ -5,8 +5,8 @@ version: "2.3"
 packaging_version: "1"
 installer_type: exe
 
-install_command: 'Invoke-AppDeployToolkit.exe'
-uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall'
+install_command: 'Invoke-AppDeployToolkit.exe -DeployMode Silent'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent'
 
 detection_mode: registry-marker
 detection:
