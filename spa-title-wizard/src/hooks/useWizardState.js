@@ -258,9 +258,17 @@ export default function useWizardState() {
     ];
 
     if (state.platform === 'windows' || state.platform === 'both') {
-      base.push({ id: 'installer', label: 'Installer', icon: '📦' });
-      base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
-      base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
+      if (state.wizardMode === 'refactor') {
+        // Refactor: PSADT script is parsed first → its data populates Installer & Detection
+        base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
+        base.push({ id: 'installer', label: 'Installer', icon: '📦' });
+        base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
+      } else {
+        // New title: define installer details first → they seed lifecycle actions
+        base.push({ id: 'installer', label: 'Installer', icon: '📦' });
+        base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
+        base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
+      }
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
     if (state.platform === 'macos' || state.platform === 'both') {
@@ -271,7 +279,7 @@ export default function useWizardState() {
     }
 
     return base;
-  }, [state.platform]);
+  }, [state.platform, state.wizardMode]);
 
   const canProceed = useMemo(() => {
     const step = steps[currentStep];
