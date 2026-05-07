@@ -14,7 +14,7 @@ detection_method: manual
 detection_rules:
   - type: registry
     hive: HKLM
-    key_path: "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client"
+    key_path: 'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client'
     value_name: "DisplayVersion"
     detection_type: version
     operator: greaterThanOrEqual

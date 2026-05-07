@@ -132,14 +132,14 @@ detection:
         if (r.ruleType === 'msi') {
           return `  - type: msi\n    product_code: "${r.productCode}"\n    version_operator: ${r.productVersionOperator}\n    version: "${r.productVersion}"`;
         } else if (r.ruleType === 'file') {
-          let rule = `  - type: file\n    path: "${r.path}"\n    file_or_folder: "${r.fileOrFolder}"\n    detection_type: ${r.detectionType}`;
+          let rule = `  - type: file\n    path: '${r.path}'\n    file_or_folder: "${r.fileOrFolder}"\n    detection_type: ${r.detectionType}`;
           if (!['exists', 'doesNotExist'].includes(r.detectionType)) {
             rule += `\n    operator: ${r.operator}\n    value: "${r.detectionValue}"`;
           }
           rule += `\n    check_32bit: ${r.check32BitOn64}`;
           return rule;
         } else if (r.ruleType === 'registry') {
-          let rule = `  - type: registry\n    hive: ${r.hive}\n    key_path: "${r.keyPath}"\n    value_name: "${r.valueName}"\n    detection_type: ${r.detectionType}`;
+          let rule = `  - type: registry\n    hive: ${r.hive}\n    key_path: '${r.keyPath}'\n    value_name: "${r.valueName}"\n    detection_type: ${r.detectionType}`;
           if (!['exists', 'doesNotExist'].includes(r.detectionType)) {
             rule += `\n    operator: ${r.operator}\n    value: "${r.detectionValue}"`;
           }
@@ -587,12 +587,12 @@ function generateLifecycleYaml(s) {
           if (action.path) lines.push(`      path: "${action.path}"`);
           break;
         case 'registry_set':
-          if (action.key) lines.push(`      key: "${action.key}"`);
+          if (action.key) lines.push(`      key: '${action.key}'`);
           if (action.name) lines.push(`      name: "${action.name}"`);
           if (action.value) lines.push(`      value: "${action.value}"`);
           break;
         case 'registry_remove':
-          if (action.key) lines.push(`      key: "${action.key}"`);
+          if (action.key) lines.push(`      key: '${action.key}'`);
           if (action.name) lines.push(`      name: "${action.name}"`);
           break;
         case 'registry_marker':
