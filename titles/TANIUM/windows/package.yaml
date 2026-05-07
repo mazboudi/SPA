@@ -1,0 +1,25 @@
+# Tanium Client 7.8.2.1149 - Refactored 7.8.2.1149 — Windows package definition
+package_id: tanium-client-7821149-refactored
+display_name: "Tanium Client 7.8.2.1149 - Refactored"
+version: "7.8.2.1149"
+packaging_version: "1"
+installer_type: exe
+source_filename: SetupClient.exe
+max_install_time: 60
+
+install_command: 'Invoke-AppDeployToolkit.exe -DeployMode Silent'
+uninstall_command: 'Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent'
+
+detection_method: manual
+detection_rules:
+  - type: registry
+    hive: HKLM
+    key_path: "SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client"
+    value_name: "DisplayVersion"
+    detection_type: version
+    operator: greaterThanOrEqual
+    value: "7.8.2.1149"
+    check_32bit: true
+
+restart_behavior: basedOnReturnCode
+install_experience: system

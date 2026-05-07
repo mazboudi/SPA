@@ -1,0 +1,42 @@
+{
+  "displayName": "Tanium Client 7.8.2.1149 - Refactored",
+  "description": "TaniumInc_TaniumClient_7.8.2.1149",
+  "publisher": "Tanium Inc.",
+  "appVersion": "7.8.2.1149",
+  "informationUrl": "",
+  "isFeatured": false,
+  "privacyInformationUrl": "",
+  "notes": "Managed by SPA pipeline.",
+  "owner": "EUC Packaging",
+  "developer": "",
+  "installCommandLine": "Invoke-AppDeployToolkit.exe -DeployMode Silent",
+  "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent",
+  "applicableArchitectures": "x64",
+  "minimumSupportedWindowsRelease": "Windows11_22H2",
+  "displayVersion": "7.8.2.1149",
+  "allowAvailableUninstall": true,
+  "installContext": "system",
+  "restartBehavior": "basedOnReturnCode",
+  "returnCodes": [
+    {
+      "returnCode": 0,
+      "type": "success"
+    },
+    {
+      "returnCode": 1707,
+      "type": "success"
+    },
+    {
+      "returnCode": 3010,
+      "type": "softReboot"
+    },
+    {
+      "returnCode": 1641,
+      "type": "hardReboot"
+    },
+    {
+      "returnCode": 1618,
+      "type": "retry"
+    }
+  ]
+}

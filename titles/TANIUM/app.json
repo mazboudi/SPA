@@ -1,0 +1,27 @@
+{
+  "title": "Tanium Client 7.8.2.1149 - Refactored",
+  "publisher": "Tanium Inc.",
+  "package_id": "tanium-client-7821149-refactored",
+  "version": "7.8.2.1149",
+  "owners": {
+    "team": "euc-packaging",
+    "contact_email": "euc-packaging@fiserv.com"
+  },
+  "lifecycle": "active",
+  "platforms": {
+    "windows": {
+      "enabled": true,
+      "framework": "psadt-enterprise",
+      "framework_version": "4.1.0"
+    },
+    "macos": {
+      "enabled": false,
+      "framework": "macos-packaging-framework",
+      "framework_version": "1.0.0"
+    }
+  },
+  "deployment": {
+    "windows": "intune",
+    "macos": "jamf"
+  }
+}
