@@ -269,7 +269,15 @@ function parseV4(text, warnings) {
         if (msiInstall.file) f.msiFileName = msiInstall.file;
         if (msiInstall.args) f._msiArgs = msiInstall.args;
       } else {
-        f.installerType = f.installerType || 'exe';
+        // Look for EXE installer via Start-ADTProcess / Start-ADTProcessAsUser
+        const exeInstall = extractExeInstallV4(installBlock);
+        if (exeInstall) {
+          f.installerType = 'exe';
+          if (exeInstall.file) f.exeSourceFilename = exeInstall.file;
+          if (exeInstall.args) f.exeInstallArgs = exeInstall.args;
+        } else {
+          f.installerType = f.installerType || 'exe';
+        }
       }
     }
 
@@ -291,11 +299,18 @@ function parseV4(text, warnings) {
   if (uninstallFunc) {
     const uninstallBlock = extractV4Mark(uninstallFunc, 'Uninstall');
     if (uninstallBlock) {
-      // Uninstall-ADTApplication
+      // Uninstall-ADTApplication (MSI uninstall by name)
       const unApp = uninstallBlock.match(/Uninstall-ADTApplication\s+-Name\s+['"](.*?)['"]/i);
       if (unApp) {
-        // MSI uninstall by name
         f._uninstallAppName = unApp[1];
+      }
+      // EXE uninstall via Start-ADTProcess
+      if (!unApp) {
+        const exeUn = extractExeInstallV4(uninstallBlock);
+        if (exeUn) {
+          if (exeUn.fullPath) f.exeUninstallPath = exeUn.fullPath;
+          if (exeUn.args) f.exeUninstallArgs = exeUn.args;
+        }
       }
     }
 
@@ -503,6 +518,28 @@ function extractMsiInstallV4(block) {
   return null;
 }
 
+/** Extract EXE install info from v4 Start-ADTProcess / Start-ADTProcessAsUser call */
+function extractExeInstallV4(block) {
+  const lines = block.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#')) continue;
+    // Start-ADTProcess -FilePath "path\setup.exe" -ArgumentList '/S'
+    const m = trimmed.match(/Start-ADTProcess(?:AsUser)?\s+.*-FilePath\s+['"](.*?)['"]/i);
+    if (m) {
+      const fullPath = m[1];
+      // Strip PS variable expressions like $($adtSession.DirFiles)\ or $dirFiles\
+      const fileName = fullPath
+        .replace(/\$\([^)]+\)[\\\/]?/g, '')
+        .replace(/\$\w+[\\\/]/g, '')
+        .replace(/.*[\\\/]/, '');
+      const argMatch = trimmed.match(/-ArgumentList\s+['"](.*?)['"]/i);
+      return { file: fileName, args: argMatch ? argMatch[1] : '', fullPath };
+    }
+  }
+  return null;
+}
+
 /** Extract Fiserv registry marker from v3 post-install */
 function extractRegistryMarkerV3(block) {
   // Look for Set-RegistryKey targeting Fiserv\Applications or Fiserv\InstalledApps
@@ -603,9 +640,18 @@ function extractBlockActions(block) {
   for (const line of lines) {
     const t = line.trim();
     if (!t || t.startsWith('#') || t.startsWith('##') || t.startsWith('[string]') || t.startsWith('[String]') || t.startsWith('[int') || t.startsWith('[Int')) continue;
+    // v3 zero-config MSI boilerplate
     if (/^\s*If\s*\(\$useDefaultMsi/i.test(t)) continue;
     if (/^\$ExecuteDefaultMSISplat/i.test(t)) continue;
     if (/^Execute-MSI\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
+    // v4 zero-config MSI boilerplate
+    if (/^\s*if\s*\(\$adtSession\.UseDefaultMsi/i.test(t)) continue;
+    if (/^Start-ADTMsiProcess\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
+    if (/^\$adtSession\.DefaultMspFiles\s*\|/i.test(t)) continue;
+    if (/^\s*if\s*\(\$adtSession\.DefaultMstFile/i.test(t)) continue;
+    if (/^\$ExecuteDefaultMSISplat\.Add\b/i.test(t)) continue;
+    // v4 PSADT internal: phase label tracking (every phase starts with this)
+    if (/^\$adtSession\.InstallPhase\s*=/i.test(t)) continue;
     if (/^\}$/.test(t) || /^\{$/.test(t) || /^try\s*\{/i.test(t) || /^catch\s*\{/i.test(t) || /^\}\s*$/.test(t)) continue;
     if (/^\[hashtable\]/i.test(t)) continue;
     if (t.length < 3) continue;
@@ -782,6 +828,15 @@ function extractBlockActions(block) {
       matched = true;
     }
 
+    // Show-InstallationPrompt / Show-ADTInstallationPrompt (completion / notification dialogs)
+    if (!matched) {
+      const promptMatch = t.match(/Show-(?:ADT)?InstallationPrompt\b/i);
+      if (promptMatch) {
+        actions.push({ type: 'show_completion', desc: 'Show completion dialog', raw: t });
+        matched = true;
+      }
+    }
+
     // ForEach-Object with Execute-MSI (multi-GUID uninstall pattern)
     // Matches both: ForEach-Object { Execute-MSI ... } and | ForEach-Object { Execute-MSI ... }
     if (!matched) {
@@ -820,7 +875,7 @@ function extractBlockActions(block) {
     if (!matched) {
       // Skip trivial lines: control flow, variable assignments, braces
       if (/^(?:if|else|elseif|switch|foreach|for|while|do|return|break|continue|exit)\b/i.test(t)) continue;
-      if (/^\$\w+\s*=/i.test(t)) continue;
+      if (/^\$[\w.]+\s*=/i.test(t)) continue;
       if (/^\}.*\{/.test(t)) continue;
       if (/^\)\s*$/.test(t)) continue;
       if (/^\|\s*\w+/i.test(t)) continue;
@@ -831,7 +886,7 @@ function extractBlockActions(block) {
       // Skip bare property names from multi-line Select/Sort pipelines
       if (/^\w+,?\s*$/.test(t)) continue;
       // Skip pipeline continuation lines starting with $
-      if (/^\$\w+\s*\|/i.test(t)) continue;
+      if (/^\$[\w.]+\s*\|/i.test(t)) continue;
       // Skip bare property/variable refs ending with pipe (multi-line pipeline)
       if (/^\w+\s*\|?\s*$/.test(t)) continue;
       // Skip bare GUID lines from multi-line batch uninstall patterns
@@ -1026,6 +1081,11 @@ function extractVarDeclarationsV4(text) {
 /** Extract all phase actions from a v4 script */
 function extractAllPhasesV4(text) {
   const phases = {};
+
+  // ── Variable Declaration phase ──────────────────────────────────────
+  const varDeclActions = extractVarDeclarationsV4(text);
+  if (varDeclActions.length > 0) phases['variableDeclaration'] = varDeclActions;
+
   const funcMap = {
     'Install-ADTDeployment': { 'Pre-Install': 'preInstall', 'Install': 'install', 'Post-Install': 'postInstall' },
     'Uninstall-ADTDeployment': { 'Pre-Uninstall': 'preUninstall', 'Uninstall': 'uninstall', 'Post-Uninstall': 'postUninstall' },
