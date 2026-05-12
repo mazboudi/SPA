@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import generateScaffolding from '../../lib/generateScaffolding';
 import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
+import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
@@ -11,6 +12,39 @@ export default function ReviewStep({ state }) {
   const [selectedFile, setSelectedFile] = useState(filePaths[0] || '');
   const [exporting, setExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState('');
+
+  // Publish state
+  const [publishing, setPublishing] = useState(false);
+  const [publishPhase, setPublishPhase] = useState('');
+  const [publishResult, setPublishResult] = useState(null);
+  const [publishError, setPublishError] = useState(null);
+  const [apiAvailable, setApiAvailable] = useState(null);
+
+  // Check if publish API is reachable on mount
+  useEffect(() => { checkPublishHealth().then(setApiAvailable); }, []);
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    setPublishError(null);
+    setPublishResult(null);
+    try {
+      setPublishPhase('Checking project...');
+      const result = await publishToGitLab({
+        packageId: state.packageId,
+        gitLabGroup: state.gitLabGroup,
+        category: state.category,
+        displayName: state.displayName,
+        version: state.version,
+        files,
+      });
+      setPublishResult(result);
+    } catch (err) {
+      setPublishError(err.message);
+    } finally {
+      setPublishing(false);
+      setPublishPhase('');
+    }
+  };
 
   // Schema validation
   const validationResults = useMemo(() => validateGeneratedFiles(files), [files]);
@@ -84,7 +118,7 @@ export default function ReviewStep({ state }) {
 
       {/* Export buttons */}
       <div className="review-actions">
-        <button className="btn btn-primary" onClick={handleDownloadZip} disabled={exporting}>
+        <button className="btn btn-secondary" onClick={handleDownloadZip} disabled={exporting}>
           {exporting ? '⏳ Exporting...' : '📦 Download ZIP'}
         </button>
         <button className="btn btn-secondary" onClick={handleExportFolder} disabled={exporting}>
@@ -95,6 +129,48 @@ export default function ReviewStep({ state }) {
         )}
         {exportSuccess === 'folder' && (
           <span className="export-success animate-in">✅ Exported to folder!</span>
+        )}
+      </div>
+
+      {/* Publish to GitLab */}
+      <div className="publish-section">
+        <h3 className="publish-section__title">🚀 Publish to GitLab</h3>
+        <p className="publish-section__path">
+          <code>{state.gitLabGroup}/software-titles/{state.category || 'general'}/{state.packageId}</code>
+        </p>
+
+        {publishResult ? (
+          <div className="publish-result publish-result--success">
+            <div className="publish-result__header">
+              <span className="publish-result__icon">✅</span>
+              <strong>{publishResult.action === 'created' ? 'Project Created' : 'Project Updated'}</strong>
+              {publishResult.tagName && <code className="publish-tag">🏷️ {publishResult.tagName}</code>}
+            </div>
+            <div className="publish-result__links">
+              <a href={publishResult.projectUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🔗 Open Project</a>
+              {publishResult.tagUrl && <a href={publishResult.tagUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🏷️ View Tag</a>}
+              <a href={publishResult.webIdeUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🌐 GitLab Web IDE</a>
+              <a href={publishResult.vsCodeUrl} className="btn btn-secondary btn-sm">🖥️ Open in VS Code</a>
+            </div>
+          </div>
+        ) : publishError ? (
+          <div className="publish-result publish-result--error">
+            <span className="publish-result__icon">❌</span>
+            <span>{publishError}</span>
+            <button className="btn btn-secondary btn-sm" onClick={handlePublish}>Retry</button>
+          </div>
+        ) : (
+          <div className="publish-actions">
+            <button
+              className="btn btn-primary"
+              onClick={handlePublish}
+              disabled={publishing || hasErrors || apiAvailable === false}
+            >
+              {publishing ? `⏳ ${publishPhase || 'Publishing...'}` : '🚀 Publish to GitLab'}
+            </button>
+            {apiAvailable === false && <span className="publish-hint">⚠️ Publish API not reachable — start with <code>npm run server</code></span>}
+            {hasErrors && <span className="publish-hint">⚠️ Fix schema errors before publishing</span>}
+          </div>
         )}
       </div>
 
@@ -144,7 +220,7 @@ export default function ReviewStep({ state }) {
 
       {/* Next steps */}
       <div className="review-next">
-        <h3>📋 Next Steps</h3>
+        <h3>📋 After Publishing</h3>
         <ol>
           <li>Search <code>TODO</code> in the generated files and fill in all placeholders</li>
           {(state.platform === 'windows' || state.platform === 'both') && (
@@ -159,7 +235,7 @@ export default function ReviewStep({ state }) {
               <li>Replace Jamf group IDs in <code>macos/jamf/scope-inputs.json</code></li>
             </>
           )}
-          <li>Create the GitLab project and push the scaffolding</li>
+          <li>Push your changes and let the CI/CD pipeline run</li>
         </ol>
       </div>
 
@@ -303,6 +379,89 @@ export default function ReviewStep({ state }) {
           font-family: var(--font-mono);
         }
         .validation-item__errors li { margin-bottom: 2px; }
+
+        /* Publish section */
+        .publish-section {
+          padding: var(--space-lg);
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          margin-bottom: var(--space-xl);
+        }
+        .publish-section__title {
+          font-size: 1rem;
+          margin: 0 0 4px;
+        }
+        .publish-section__path {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          margin: 0 0 var(--space-md);
+        }
+        .publish-section__path code {
+          color: var(--text-accent);
+          background: var(--bg-input);
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: 0.75rem;
+        }
+        .publish-actions {
+          display: flex;
+          align-items: center;
+          gap: var(--space-md);
+          flex-wrap: wrap;
+        }
+        .publish-hint {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+        }
+        .publish-hint code {
+          background: var(--bg-input);
+          padding: 1px 5px;
+          border-radius: 3px;
+          font-size: 0.73rem;
+        }
+        .publish-result {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: var(--space-sm);
+          padding: 12px var(--space-md);
+          border-radius: var(--radius-sm);
+          font-size: 0.85rem;
+        }
+        .publish-result--success {
+          background: rgba(34, 197, 94, 0.08);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .publish-result--error {
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.25);
+          color: #ef4444;
+        }
+        .publish-result__header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          color: #4ade80;
+          font-size: 0.9rem;
+        }
+        .publish-result__icon { font-size: 1rem; }
+        .publish-tag {
+          font-size: 0.75rem;
+          background: rgba(124, 138, 255, 0.12);
+          color: #a78bfa;
+          padding: 2px 8px;
+          border-radius: 99px;
+          margin-left: var(--space-sm);
+        }
+        .publish-result__links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-sm);
+          margin-top: var(--space-sm);
+        }
       `}</style>
     </div>
   );
