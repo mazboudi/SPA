@@ -1,0 +1,170 @@
+{
+  "exportGeneratedOn": "2026-05-07T14:00:12.8878183-04:00",
+  "appId": "6b71987f-9000-45b3-bc9b-4e6b2222c2a1",
+  "displayName": "ETC Helpdesk",
+  "odataType": "#microsoft.graph.win32LobApp",
+  "scopeTagResolutionMode": "Disabled",
+  "roleScopeTags": {
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "roleScopeTagNames": "UNRESOLVED"
+  },
+  "app": {
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceAppManagement/mobileApps/$entity",
+    "@odata.type": "#microsoft.graph.win32LobApp",
+    "id": "6b71987f-9000-45b3-bc9b-4e6b2222c2a1",
+    "displayName": "ETC Helpdesk",
+    "description": "Fiserv_ETCHelpdesk_7.2.0\n\nNeed to be install Rocket_TerminalEmulatorX64_10.2.1.4940 packag before installing main package",
+    "publisher": "Fiserv",
+    "createdDateTime": "2026-03-05T12:13:42.3638525Z",
+    "lastModifiedDateTime": "2026-03-10T10:44:35.7381995Z",
+    "isFeatured": false,
+    "privacyInformationUrl": null,
+    "informationUrl": null,
+    "owner": "",
+    "developer": "",
+    "notes": "\\\\I7WP2EM3DST0001.fead.one\\ApplicationSource\\Fiserv_ETCHelpdesk_7.2.0\\Intune\nRITM5874872 : Requestor(\nVo, Tan Duc (Frisco))\nJustification : To keep the older version of  stable in ETC helpdesk_6.7.0",
+    "uploadState": 1,
+    "publishingState": "published",
+    "isAssigned": false,
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "dependentAppCount": 0,
+    "supersedingAppCount": 0,
+    "supersededAppCount": 0,
+    "committedContentVersion": "1",
+    "fileName": "Invoke-AppDeployToolkit.intunewin",
+    "size": 7881408,
+    "installCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType \"Install\" -DeployMode \"Silent\"",
+    "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType \"Uninstall\" -DeployMode \"Silent\"",
+    "applicableArchitectures": "none",
+    "allowedArchitectures": null,
+    "minimumFreeDiskSpaceInMB": null,
+    "minimumMemoryInMB": null,
+    "minimumNumberOfProcessors": null,
+    "minimumCpuSpeedInMHz": null,
+    "msiInformation": null,
+    "setupFilePath": "Invoke-AppDeployToolkit.exe",
+    "minimumSupportedWindowsRelease": "Windows10_21H2",
+    "displayVersion": "7.2.0",
+    "allowAvailableUninstall": true,
+    "activeInstallScript": null,
+    "activeUninstallScript": null,
+    "largeIcon": {
+      "type": "image/jpeg",
+      "value": "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"
+    },
+    "minimumSupportedOperatingSystem": {
+      "v8_0": false,
+      "v8_1": false,
+      "v10_0": false,
+      "v10_1607": false,
+      "v10_1703": false,
+      "v10_1709": false,
+      "v10_1803": false,
+      "v10_1809": false,
+      "v10_1903": false,
+      "v10_1909": false,
+      "v10_2004": false,
+      "v10_2H20": false,
+      "v10_21H1": false
+    },
+    "detectionRules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppFileSystemDetection",
+        "path": "C:\\Program Files\\ETC Helpdesk_v7.2.0",
+        "fileOrFolderName": "ETC.exe",
+        "check32BitOn64System": false,
+        "detectionType": "exists",
+        "operator": "notConfigured",
+        "detectionValue": null
+      }
+    ],
+    "requirementRules": [],
+    "rules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppFileSystemRule",
+        "ruleType": "detection",
+        "path": "C:\\Program Files\\ETC Helpdesk_v7.2.0",
+        "fileOrFolderName": "ETC.exe",
+        "check32BitOn64System": false,
+        "operationType": "exists",
+        "operator": "notConfigured",
+        "comparisonValue": null
+      }
+    ],
+    "installExperience": {
+      "runAsAccount": "system",
+      "maxRunTimeInMinutes": 60,
+      "deviceRestartBehavior": "suppress"
+    },
+    "returnCodes": [
+      {
+        "returnCode": 0,
+        "type": "success"
+      },
+      {
+        "returnCode": 1707,
+        "type": "success"
+      },
+      {
+        "returnCode": 3010,
+        "type": "softReboot"
+      },
+      {
+        "returnCode": 1641,
+        "type": "hardReboot"
+      },
+      {
+        "returnCode": 1618,
+        "type": "retry"
+      }
+    ]
+  },
+  "relationships": null,
+  "assignments": [
+    {
+      "id": "dd44c6f6-d589-47a0-884c-d772a45f903f_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "dd44c6f6-d589-47a0-884c-d772a45f903f"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    }
+  ],
+  "deviceCounts": null
+}

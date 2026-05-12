@@ -1,0 +1,189 @@
+{
+  "exportGeneratedOn": "2026-05-07T13:54:55.7558081-04:00",
+  "appId": "0039b7e7-783f-42b0-9055-d119a728d2e9",
+  "displayName": "Docusign PKI",
+  "odataType": "#microsoft.graph.win32LobApp",
+  "scopeTagResolutionMode": "Disabled",
+  "roleScopeTags": {
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "roleScopeTagNames": "UNRESOLVED"
+  },
+  "app": {
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceAppManagement/mobileApps/$entity",
+    "@odata.type": "#microsoft.graph.win32LobApp",
+    "id": "0039b7e7-783f-42b0-9055-d119a728d2e9",
+    "displayName": "Docusign PKI",
+    "description": "FIS_Docusign_DocusignPKI_25.1.01.00",
+    "publisher": "Docusign",
+    "createdDateTime": "2025-11-04T17:36:42.8347039Z",
+    "lastModifiedDateTime": "2025-11-05T16:20:34.2121661Z",
+    "isFeatured": false,
+    "privacyInformationUrl": null,
+    "informationUrl": null,
+    "owner": null,
+    "developer": null,
+    "notes": "Created by the Win32App Migration Tool",
+    "uploadState": 1,
+    "publishingState": "published",
+    "isAssigned": false,
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "dependentAppCount": 0,
+    "supersedingAppCount": 0,
+    "supersededAppCount": 0,
+    "committedContentVersion": "1",
+    "fileName": "IntunePackage.intunewin",
+    "size": 34053472,
+    "installCommandLine": "Deploy-Application.exe -DeploymentType \"Install\" -DeployMode \"Silent\"",
+    "uninstallCommandLine": "Deploy-Application.exe -DeploymentType \"Uninstall\" -DeployMode \"Silent\"",
+    "applicableArchitectures": "none",
+    "allowedArchitectures": null,
+    "minimumFreeDiskSpaceInMB": null,
+    "minimumMemoryInMB": null,
+    "minimumNumberOfProcessors": null,
+    "minimumCpuSpeedInMHz": null,
+    "msiInformation": null,
+    "setupFilePath": "Deploy-Application.exe",
+    "minimumSupportedWindowsRelease": "Windows10_21H2",
+    "displayVersion": "25.1.01",
+    "allowAvailableUninstall": true,
+    "activeInstallScript": null,
+    "activeUninstallScript": null,
+    "largeIcon": {
+      "type": "image/png",
+      "value": "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"
+    },
+    "minimumSupportedOperatingSystem": {
+      "v8_0": false,
+      "v8_1": false,
+      "v10_0": false,
+      "v10_1607": false,
+      "v10_1703": false,
+      "v10_1709": false,
+      "v10_1803": false,
+      "v10_1809": false,
+      "v10_1903": false,
+      "v10_1909": false,
+      "v10_2004": false,
+      "v10_2H20": false,
+      "v10_21H1": false
+    },
+    "detectionRules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryDetection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Docusign PKI",
+        "valueName": "DisplayVersion",
+        "detectionType": "version",
+        "operator": "greaterThanOrEqual",
+        "detectionValue": "25.1.01.00"
+      },
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppFileSystemDetection",
+        "path": "C:\\ProgramData\\DocuSignPKI",
+        "fileOrFolderName": "dspki.exe",
+        "check32BitOn64System": true,
+        "detectionType": "version",
+        "operator": "greaterThanOrEqual",
+        "detectionValue": "25.1.1.0"
+      }
+    ],
+    "requirementRules": [],
+    "rules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryRule",
+        "ruleType": "detection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Docusign PKI",
+        "valueName": "DisplayVersion",
+        "operationType": "version",
+        "operator": "greaterThanOrEqual",
+        "comparisonValue": "25.1.01.00"
+      },
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppFileSystemRule",
+        "ruleType": "detection",
+        "path": "C:\\ProgramData\\DocuSignPKI",
+        "fileOrFolderName": "dspki.exe",
+        "check32BitOn64System": true,
+        "operationType": "version",
+        "operator": "greaterThanOrEqual",
+        "comparisonValue": "25.1.1.0"
+      }
+    ],
+    "installExperience": {
+      "runAsAccount": "system",
+      "maxRunTimeInMinutes": 60,
+      "deviceRestartBehavior": "suppress"
+    },
+    "returnCodes": [
+      {
+        "returnCode": 0,
+        "type": "success"
+      },
+      {
+        "returnCode": 1707,
+        "type": "success"
+      },
+      {
+        "returnCode": 3010,
+        "type": "softReboot"
+      },
+      {
+        "returnCode": 1641,
+        "type": "hardReboot"
+      },
+      {
+        "returnCode": 1618,
+        "type": "retry"
+      }
+    ]
+  },
+  "relationships": null,
+  "assignments": [
+    {
+      "id": "dd44c6f6-d589-47a0-884c-d772a45f903f_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "dd44c6f6-d589-47a0-884c-d772a45f903f"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    }
+  ],
+  "deviceCounts": null
+}

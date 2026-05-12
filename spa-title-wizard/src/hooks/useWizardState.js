@@ -429,6 +429,39 @@ export default function useWizardState() {
     setCurrentStep(0);
   }, []);
 
+  /**
+   * Import parsed Intune export fields into wizard state.
+   * Does NOT overwrite fields already populated by a prior PSADT import.
+   * @param {Object} intuneFields — from parseIntuneExport().fields
+   */
+  const importIntuneExport = useCallback((intuneFields) => {
+    setState(prev => {
+      const next = { ...prev };
+      next._intuneExportImported = true;
+
+      // Merge each field — skip if PSADT already populated it
+      for (const [key, value] of Object.entries(intuneFields)) {
+        if (value == null || value === '') continue;
+        // For key fields that PSADT may have set, only overwrite if currently empty/default
+        const psadtPriorityFields = ['displayName', 'publisher', 'version'];
+        if (psadtPriorityFields.includes(key) && prev[key] && prev[key] !== INITIAL_STATE[key]) {
+          continue;
+        }
+        next[key] = value;
+      }
+
+      // Auto-derive packageId from displayName
+      if (next.displayName && (!next.packageId || next.packageId === prev.packageId || next.packageId === INITIAL_STATE.packageId)) {
+        next.packageId = toKebabCase(next.displayName);
+      }
+
+      // Ensure platform is set
+      if (!next.platform) next.platform = 'windows';
+
+      return next;
+    });
+  }, []);
+
   return {
     state,
     currentStep,
@@ -442,6 +475,7 @@ export default function useWizardState() {
     moveAction,
     updateLifecycleRoot,
     importPsadtState,
+    importIntuneExport,
     nextStep,
     prevStep,
     goToStep,

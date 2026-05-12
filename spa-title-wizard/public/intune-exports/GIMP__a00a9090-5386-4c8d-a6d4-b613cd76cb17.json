@@ -1,0 +1,170 @@
+{
+  "exportGeneratedOn": "2026-05-07T14:03:38.9333895-04:00",
+  "appId": "a00a9090-5386-4c8d-a6d4-b613cd76cb17",
+  "displayName": "GIMP",
+  "odataType": "#microsoft.graph.win32LobApp",
+  "scopeTagResolutionMode": "Disabled",
+  "roleScopeTags": {
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "roleScopeTagNames": "UNRESOLVED"
+  },
+  "app": {
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceAppManagement/mobileApps/$entity",
+    "@odata.type": "#microsoft.graph.win32LobApp",
+    "id": "a00a9090-5386-4c8d-a6d4-b613cd76cb17",
+    "displayName": "GIMP",
+    "description": "GIMPTeam_GIMP_3.0.2",
+    "publisher": "The GIMP Team",
+    "createdDateTime": "2025-04-30T03:19:42.9166609Z",
+    "lastModifiedDateTime": "2025-07-23T16:28:35.7725747Z",
+    "isFeatured": false,
+    "privacyInformationUrl": null,
+    "informationUrl": null,
+    "owner": "",
+    "developer": "",
+    "notes": "",
+    "uploadState": 1,
+    "publishingState": "published",
+    "isAssigned": false,
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "dependentAppCount": 0,
+    "supersedingAppCount": 0,
+    "supersededAppCount": 0,
+    "committedContentVersion": "1",
+    "fileName": "Deploy-Application.intunewin",
+    "size": 392902320,
+    "installCommandLine": "Deploy-Application.exe -DeploymentType \"Install\" -DeployMode \"Silent\"",
+    "uninstallCommandLine": "Deploy-Application.exe -DeploymentType \"Uninstall\" -DeployMode \"Silent\"",
+    "applicableArchitectures": "none",
+    "allowedArchitectures": null,
+    "minimumFreeDiskSpaceInMB": null,
+    "minimumMemoryInMB": null,
+    "minimumNumberOfProcessors": null,
+    "minimumCpuSpeedInMHz": null,
+    "msiInformation": null,
+    "setupFilePath": "Deploy-Application.exe",
+    "minimumSupportedWindowsRelease": "1607",
+    "displayVersion": "3.0.2",
+    "allowAvailableUninstall": true,
+    "activeInstallScript": null,
+    "activeUninstallScript": null,
+    "largeIcon": {
+      "type": "image/jpeg",
+      "value": "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"
+    },
+    "minimumSupportedOperatingSystem": {
+      "v8_0": false,
+      "v8_1": false,
+      "v10_0": false,
+      "v10_1607": true,
+      "v10_1703": false,
+      "v10_1709": false,
+      "v10_1803": false,
+      "v10_1809": false,
+      "v10_1903": false,
+      "v10_1909": false,
+      "v10_2004": false,
+      "v10_2H20": false,
+      "v10_21H1": false
+    },
+    "detectionRules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryDetection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GIMP-3_is1",
+        "valueName": "DisplayVersion",
+        "detectionType": "version",
+        "operator": "greaterThanOrEqual",
+        "detectionValue": "3.0.2.1"
+      }
+    ],
+    "requirementRules": [],
+    "rules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryRule",
+        "ruleType": "detection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\GIMP-3_is1",
+        "valueName": "DisplayVersion",
+        "operationType": "version",
+        "operator": "greaterThanOrEqual",
+        "comparisonValue": "3.0.2.1"
+      }
+    ],
+    "installExperience": {
+      "runAsAccount": "system",
+      "maxRunTimeInMinutes": 20,
+      "deviceRestartBehavior": "suppress"
+    },
+    "returnCodes": [
+      {
+        "returnCode": 0,
+        "type": "success"
+      },
+      {
+        "returnCode": 1707,
+        "type": "success"
+      },
+      {
+        "returnCode": 3010,
+        "type": "softReboot"
+      },
+      {
+        "returnCode": 1641,
+        "type": "hardReboot"
+      },
+      {
+        "returnCode": 1618,
+        "type": "retry"
+      }
+    ]
+  },
+  "relationships": null,
+  "assignments": [
+    {
+      "id": "dd44c6f6-d589-47a0-884c-d772a45f903f_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "dd44c6f6-d589-47a0-884c-d772a45f903f"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    }
+  ],
+  "deviceCounts": null
+}

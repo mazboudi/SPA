@@ -1,0 +1,290 @@
+{
+  "exportGeneratedOn": "2026-05-07T14:04:51.8428466-04:00",
+  "appId": "b82a344a-73aa-43ef-9071-92abac16c431",
+  "displayName": "DTEX Forwarder for Desktop",
+  "odataType": "#microsoft.graph.win32LobApp",
+  "scopeTagResolutionMode": "Disabled",
+  "roleScopeTags": {
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "roleScopeTagNames": "UNRESOLVED"
+  },
+  "app": {
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceAppManagement/mobileApps/$entity",
+    "@odata.type": "#microsoft.graph.win32LobApp",
+    "id": "b82a344a-73aa-43ef-9071-92abac16c431",
+    "displayName": "DTEX Forwarder for Desktop",
+    "description": "DTEX Forwarder for Desktop",
+    "publisher": "DTEXSystems",
+    "createdDateTime": "2026-03-11T10:24:51.6390899Z",
+    "lastModifiedDateTime": "2026-03-16T13:28:17.6118853Z",
+    "isFeatured": false,
+    "privacyInformationUrl": null,
+    "informationUrl": null,
+    "owner": "",
+    "developer": "",
+    "notes": "\\\\I7WP2EM3DST0001.fead.one\\ApplicationSource\\DTEXSystems_DTEXForwarder6.3.1_6.3.1005\\Intune",
+    "uploadState": 1,
+    "publishingState": "published",
+    "isAssigned": false,
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "dependentAppCount": 0,
+    "supersedingAppCount": 0,
+    "supersededAppCount": 0,
+    "committedContentVersion": "1",
+    "fileName": "Invoke-AppDeployToolkit.intunewin",
+    "size": 53158400,
+    "installCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType \"Install\" -DeployMode \"Silent\"",
+    "uninstallCommandLine": "Invoke-AppDeployToolkit.exe -DeploymentType \"Uninstall\" -DeployMode \"Silent\"",
+    "applicableArchitectures": "none",
+    "allowedArchitectures": null,
+    "minimumFreeDiskSpaceInMB": null,
+    "minimumMemoryInMB": null,
+    "minimumNumberOfProcessors": null,
+    "minimumCpuSpeedInMHz": null,
+    "msiInformation": null,
+    "setupFilePath": "Invoke-AppDeployToolkit.exe",
+    "minimumSupportedWindowsRelease": "Windows10_21H2",
+    "displayVersion": "6.3.1005",
+    "allowAvailableUninstall": true,
+    "activeInstallScript": null,
+    "activeUninstallScript": null,
+    "largeIcon": {
+      "type": "image/jpeg",
+      "value": "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"
+    },
+    "minimumSupportedOperatingSystem": {
+      "v8_0": false,
+      "v8_1": false,
+      "v10_0": false,
+      "v10_1607": false,
+      "v10_1703": false,
+      "v10_1709": false,
+      "v10_1803": false,
+      "v10_1809": false,
+      "v10_1903": false,
+      "v10_1909": false,
+      "v10_2004": false,
+      "v10_2H20": false,
+      "v10_21H1": false
+    },
+    "detectionRules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryDetection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{B0C478C7-D020-4046-A5C3-D72439E2B8CD}",
+        "valueName": "DisplayVersion",
+        "detectionType": "version",
+        "operator": "greaterThanOrEqual",
+        "detectionValue": "6.3.1005"
+      }
+    ],
+    "requirementRules": [],
+    "rules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryRule",
+        "ruleType": "detection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{B0C478C7-D020-4046-A5C3-D72439E2B8CD}",
+        "valueName": "DisplayVersion",
+        "operationType": "version",
+        "operator": "greaterThanOrEqual",
+        "comparisonValue": "6.3.1005"
+      }
+    ],
+    "installExperience": {
+      "runAsAccount": "system",
+      "maxRunTimeInMinutes": 60,
+      "deviceRestartBehavior": "suppress"
+    },
+    "returnCodes": [
+      {
+        "returnCode": 0,
+        "type": "success"
+      },
+      {
+        "returnCode": 1707,
+        "type": "success"
+      },
+      {
+        "returnCode": 3010,
+        "type": "softReboot"
+      },
+      {
+        "returnCode": 1641,
+        "type": "hardReboot"
+      },
+      {
+        "returnCode": 1618,
+        "type": "retry"
+      }
+    ]
+  },
+  "relationships": null,
+  "assignments": [
+    {
+      "id": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "dd44c6f6-d589-47a0-884c-d772a45f903f_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "dd44c6f6-d589-47a0-884c-d772a45f903f"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "5e6ea6ac-280c-4d8e-8a43-467f6e076553_1_0",
+      "intent": "required",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "5e6ea6ac-280c-4d8e-8a43-467f6e076553"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "hideAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "notConfigured",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "a78b154a-b91b-4d5d-9eef-f4cec0cc5fcb_1_0",
+      "intent": "required",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "a78b154a-b91b-4d5d-9eef-f4cec0cc5fcb"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "hideAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "notConfigured",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "a1ab4185-2123-4de6-acb7-3f74403019d8_1_0",
+      "intent": "required",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "a1ab4185-2123-4de6-acb7-3f74403019d8"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "hideAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "notConfigured",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "0bb96c51-ed69-43ba-be1f-731f3adc0ff2_1_0",
+      "intent": "required",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "0bb96c51-ed69-43ba-be1f-731f3adc0ff2"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "hideAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "notConfigured",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "c1029b2f-c5ab-41fa-99d0-3e0046376959_1_0",
+      "intent": "required",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "c1029b2f-c5ab-41fa-99d0-3e0046376959"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "hideAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "notConfigured",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "c879f8b1-3b2e-4714-b743-2d6dba866032_1_0",
+      "intent": "required",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "c879f8b1-3b2e-4714-b743-2d6dba866032"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "hideAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "notConfigured",
+        "autoUpdateSettings": null
+      }
+    }
+  ],
+  "deviceCounts": null
+}

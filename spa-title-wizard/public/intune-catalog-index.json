@@ -1,0 +1,1722 @@
+[
+  {
+    "appId": "616e52a1-38cd-4ff0-83cd-e9a78525c8db",
+    "displayName": ".Net Data Provider For Teradata",
+    "publisher": "Teradata Corporation",
+    "version": "20.00.05",
+    "description": "FIS_TeradataCorporation_.NetDataProviderForTeradata_20.00.05",
+    "fileName": ".Net Data Provider For Teradata__616e52a1-38cd-4ff0-83cd-e9a78525c8db.json"
+  },
+  {
+    "appId": "5be976e9-92dd-4ba4-8e83-a760354c495a",
+    "displayName": ".NET Framework",
+    "publisher": "Microsoft",
+    "version": "4.8.1",
+    "description": "This application will work only on Win10 devices",
+    "fileName": ".NET Framework__5be976e9-92dd-4ba4-8e83-a760354c495a.json"
+  },
+  {
+    "appId": "09631dd5-208c-4f96-9bba-a3838f6d55dc",
+    "displayName": ".NET SDK Demo",
+    "publisher": "IDTech",
+    "version": "3.2.005",
+    "description": "IDTech_.NETSDKDemo_3.2.005.425",
+    "fileName": ".NET SDK Demo__09631dd5-208c-4f96-9bba-a3838f6d55dc.json"
+  },
+  {
+    "appId": "68708f0c-63f5-47df-b7a3-5f462eff2e52",
+    "displayName": "123Scan Utility",
+    "publisher": "Zebra Technologies",
+    "version": "6.00.0014",
+    "description": "FIS_Zebra_123_Scan_6.00.0014",
+    "fileName": "123Scan Utility__68708f0c-63f5-47df-b7a3-5f462eff2e52.json"
+  },
+  {
+    "appId": "78998083-7344-4f77-85c8-ed82c2deb93c",
+    "displayName": "Account Exclude Maintenance",
+    "publisher": "Noble Systems",
+    "version": "8.1.2",
+    "description": "NobleSystems_AccountExcludeMaintenance_8.1.2.12",
+    "fileName": "Account Exclude Maintenance__78998083-7344-4f77-85c8-ed82c2deb93c.json"
+  },
+  {
+    "appId": "bcf5cbdc-48e4-487d-aaa0-6425d97b07fb",
+    "displayName": "ACI Desktop",
+    "publisher": "ACI",
+    "version": "3.0.0",
+    "description": "Please ensure that Oracle Java SE 21 is installed prior to installing the application. The application will be installed in user-interactive mode.\n\nFIS_ACI_ACIDesktop_3.0.0.",
+    "fileName": "ACI Desktop__bcf5cbdc-48e4-487d-aaa0-6425d97b07fb.json"
+  },
+  {
+    "appId": "7018588b-0058-4a00-9936-6b74142e5dea",
+    "displayName": "Acrolinx Content Analyzer",
+    "publisher": "Acrolinx",
+    "version": "2.6.0",
+    "description": "FIS_Acrolinx_ContentAnalyzer_2.6.0",
+    "fileName": "Acrolinx Content Analyzer__7018588b-0058-4a00-9936-6b74142e5dea.json"
+  },
+  {
+    "appId": "b4d77adc-47de-4ac7-bad0-ddd2118e985f",
+    "displayName": "Acrolinx for Adobe FrameMaker",
+    "publisher": "Acrolinx",
+    "version": "1.5.1296",
+    "description": "Acrolinx_AcrolinxforAdobeFrameMaker_1.5.1296\n\nInstall \"AdobeCreativeCloud_5.10.0\" then \"FrameMaker2022_17.0.5\" before installing this application.",
+    "fileName": "Acrolinx for Adobe FrameMaker__b4d77adc-47de-4ac7-bad0-ddd2118e985f.json"
+  },
+  {
+    "appId": "89651811-32a8-4471-9612-f1a2a1d06166",
+    "displayName": "Acrolinx For Madcap Flare",
+    "publisher": "Acrolinx",
+    "version": "1.6.1060",
+    "description": "FIS_Acrolinx_Madcap_1.6.1060",
+    "fileName": "Acrolinx For Madcap Flare__89651811-32a8-4471-9612-f1a2a1d06166.json"
+  },
+  {
+    "appId": "664c65d4-c520-44d2-a996-caee4d7eb971",
+    "displayName": "Acrolinx For Office 32-Bit",
+    "publisher": "Acrolinx",
+    "version": "1.6.1153",
+    "description": "FIS_Acrolinx_AcrolinxForOffice(32Bit)_1.6.1153",
+    "fileName": "Acrolinx For Office 32-Bit__664c65d4-c520-44d2-a996-caee4d7eb971.json"
+  },
+  {
+    "appId": "d9d209b4-5f6e-4cec-89d8-ea45f739949c",
+    "displayName": "Acrolinx For Office 64-Bit",
+    "publisher": "Acrolinx",
+    "version": "1.6.1153",
+    "description": "FIS_Acrolinx_AcrolinxForOffice(64Bit)_1.6.1153",
+    "fileName": "Acrolinx For Office 64-Bit__d9d209b4-5f6e-4cec-89d8-ea45f739949c.json"
+  },
+  {
+    "appId": "87963085-e2e5-4488-a5fb-76e0803a759a",
+    "displayName": "ActOne Designer",
+    "publisher": "Actimize",
+    "version": "6.6.2",
+    "description": "SCM\n\nFIS_Actimize_ActOneDesigner_6.6.2",
+    "fileName": "ActOne Designer__87963085-e2e5-4488-a5fb-76e0803a759a.json"
+  },
+  {
+    "appId": "ac4e2410-9662-4fd6-83cf-1ace5605da08",
+    "displayName": "ADS1996",
+    "publisher": "Fiserv",
+    "version": "19.70.0",
+    "description": "FIS_Fiserv_ADS1996_19.70.0",
+    "fileName": "ADS1996__ac4e2410-9662-4fd6-83cf-1ace5605da08.json"
+  },
+  {
+    "appId": "8445d438-1aeb-453b-95bf-a0e161488e6b",
+    "displayName": "Advanced Printer Driver",
+    "publisher": "Epson",
+    "version": "4.59.0100",
+    "description": "FIS_Epson_AdvancedPrinterDriver_4.59.0100",
+    "fileName": "Advanced Printer Driver__8445d438-1aeb-453b-95bf-a0e161488e6b.json"
+  },
+  {
+    "appId": "075c48c0-a951-4319-aa7e-7d99e8f4ee4f",
+    "displayName": "AFP Workbench Viewer for Windows",
+    "publisher": "Ricoh",
+    "version": "3.09.0",
+    "description": "FIS_Ricoh_AFPWorkbench_3.09.0",
+    "fileName": "AFP Workbench Viewer for Windows__075c48c0-a951-4319-aa7e-7d99e8f4ee4f.json"
+  },
+  {
+    "appId": "d97aefab-447e-4ea2-8d81-35fa85e1a6fb",
+    "displayName": "AI Buddy",
+    "publisher": "QualityKiosk",
+    "version": "1.0.0",
+    "description": "QualityKiosk_AIBuddy_1.0.0\n\nBelow mentioned pre-requisites need to be installed\nJava: >= 11 and < 23\nPython: >= 3.11\nNode.js: >= 18\nGit: Latest recommended\nVS Code: Latest recommended",
+    "fileName": "AI Buddy__d97aefab-447e-4ea2-8d81-35fa85e1a6fb.json"
+  },
+  {
+    "appId": "ad8a5f25-c381-46be-b766-17aa98a29a16",
+    "displayName": "Air Media",
+    "publisher": "Crestron",
+    "version": "5.9.1",
+    "description": "FIS _Crestron_AirMedia_5.9.1",
+    "fileName": "Air Media__ad8a5f25-c381-46be-b766-17aa98a29a16.json"
+  },
+  {
+    "appId": "329f1e3e-15b7-4439-af3f-776499ac9d44",
+    "displayName": "AirServer for Windows",
+    "publisher": "AppDynamic",
+    "version": "5.7.1",
+    "description": "SCM\n\nFIS_AppDynamic_AirServer_5.7.1",
+    "fileName": "AirServer for Windows__329f1e3e-15b7-4439-af3f-776499ac9d44.json"
+  },
+  {
+    "appId": "4776c941-b3d0-436c-bdde-15bc5d3cff30",
+    "displayName": "ALM Client Launcher",
+    "publisher": "OpenText",
+    "version": "4.5.0.0",
+    "description": "FIS_OpenText_ALMClientLauncher_4.5.0",
+    "fileName": "ALM Client Launcher__4776c941-b3d0-436c-bdde-15bc5d3cff30.json"
+  },
+  {
+    "appId": "6f3c1963-71a8-469f-af1f-96b75959f1e6",
+    "displayName": "AlmToolKit",
+    "publisher": "AlmToolKit",
+    "version": "5.1.11",
+    "description": "AlmToolKit_ALMToolkit_5.1.11 || PowerBI_ALMToolkit_5.1.11\n\nFIS_AlmToolKit_ALMToolkit_5.1.11",
+    "fileName": "AlmToolKit__6f3c1963-71a8-469f-af1f-96b75959f1e6.json"
+  },
+  {
+    "appId": "f2f679d0-c927-45a3-9e05-b22563e8d0b2",
+    "displayName": "Alteryx Designer (Admin \"Install\" Only)",
+    "publisher": "Alteryx",
+    "version": "2025.1.2",
+    "description": "FIS_Alteryxlnc_AlteryxDesigner_2025.1.2",
+    "fileName": "Alteryx Designer (Admin _Install_ Only)__f2f679d0-c927-45a3-9e05-b22563e8d0b2.json"
+  },
+  {
+    "appId": "39febaa9-5b8e-42f9-a41b-50009307312b",
+    "displayName": "Alteryx Designer 2023",
+    "publisher": "Alteryx",
+    "version": "23.1.1",
+    "description": "FIS_Alteryx_AlteryxDesigner2023_23.1.1",
+    "fileName": "Alteryx Designer 2023__39febaa9-5b8e-42f9-a41b-50009307312b.json"
+  },
+  {
+    "appId": "78935587-6f31-49ef-8bf9-c24e07613a7b",
+    "displayName": "Alteryx Intelligence Suite",
+    "publisher": "Alteryx",
+    "version": "2025.1.2.2102",
+    "description": "Before installing this application need to be installed Alteryx Designer 2025.1.2\nAlteryxInc_AlteryxIntelligenceSuite_2025.1.2.2102\nSCM",
+    "fileName": "Alteryx Intelligence Suite__78935587-6f31-49ef-8bf9-c24e07613a7b.json"
+  },
+  {
+    "appId": "b19a35ff-7054-44c7-9aef-17714e992ded",
+    "displayName": "Alteryx Predictive Tools with R",
+    "publisher": "Alteryx",
+    "version": "4.4.0",
+    "description": "Before installing the application AlteryxInc_AlteryxDesigner2025.1_2025.1.2.120, we need to install its prerequisite application.\n    \nSCM",
+    "fileName": "Alteryx Predictive Tools with R__b19a35ff-7054-44c7-9aef-17714e992ded.json"
+  },
+  {
+    "appId": "bb3e2d6a-b944-4c96-8760-b6c0fef5a934",
+    "displayName": "Alteryx SharePoint",
+    "publisher": "Alteryx",
+    "version": "2.7.2",
+    "description": "FIS_Alteryx_AlteryxSharePoint_2.7.2",
+    "fileName": "Alteryx SharePoint__bb3e2d6a-b944-4c96-8760-b6c0fef5a934.json"
+  },
+  {
+    "appId": "5aa5e2eb-87c3-485f-a7ae-28f342bbd8ed",
+    "displayName": "Altium Designer 25",
+    "publisher": "Altium Limited",
+    "version": "25.8.1",
+    "description": "FIS_AltiumLimited_AltiumDesigner25_25.8.1",
+    "fileName": "Altium Designer 25__5aa5e2eb-87c3-485f-a7ae-28f342bbd8ed.json"
+  },
+  {
+    "appId": "70afd808-ca74-49e5-8f18-01df07c5eb38",
+    "displayName": "Amazon Chime for Windows",
+    "publisher": "AmazonServices",
+    "version": "5.23.31941",
+    "description": "FIS_AmazonServicesLLC_AmazonChime_5.23.31941",
+    "fileName": "Amazon Chime for Windows__70afd808-ca74-49e5-8f18-01df07c5eb38.json"
+  },
+  {
+    "appId": "24758eaa-a0ec-4b22-a3c8-656aca26ce08",
+    "displayName": "Amplifai Recording",
+    "publisher": "AMPLIFAI SOLUTIONS",
+    "version": "3.2.3",
+    "description": "FIS_AmplifaiSolutions_AmplifaiRecording_3.2.3",
+    "fileName": "Amplifai Recording__24758eaa-a0ec-4b22-a3c8-656aca26ce08.json"
+  },
+  {
+    "appId": "ba2c8426-13bb-4608-bdd3-d58962d34655",
+    "displayName": "AnLink",
+    "publisher": "AnLink",
+    "version": "3.10_v2.0",
+    "description": "FIS_AnLink_AnLink_3.10_v2.0\n\nApplication will install in user interactive mode.",
+    "fileName": "AnLink__ba2c8426-13bb-4608-bdd3-d58962d34655.json"
+  },
+  {
+    "appId": "f87a49df-f1c0-4553-b11a-9dd3b96749ab",
+    "displayName": "Ant",
+    "publisher": "Apache Software Foundation",
+    "version": "1.10.14",
+    "description": "FIS_ApacheSoftwareFoundation_ApacheAnt_1.10.14",
+    "fileName": "Ant__f87a49df-f1c0-4553-b11a-9dd3b96749ab.json"
+  },
+  {
+    "appId": "8e74699f-6104-438d-9298-e62ddb13bfa8",
+    "displayName": "AOS Active Directory Service",
+    "publisher": "Fiserv",
+    "version": "1.0.0.0",
+    "description": "FIS_Fiserv_AOSActiveDirectoryService_1.0.0.0",
+    "fileName": "AOS Active Directory Service__8e74699f-6104-438d-9298-e62ddb13bfa8.json"
+  },
+  {
+    "appId": "f0e77dad-7c1b-4ea4-9aee-704c41e8ab60",
+    "displayName": "AOS Application Manager",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "Before Installing this package .Net Framework 4.6.2 needs to install.",
+    "fileName": "AOS Application Manager__f0e77dad-7c1b-4ea4-9aee-704c41e8ab60.json"
+  },
+  {
+    "appId": "6b6e4c0d-9705-4f29-8f3a-ebd5f80b0af3",
+    "displayName": "AOS Console",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_AOSConsole_1.0.0",
+    "fileName": "AOS Console__6b6e4c0d-9705-4f29-8f3a-ebd5f80b0af3.json"
+  },
+  {
+    "appId": "92647be7-cbe8-4346-a8a9-d81a19544610",
+    "displayName": "AOS Login Service",
+    "publisher": "Fiserv",
+    "version": "1.0.0.0",
+    "description": "FIS_Fiserv_AOSLoginService_1.0.0.0",
+    "fileName": "AOS Login Service__92647be7-cbe8-4346-a8a9-d81a19544610.json"
+  },
+  {
+    "appId": "3df61d81-095b-4061-9a62-c4aa7c27bdce",
+    "displayName": "AOS MIS App",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_AOSMISApp_1.0.0.0\n\nAs per EUC app name is AOS For MIS Report but User asked to change as AOSMISApp",
+    "fileName": "AOS MIS App__3df61d81-095b-4061-9a62-c4aa7c27bdce.json"
+  },
+  {
+    "appId": "840d220f-caff-4637-bf16-3b78a0b155d5",
+    "displayName": "AOS My Queue Export App",
+    "publisher": "Fiserv",
+    "version": "2.0.0",
+    "description": "FIS_Fiserv_AOSMyQueueExportApp_2.0.0",
+    "fileName": "AOS My Queue Export App__840d220f-caff-4637-bf16-3b78a0b155d5.json"
+  },
+  {
+    "appId": "1b85d758-5dd5-4f74-9407-b1180d22edf9",
+    "displayName": "Apache Spark",
+    "publisher": "Apache Software Foundation",
+    "version": "4.1.1",
+    "description": "Please install \"Oracle Java SE Development Kit 17 17.0.18.0\" or \"Amazon Corretto 17 17.0.18.9\" before installing this application\n\nApacheSoftware_Spark_4.1.1\n",
+    "fileName": "Apache Spark__1b85d758-5dd5-4f74-9407-b1180d22edf9.json"
+  },
+  {
+    "appId": "84b45163-7ef3-44da-8b9c-0bd23e983cc6",
+    "displayName": "App Desktop (AMA)",
+    "publisher": "Fiserv",
+    "version": "2.0.0",
+    "description": "FIS_Fiserv_AppDesktop_2.0.0",
+    "fileName": "App Desktop (AMA)__84b45163-7ef3-44da-8b9c-0bd23e983cc6.json"
+  },
+  {
+    "appId": "30e7d748-4235-4260-a2ec-f4ce2b00e07e",
+    "displayName": "Appium Inspector",
+    "publisher": "Appium",
+    "version": "2023.10.1",
+    "description": "FIS_Appium_AppiumInspector_2023.10.1",
+    "fileName": "Appium Inspector__30e7d748-4235-4260-a2ec-f4ce2b00e07e.json"
+  },
+  {
+    "appId": "5b472a17-abb4-4950-8a4b-6297492d4b4b",
+    "displayName": "Appworx",
+    "publisher": "Broadcom",
+    "version": "9.4.2",
+    "description": "FIS_Broadcom_Appworx_9.4.2",
+    "fileName": "Appworx__5b472a17-abb4-4950-8a4b-6297492d4b4b.json"
+  },
+  {
+    "appId": "95ea2f6e-f665-401d-be5d-f39c2dcbd94d",
+    "displayName": "Articulate 360 Desktop App",
+    "publisher": "Articulate Global",
+    "version": "1.84.3",
+    "description": "FIS_ArticulateGlobal_Articulate360_1.84.31647",
+    "fileName": "Articulate 360 Desktop App__95ea2f6e-f665-401d-be5d-f39c2dcbd94d.json"
+  },
+  {
+    "appId": "10f92319-130f-4fe2-a946-e650acd7e2ca",
+    "displayName": "AsTiffTagViewer",
+    "publisher": "Aware Systems",
+    "version": "2.00.0",
+    "description": "FIS_AWareSystems_AsTiffTagViewer_2.00.0",
+    "fileName": "AsTiffTagViewer__10f92319-130f-4fe2-a946-e650acd7e2ca.json"
+  },
+  {
+    "appId": "60dc6010-70e4-4d6c-bc0b-339770faadba",
+    "displayName": "Aternity Agent",
+    "publisher": "Aternity LLC",
+    "version": "12.2.3.73",
+    "description": "Will not install if Country Code is DE\nChecks device type and installs for virtual or physical",
+    "fileName": "Aternity Agent__60dc6010-70e4-4d6c-bc0b-339770faadba.json"
+  },
+  {
+    "appId": "479d8bc4-bdc5-4e80-9709-278b3421a771",
+    "displayName": "Aternity_Agent_Install_12.2.3.73",
+    "publisher": "Aternity",
+    "version": "12.2.3.73",
+    "description": "Deploy-Application.exe",
+    "fileName": "Aternity_Agent_Install_12.2.3.73__479d8bc4-bdc5-4e80-9709-278b3421a771.json"
+  },
+  {
+    "appId": "915c4b21-2fd9-4d4d-80d5-074246d382b8",
+    "displayName": "Audacity",
+    "publisher": "AudacityTeam",
+    "version": "3.3.2",
+    "description": "FIS_AudacityTeam_Audacity_3.3.2",
+    "fileName": "Audacity__915c4b21-2fd9-4d4d-80d5-074246d382b8.json"
+  },
+  {
+    "appId": "8ddf5cfa-5179-4b40-9638-ce472e72e0b0",
+    "displayName": "AuditBoard Sync",
+    "publisher": "AuditBoard",
+    "version": "2.8.3",
+    "description": "FIS_AuditBoard_AuditBoardSync_2.8.3",
+    "fileName": "AuditBoard Sync__8ddf5cfa-5179-4b40-9638-ce472e72e0b0.json"
+  },
+  {
+    "appId": "8c86775c-ac8a-4c15-a28c-efac1bbf43e7",
+    "displayName": "Austraclear Production",
+    "publisher": "ASX",
+    "version": "2.28.8 ",
+    "description": "SCM    \nFIS_ASX_AustraclearQACLRSR20_2.28.8",
+    "fileName": "Austraclear Production__8c86775c-ac8a-4c15-a28c-efac1bbf43e7.json"
+  },
+  {
+    "appId": "2291daf7-5cdb-4c5a-97d0-f1920197b071",
+    "displayName": "Austraclear Production SR20",
+    "publisher": "ASX",
+    "version": "2.28.8",
+    "description": "SCM\n\nFIS_ASX_AustraclearProductionSR20_2.28.8",
+    "fileName": "Austraclear Production SR20__2291daf7-5cdb-4c5a-97d0-f1920197b071.json"
+  },
+  {
+    "appId": "2bf5f413-8692-4b24-a095-b0d648a9a4a8",
+    "displayName": "AuthentXware",
+    "publisher": "XTec",
+    "version": "3.01.57",
+    "description": "FIS_XTec_AuthentXware_3.01.57",
+    "fileName": "AuthentXware__2bf5f413-8692-4b24-a095-b0d648a9a4a8.json"
+  },
+  {
+    "appId": "2cdca144-5d68-4588-a7e2-2a53f8bab5fb",
+    "displayName": "Authorizations GUI",
+    "publisher": "Fiserv",
+    "version": "3.0.4",
+    "description": "Before Installing this Package Auth GUI\n\nRocket Terminal Emulator 10.1.2 app needs to be install.",
+    "fileName": "Authorizations GUI__2cdca144-5d68-4588-a7e2-2a53f8bab5fb.json"
+  },
+  {
+    "appId": "e75c0ebf-0f8b-4e0e-b271-577d3bb5920e",
+    "displayName": "Authorizations GUI",
+    "publisher": "Fiserv",
+    "version": "3.1.0",
+    "description": "Before install this application install (Rocket_TerminalEmulator_10.2.1(64-bit)",
+    "fileName": "Authorizations GUI__e75c0ebf-0f8b-4e0e-b271-577d3bb5920e.json"
+  },
+  {
+    "appId": "77c7488c-4b46-49a2-986c-cf9ba5ea1e58",
+    "displayName": "Auths Tools Pack",
+    "publisher": "Fiserv",
+    "version": "1.14.1",
+    "description": "FIS_Fiserv_AuthsToolsPack_1.14.1",
+    "fileName": "Auths Tools Pack__77c7488c-4b46-49a2-986c-cf9ba5ea1e58.json"
+  },
+  {
+    "appId": "4cefb40e-539c-4ba0-87ab-d92b1fe41a8d",
+    "displayName": "Auto Code Generator",
+    "publisher": "Fiserv",
+    "version": "2024",
+    "description": "FIS_Fiserv_AutoCodeGenerator_2024\n\nApplication will Install in user Interactive mode",
+    "fileName": "Auto Code Generator__4cefb40e-539c-4ba0-87ab-d92b1fe41a8d.json"
+  },
+  {
+    "appId": "fca3463b-9d4c-420d-b6ba-92fb67015efc",
+    "displayName": "AWS SAM CLI",
+    "publisher": "Amazon",
+    "version": "1.138.0",
+    "description": "FIS_Amazon_AWSSAMCLI_1.138.0",
+    "fileName": "AWS SAM CLI__fca3463b-9d4c-420d-b6ba-92fb67015efc.json"
+  },
+  {
+    "appId": "5645a1f5-a630-45b3-9353-3123e72406a9",
+    "displayName": "Azure Cosmos DB Data Migration Tool",
+    "publisher": "Microsoft",
+    "version": "2.1.5",
+    "description": "FIS_Microsoft_AzureCosmosDBDataMigrationTool_2.1.5",
+    "fileName": "Azure Cosmos DB Data Migration Tool__5645a1f5-a630-45b3-9353-3123e72406a9.json"
+  },
+  {
+    "appId": "10e7b4d4-7012-4e8c-a46f-1fd72090c7f7",
+    "displayName": "Azure Cosmos DB Emulator",
+    "publisher": "Microsoft",
+    "version": "2.14.18",
+    "description": "FIS_Microsoft_AzureCosmosDBEmulator_2.14.18",
+    "fileName": "Azure Cosmos DB Emulator__10e7b4d4-7012-4e8c-a46f-1fd72090c7f7.json"
+  },
+  {
+    "appId": "9c596d97-2c8e-4a65-ac1c-06a5be1f5fb6",
+    "displayName": "Azure DevOps Integration 2019",
+    "publisher": "Microsoft",
+    "version": "17.1",
+    "description": "Microsoft_AzureDevOpsIntegration2019_17.1",
+    "fileName": "Azure DevOps Integration 2019__9c596d97-2c8e-4a65-ac1c-06a5be1f5fb6.json"
+  },
+  {
+    "appId": "58a6f36b-bfe9-4a8a-840d-423e2513a131",
+    "displayName": "Azure PowerShell",
+    "publisher": "Microsoft",
+    "version": "11.5.0",
+    "description": "FIS_Microsoft_AzurePowerShell_11.5.0",
+    "fileName": "Azure PowerShell__58a6f36b-bfe9-4a8a-840d-423e2513a131.json"
+  },
+  {
+    "appId": "98d60470-a3be-4565-999f-c1d519ad0bf0",
+    "displayName": "Azure Storage Explorer",
+    "publisher": "Microsoft Corporation",
+    "version": "1.39.0",
+    "description": "FIS_MicrosoftCorporation_AzureStorageExplorer_1.39.0",
+    "fileName": "Azure Storage Explorer__98d60470-a3be-4565-999f-c1d519ad0bf0.json"
+  },
+  {
+    "appId": "83f5a99f-a3a7-4a93-8f70-dac8a28dbe2c",
+    "displayName": "BATS",
+    "publisher": "GitHub",
+    "version": "1.12.0",
+    "description": "FIS_Github_BATS_1.12.0",
+    "fileName": "BATS__83f5a99f-a3a7-4a93-8f70-dac8a28dbe2c.json"
+  },
+  {
+    "appId": "7c8f56b8-0515-4bc0-b5dc-391bfd884563",
+    "displayName": "Beeftext",
+    "publisher": "Xavier Michelon",
+    "version": "16.0.0",
+    "description": "FIS_XavierMichelon_Beeftext_16.0.0",
+    "fileName": "Beeftext__7c8f56b8-0515-4bc0-b5dc-391bfd884563.json"
+  },
+  {
+    "appId": "6d06529a-29ca-4b02-8b19-4b44c5dc2921",
+    "displayName": "Big-IP Edge Client For Fiserv",
+    "publisher": "F5Network",
+    "version": "72.22.1108",
+    "description": "US Associates ONLY",
+    "fileName": "Big-IP Edge Client For Fiserv__6d06529a-29ca-4b02-8b19-4b44c5dc2921.json"
+  },
+  {
+    "appId": "1cc5b84b-b897-4612-afee-be6e328e7a38",
+    "displayName": "BIG-IP Edge Client For TIC",
+    "publisher": "F5Networks",
+    "version": "7247.2024.506.1332",
+    "description": "FIS_F5Networks_BigIPEdgeClient_7247.2024.506.1332\n\nThis is NOT for the Fiserv VPN.",
+    "fileName": "BIG-IP Edge Client For TIC__1cc5b84b-b897-4612-afee-be6e328e7a38.json"
+  },
+  {
+    "appId": "6620b0f3-c0e5-4a64-ae2a-d4123e5c0cd2",
+    "displayName": "Bigfix",
+    "publisher": "HCLTechnologies",
+    "version": "11.0.2",
+    "description": "FIS_HCLTechnologies_BigfixConsole_11.0.2.125",
+    "fileName": "Bigfix__6620b0f3-c0e5-4a64-ae2a-d4123e5c0cd2.json"
+  },
+  {
+    "appId": "2eed1e2b-f344-44d2-8a52-fa4542f2384b",
+    "displayName": "Bizagi Modeler",
+    "publisher": "Bizagi",
+    "version": "4.0.0014",
+    "description": "FIS_Bizagi_BizagiModeler_4.0.0014",
+    "fileName": "Bizagi Modeler__2eed1e2b-f344-44d2-8a52-fa4542f2384b.json"
+  },
+  {
+    "appId": "057c851e-c19e-43f9-8d25-30482fa1900f",
+    "displayName": "Blaze Advisor",
+    "publisher": "Fair Isaac Corporation",
+    "version": "7.9",
+    "description": "SCM\n\nBefore installing this application, please install Amazon Corretto 21\n\nFIS_FairIsaac_BlazeAdvisor7.9_1.0.0",
+    "fileName": "Blaze Advisor__057c851e-c19e-43f9-8d25-30482fa1900f.json"
+  },
+  {
+    "appId": "f89985f0-b26b-447c-a7b6-1f1372d93e62",
+    "displayName": "BMC AMI DevX Workbench For Eclipse",
+    "publisher": "BMC Software, Inc",
+    "version": "23.1.1",
+    "description": "FIS_BMC_WorkbenchForEcplipse_23.1.1",
+    "fileName": "BMC AMI DevX Workbench For Eclipse__f89985f0-b26b-447c-a7b6-1f1372d93e62.json"
+  },
+  {
+    "appId": "a4954ea4-3a6e-4d52-ae41-4e82e9efe619",
+    "displayName": "BoldChat Operator Client",
+    "publisher": "LogMeIn",
+    "version": "15.2.6",
+    "description": "FIS_LogMeIn_BoldChat_15.2.6",
+    "fileName": "BoldChat Operator Client__a4954ea4-3a6e-4d52-ae41-4e82e9efe619.json"
+  },
+  {
+    "appId": "ac3c65a0-f40f-4913-8c45-acc2a2903f5e",
+    "displayName": "BranchSuiteServices",
+    "publisher": "Fiserv",
+    "version": "24.1.0",
+    "description": "Before installing this Fiserv_BranchSuiteServices_24.1.0.23 application,\nFiserv_BSServicesCertInstaller_23.3 needs to be installed first.",
+    "fileName": "BranchSuiteServices__ac3c65a0-f40f-4913-8c45-acc2a2903f5e.json"
+  },
+  {
+    "appId": "5f95e39e-9549-488d-94d6-2b6bf14d38a6",
+    "displayName": "Brand Test Tool (BTT)",
+    "publisher": "Fime",
+    "version": "5.8.0v2",
+    "description": "v2.0_ pls Install in the same sequence as mentioned.\n\n1. Fime_ConclusionRuntimeEnvironment_5.0.0 ( fime CRE )  should be installed.\n2.  Brand Test Tool (BTT) 5.8.0 should be installed.",
+    "fileName": "Brand Test Tool (BTT)__5f95e39e-9549-488d-94d6-2b6bf14d38a6.json"
+  },
+  {
+    "appId": "c9493150-3823-4984-ad54-4f3366a5dbd2",
+    "displayName": "Brand Test Tool (BTT)",
+    "publisher": "fime",
+    "version": "5.8.0",
+    "description": "Before Installing do install the Conclusion Runtime Environment (CRE) 5.0.0 app.\n\nApplication installation will be done in user Interactive mode.\n\nFIS_Fime_BrandTestTool_5.8.0",
+    "fileName": "Brand Test Tool (BTT)__c9493150-3823-4984-ad54-4f3366a5dbd2.json"
+  },
+  {
+    "appId": "11e42fc7-761a-4d7a-8be2-aea35c59c976",
+    "displayName": "BS Services Cert Installer",
+    "publisher": "Fiserv",
+    "version": "25.3.0",
+    "description": "FIS_Fiserv_BSServicesCertInstaller_25.3.0",
+    "fileName": "BS Services Cert Installer__11e42fc7-761a-4d7a-8be2-aea35c59c976.json"
+  },
+  {
+    "appId": "f46420da-094a-43b8-aa16-374bc4af489c",
+    "displayName": "Burp Suite Community Edition",
+    "publisher": "PortSwigger",
+    "version": "2023.10.2",
+    "description": "FIS_PortSwigger_BurpSuiteCommunityEdition_2023.10.2",
+    "fileName": "Burp Suite Community Edition__f46420da-094a-43b8-aa16-374bc4af489c.json"
+  },
+  {
+    "appId": "61a6de2a-ab9b-409a-9a8c-52cc5dd3e8f3",
+    "displayName": "BusinessObjects BI 4.3 SP4 Patch 5 Client Tools",
+    "publisher": "SAP",
+    "version": "14.3.4.4970",
+    "description": "Application will install on user interactive mode.\n\nFIS_SAP_BusinessObjectsBIplatform4.3ClientToolsSP4Patch5_14.3.4",
+    "fileName": "BusinessObjects BI 4.3 SP4 Patch 5 Client Tools__61a6de2a-ab9b-409a-9a8c-52cc5dd3e8f3.json"
+  },
+  {
+    "appId": "73fe4bc8-93d6-4ec4-8e56-4aa80f555d3b",
+    "displayName": "C-CURE 9000",
+    "publisher": "Software House",
+    "version": "2.90.5085",
+    "description": "FIS_SoftwareHouse_C·CURE9000Client_2.90.5085v1.1",
+    "fileName": "C-CURE 9000__73fe4bc8-93d6-4ec4-8e56-4aa80f555d3b.json"
+  },
+  {
+    "appId": "5c96f592-f8d8-4428-8afb-ca93268df404",
+    "displayName": "CA Open Workbench",
+    "publisher": "CA Technologies",
+    "version": "2.1.2",
+    "description": "FIS_CATechnologies_OpenWorkbench_2.1.2",
+    "fileName": "CA Open Workbench__5c96f592-f8d8-4428-8afb-ca93268df404.json"
+  },
+  {
+    "appId": "5f607b14-b357-4c90-abe7-5a8d8dbdac8b",
+    "displayName": "Camunda Modeler",
+    "publisher": "Camunda",
+    "version": "5.44.0 ",
+    "description": "Camunda_CamundaModeler_5.44.0",
+    "fileName": "Camunda Modeler__5f607b14-b357-4c90-abe7-5a8d8dbdac8b.json"
+  },
+  {
+    "appId": "a3a7cb64-8a0d-4c5b-a1e4-3f181f6bb222",
+    "displayName": "Card Activation PROD",
+    "publisher": "Fiserv",
+    "version": "2.0.11",
+    "description": "FIS_FDC_CardActivationPROD_2.0.11",
+    "fileName": "Card Activation PROD__a3a7cb64-8a0d-4c5b-a1e4-3f181f6bb222.json"
+  },
+  {
+    "appId": "cd4aa955-d970-4731-a5dd-5628da4d5d12",
+    "displayName": "Card Activation PROD",
+    "publisher": "Fiserv",
+    "version": "2.0.14",
+    "description": "FDC_CardActivationPROD_2.0.14",
+    "fileName": "Card Activation PROD__cd4aa955-d970-4731-a5dd-5628da4d5d12.json"
+  },
+  {
+    "appId": "db7bd72d-f10f-4308-84f7-fe2059ee4109",
+    "displayName": "CardAct QAT",
+    "publisher": "Fiserv",
+    "version": "2.0.14",
+    "description": "FIS_Fiserv_CARDACT-QAT_2.0.14",
+    "fileName": "CardAct QAT__db7bd72d-f10f-4308-84f7-fe2059ee4109.json"
+  },
+  {
+    "appId": "a4891b66-8a33-47ad-ad5c-38ba5071652b",
+    "displayName": "CardInk Client",
+    "publisher": "Cryptomathic",
+    "version": "4.1.0",
+    "description": "Cryptomathic_CardInkClient_4.1",
+    "fileName": "CardInk Client__a4891b66-8a33-47ad-ad5c-38ba5071652b.json"
+  },
+  {
+    "appId": "fc4517e5-fb60-45ea-b0d0-a3e996a87dd2",
+    "displayName": "Charles Proxy",
+    "publisher": "XK72",
+    "version": "5.0.3",
+    "description": "SCM\n\nFIS_XK72_CharlesProxy_5.0.3",
+    "fileName": "Charles Proxy__fc4517e5-fb60-45ea-b0d0-a3e996a87dd2.json"
+  },
+  {
+    "appId": "47b04a78-ffa5-4353-906f-9e2a5daceb3a",
+    "displayName": "Check Point Endpoint Security VPN",
+    "publisher": "Check Point Software",
+    "version": "98.61.5912",
+    "description": "EFTPS_CheckPoint_EndpointSecurityVPNE88.7_98.61.5912\n\nFIS_CheckPoint_EndpointSecurityVPNE88.7_98.61.5912",
+    "fileName": "Check Point Endpoint Security VPN__47b04a78-ffa5-4353-906f-9e2a5daceb3a.json"
+  },
+  {
+    "appId": "2a6bd7ae-8575-499a-93f3-c6cfad791dd4",
+    "displayName": "Check Point VPN",
+    "publisher": "Check Point Software",
+    "version": "98.61.2502",
+    "description": "https://www.checkpoint.com/",
+    "fileName": "Check Point VPN__2a6bd7ae-8575-499a-93f3-c6cfad791dd4.json"
+  },
+  {
+    "appId": "e79768da-e3a3-446e-9fd4-9018dc26fb86",
+    "displayName": "CID",
+    "publisher": "Corporativo Merlos",
+    "version": "10.2",
+    "description": "SCM\n\nVersion : 10.2\n\nContrato de Intercambio Domestico",
+    "fileName": "CID__e79768da-e3a3-446e-9fd4-9018dc26fb86.json"
+  },
+  {
+    "appId": "f7649b3e-8c75-413b-b530-c968a1ce18d3",
+    "displayName": "Cisco Secure Client - AnyConnect VPN",
+    "publisher": "Cisco Systems, Inc.",
+    "version": "5.1.7.80",
+    "description": "This application is approved for Fiserv use.",
+    "fileName": "Cisco Secure Client - AnyConnect VPN__f7649b3e-8c75-413b-b530-c968a1ce18d3.json"
+  },
+  {
+    "appId": "a3c95445-dc73-4204-aa80-84cd4ccd7bb7",
+    "displayName": "CLareti 24 Integration Objects Studio",
+    "publisher": "Gresham Technologies plc",
+    "version": "4.12.9",
+    "description": "FIS_GreshamTechnologiesplc_CLareti24IntegrationObjectsStudio_4.12.9",
+    "fileName": "CLareti 24 Integration Objects Studio__a3c95445-dc73-4204-aa80-84cd4ccd7bb7.json"
+  },
+  {
+    "appId": "5b9e013e-4d46-49f0-80f1-0c3466f3ac1d",
+    "displayName": "Clear Touch Document Editor",
+    "publisher": "Compliancesystem",
+    "version": "4.6.0",
+    "description": "FIS_Compliancesystem_CDECustom_4.6.0",
+    "fileName": "Clear Touch Document Editor__5b9e013e-4d46-49f0-80f1-0c3466f3ac1d.json"
+  },
+  {
+    "appId": "d18314b6-d168-44df-be0f-e9bd4a562290",
+    "displayName": "Client360 Studio",
+    "publisher": "Fiserv",
+    "version": "1.2.20",
+    "description": "FIS_Fiserv_ClientStudio360_1.2.20",
+    "fileName": "Client360 Studio__d18314b6-d168-44df-be0f-e9bd4a562290.json"
+  },
+  {
+    "appId": "1991b687-6e6e-4d13-903c-189dafaa3070",
+    "displayName": "Clink",
+    "publisher": "ChristopherAntos",
+    "version": "v1.4.23",
+    "description": "FIS_ChristopherAntos_Clink_v1.4.23",
+    "fileName": "Clink__1991b687-6e6e-4d13-903c-189dafaa3070.json"
+  },
+  {
+    "appId": "84d00b90-db2a-48b0-9d52-4b37eac18670",
+    "displayName": "Cloud Foundry Foundation CLI",
+    "publisher": "CloudFoundryFoundation",
+    "version": "8.9.0",
+    "description": "FIS_CloudFoundryFoundation_CLI_8.9.0",
+    "fileName": "Cloud Foundry Foundation CLI__84d00b90-db2a-48b0-9d52-4b37eac18670.json"
+  },
+  {
+    "appId": "45dcd362-50d9-4afa-a3e0-403f93c1dda3",
+    "displayName": "CMake",
+    "publisher": "Kitware",
+    "version": "3.31.2",
+    "description": "FIS_Kitware_CMake_3.31.2",
+    "fileName": "CMake__45dcd362-50d9-4afa-a3e0-403f93c1dda3.json"
+  },
+  {
+    "appId": "8e2cf7d3-0e14-4522-a9d7-1beac0656902",
+    "displayName": "CMS Supervisor",
+    "publisher": "Avaya",
+    "version": "20.00.02",
+    "description": "FIS_Avaya_CMSSupervisor_20.00.028",
+    "fileName": "CMS Supervisor__8e2cf7d3-0e14-4522-a9d7-1beac0656902.json"
+  },
+  {
+    "appId": "39bea63d-0fb4-44de-8ceb-bd7eaf992600",
+    "displayName": "Coder Desktop",
+    "publisher": "CoderTechnologies",
+    "version": "0.6.3",
+    "description": "FIS_CoderTechnologies_CoderDesktop_0.6.3",
+    "fileName": "Coder Desktop__39bea63d-0fb4-44de-8ceb-bd7eaf992600.json"
+  },
+  {
+    "appId": "2639ea90-49e3-4d59-8ded-eb152e1b53c8",
+    "displayName": "Cognos Framework Manager (IBM Cognos BI)",
+    "publisher": "IBM",
+    "version": "11.2.4",
+    "description": "SCM\n\nFIS_IBM_CognosFrameworkManager_PROD_11.2.4",
+    "fileName": "Cognos Framework Manager (IBM Cognos BI)__2639ea90-49e3-4d59-8ded-eb152e1b53c8.json"
+  },
+  {
+    "appId": "054f7c37-84d1-42dc-b9ae-07afbfdd2299",
+    "displayName": "ColetorDeEvidencias",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "Fiserv_ColetorDeEvidencias_1.0.0",
+    "fileName": "ColetorDeEvidencias__054f7c37-84d1-42dc-b9ae-07afbfdd2299.json"
+  },
+  {
+    "appId": "d1bdb093-c6b7-4cfe-adb3-b213e84c4787",
+    "displayName": "Command Line Interface(CLI)",
+    "publisher": "CloudFoundryFoundation",
+    "version": "8.17.0",
+    "description": "CloudFoundryFoundation_CLI_8.17.0",
+    "fileName": "Command Line Interface(CLI)__d1bdb093-c6b7-4cfe-adb3-b213e84c4787.json"
+  },
+  {
+    "appId": "9245e54a-3a81-4fa4-a4e0-998301dd02e9",
+    "displayName": "Communicator for Signature for CMDEV",
+    "publisher": "Fiserv",
+    "version": "25.1.0",
+    "description": "FIS_Fiserv_CommunicatorforSignature_25.1.0\n\nBefore installing the application, please ensure that Microsoft_ASP.NETCoreRuntime_8.0.2 is installed on your system",
+    "fileName": "Communicator for Signature for CMDEV__9245e54a-3a81-4fa4-a4e0-998301dd02e9.json"
+  },
+  {
+    "appId": "47ee580a-db75-49b5-be3d-3ebaccb305c1",
+    "displayName": "Composer LaunchPad 2",
+    "publisher": "Alvaria",
+    "version": "118.20.8",
+    "description": "FIS_NobleSystems_ComposerLaunchPad2_118.20.8",
+    "fileName": "Composer LaunchPad 2__47ee580a-db75-49b5-be3d-3ebaccb305c1.json"
+  },
+  {
+    "appId": "fb71f5fc-1e8c-42d7-b05a-fd23a14e07b9",
+    "displayName": "Configuration Manager Support Center",
+    "publisher": "Microsoft",
+    "version": "5.2309.1116.1000",
+    "description": "Configuration Manager Support Center",
+    "fileName": "Configuration Manager Support Center__fb71f5fc-1e8c-42d7-b05a-fd23a14e07b9.json"
+  },
+  {
+    "appId": "6d4a7596-ed2f-47e2-8f45-40dcc26b7811",
+    "displayName": "Content Manager OnDemand",
+    "publisher": "IBM",
+    "version": "10.5.0",
+    "description": "FIS_IBM_ContentManagerOnDemand_10.5.0",
+    "fileName": "Content Manager OnDemand__6d4a7596-ed2f-47e2-8f45-40dcc26b7811.json"
+  },
+  {
+    "appId": "47567a01-b5f7-4757-8cfb-86ccc256215a",
+    "displayName": "Control-M Client",
+    "publisher": "BMC Software",
+    "version": "9.0.21",
+    "description": "BMC Software_Control-MClient_9.0.21.300\n\nInstall Java SE Development Kit (JDK) 25.0.1.0 Version  before Install Control-M Client",
+    "fileName": "Control-M Client__47567a01-b5f7-4757-8cfb-86ccc256215a.json"
+  },
+  {
+    "appId": "f3221027-87e0-4c82-9bfc-a6f1153373ef",
+    "displayName": "Control-M Conversion Tool",
+    "publisher": "BMC Software",
+    "version": "9.0.20",
+    "description": "FIS_BMCSoftware_Control-MConversionTool_9.0.20",
+    "fileName": "Control-M Conversion Tool__f3221027-87e0-4c82-9bfc-a6f1153373ef.json"
+  },
+  {
+    "appId": "6c48c68b-c5b9-4d47-9fc0-bf82feb1f6a1",
+    "displayName": "Conversions PCF Utility",
+    "publisher": "Fiserv",
+    "version": "2.5.0",
+    "description": "FIS_Fiserv_ConversionsPCFUtility_2.5.0",
+    "fileName": "Conversions PCF Utility__6c48c68b-c5b9-4d47-9fc0-bf82feb1f6a1.json"
+  },
+  {
+    "appId": "5b97fc3e-7dbd-4f6e-93e6-f5f4c36c9a6a",
+    "displayName": "CorelDRAW Graphics Suite",
+    "publisher": "Corel",
+    "version": "24.5.0",
+    "description": "SCM",
+    "fileName": "CorelDRAW Graphics Suite__5b97fc3e-7dbd-4f6e-93e6-f5f4c36c9a6a.json"
+  },
+  {
+    "appId": "ea6e7bb4-f83c-473c-96ed-b2a290b5f9cf",
+    "displayName": "Corp SecurePrint for Bangalore",
+    "publisher": "Fiserv",
+    "version": "2.3.0",
+    "description": "Maps printer for users in Bangalore",
+    "fileName": "Corp SecurePrint for Bangalore__ea6e7bb4-f83c-473c-96ed-b2a290b5f9cf.json"
+  },
+  {
+    "appId": "837e4049-8843-47b9-a34e-e20318c62932",
+    "displayName": "Corp SecurePrint for Noida/ Gurugram",
+    "publisher": "Fiserv",
+    "version": "2.3.0",
+    "description": "Maps printer for users in Noida/ Gurugram",
+    "fileName": "Corp SecurePrint for Noida_ Gurugram__837e4049-8843-47b9-a34e-e20318c62932.json"
+  },
+  {
+    "appId": "53edd779-74be-4fc7-a92e-926ab63a9aa1",
+    "displayName": "CPT",
+    "publisher": "Barnes International",
+    "version": "4.3.0.129 ",
+    "description": "Before installing the main application, please install this Microsoft_ASP.NETCore8.0.20SharedFrameworkx64_8.0.20.25420",
+    "fileName": "CPT__53edd779-74be-4fc7-a92e-926ab63a9aa1.json"
+  },
+  {
+    "appId": "2d409942-8a13-4667-9f1a-c782209c81b9",
+    "displayName": "Creative Cloud",
+    "publisher": "Adobe",
+    "version": "5.10.0",
+    "description": "FIS_Adobe_CreativeCloud_5.10.0",
+    "fileName": "Creative Cloud__2d409942-8a13-4667-9f1a-c782209c81b9.json"
+  },
+  {
+    "appId": "2f82a460-16e7-4213-bf3c-34d7836d6a5e",
+    "displayName": "Crestron DM NVX Tool",
+    "publisher": "CrestronElectronics",
+    "version": "4.3.2",
+    "description": "SCM\n\nCrestronElectronics_DMNVXTool_4.3.2",
+    "fileName": "Crestron DM NVX Tool__2f82a460-16e7-4213-bf3c-34d7836d6a5e.json"
+  },
+  {
+    "appId": "f4044cba-0a0e-4f13-97ba-75ba3ca62215",
+    "displayName": "Crestron Remote",
+    "publisher": "Crestron",
+    "version": "1.11.00",
+    "description": "Crestron CrestronRemote 1.11.00",
+    "fileName": "Crestron Remote__f4044cba-0a0e-4f13-97ba-75ba3ca62215.json"
+  },
+  {
+    "appId": "7a55e44e-aff0-4b1f-8233-6d42a0206bb4",
+    "displayName": "Cross Domain Search App",
+    "publisher": "Fiserv",
+    "version": "1.0.1",
+    "description": "FIS_Fiserv_AOSCrossDomainSearchApp_1.0.1",
+    "fileName": "Cross Domain Search App__7a55e44e-aff0-4b1f-8233-6d42a0206bb4.json"
+  },
+  {
+    "appId": "83665784-863d-4369-a82a-0972495782fc",
+    "displayName": "Crowdstrike Windows Sensor",
+    "publisher": "CrowdStrike",
+    "version": "7.33.20505",
+    "description": "CrowdStrike_CrowdStrikeWindowsSensor_7.33.20505.0",
+    "fileName": "Crowdstrike Windows Sensor__83665784-863d-4369-a82a-0972495782fc.json"
+  },
+  {
+    "appId": "062d8b09-7154-482d-b69a-0cfaa57a0faa",
+    "displayName": "Cryptocard Graphite card application",
+    "publisher": "Crypto Tech",
+    "version": "4.2.1",
+    "description": "While installing application is userintractive mode",
+    "fileName": "Cryptocard Graphite card application__062d8b09-7154-482d-b69a-0cfaa57a0faa.json"
+  },
+  {
+    "appId": "084ff4dd-2a50-44e9-ad9e-1075a914782d",
+    "displayName": "CryptoID Certificate Utility",
+    "publisher": "LongmaiTechnology",
+    "version": "2.3.24",
+    "description": "FIS_LongmaiTechnology_CryptoID_2.3.24",
+    "fileName": "CryptoID Certificate Utility__084ff4dd-2a50-44e9-ad9e-1075a914782d.json"
+  },
+  {
+    "appId": "2279dfaf-6a6f-47d2-be25-bb9b78affec0",
+    "displayName": "Crystal Reports for Enterprise",
+    "publisher": "SAP",
+    "version": "14.3.1",
+    "description": "FIS_SAP_CrystalReportforEnterprise_14.3.1",
+    "fileName": "Crystal Reports for Enterprise__2279dfaf-6a6f-47d2-be25-bb9b78affec0.json"
+  },
+  {
+    "appId": "d7c9c916-a995-4f0c-8f63-60cf584a94ea",
+    "displayName": "CS-Cockpit",
+    "publisher": "CS Software Consulting and Services GmbH",
+    "version": "11.0.8",
+    "description": "FIS_CSSoftwareConsultingandServicesGmbH_Cockpitversion_11.0.8\nVersion : 11.0.8.005",
+    "fileName": "CS-Cockpit__d7c9c916-a995-4f0c-8f63-60cf584a94ea.json"
+  },
+  {
+    "appId": "3ee8225b-de3b-4570-a46c-c4a95aede868",
+    "displayName": "Cure Desktop",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_CureDesktop_1.0.0",
+    "fileName": "Cure Desktop__3ee8225b-de3b-4570-a46c-c4a95aede868.json"
+  },
+  {
+    "appId": "a162c330-2402-4e0b-ab35-828fad047856",
+    "displayName": "Cure Engine",
+    "publisher": "Fiserv",
+    "version": "1.0",
+    "description": "FIS_Fiserv_CureEngine_1.0",
+    "fileName": "Cure Engine__a162c330-2402-4e0b-ab35-828fad047856.json"
+  },
+  {
+    "appId": "a8c95239-1da1-4850-b95c-51fa22326607",
+    "displayName": "Cyber Shield Dot Net",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_CyberShield_1.0.0",
+    "fileName": "Cyber Shield Dot Net__a8c95239-1da1-4850-b95c-51fa22326607.json"
+  },
+  {
+    "appId": "010b3abf-6951-4ebd-9b07-07a8fafbbc71",
+    "displayName": "CyberArk Bastion RDP",
+    "publisher": "CyberArk",
+    "version": "1.1",
+    "description": "FIS_CyberArk_BastionRDP_1.1",
+    "fileName": "CyberArk Bastion RDP__010b3abf-6951-4ebd-9b07-07a8fafbbc71.json"
+  },
+  {
+    "appId": "d3744b74-a7b8-4bfd-b65a-1edfdb29c623",
+    "displayName": "CyberArk_CyberArkEPM_25.12.0.2827",
+    "publisher": "CyberArk",
+    "version": "25.12.0.2827",
+    "description": "CyberArk EPM Agent for Fead.One workstations",
+    "fileName": "CyberArk_CyberArkEPM_25.12.0.2827__d3744b74-a7b8-4bfd-b65a-1edfdb29c623.json"
+  },
+  {
+    "appId": "8ebcaea1-e954-4a74-9f2c-53922067757a",
+    "displayName": "CyberArk_CyberArkEPM_25.6.0.2589_SAW",
+    "publisher": "CyberArk",
+    "version": "25.6.0.2589",
+    "description": "CyberArk EPM Agent for SAW",
+    "fileName": "CyberArk_CyberArkEPM_25.6.0.2589_SAW__8ebcaea1-e954-4a74-9f2c-53922067757a.json"
+  },
+  {
+    "appId": "8672599f-ff7a-4061-a8e0-fd23d90457e9",
+    "displayName": "Cycleview",
+    "publisher": "Fiserv",
+    "version": "2.6.0",
+    "description": "FIS_Fiserv_Cycleview_2.6.0v1",
+    "fileName": "Cycleview__8672599f-ff7a-4061-a8e0-fd23d90457e9.json"
+  },
+  {
+    "appId": "bcfe50db-bfeb-4cdf-b164-b877f9a9315c",
+    "displayName": "Cygwin",
+    "publisher": "Cygnus Solutions",
+    "version": "3.4.9",
+    "description": "FIS_CygnusSolutions_Cygwin64_3.4.9\n\nInstallation will proceed in an User interactive mode, requiring user engagement.",
+    "fileName": "Cygwin__bcfe50db-bfeb-4cdf-b164-b877f9a9315c.json"
+  },
+  {
+    "appId": "d2e69c86-3cd0-4d28-801a-5cb36af09e26",
+    "displayName": "Cypher Shell",
+    "publisher": "Neo4J",
+    "version": "5.25.1",
+    "description": "Neo4J CypherShell 5.25.1\n\nInstall Neo4j_Neo4jDesktop_1.6.1 before installing this application",
+    "fileName": "Cypher Shell__d2e69c86-3cd0-4d28-801a-5cb36af09e26.json"
+  },
+  {
+    "appId": "84facab2-8ccf-4407-af33-fa216eed64dc",
+    "displayName": "Dante Controller",
+    "publisher": "Audinate",
+    "version": "4.16.1",
+    "description": "FIS_Audinate_DanteController_4.16.1",
+    "fileName": "Dante Controller__84facab2-8ccf-4407-af33-fa216eed64dc.json"
+  },
+  {
+    "appId": "e4d3a6fb-6423-468d-aa19-ee9f6225a05c",
+    "displayName": "Data Compare",
+    "publisher": "Fiserv",
+    "version": "2.9.0",
+    "description": "FIS_Fiserv_DataCompare_2.9.0",
+    "fileName": "Data Compare__e4d3a6fb-6423-468d-aa19-ee9f6225a05c.json"
+  },
+  {
+    "appId": "20b9f0f5-afc8-41eb-beb6-93ac722fed8e",
+    "displayName": "Data Import ExcelAdd-in",
+    "publisher": "Thomson Reuters",
+    "version": "21.0.0",
+    "description": "SCM\nThomsonReuters_DataImportExcelAdd-in_21.0.0",
+    "fileName": "Data Import ExcelAdd-in__20b9f0f5-afc8-41eb-beb6-93ac722fed8e.json"
+  },
+  {
+    "appId": "1fa769df-5f77-468c-b06b-8cceb183f933",
+    "displayName": "Data Loader",
+    "publisher": "Salesforce",
+    "version": "65.0.0 ",
+    "description": "Oracle_JavaSEDevelopmentKit_21.0.7.0 needs to be Installed.\n\nSalesforce_Dataloader_65.0.0",
+    "fileName": "Data Loader__1fa769df-5f77-468c-b06b-8cceb183f933.json"
+  },
+  {
+    "appId": "f514d560-cfbb-42d3-9ce8-fe0e76695315",
+    "displayName": "Databricks CLI",
+    "publisher": "Databricks",
+    "version": "0.212.4",
+    "description": "FIS_Databricks_DatabricksCLI_0.212.4",
+    "fileName": "Databricks CLI__f514d560-cfbb-42d3-9ce8-fe0e76695315.json"
+  },
+  {
+    "appId": "0f356d0b-1cb0-46ea-9554-8279096ae126",
+    "displayName": "DataLoad",
+    "publisher": "JD Stuart Ltd",
+    "version": "5.5.0",
+    "description": "FIS_JDStuartLtd_DataLoad_5.5.0",
+    "fileName": "DataLoad__0f356d0b-1cb0-46ea-9554-8279096ae126.json"
+  },
+  {
+    "appId": "7c887984-d27a-4d75-b5f6-6e0b89c6c953",
+    "displayName": "DAX Studio",
+    "publisher": "DAX",
+    "version": "3.4.0",
+    "description": "DAXStudio_DAXStudio_3.4.0.1135",
+    "fileName": "DAX Studio__7c887984-d27a-4d75-b5f6-6e0b89c6c953.json"
+  },
+  {
+    "appId": "c78146a9-fdb5-4872-ba19-b53f5c20446d",
+    "displayName": "DB Browser for SQLite",
+    "publisher": "DBBrowserforSQLiteTeam_",
+    "version": "3.13.1",
+    "description": "FIS_DBBrowserforSQLiteTeam_DBBrowserforSQLite_3.13.1",
+    "fileName": "DB Browser for SQLite__c78146a9-fdb5-4872-ba19-b53f5c20446d.json"
+  },
+  {
+    "appId": "40b5ecef-f396-4ff7-9785-5e13f39df6c4",
+    "displayName": "DCC Scanner Driver Bundle",
+    "publisher": "Wausau Financial",
+    "version": "1.0.0",
+    "description": "FIS_WausauFinancial_DCCScannerDriverBundle_1.0.0",
+    "fileName": "DCC Scanner Driver Bundle__40b5ecef-f396-4ff7-9785-5e13f39df6c4.json"
+  },
+  {
+    "appId": "14fb3f45-cc22-409c-bcd9-119b6046125a",
+    "displayName": "DDL",
+    "publisher": "Verifone",
+    "version": "2.0.0",
+    "description": "FIS_Verifone_DDL_2.0.0",
+    "fileName": "DDL__14fb3f45-cc22-409c-bcd9-119b6046125a.json"
+  },
+  {
+    "appId": "492502e6-e8ef-46d6-be04-d97c898e92b3",
+    "displayName": "Dialer - Rapid Voltage Prerequisite",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_Dialer-RapidVoltagePrerequisite_1.0.0_v1.0",
+    "fileName": "Dialer - Rapid Voltage Prerequisite__492502e6-e8ef-46d6-be04-d97c898e92b3.json"
+  },
+  {
+    "appId": "cc994fa5-2453-4ee1-ab43-2f91dd664c4f",
+    "displayName": "Dialer Workstation (FDPD)",
+    "publisher": "Fiserv",
+    "version": "5.3.22",
+    "description": "\"Dialer Prerequisite\" will be installed as dependency.",
+    "fileName": "Dialer Workstation (FDPD)__cc994fa5-2453-4ee1-ab43-2f91dd664c4f.json"
+  },
+  {
+    "appId": "4f9ec355-4f9e-4ad9-bc7b-551a8680e312",
+    "displayName": "DigiCert Certificate Utility For Windows",
+    "publisher": "DigiCert",
+    "version": "2.3.5",
+    "description": "FIS_DigiCert_DigiCertCertificateUtilityForWindows_2.3.5",
+    "fileName": "DigiCert Certificate Utility For Windows__4f9ec355-4f9e-4ad9-bc7b-551a8680e312.json"
+  },
+  {
+    "appId": "7c011f34-881f-41b2-b4f7-9c4eb8facb6f",
+    "displayName": "Dimensions CM Client",
+    "publisher": "MicroFocus",
+    "version": "14.6.0",
+    "description": "SCM\n\nFIS_MicroFocus_DimensionsCMClients_14.6.0",
+    "fileName": "Dimensions CM Client__7c011f34-881f-41b2-b4f7-9c4eb8facb6f.json"
+  },
+  {
+    "appId": "2257331b-2b97-4fd7-a038-a5bb3a42a01f",
+    "displayName": "Director",
+    "publisher": "Fiserv",
+    "version": "20.3.68",
+    "description": "FIS_Fiserv_Director_PDS1771_20.3.68",
+    "fileName": "Director__2257331b-2b97-4fd7-a038-a5bb3a42a01f.json"
+  },
+  {
+    "appId": "25ec8654-8c16-4d76-8077-933c18b218b0",
+    "displayName": "Directory Studio",
+    "publisher": "Apache",
+    "version": "2.0.0-M17",
+    "description": "FIS_Apache_DirectoryStudio_2.0.0-M17",
+    "fileName": "Directory Studio__25ec8654-8c16-4d76-8077-933c18b218b0.json"
+  },
+  {
+    "appId": "d42894b4-7193-4bf3-a3d6-1999ee58b08c",
+    "displayName": "Display Manager",
+    "publisher": "Dell",
+    "version": "2.3.0.19",
+    "description": "FIS_Dell_DisplayManager_2.3.0.19",
+    "fileName": "Display Manager__d42894b4-7193-4bf3-a3d6-1999ee58b08c.json"
+  },
+  {
+    "appId": "654bbc93-a8f0-4302-84a5-a63c606564cc",
+    "displayName": "DNA Api Editor",
+    "publisher": "Fiserv",
+    "version": "1.0.1",
+    "description": "FIS_Fiserv_DNAApiEditor_1.0.1",
+    "fileName": "DNA Api Editor__654bbc93-a8f0-4302-84a5-a63c606564cc.json"
+  },
+  {
+    "appId": "81393e14-9262-4418-85be-59f13f523327",
+    "displayName": "DNAcreator",
+    "publisher": "Fiserv",
+    "version": "25.2.20",
+    "description": "Before installing the application, the latest version of Visual Studio Professional 2022 must be installed. The application installs in user‑interactive mode\n\nFiserv_DNACreator_25.2.20",
+    "fileName": "DNAcreator__81393e14-9262-4418-85be-59f13f523327.json"
+  },
+  {
+    "appId": "357c65c5-55e5-4ef0-a8ea-7d5ef885f996",
+    "displayName": "DNAX Validator",
+    "publisher": "Fiserv",
+    "version": "2024.0.0",
+    "description": "FIS_Fiserv_DNAXValidator_2024.0.0",
+    "fileName": "DNAX Validator__357c65c5-55e5-4ef0-a8ea-7d5ef885f996.json"
+  },
+  {
+    "appId": "653ddd8e-7ed9-44a7-8073-da5598929c53",
+    "displayName": "DocBridge Workbench for Pilot",
+    "publisher": "Compart AG",
+    "version": "4.1.0",
+    "description": "CompartAG_DocBridgeWorkbenchforPilot_4-1-0",
+    "fileName": "DocBridge Workbench for Pilot__653ddd8e-7ed9-44a7-8073-da5598929c53.json"
+  },
+  {
+    "appId": "7ea021ed-2cf3-493a-843d-c247ba7c2c93",
+    "displayName": "Docker Desktop",
+    "publisher": "Docker",
+    "version": "4.59.0",
+    "description": "Reboot is required after installation and Uninstallation.\n\nPlease install \"Windows Subsystem for Linux Update v2.6.3\" belfore installing this application\n\nTSA SCM\n\nDocker_DockerDesktop_4.59.0",
+    "fileName": "Docker Desktop__7ea021ed-2cf3-493a-843d-c247ba7c2c93.json"
+  },
+  {
+    "appId": "300a66ee-83ac-4b56-861b-9055f336cd0a",
+    "displayName": "DocPlus Signature App",
+    "publisher": "Fiserv",
+    "version": "5.5.1.522",
+    "description": "Prism_DocPlusSignatureApp_5.5.1.522",
+    "fileName": "DocPlus Signature App__300a66ee-83ac-4b56-861b-9055f336cd0a.json"
+  },
+  {
+    "appId": "383928d8-7e67-4d67-b922-761d7e1f4e1a",
+    "displayName": "Document Direct",
+    "publisher": "Mobius Management Systems",
+    "version": "4.4.0",
+    "description": "FIS_MobiusManagementSystems,Inc_DocumentDirect_4.4.0",
+    "fileName": "Document Direct__383928d8-7e67-4d67-b922-761d7e1f4e1a.json"
+  },
+  {
+    "appId": "7efa249e-6ec8-449b-ad95-4c337b0bbe13",
+    "displayName": "Document Direct - UK",
+    "publisher": "Mobius Management Systems",
+    "version": "4.4.0",
+    "description": "FIS_MobiusManagementSystems_DocumentDirect_UK_4.4.0",
+    "fileName": "Document Direct - UK__7efa249e-6ec8-449b-ad95-4c337b0bbe13.json"
+  },
+  {
+    "appId": "0039b7e7-783f-42b0-9055-d119a728d2e9",
+    "displayName": "Docusign PKI",
+    "publisher": "Docusign",
+    "version": "25.1.01",
+    "description": "FIS_Docusign_DocusignPKI_25.1.01.00",
+    "fileName": "Docusign PKI__0039b7e7-783f-42b0-9055-d119a728d2e9.json"
+  },
+  {
+    "appId": "196d8040-3e08-4108-85cf-8b67c31b99e7",
+    "displayName": "DriveMapper",
+    "publisher": "Fiserv",
+    "version": "1.1",
+    "description": "Tool used to map legacy drives post FEAD migration.",
+    "fileName": "DriveMapper__196d8040-3e08-4108-85cf-8b67c31b99e7.json"
+  },
+  {
+    "appId": "7a3e4a56-d479-4e11-b698-ae1d3c1ee844",
+    "displayName": "Driver for ScanShell 800DX",
+    "publisher": "GBG IDology",
+    "version": "1.4.3",
+    "description": "FIS_GBG IDology_Driver ForScanShell800DXTWAIN_1.4.3",
+    "fileName": "Driver for ScanShell 800DX__7a3e4a56-d479-4e11-b698-ae1d3c1ee844.json"
+  },
+  {
+    "appId": "9a98e13d-e2f2-41af-8431-233d75659908",
+    "displayName": "DSTP Client Framework",
+    "publisher": "Fiserv",
+    "version": "3.0.0",
+    "description": "FIS_Fiserv_DSTPClientFramework_3.0.0",
+    "fileName": "DSTP Client Framework__9a98e13d-e2f2-41af-8431-233d75659908.json"
+  },
+  {
+    "appId": "b82a344a-73aa-43ef-9071-92abac16c431",
+    "displayName": "DTEX Forwarder for Desktop",
+    "publisher": "DTEXSystems",
+    "version": "6.3.1005",
+    "description": "DTEX Forwarder for Desktop",
+    "fileName": "DTEX Forwarder for Desktop__b82a344a-73aa-43ef-9071-92abac16c431.json"
+  },
+  {
+    "appId": "f4d01d46-333e-4c3c-9cef-7c9471b333a6",
+    "displayName": "Dump Analyzer",
+    "publisher": "Fiserv",
+    "version": "23.1.0",
+    "description": "FIS_Fiserv_DumpAnalyzer_23.1.0.0",
+    "fileName": "Dump Analyzer__f4d01d46-333e-4c3c-9cef-7c9471b333a6.json"
+  },
+  {
+    "appId": "814e50d3-4cfc-48ba-bf96-97265931c368",
+    "displayName": "Early Warning",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_EarlyWarning_1.0.0",
+    "fileName": "Early Warning__814e50d3-4cfc-48ba-bf96-97265931c368.json"
+  },
+  {
+    "appId": "b0daa0e3-0d55-40cf-ad09-6370d4436661",
+    "displayName": "Easy-Mark Plus",
+    "publisher": "Panduit",
+    "version": "1.11.0",
+    "description": "SCM\n\nPanduit_Easy-MarkPlus_1.11.0.26",
+    "fileName": "Easy-Mark Plus__b0daa0e3-0d55-40cf-ad09-6370d4436661.json"
+  },
+  {
+    "appId": "20128d89-78c0-4973-bb37-7bf191121eda",
+    "displayName": "emSigner",
+    "publisher": "eMudhra Limited",
+    "version": "2.0.0",
+    "description": "SCM\n\nJava JRE should be installed proior.\n\nFIS_eMudhra_emSigner_2.0.0",
+    "fileName": "emSigner__20128d89-78c0-4973-bb37-7bf191121eda.json"
+  },
+  {
+    "appId": "c9a034c1-dccc-47d1-b4f3-cd1c6d0cf4ff",
+    "displayName": "ENGINAdm",
+    "publisher": "M2Systems Corp.",
+    "version": "7.0.0",
+    "description": "FIS_M2Systems_ENGIN_7.0.0",
+    "fileName": "ENGINAdm__c9a034c1-dccc-47d1-b4f3-cd1c6d0cf4ff.json"
+  },
+  {
+    "appId": "6af611af-fa88-47f7-b9cf-ab1fcc83fef1",
+    "displayName": "Epson Drivers and Utilites Combo Package Installer",
+    "publisher": "Epson",
+    "version": "4.1.0",
+    "description": "Application will install in User Interactive Mode.\n\nEpson_DriversandUtilitiesComboPackageInstaller_4.1.0",
+    "fileName": "Epson Drivers and Utilites Combo Package Installer__6af611af-fa88-47f7-b9cf-ab1fcc83fef1.json"
+  },
+  {
+    "appId": "ab4c4cdc-6927-4517-8380-1d29ff5f538c",
+    "displayName": "EPSON Port Communication Service",
+    "publisher": "SEIKOEPSONCORPORATION",
+    "version": "3.28.0",
+    "description": "Application Installation and Uninstallation is Interactive Mode",
+    "fileName": "EPSON Port Communication Service__ab4c4cdc-6927-4517-8380-1d29ff5f538c.json"
+  },
+  {
+    "appId": "0f1854e4-07a9-4131-acca-8f1ba236ee23",
+    "displayName": "EPSON TMUSB Driver 800d",
+    "publisher": "Epson",
+    "version": "8.00.0",
+    "description": "FIS_Epson_EPSONTMUSBDriver800d_8.00",
+    "fileName": "EPSON TMUSB Driver 800d__0f1854e4-07a9-4131-acca-8f1ba236ee23.json"
+  },
+  {
+    "appId": "78548e78-e2d8-4c05-af53-b0bc03142aa6",
+    "displayName": "ERC TPRM Python Tool SIG",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_ERCTPRMPythonToolSIG_1.0.0",
+    "fileName": "ERC TPRM Python Tool SIG__78548e78-e2d8-4c05-af53-b0bc03142aa6.json"
+  },
+  {
+    "appId": "20cc0d6e-c044-42c2-8363-7445ff490284",
+    "displayName": "ERC TPRM Python Tool SOC",
+    "publisher": "Fiserv",
+    "version": "1.0.0",
+    "description": "FIS_Fiserv_ERCTPRMPythonToolSOC_1.0.0",
+    "fileName": "ERC TPRM Python Tool SOC__20cc0d6e-c044-42c2-8363-7445ff490284.json"
+  },
+  {
+    "appId": "a6447484-d45d-4a70-b263-98ebe24ae34c",
+    "displayName": "Erlang OTP",
+    "publisher": "EricssonAB",
+    "version": "28.1.1",
+    "description": "FIS_EricssonAB_ErlangOTP_28.1.1",
+    "fileName": "Erlang OTP__a6447484-d45d-4a70-b263-98ebe24ae34c.json"
+  },
+  {
+    "appId": "6b71987f-9000-45b3-bc9b-4e6b2222c2a1",
+    "displayName": "ETC Helpdesk",
+    "publisher": "Fiserv",
+    "version": "7.2.0",
+    "description": "Fiserv_ETCHelpdesk_7.2.0\n\nNeed to be install Rocket_TerminalEmulatorX64_10.2.1.4940 packag before installing main package",
+    "fileName": "ETC Helpdesk__6b71987f-9000-45b3-bc9b-4e6b2222c2a1.json"
+  },
+  {
+    "appId": "da7e8a24-7a04-4f48-aaf4-7be8afbb3d3d",
+    "displayName": "Evolution",
+    "publisher": "Nexus",
+    "version": "25.00.0001",
+    "description": "FIS_Nexus_Evolution_25.00.0001",
+    "fileName": "Evolution__da7e8a24-7a04-4f48-aaf4-7be8afbb3d3d.json"
+  },
+  {
+    "appId": "b8215ec9-5455-4b4b-a7d0-e751018a206a",
+    "displayName": "Exstream",
+    "publisher": "OpenText",
+    "version": "21.2.0",
+    "description": "SCM\n\nFIS_OpenText_OpenTextExstream_21.2.0",
+    "fileName": "Exstream__b8215ec9-5455-4b4b-a7d0-e751018a206a.json"
+  },
+  {
+    "appId": "cdeeedfe-a87b-4e11-a5d3-177326f19a36",
+    "displayName": "Exstream AFP Viewer",
+    "publisher": "Open Text",
+    "version": "6.0.008",
+    "description": "FIS_OpenText_ExstreamAFPViewer_6.0.008",
+    "fileName": "Exstream AFP Viewer__cdeeedfe-a87b-4e11-a5d3-177326f19a36.json"
+  },
+  {
+    "appId": "c17901a0-3796-4ca1-9d7d-1c3d0d9cbed9",
+    "displayName": "Extractor",
+    "publisher": "Fiserv",
+    "version": "2.1.14",
+    "description": "FIS_Fiserv_Extractor_2.1.14",
+    "fileName": "Extractor__c17901a0-3796-4ca1-9d7d-1c3d0d9cbed9.json"
+  },
+  {
+    "appId": "39816a26-e5ac-47c8-bb9c-9eb7749ae493",
+    "displayName": "ezPiv Card",
+    "publisher": "Vanguard Integrity Professionals",
+    "version": "2.5.04",
+    "description": "FIS_VanguardIntegrityProfessionals_ezPivCard_2.5.04",
+    "fileName": "ezPiv Card__39816a26-e5ac-47c8-bb9c-9eb7749ae493.json"
+  },
+  {
+    "appId": "673b84ee-6a3c-4bc5-b4a5-937e1ad57e7c",
+    "displayName": "Fiddler Classic",
+    "publisher": "Progress Software Corporation",
+    "version": "5.0.20243",
+    "description": "FIS_ProgressSoftwareCorporation_FiddlerClassic_ 5.0.20243",
+    "fileName": "Fiddler Classic__673b84ee-6a3c-4bc5-b4a5-937e1ad57e7c.json"
+  },
+  {
+    "appId": "5eb208ad-2807-4c9f-a78d-7f3144d121ef",
+    "displayName": "FileLocator Pro",
+    "publisher": "Mythicsoft",
+    "version": "3406_9.2.3406",
+    "description": "FIS_Mythicsoft_FileLocatorPro_3406",
+    "fileName": "FileLocator Pro__5eb208ad-2807-4c9f-a78d-7f3144d121ef.json"
+  },
+  {
+    "appId": "b2aa57b9-4b9b-4048-9c7f-9e7a9990a897",
+    "displayName": "Fime Connector",
+    "publisher": "FIME",
+    "version": "5.9.0",
+    "description": "FIS_FIME_FimeConnector_5.9.0",
+    "fileName": "Fime Connector__b2aa57b9-4b9b-4048-9c7f-9e7a9990a897.json"
+  },
+  {
+    "appId": "34a92d20-9db6-4cfe-8d5a-8b3eacde6781",
+    "displayName": "Fime CRE",
+    "publisher": "fime",
+    "version": "5.0.0",
+    "description": "The application will install in user interactive mode.\n\nFIS_Fime_ConclusionRuntimeEnvironment(CRE)_5.0.0",
+    "fileName": "Fime CRE__34a92d20-9db6-4cfe-8d5a-8b3eacde6781.json"
+  },
+  {
+    "appId": "e13ff282-7943-4883-aba8-6b0b28e7116b",
+    "displayName": "Firma Digital OFB",
+    "publisher": "BancoGalicia",
+    "version": "1.0.7",
+    "description": "FIS_BancoGalicia_FirmaDigitalversion_1.0.7",
+    "fileName": "Firma Digital OFB__e13ff282-7943-4883-aba8-6b0b28e7116b.json"
+  },
+  {
+    "appId": "5acf46f2-67b1-4b30-ba35-ba106a49c0c0",
+    "displayName": "First Disputes Track Bundle",
+    "publisher": "Fiserv",
+    "version": "6.32.016",
+    "description": "FIS_Fiserv_First DisputesTrackBundle_6.32.016",
+    "fileName": "First Disputes Track Bundle__5acf46f2-67b1-4b30-ba35-ba106a49c0c0.json"
+  },
+  {
+    "appId": "00e57b3e-f91e-466a-9b1b-2739b1971eb9",
+    "displayName": "FlaUInspect",
+    "publisher": "Github",
+    "version": "3.0.0",
+    "description": "Before installing this application need to be installed Microsoft_.NETSDK8.0.408(x64)_8.4.825.16805 or Higher version\nFIS_Github_FlaUInspect_3.0.0",
+    "fileName": "FlaUInspect__00e57b3e-f91e-466a-9b1b-2739b1971eb9.json"
+  },
+  {
+    "appId": "4b72e4e4-1e2f-4f6c-815c-af8b6b5e0d73",
+    "displayName": "Fontlab 8",
+    "publisher": "FontLab",
+    "version": "8.3.0",
+    "description": "FIS_FontLab_FontLab8_8.3.0",
+    "fileName": "Fontlab 8__4b72e4e4-1e2f-4f6c-815c-af8b6b5e0d73.json"
+  },
+  {
+    "appId": "694d2b67-a883-40d8-8dda-c136885e687a",
+    "displayName": "Fortify SAST",
+    "publisher": "OpenText",
+    "version": "26.1.0",
+    "description": "Fortify SCA has been renamed to OpenText™ Static Application Security Testing (OpenText SAST)\n\nOpenText_StaticApplicationSecurityTestingFortify_26.1.0",
+    "fileName": "Fortify SAST__694d2b67-a883-40d8-8dda-c136885e687a.json"
+  },
+  {
+    "appId": "4289ff45-e3e0-4b0e-9643-b6ad61ef066e",
+    "displayName": "Fortify SCA",
+    "publisher": "OpenText",
+    "version": "25.3.0",
+    "description": "FIS_OpenText_StaticApplicationSecurityTestingFortifySCA_25.3.0",
+    "fileName": "Fortify SCA__4289ff45-e3e0-4b0e-9643-b6ad61ef066e.json"
+  },
+  {
+    "appId": "87e0f749-b427-4c7d-b161-275b552f668f",
+    "displayName": "Fortify Webinspect Macro Recorder",
+    "publisher": "OpenText",
+    "version": "25.2.0",
+    "description": "FIS_OpenText_DASTMacroRecorderCE25.2_25.2.0",
+    "fileName": "Fortify Webinspect Macro Recorder__87e0f749-b427-4c7d-b161-275b552f668f.json"
+  },
+  {
+    "appId": "5085762a-61f3-4272-8f32-10101430d7b3",
+    "displayName": "Foundry Datasets ODBC Driver",
+    "publisher": "Palantir",
+    "version": "3.5.0",
+    "description": "FIS_Palantir_FoundryODBCDriver_3.5.0",
+    "fileName": "Foundry Datasets ODBC Driver__5085762a-61f3-4272-8f32-10101430d7b3.json"
+  },
+  {
+    "appId": "fb88fbab-f094-49c5-bf52-59dbee811ece",
+    "displayName": "FrameMaker 2022",
+    "publisher": "Adobe",
+    "version": "17.0.5",
+    "description": "SCM\n\nApplication will be installed in User Interactive Mode and Device will get restarted post install and Uninstall.\n\nFIS_Adobe_FrameMaker2022_17.0.5",
+    "fileName": "FrameMaker 2022__fb88fbab-f094-49c5-bf52-59dbee811ece.json"
+  },
+  {
+    "appId": "70e0397d-a65c-4e3c-bfce-e95a0a597525",
+    "displayName": "Fraud Detection Work Center (FDWC)",
+    "publisher": "FirstData",
+    "version": "6.25.1.54",
+    "description": "FIS_FirstData_FDWCClient_6.25.1.54",
+    "fileName": "Fraud Detection Work Center (FDWC)__70e0397d-a65c-4e3c-bfce-e95a0a597525.json"
+  },
+  {
+    "appId": "bfef4b66-357b-4fa0-80ee-1bbbad14ce5c",
+    "displayName": "Garbage Collection and Memory Visualizer",
+    "publisher": "IBM",
+    "version": "2.8.7",
+    "description": "The IBM Monitoring and Diagnostic Tools - Garbage Collection and Memory Visualizer.\n\nFIS_IBM_GarbageCollection_2.8.7",
+    "fileName": "Garbage Collection and Memory Visualizer__bfef4b66-357b-4fa0-80ee-1bbbad14ce5c.json"
+  },
+  {
+    "appId": "6e1ee5b0-ad43-4f1d-a4f1-5d8296348cd0",
+    "displayName": "Gatling",
+    "publisher": "Gatling",
+    "version": "3.10.3",
+    "description": "FIS_Gatling_Gatling_3.10.3_v1.0",
+    "fileName": "Gatling__6e1ee5b0-ad43-4f1d-a4f1-5d8296348cd0.json"
+  },
+  {
+    "appId": "f5fd3712-13b5-4b81-af56-012c251b14cc",
+    "displayName": "Genesys Configuration Manager",
+    "publisher": "Genesys",
+    "version": "8.1.101",
+    "description": "FIS_Genesys_ConfigurationManager_8.1.101",
+    "fileName": "Genesys Configuration Manager__f5fd3712-13b5-4b81-af56-012c251b14cc.json"
+  },
+  {
+    "appId": "434d6a5b-90da-4fe8-ace5-a405c12e612b",
+    "displayName": "Genesys Satellite",
+    "publisher": "Fiserv",
+    "version": "1.8.3",
+    "description": "Fiserv_GenesysSatellite_1.8.3.0",
+    "fileName": "Genesys Satellite__434d6a5b-90da-4fe8-ace5-a405c12e612b.json"
+  },
+  {
+    "appId": "fc0a9885-56d4-4215-8e73-d7d98e029635",
+    "displayName": "Genesys Softphone",
+    "publisher": "Fiserv",
+    "version": "3.0.5",
+    "description": "FIS_Fiserv_GenesysSoftphone_3.0.5",
+    "fileName": "Genesys Softphone__fc0a9885-56d4-4215-8e73-d7d98e029635.json"
+  },
+  {
+    "appId": "f8174cda-56b7-475f-92bb-89ef19f20edd",
+    "displayName": "GeneXus 16",
+    "publisher": "GeneXus",
+    "version": "16.0.11",
+    "description": "Application Installation and Uninstallation is in User Interactive Mode.\n\nFIS_GeneXus_GeneXus16_16.0.11",
+    "fileName": "GeneXus 16__f8174cda-56b7-475f-92bb-89ef19f20edd.json"
+  },
+  {
+    "appId": "f10993d6-c2c5-4216-aedf-32d53487191d",
+    "displayName": "GeneXus 18",
+    "publisher": "GeneXus",
+    "version": "18.0.13",
+    "description": "U13 (186676)\n\nInstallation requires user interaction.\n\nFIS_GeneXus_GeneXus18U13(186676)_18.0.13.0_v1.0",
+    "fileName": "GeneXus 18__f10993d6-c2c5-4216-aedf-32d53487191d.json"
+  },
+  {
+    "appId": "a00a9090-5386-4c8d-a6d4-b613cd76cb17",
+    "displayName": "GIMP",
+    "publisher": "The GIMP Team",
+    "version": "3.0.2",
+    "description": "GIMPTeam_GIMP_3.0.2",
+    "fileName": "GIMP__a00a9090-5386-4c8d-a6d4-b613cd76cb17.json"
+  },
+  {
+    "appId": "436a7ba2-1ca1-49ea-9b77-1f1ebb7ddccb",
+    "displayName": "GlobalProtect",
+    "publisher": "Palo Alto Networks",
+    "version": "6.2.8",
+    "description": "This application is approved for Fiserv use.",
+    "fileName": "GlobalProtect__436a7ba2-1ca1-49ea-9b77-1f1ebb7ddccb.json"
+  },
+  {
+    "appId": "9afda14f-e556-4b01-9fe0-6b6fcf2fb0b0",
+    "displayName": "GNU Make",
+    "publisher": "Free Software Foundation",
+    "version": "3.81",
+    "description": "FIS_GNU_GNUMake_3.81",
+    "fileName": "GNU Make__9afda14f-e556-4b01-9fe0-6b6fcf2fb0b0.json"
+  },
+  {
+    "appId": "fca6bd8c-d4e0-428c-85e8-a2fa2417c1f6",
+    "displayName": "Go Lang",
+    "publisher": "Google",
+    "version": "1.22.5",
+    "description": "FIS_Google_GoLang_1.22.5",
+    "fileName": "Go Lang__fca6bd8c-d4e0-428c-85e8-a2fa2417c1f6.json"
+  },
+  {
+    "appId": "710b69da-e847-4104-9961-8d2325baac26",
+    "displayName": "GoTo Resolve Agent Desktop Console",
+    "publisher": "Go To",
+    "version": "1.9.1",
+    "description": "FIS_GoTo_GoToResolveDesktopConsole_1.9.1",
+    "fileName": "GoTo Resolve Agent Desktop Console__710b69da-e847-4104-9961-8d2325baac26.json"
+  },
+  {
+    "appId": "101b07fd-d44a-40e4-9974-dbcfb53c7526",
+    "displayName": "Gradle",
+    "publisher": "Gradle",
+    "version": "8.14.2",
+    "description": "FIS_Gradle_Gradle_8.14.2",
+    "fileName": "Gradle__101b07fd-d44a-40e4-9974-dbcfb53c7526.json"
+  },
+  {
+    "appId": "cca2dcd5-099d-4046-985d-e9b1c4b1528c",
+    "displayName": "Grafana k6",
+    "publisher": "GrafanaLabs",
+    "version": "1.6.1",
+    "description": "GrafanaLabs_Grafanak6_1.6.1",
+    "fileName": "Grafana k6__cca2dcd5-099d-4046-985d-e9b1c4b1528c.json"
+  },
+  {
+    "appId": "85cc392d-a74f-439b-a5a6-0dbad4090d01",
+    "displayName": "Graphical Development Environment (GDE)",
+    "publisher": "AbInitio",
+    "version": "4.3.1",
+    "description": "SCM\n\nFIS_AbInitio_GDE_4.3.1",
+    "fileName": "Graphical Development Environment (GDE)__85cc392d-a74f-439b-a5a6-0dbad4090d01.json"
+  },
+  {
+    "appId": "9c2cdb8a-4915-4713-82c5-f87516c7606c",
+    "displayName": "GSplit",
+    "publisher": "G.D.G. Software",
+    "version": "3.0.1",
+    "description": "FIS_GDGSoftware_GSplit3_3.0.1",
+    "fileName": "GSplit__9c2cdb8a-4915-4713-82c5-f87516c7606c.json"
+  },
+  {
+    "appId": "8198aeef-5f8b-4031-946d-1df4bafcfc13",
+    "displayName": "GUI QAUTILITIES",
+    "publisher": "Fiserv",
+    "version": "3.2.0",
+    "description": "FIS_Fiserv_GUIQAUTILITIES_3.2.0",
+    "fileName": "GUI QAUTILITIES__8198aeef-5f8b-4031-946d-1df4bafcfc13.json"
+  },
+  {
+    "appId": "dc0c893a-fe23-42b3-ac1c-e117bba6fa61",
+    "displayName": "HeidiSQL",
+    "publisher": "Ansgar Becker",
+    "version": "12.11.0",
+    "description": "AnsgarBecker_HeidiSQL12.11.0.7065_12.11",
+    "fileName": "HeidiSQL__dc0c893a-fe23-42b3-ac1c-e117bba6fa61.json"
+  },
+  {
+    "appId": "6c38b56c-9baf-450f-a30b-00f29aba8e8a",
+    "displayName": "Helm 4 Kubernetes",
+    "publisher": "CNCF",
+    "version": "3.18.6",
+    "description": "CNCF_Helm4Kubernetes_3.18.6",
+    "fileName": "Helm 4 Kubernetes__6c38b56c-9baf-450f-a30b-00f29aba8e8a.json"
+  },
+  {
+    "appId": "5cf03b55-dfc0-463e-ad2c-d3b9dc1958c2",
+    "displayName": "HxD Hex Editor",
+    "publisher": "MaelHorz",
+    "version": "2.5",
+    "description": "FIS_MaelHorz_HxDHexEditor_2.5",
+    "fileName": "HxD Hex Editor__5cf03b55-dfc0-463e-ad2c-d3b9dc1958c2.json"
+  },
+  {
+    "appId": "c77fafe4-27bc-463a-a311-fde30547deff",
+    "displayName": "i Access Client Solutions",
+    "publisher": "IBM",
+    "version": "1.1.9.8",
+    "description": "Application will be Install and Uninstall in User Interactive Mode.\n\nOracle Java Development Kit (JDK) 24.0.2.0  needs to be Installed.",
+    "fileName": "i Access Client Solutions__c77fafe4-27bc-463a-a311-fde30547deff.json"
+  },
+  {
+    "appId": "66b57fb4-0fa9-47a6-8169-f49c07b20e57",
+    "displayName": "I-32 Forms Design",
+    "publisher": "Fiserv",
+    "version": "12.0.1",
+    "description": "FIS_Fiserv_I-32FormsDesign_12.0.1",
+    "fileName": "I-32 Forms Design__66b57fb4-0fa9-47a6-8169-f49c07b20e57.json"
+  },
+  {
+    "appId": "f3301105-6919-4e32-9dcd-4395a911a0b6",
+    "displayName": "IAP Desktop",
+    "publisher": "Google",
+    "version": "2.39.1348",
+    "description": "IAP Desktop is a Windows application that allows you to manage multiple Remote Desktop Protocol (RDP) connections to Windows VM instances",
+    "fileName": "IAP Desktop__f3301105-6919-4e32-9dcd-4395a911a0b6.json"
+  },
+  {
+    "appId": "1a7ce72f-b355-4487-8aad-cae72a04aa6d",
+    "displayName": "IBM Data Server Client",
+    "publisher": "IBM",
+    "version": "12.1.2000",
+    "description": "FIS_IBM_IBMDataServerClient_12.1.2000.229",
+    "fileName": "IBM Data Server Client__1a7ce72f-b355-4487-8aad-cae72a04aa6d.json"
+  },
+  {
+    "appId": "0e42e1be-75b4-4e16-842e-f65e7e10aea0",
+    "displayName": "IBM DB2 Data Server Driver",
+    "publisher": "IBM",
+    "version": "11.5.8",
+    "description": "FIS_IBM_IBMDB2DataServerDriver_11.5.8",
+    "fileName": "IBM DB2 Data Server Driver__0e42e1be-75b4-4e16-842e-f65e7e10aea0.json"
+  },
+  {
+    "appId": "07b3d4f6-e52f-4e12-aea2-a74207aa50da",
+    "displayName": "IBM Sterling Transformation Extender Design Studio",
+    "publisher": "IBM",
+    "version": "10.1.2",
+    "description": "FIS_IBM_IBMSterlingTransformationExtenderDesignStudio_10.1.2",
+    "fileName": "IBM Sterling Transformation Extender Design Studio__07b3d4f6-e52f-4e12-aea2-a74207aa50da.json"
+  },
+  {
+    "appId": "860b0073-ec50-4e32-9be0-0b7832d2ab07",
+    "displayName": "IBM Z Connectivity Mapping Tool",
+    "publisher": "IBM",
+    "version": "1.0.2",
+    "description": "FIS_IBM_IBMZConnectivityMappingTool_1.0.2",
+    "fileName": "IBM Z Connectivity Mapping Tool__860b0073-ec50-4e32-9be0-0b7832d2ab07.json"
+  },
+  {
+    "appId": "092bdf31-fe2c-4f11-91b9-633aa959bc44",
+    "displayName": "ICCSimTMat for Fiserv",
+    "publisher": "ICC Solutions",
+    "version": "4.135.3-4.601.17",
+    "description": "Application will install in User Interactive mode\nICCSolutionsLimited_ICCSimTMatforFiserv_4.135.3-4.601.17",
+    "fileName": "ICCSimTMat for Fiserv__092bdf31-fe2c-4f11-91b9-633aa959bc44.json"
+  }
+]
