@@ -1,0 +1,170 @@
+{
+  "exportGeneratedOn": "2026-05-07T14:06:35.0448511-04:00",
+  "appId": "d97aefab-447e-4ea2-8d81-35fa85e1a6fb",
+  "displayName": "AI Buddy",
+  "odataType": "#microsoft.graph.win32LobApp",
+  "scopeTagResolutionMode": "Disabled",
+  "roleScopeTags": {
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "roleScopeTagNames": "UNRESOLVED"
+  },
+  "app": {
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceAppManagement/mobileApps/$entity",
+    "@odata.type": "#microsoft.graph.win32LobApp",
+    "id": "d97aefab-447e-4ea2-8d81-35fa85e1a6fb",
+    "displayName": "AI Buddy",
+    "description": "QualityKiosk_AIBuddy_1.0.0\n\nBelow mentioned pre-requisites need to be installed\nJava: >= 11 and < 23\nPython: >= 3.11\nNode.js: >= 18\nGit: Latest recommended\nVS Code: Latest recommended",
+    "publisher": "QualityKiosk",
+    "createdDateTime": "2026-02-02T09:54:02.1907835Z",
+    "lastModifiedDateTime": "2026-02-13T08:58:17.3857518Z",
+    "isFeatured": false,
+    "privacyInformationUrl": null,
+    "informationUrl": null,
+    "owner": "",
+    "developer": "",
+    "notes": "\\\\I7WP2EM3DST0001.fead.one\\TempApplicationSource\\QualityKiosk_AIBuddy_1.0.0.90",
+    "uploadState": 1,
+    "publishingState": "published",
+    "isAssigned": false,
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "dependentAppCount": 0,
+    "supersedingAppCount": 0,
+    "supersededAppCount": 0,
+    "committedContentVersion": "1",
+    "fileName": "Invoke-AppDeployToolkit.intunewin",
+    "size": 102271984,
+    "installCommandLine": " Invoke-AppDeployToolkit.exe -DeploymentType \"Install\" -DeployMode \"Silent\"",
+    "uninstallCommandLine": " Invoke-AppDeployToolkit.exe -DeploymentType \"Uninstall\" -DeployMode \"Silent\"",
+    "applicableArchitectures": "none",
+    "allowedArchitectures": null,
+    "minimumFreeDiskSpaceInMB": null,
+    "minimumMemoryInMB": null,
+    "minimumNumberOfProcessors": null,
+    "minimumCpuSpeedInMHz": null,
+    "msiInformation": null,
+    "setupFilePath": "Invoke-AppDeployToolkit.exe",
+    "minimumSupportedWindowsRelease": "Windows11_21H2",
+    "displayVersion": "1.0.0",
+    "allowAvailableUninstall": true,
+    "activeInstallScript": null,
+    "activeUninstallScript": null,
+    "largeIcon": {
+      "type": "image/jpeg",
+      "value": "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"
+    },
+    "minimumSupportedOperatingSystem": {
+      "v8_0": false,
+      "v8_1": false,
+      "v10_0": false,
+      "v10_1607": false,
+      "v10_1703": false,
+      "v10_1709": false,
+      "v10_1803": false,
+      "v10_1809": false,
+      "v10_1903": false,
+      "v10_1909": false,
+      "v10_2004": false,
+      "v10_2H20": false,
+      "v10_21H1": false
+    },
+    "detectionRules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryDetection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AiBuddy",
+        "valueName": "DisplayVersion",
+        "detectionType": "version",
+        "operator": "greaterThanOrEqual",
+        "detectionValue": "1.0.0.90"
+      }
+    ],
+    "requirementRules": [],
+    "rules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryRule",
+        "ruleType": "detection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AiBuddy",
+        "valueName": "DisplayVersion",
+        "operationType": "version",
+        "operator": "greaterThanOrEqual",
+        "comparisonValue": "1.0.0.90"
+      }
+    ],
+    "installExperience": {
+      "runAsAccount": "system",
+      "maxRunTimeInMinutes": 60,
+      "deviceRestartBehavior": "suppress"
+    },
+    "returnCodes": [
+      {
+        "returnCode": 0,
+        "type": "success"
+      },
+      {
+        "returnCode": 1707,
+        "type": "success"
+      },
+      {
+        "returnCode": 3010,
+        "type": "softReboot"
+      },
+      {
+        "returnCode": 1641,
+        "type": "hardReboot"
+      },
+      {
+        "returnCode": 1618,
+        "type": "retry"
+      }
+    ]
+  },
+  "relationships": null,
+  "assignments": [
+    {
+      "id": "56310435-e1b0-429c-909d-cfc0654b66c4_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "56310435-e1b0-429c-909d-cfc0654b66c4"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "4f7a9c70-fdd3-4c63-81e5-13304dfe8d0f_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "4f7a9c70-fdd3-4c63-81e5-13304dfe8d0f"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    }
+  ],
+  "deviceCounts": null
+}

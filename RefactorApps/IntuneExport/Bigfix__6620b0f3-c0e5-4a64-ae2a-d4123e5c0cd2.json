@@ -1,0 +1,170 @@
+{
+  "exportGeneratedOn": "2026-05-07T13:59:53.9198407-04:00",
+  "appId": "6620b0f3-c0e5-4a64-ae2a-d4123e5c0cd2",
+  "displayName": "Bigfix",
+  "odataType": "#microsoft.graph.win32LobApp",
+  "scopeTagResolutionMode": "Disabled",
+  "roleScopeTags": {
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "roleScopeTagNames": "UNRESOLVED"
+  },
+  "app": {
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#deviceAppManagement/mobileApps/$entity",
+    "@odata.type": "#microsoft.graph.win32LobApp",
+    "id": "6620b0f3-c0e5-4a64-ae2a-d4123e5c0cd2",
+    "displayName": "Bigfix",
+    "description": "FIS_HCLTechnologies_BigfixConsole_11.0.2.125",
+    "publisher": "HCLTechnologies",
+    "createdDateTime": "2025-05-23T11:28:37.7375198Z",
+    "lastModifiedDateTime": "2025-05-27T11:57:37.2483504Z",
+    "isFeatured": false,
+    "privacyInformationUrl": null,
+    "informationUrl": null,
+    "owner": null,
+    "developer": null,
+    "notes": "Created by the Win32App Migration Tool",
+    "uploadState": 1,
+    "publishingState": "published",
+    "isAssigned": false,
+    "roleScopeTagIds": [
+      "0"
+    ],
+    "dependentAppCount": 0,
+    "supersedingAppCount": 0,
+    "supersededAppCount": 0,
+    "committedContentVersion": "1",
+    "fileName": "IntunePackage.intunewin",
+    "size": 52389056,
+    "installCommandLine": "Deploy-Application.exe -DeploymentType \"Install\" -DeployMode \"Silent\"",
+    "uninstallCommandLine": "Deploy-Application.exe -DeploymentType \"Uninstall\" -DeployMode \"Silent\"",
+    "applicableArchitectures": "x86,x64",
+    "allowedArchitectures": null,
+    "minimumFreeDiskSpaceInMB": null,
+    "minimumMemoryInMB": null,
+    "minimumNumberOfProcessors": null,
+    "minimumCpuSpeedInMHz": null,
+    "msiInformation": null,
+    "setupFilePath": "Deploy-Application.exe",
+    "minimumSupportedWindowsRelease": "Windows10_21H2",
+    "displayVersion": "11.0.2",
+    "allowAvailableUninstall": true,
+    "activeInstallScript": null,
+    "activeUninstallScript": null,
+    "largeIcon": {
+      "type": "image/png",
+      "value": "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"
+    },
+    "minimumSupportedOperatingSystem": {
+      "v8_0": false,
+      "v8_1": false,
+      "v10_0": false,
+      "v10_1607": false,
+      "v10_1703": false,
+      "v10_1709": false,
+      "v10_1803": false,
+      "v10_1809": false,
+      "v10_1903": false,
+      "v10_1909": false,
+      "v10_2004": false,
+      "v10_2H20": false,
+      "v10_21H1": false
+    },
+    "detectionRules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryDetection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{5BCD3823-CF78-4A9E-817B-8C822667A8EB}",
+        "valueName": "DisplayVersion",
+        "detectionType": "version",
+        "operator": "greaterThanOrEqual",
+        "detectionValue": "11.0.2.125"
+      }
+    ],
+    "requirementRules": [],
+    "rules": [
+      {
+        "@odata.type": "#microsoft.graph.win32LobAppRegistryRule",
+        "ruleType": "detection",
+        "check32BitOn64System": false,
+        "keyPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{5BCD3823-CF78-4A9E-817B-8C822667A8EB}",
+        "valueName": "DisplayVersion",
+        "operationType": "version",
+        "operator": "greaterThanOrEqual",
+        "comparisonValue": "11.0.2.125"
+      }
+    ],
+    "installExperience": {
+      "runAsAccount": "system",
+      "maxRunTimeInMinutes": 60,
+      "deviceRestartBehavior": "basedOnReturnCode"
+    },
+    "returnCodes": [
+      {
+        "returnCode": 0,
+        "type": "success"
+      },
+      {
+        "returnCode": 1707,
+        "type": "success"
+      },
+      {
+        "returnCode": 3010,
+        "type": "softReboot"
+      },
+      {
+        "returnCode": 1641,
+        "type": "hardReboot"
+      },
+      {
+        "returnCode": 1618,
+        "type": "retry"
+      }
+    ]
+  },
+  "relationships": null,
+  "assignments": [
+    {
+      "id": "dd44c6f6-d589-47a0-884c-d772a45f903f_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "dd44c6f6-d589-47a0-884c-d772a45f903f"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    },
+    {
+      "id": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5_0_0",
+      "intent": "available",
+      "source": "direct",
+      "sourceId": null,
+      "target": {
+        "@odata.type": "#microsoft.graph.groupAssignmentTarget",
+        "deviceAndAppManagementAssignmentFilterId": null,
+        "deviceAndAppManagementAssignmentFilterType": "none",
+        "groupId": "cd72ee48-5595-4a2a-87b6-618b1e64f1f5"
+      },
+      "settings": {
+        "@odata.type": "#microsoft.graph.win32LobAppAssignmentSettings",
+        "notifications": "showAll",
+        "restartSettings": null,
+        "installTimeSettings": null,
+        "deliveryOptimizationPriority": "foreground",
+        "autoUpdateSettings": null
+      }
+    }
+  ],
+  "deviceCounts": null
+}
