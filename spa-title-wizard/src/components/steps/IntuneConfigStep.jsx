@@ -122,6 +122,9 @@ export default function IntuneConfigStep({ state, updateField }) {
           <FormField label="Description" id="appDescription">
             <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription} onChange={e => updateField('appDescription', e.target.value)} />
           </FormField>
+          <FormField label="Publisher" id="publisher">
+            <input id="publisher" type="text" placeholder="e.g. Microsoft, Adobe" value={state.publisher} onChange={e => updateField('publisher', e.target.value)} />
+          </FormField>
           <FormField label="Owner" id="appOwner">
             <input id="appOwner" type="text" value={state.appOwner} onChange={e => updateField('appOwner', e.target.value)} />
           </FormField>
