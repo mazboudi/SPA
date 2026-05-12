@@ -39,6 +39,8 @@ export default function App() {
   // ── PSADT file upload — parse metadata, then show conversion choice ────
   const handlePsadtUpload = async (e) => {
     const files = Array.from(e.target.files || []);
+    // Reset the file input so re-selecting the same file triggers onChange
+    if (e.target) e.target.value = '';
     if (!files.length) return;
     setPsadtParsing(true);
     setPsadtError(null);
@@ -55,6 +57,7 @@ export default function App() {
       setShowConversionChoice(true);
       setShowRefactorFlow(false);
     } catch (err) {
+      // Keep refactor flow visible so the error message is shown
       setPsadtError(err.message);
     } finally {
       setPsadtParsing(false);

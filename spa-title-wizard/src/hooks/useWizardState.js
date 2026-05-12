@@ -259,9 +259,9 @@ export default function useWizardState() {
 
     if (state.platform === 'windows' || state.platform === 'both') {
       if (state.wizardMode === 'refactor') {
-        // Refactor: PSADT script is parsed first → its data populates Installer & Detection
+        // Refactor: Installer step is omitted — install/uninstall commands
+        // are derived from the Intune export and PSADT script data.
         base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
-        base.push({ id: 'installer', label: 'Installer', icon: '📦' });
         base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
       } else {
         // New title: define installer details first → they seed lifecycle actions
@@ -293,7 +293,7 @@ export default function useWizardState() {
       case 'psadt':
         return true;
       case 'installer':
-        return !!(state.installerSource && state.installerSource.trim());
+        return true; // Installer source is optional guidance, not a blocker
       case 'detection':
         return true;
       case 'intune':
@@ -438,6 +438,7 @@ export default function useWizardState() {
     setState(prev => {
       const next = { ...prev };
       next._intuneExportImported = true;
+      next.wizardMode = 'refactor';
 
       // Merge each field — skip if PSADT already populated it
       for (const [key, value] of Object.entries(intuneFields)) {
