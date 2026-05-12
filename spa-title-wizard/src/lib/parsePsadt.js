@@ -255,7 +255,7 @@ function parseV4(text, warnings) {
         f._lifecycle_preInstall_allowDefer = parseInt(deferMatch[1]);
       }
       if (/Show-ADTInstallationProgress/i.test(preInstallBlock) &&
-          !isCommentedOut(preInstallBlock, 'Show-ADTInstallationProgress')) {
+        !isCommentedOut(preInstallBlock, 'Show-ADTInstallationProgress')) {
         f._lifecycle_preInstall_showProgress = true;
       }
     }
@@ -469,7 +469,7 @@ function extractMsiInstallV3(block) {
     if (trimmed.startsWith('#')) continue;
     // Execute-MSI -Action 'Install' -Path "$dirFiles\file.msi" or -Path "file.msi"
     const m = trimmed.match(/Execute-MSI\s+.*-Action\s+['"]?Install['"]?\s+.*-Path\s+['"](.*?)['"]/i) ||
-              trimmed.match(/Execute-MSI\s+.*-Path\s+['"](.*?)['"].*-Action\s+['"]?Install['"]?/i);
+      trimmed.match(/Execute-MSI\s+.*-Path\s+['"](.*?)['"].*-Action\s+['"]?Install['"]?/i);
     if (m) {
       const fullPath = m[1];
       // Extract just the filename from paths like $dirFiles\file.msi
@@ -631,6 +631,23 @@ function capitalizeFirst(str) {
 }
 // ─── Phase Action Extraction ───────────────────────────────────────────────
 
+/**
+ * Extract a PowerShell parameter value from a command line.
+ * Handles both quoted strings ('val' / "val") and bare variable
+ * expressions ($var, $($obj.Prop)\path, etc.).
+ */
+function extractPsParamValue(line, paramName) {
+  // Try quoted first: -ParamName 'value' or -ParamName "value"
+  const quotedRe = new RegExp(`-${paramName}\\s+['"]([^'"]+)['"]`, 'i');
+  const qm = line.match(quotedRe);
+  if (qm) return qm[1];
+  // Try unquoted variable: -ParamName $varName or -ParamName $($expr)\path
+  const unquotedRe = new RegExp(`-${paramName}\\s+(\\$(?:\\([^)]+\\)|[\\w.]+)(?:[\\\\/][^\\s'",;|}]+)*)`, 'i');
+  const um = line.match(unquotedRe);
+  if (um) return um[1];
+  return null;
+}
+
 /** Scan a script block for all recognizable PowerShell commands and return action objects. */
 function extractBlockActions(block) {
   if (!block) return [];
@@ -720,10 +737,11 @@ function extractBlockActions(block) {
     }
 
     // Copy-Item / Copy-ADTFile
-    if (!matched) {
-      const copyMatch = t.match(/(?:Copy-Item|Copy-ADTFile)\s+.*-(?:Path|Source)\s+['"]([^'"]+)['"].*-Destination\s+['"]([^'"]+)['"]/i);
-      if (copyMatch) {
-        actions.push({ type: 'file_copy', desc: `Copy: ${copyMatch[1].replace(/.*[\\]/, '')} \u2192 ${copyMatch[2]}`, source: copyMatch[1], dest: copyMatch[2], raw: t });
+    if (!matched && /(?:Copy-Item|Copy-ADTFile)\b/i.test(t)) {
+      const copySrc = extractPsParamValue(t, '(?:Path|Source)');
+      const copyDst = extractPsParamValue(t, 'Destination');
+      if (copySrc && copyDst) {
+        actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: copySrc, dest: copyDst, raw: t });
         matched = true;
       }
     }
@@ -738,10 +756,10 @@ function extractBlockActions(block) {
     }
 
     // Remove-Item / Remove-File / Remove-ADTFolder (with -Path flag)
-    if (!matched) {
-      const removeMatch = t.match(/(?:Remove-Item|Remove-File|Remove-ADTFolder)\s+.*-(?:Path|LiteralPath)\s+['"]([^'"]+)['"]/i);
-      if (removeMatch) {
-        actions.push({ type: 'file_remove', desc: `Remove: ${removeMatch[1]}`, path: removeMatch[1], raw: t });
+    if (!matched && /(?:Remove-Item|Remove-File|Remove-ADTFolder)\b/i.test(t)) {
+      const removePath = extractPsParamValue(t, '(?:Path|LiteralPath)');
+      if (removePath) {
+        actions.push({ type: 'file_remove', desc: `Remove: ${removePath}`, path: removePath, raw: t });
         matched = true;
       }
     }
@@ -795,10 +813,10 @@ function extractBlockActions(block) {
     }
 
     // New-ADTFolder
-    if (!matched) {
-      const mkdirMatch = t.match(/New-ADTFolder\s+.*-LiteralPath\s+['"]([^'"]+)['"]/i);
-      if (mkdirMatch) {
-        actions.push({ type: 'create_folder', desc: `Create: ${mkdirMatch[1]}`, path: mkdirMatch[1], raw: t });
+    if (!matched && /New-ADTFolder\b/i.test(t)) {
+      const mkdirPath = extractPsParamValue(t, '(?:Path|LiteralPath)');
+      if (mkdirPath) {
+        actions.push({ type: 'create_folder', desc: `Create: ${mkdirPath}`, path: mkdirPath, raw: t });
         matched = true;
       }
     }
@@ -895,6 +913,10 @@ function extractBlockActions(block) {
 
       // Skip splatting variable definitions: @{ ... } and bare @param blocks
       if (/^@\{/i.test(t) || /^\$\w+\s*=\s*@\{/i.test(t)) continue;
+      // Skip bare hashtable entry lines: Key = Value (inside splatting blocks)
+      if (/^\w+\s*=\s*\$?\w+\s*$/.test(t)) continue;
+      // Skip variable method calls: $var.Add(...), $var.Remove(...), etc.
+      if (/^\$[\w.]+\.\w+\s*\(/.test(t)) continue;
       // Skip try/catch/finally patterns (more comprehensive)
       if (/^try\s*\{?\s*$/i.test(t) || /^catch\s*(\[[\w.]+\])?\s*\{?\s*$/i.test(t) || /^finally\s*\{?\s*$/i.test(t)) continue;
       if (/^\}\s*catch\b/i.test(t) || /^\}\s*finally\b/i.test(t)) continue;

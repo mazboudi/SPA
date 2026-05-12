@@ -1,0 +1,3 @@
+See: docs/SPA_Design_Document.md — the canonical, updated design document for the SPA platform.
+
+Supersedes: docs/Packaging_Automation_Design_Document (1).docx (March 2026 draft)
