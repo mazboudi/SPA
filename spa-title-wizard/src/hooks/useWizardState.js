@@ -250,25 +250,29 @@ export default function useWizardState() {
     }));
   }, []);
 
-  // Determine visible steps based on platform
+  // Determine visible steps based on platform and mode
   const steps = useMemo(() => {
+    if (state.wizardMode === 'refactor') {
+      // Refactor mode: skip Platform (always Windows) and Installer (derived from imports)
+      return [
+        { id: 'basic', label: 'Basic Info', icon: '📋' },
+        { id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' },
+        { id: 'detection', label: 'Detection', icon: '🔍' },
+        { id: 'intune', label: 'Intune', icon: '☁️' },
+        { id: 'review', label: 'Review & Export', icon: '🚀' },
+      ];
+    }
+
+    // New title mode
     const base = [
       { id: 'basic', label: 'Basic Info', icon: '📋' },
       { id: 'platform', label: 'Platform', icon: '🖥️' },
     ];
 
     if (state.platform === 'windows' || state.platform === 'both') {
-      if (state.wizardMode === 'refactor') {
-        // Refactor: Installer step is omitted — install/uninstall commands
-        // are derived from the Intune export and PSADT script data.
-        base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
-        base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
-      } else {
-        // New title: define installer details first → they seed lifecycle actions
-        base.push({ id: 'installer', label: 'Installer', icon: '📦' });
-        base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
-        base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
-      }
+      base.push({ id: 'installer', label: 'Installer', icon: '📦' });
+      base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
+      base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
     if (state.platform === 'macos' || state.platform === 'both') {

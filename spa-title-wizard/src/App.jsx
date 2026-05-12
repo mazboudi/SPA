@@ -29,12 +29,14 @@ export default function App() {
   const [showConversionChoice, setShowConversionChoice] = useState(false);
   const [convertParsing, setConvertParsing] = useState(false);
   const [showIntunePicker, setShowIntunePicker] = useState(false);
+  const [titleMismatchWarning, setTitleMismatchWarning] = useState(null);
 
   // Intune export catalog — loaded from user-selected folder
   const [intuneCatalog, setIntuneCatalog] = useState(null);   // [{appId, displayName, publisher, version, fileName}]
   const [intuneExports, setIntuneExports] = useState(null);   // Map<fileName, parsedJSON>
   const [intuneSourceLoading, setIntuneSourceLoading] = useState(false);
   const [intuneSourcePath, setIntuneSourcePath] = useState('');
+  const [intuneLoadProgress, setIntuneLoadProgress] = useState({ current: 0, total: 0 });
 
   // ── PSADT file upload — parse metadata, then show conversion choice ────
   const handlePsadtUpload = async (e) => {
@@ -54,6 +56,24 @@ export default function App() {
       const parsed = await parsePsadtFile(psFile, 'refactor');
       setPendingPsadtFile(psFile);
       setPendingParsed(parsed);
+
+      // ── Title mismatch check ─────────────────────────────────────────
+      const intuneDisplayName = wizard.state.displayName;
+      const psadtDisplayName = parsed.fields?.displayName || '';
+      if (intuneDisplayName && psadtDisplayName) {
+        const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normalize(intuneDisplayName) !== normalize(psadtDisplayName)) {
+          setTitleMismatchWarning({
+            intuneName: intuneDisplayName,
+            psadtName: psadtDisplayName,
+          });
+        } else {
+          setTitleMismatchWarning(null);
+        }
+      } else {
+        setTitleMismatchWarning(null);
+      }
+
       setShowConversionChoice(true);
       setShowRefactorFlow(false);
     } catch (err) {
@@ -104,9 +124,11 @@ export default function App() {
     setPsadtError(null);
     setPendingPsadtFile(null);
     setPendingParsed(null);
+    setTitleMismatchWarning(null);
     setIntuneCatalog(null);
     setIntuneExports(null);
     setIntuneSourcePath('');
+    setIntuneLoadProgress({ current: 0, total: 0 });
   };
 
   // ── Intune Export import handler ───────────────────────────────────────
@@ -116,7 +138,8 @@ export default function App() {
 
   // ── Intune export folder selection ──────────────────────────────────────
   const handleIntuneFolderSelect = async (e) => {
-    const files = Array.from(e.target.files || []);
+    const fileInput = e.target;
+    const files = Array.from(fileInput?.files || []);
     const jsonFiles = files.filter(f => f.name.endsWith('.json'));
     if (!jsonFiles.length) return;
 
@@ -128,12 +151,19 @@ export default function App() {
     const firstPath = jsonFiles[0].webkitRelativePath || '';
     const folderName = firstPath.split('/')[0] || 'Selected folder';
     setIntuneSourcePath(folderName);
+    setIntuneLoadProgress({ current: 0, total: jsonFiles.length });
 
     try {
       const catalog = [];
       const exports = new Map();
 
-      for (const file of jsonFiles) {
+      for (let i = 0; i < jsonFiles.length; i++) {
+        const file = jsonFiles[i];
+        // Yield to the UI every 5 files so the progress bar repaints
+        if (i % 5 === 0) {
+          setIntuneLoadProgress({ current: i, total: jsonFiles.length });
+          await new Promise(r => setTimeout(r, 0));
+        }
         try {
           const text = await file.text();
           const data = JSON.parse(text);
@@ -153,11 +183,14 @@ export default function App() {
         }
       }
 
+      setIntuneLoadProgress({ current: jsonFiles.length, total: jsonFiles.length });
       catalog.sort((a, b) => a.displayName.localeCompare(b.displayName));
       setIntuneCatalog(catalog);
       setIntuneExports(exports);
     } finally {
       setIntuneSourceLoading(false);
+      // Reset input so re-selecting the same folder triggers onChange
+      if (fileInput) fileInput.value = '';
     }
   };
 
@@ -197,6 +230,31 @@ export default function App() {
             <strong>{name}</strong> — detected as <code>{ver.toUpperCase()}</code>.
             How would you like to proceed?
           </p>
+
+          {/* Title mismatch warning */}
+          {titleMismatchWarning && (
+            <div className="title-mismatch-warning">
+              <span className="title-mismatch-warning__icon">⚠️</span>
+              <div>
+                <strong>Title mismatch detected</strong>
+                <p className="title-mismatch-warning__detail">
+                  Intune export: <strong>{titleMismatchWarning.intuneName}</strong><br />
+                  PSADT script: <strong>{titleMismatchWarning.psadtName}</strong>
+                </p>
+                <p className="title-mismatch-warning__hint">
+                  Verify these files belong to the same application, or choose a different script.
+                </p>
+                <button className="btn btn-secondary btn-sm" style={{ marginTop: '6px' }} onClick={() => {
+                  setShowConversionChoice(false);
+                  setShowRefactorFlow(true);
+                  setPendingPsadtFile(null);
+                  setPendingParsed(null);
+                  setTitleMismatchWarning(null);
+                }}>📄 Choose different .ps1</button>
+              </div>
+            </div>
+          )}
+
           <div className="mode-selector__cards">
             <button className="mode-card" onClick={handlePassthrough} id="choice-passthrough">
               <span className="mode-card__icon">📋</span>
@@ -265,7 +323,7 @@ export default function App() {
                   onClick={() => intuneFolderInputRef.current?.click()}
                   disabled={intuneSourceLoading}
                 >
-                  📁 {intuneSourceLoading ? 'Loading...' : intuneCatalog ? 'Change Folder' : 'Select Export Folder'}
+                  📁 {intuneSourceLoading ? 'Reading...' : intuneCatalog ? 'Change Folder' : 'Select Export Folder'}
                 </button>
                 <input
                   ref={intuneFolderInputRef}
@@ -274,13 +332,25 @@ export default function App() {
                   onChange={handleIntuneFolderSelect}
                   style={{ display: 'none' }}
                 />
-                {intuneCatalog && (
+                {/* Show loaded catalog info */}
+                {intuneCatalog && !intuneSourceLoading && (
                   <span className="refactor-step__folder-info">
-                    📂 <strong>{intuneSourcePath}</strong> — {intuneCatalog.length} app{intuneCatalog.length !== 1 ? 's' : ''} found
+                    📂 <strong>{intuneSourcePath}</strong> — {intuneCatalog.length} app{intuneCatalog.length !== 1 ? 's' : ''} loaded
                   </span>
                 )}
+                {/* Progress during loading */}
                 {intuneSourceLoading && (
-                  <span className="refactor-step__folder-info">⏳ Reading JSON files...</span>
+                  <div className="refactor-step__progress">
+                    <div className="progress-bar">
+                      <div
+                        className="progress-bar__fill"
+                        style={{ width: intuneLoadProgress.total ? `${(intuneLoadProgress.current / intuneLoadProgress.total) * 100}%` : '0%' }}
+                      />
+                    </div>
+                    <span className="refactor-step__folder-info">
+                      Reading {intuneLoadProgress.current} of {intuneLoadProgress.total} files from <strong>{intuneSourcePath}</strong>
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -314,8 +384,14 @@ export default function App() {
                 onClick={() => refactorInputRef.current?.click()}
                 disabled={psadtParsing}
               >
-                📄 {psadtParsing ? 'Parsing...' : 'Upload .ps1 Script'}
+                📄 {psadtParsing ? 'Analyzing script...' : 'Upload .ps1 Script'}
               </button>
+              {psadtParsing && (
+                <div className="refactor-step__progress">
+                  <div className="progress-bar progress-bar--indeterminate" />
+                  <span className="refactor-step__folder-info">Parsing PSADT script — extracting metadata and variables...</span>
+                </div>
+              )}
               <input
                 ref={refactorInputRef}
                 type="file"
@@ -673,12 +749,86 @@ export default function App() {
         .refactor-step__folder-info strong {
           color: #4ade80;
         }
+        .refactor-step__progress {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          width: 100%;
+        }
+        .progress-bar {
+          height: 6px;
+          background: rgba(124, 138, 255, 0.12);
+          border-radius: 3px;
+          overflow: hidden;
+          position: relative;
+        }
+        .progress-bar__fill {
+          height: 100%;
+          background: linear-gradient(90deg, #7c8aff, #a78bfa);
+          border-radius: 3px;
+          transition: width 0.15s ease-out;
+        }
+        .progress-bar--indeterminate {
+          height: 6px;
+          background: rgba(124, 138, 255, 0.12);
+          border-radius: 3px;
+          overflow: hidden;
+          position: relative;
+        }
+        .progress-bar--indeterminate::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -40%;
+          width: 40%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, #7c8aff, #a78bfa, transparent);
+          border-radius: 3px;
+          animation: progress-shimmer 1.2s ease-in-out infinite;
+        }
+        @keyframes progress-shimmer {
+          0%   { left: -40%; }
+          100% { left: 100%; }
+        }
         .refactor-flow__actions {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: var(--space-sm);
           margin-top: var(--space-md);
+        }
+
+        .title-mismatch-warning {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--space-md);
+          padding: 12px var(--space-md);
+          margin-bottom: var(--space-lg);
+          background: rgba(245, 158, 11, 0.08);
+          border: 1px solid rgba(245, 158, 11, 0.25);
+          border-left: 3px solid #f59e0b;
+          border-radius: var(--radius-sm);
+          font-size: 0.82rem;
+          color: var(--text-primary);
+          line-height: 1.5;
+        }
+        .title-mismatch-warning__icon {
+          font-size: 1.2rem;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .title-mismatch-warning__detail {
+          margin: 4px 0 6px;
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+        }
+        .title-mismatch-warning__detail strong {
+          color: #fbbf24;
+        }
+        .title-mismatch-warning__hint {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin: 0;
         }
 
         .mode-selector__hint {

@@ -50,10 +50,10 @@ export default function IntuneExportPicker({ onImport, onClose, catalogData, exp
     if (!search.trim()) return catalog;
     const q = search.toLowerCase();
     return catalog.filter(app =>
-      app.displayName.toLowerCase().includes(q) ||
-      app.publisher.toLowerCase().includes(q) ||
-      app.version.toLowerCase().includes(q) ||
-      app.appId.toLowerCase().includes(q)
+      (app.displayName || '').toLowerCase().includes(q) ||
+      (app.publisher || '').toLowerCase().includes(q) ||
+      (app.version || '').toLowerCase().includes(q) ||
+      (app.appId || '').toLowerCase().includes(q)
     );
   }, [catalog, search]);
 
