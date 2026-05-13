@@ -80,7 +80,7 @@ async function ensureGroupPath(fullPath) {
       const payload = {
         name: parts[i],
         path: parts[i],
-        visibility: 'internal',
+        visibility: 'private',
         ...(parentId ? { parent_id: parentId } : {}),
       };
       const created = await gitlab('POST', '/groups', payload);
@@ -221,7 +221,7 @@ app.post('/api/publish', async (req, res) => {
         name: displayName || packageId,
         path: packageId,
         namespace_id: groupId,
-        visibility: 'internal',
+        visibility: 'private',
         initialize_with_readme: false,
         description: `SPA packaging project for ${displayName || packageId}`,
       });
