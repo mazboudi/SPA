@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import useWizardState from './hooks/useWizardState';
 import WizardStepper from './components/WizardStepper';
 import BasicInfoStep from './components/steps/BasicInfoStep';
@@ -11,6 +11,7 @@ import MacConfigStep from './components/steps/MacConfigStep';
 import ReviewStep from './components/steps/ReviewStep';
 import IntuneExportPicker from './components/ui/IntuneExportPicker';
 import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
+import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from './lib/intuneApi';
 
 export default function App() {
   const wizard = useWizardState();
@@ -21,7 +22,7 @@ export default function App() {
   const [psadtError, setPsadtError] = useState(null);
   const [psadtResult, setPsadtResult] = useState(null);
   const refactorInputRef = useRef(null);
-  const intuneFolderInputRef = useRef(null);
+
 
   // Pending state for the conversion choice panel
   const [pendingPsadtFile, setPendingPsadtFile] = useState(null);
@@ -31,12 +32,11 @@ export default function App() {
   const [showIntunePicker, setShowIntunePicker] = useState(false);
   const [titleMismatchWarning, setTitleMismatchWarning] = useState(null);
 
-  // Intune export catalog — loaded from user-selected folder
-  const [intuneCatalog, setIntuneCatalog] = useState(null);   // [{appId, displayName, publisher, version, fileName}]
-  const [intuneExports, setIntuneExports] = useState(null);   // Map<fileName, parsedJSON>
-  const [intuneSourceLoading, setIntuneSourceLoading] = useState(false);
-  const [intuneSourcePath, setIntuneSourcePath] = useState('');
-  const [intuneLoadProgress, setIntuneLoadProgress] = useState({ current: 0, total: 0 });
+  // Intune catalog — loaded from Graph API
+  const [intuneCatalog, setIntuneCatalog] = useState(null);   // [{ id, displayName, publisher, displayVersion, description }]
+  const [intuneCatalogLoading, setIntuneCatalogLoading] = useState(false);
+  const [intuneCatalogError, setIntuneCatalogError] = useState(null);
+  const [intuneRefreshing, setIntuneRefreshing] = useState(false);
 
   // ── PSADT file upload — parse metadata, then show conversion choice ────
   const handlePsadtUpload = async (e) => {
@@ -125,10 +125,7 @@ export default function App() {
     setPendingPsadtFile(null);
     setPendingParsed(null);
     setTitleMismatchWarning(null);
-    setIntuneCatalog(null);
-    setIntuneExports(null);
-    setIntuneSourcePath('');
-    setIntuneLoadProgress({ current: 0, total: 0 });
+    // Keep intuneCatalog cached — don't clear it on restart
   };
 
   // ── Intune Export import handler ───────────────────────────────────────
@@ -136,63 +133,23 @@ export default function App() {
     wizard.importIntuneExport(fields);
   };
 
-  // ── Intune export folder selection ──────────────────────────────────────
-  const handleIntuneFolderSelect = async (e) => {
-    const fileInput = e.target;
-    const files = Array.from(fileInput?.files || []);
-    const jsonFiles = files.filter(f => f.name.endsWith('.json'));
-    if (!jsonFiles.length) return;
-
-    setIntuneSourceLoading(true);
-    setIntuneCatalog(null);
-    setIntuneExports(null);
-
-    // Derive the folder path from the first file's webkitRelativePath
-    const firstPath = jsonFiles[0].webkitRelativePath || '';
-    const folderName = firstPath.split('/')[0] || 'Selected folder';
-    setIntuneSourcePath(folderName);
-    setIntuneLoadProgress({ current: 0, total: jsonFiles.length });
-
+  // ── Load Intune catalog from Graph API ─────────────────────────────────
+  const loadIntuneCatalog = useCallback(async (refresh = false) => {
+    if (refresh) setIntuneRefreshing(true);
+    else setIntuneCatalogLoading(true);
+    setIntuneCatalogError(null);
     try {
-      const catalog = [];
-      const exports = new Map();
-
-      for (let i = 0; i < jsonFiles.length; i++) {
-        const file = jsonFiles[i];
-        // Yield to the UI every 5 files so the progress bar repaints
-        if (i % 5 === 0) {
-          setIntuneLoadProgress({ current: i, total: jsonFiles.length });
-          await new Promise(r => setTimeout(r, 0));
-        }
-        try {
-          const text = await file.text();
-          const data = JSON.parse(text);
-          const app = data.app || {};
-          const entry = {
-            appId: data.appId || app.id || '',
-            displayName: data.displayName || app.displayName || file.name.replace('.json', ''),
-            publisher: app.publisher || '',
-            version: app.displayVersion || '',
-            description: app.description || '',
-            fileName: file.name,
-          };
-          catalog.push(entry);
-          exports.set(file.name, data);
-        } catch {
-          // Skip malformed JSON files
-        }
-      }
-
-      setIntuneLoadProgress({ current: jsonFiles.length, total: jsonFiles.length });
-      catalog.sort((a, b) => a.displayName.localeCompare(b.displayName));
-      setIntuneCatalog(catalog);
-      setIntuneExports(exports);
+      const data = refresh ? await refreshIntuneCatalog() : await fetchIntuneCatalog();
+      setIntuneCatalog(data.apps || []);
+    } catch (err) {
+      setIntuneCatalogError(err.message);
     } finally {
-      setIntuneSourceLoading(false);
-      // Reset input so re-selecting the same folder triggers onChange
-      if (fileInput) fileInput.value = '';
+      setIntuneCatalogLoading(false);
+      setIntuneRefreshing(false);
     }
-  };
+  }, []);
+
+
 
   const renderStep = () => {
     switch (currentStepId) {
@@ -309,48 +266,44 @@ export default function App() {
               <div className="refactor-step__header">
                 <span className="refactor-step__number">{intuneImported ? '✅' : '1'}</span>
                 <div>
-                  <h3 className="refactor-step__title">Import from Intune Catalog</h3>
+                  <h3 className="refactor-step__title">Import from Intune</h3>
                   <p className="refactor-step__desc">
-                    Select the folder containing your Intune export JSON files, then choose an app to import.
+                    Select an existing Win32 app from Intune to pre-populate the workbench fields.
                   </p>
                 </div>
               </div>
 
-              {/* Folder selector */}
+              {/* Graph API catalog actions */}
               <div className="refactor-step__folder">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => intuneFolderInputRef.current?.click()}
-                  disabled={intuneSourceLoading}
-                >
-                  📁 {intuneSourceLoading ? 'Reading...' : intuneCatalog ? 'Change Folder' : 'Select Export Folder'}
-                </button>
-                <input
-                  ref={intuneFolderInputRef}
-                  type="file"
-                  webkitdirectory="true"
-                  onChange={handleIntuneFolderSelect}
-                  style={{ display: 'none' }}
-                />
-                {/* Show loaded catalog info */}
-                {intuneCatalog && !intuneSourceLoading && (
-                  <span className="refactor-step__folder-info">
-                    📂 <strong>{intuneSourcePath}</strong> — {intuneCatalog.length} app{intuneCatalog.length !== 1 ? 's' : ''} loaded
-                  </span>
+                {!intuneCatalog && !intuneCatalogLoading && !intuneCatalogError && (
+                  <button className="btn btn-secondary" onClick={() => loadIntuneCatalog()}>
+                    📡 Load Intune Catalog
+                  </button>
                 )}
-                {/* Progress during loading */}
-                {intuneSourceLoading && (
+                {intuneCatalogLoading && (
                   <div className="refactor-step__progress">
-                    <div className="progress-bar">
-                      <div
-                        className="progress-bar__fill"
-                        style={{ width: intuneLoadProgress.total ? `${(intuneLoadProgress.current / intuneLoadProgress.total) * 100}%` : '0%' }}
-                      />
-                    </div>
-                    <span className="refactor-step__folder-info">
-                      Reading {intuneLoadProgress.current} of {intuneLoadProgress.total} files from <strong>{intuneSourcePath}</strong>
-                    </span>
+                    <div className="progress-bar progress-bar--indeterminate" />
+                    <span className="refactor-step__folder-info">Loading Win32 apps from Intune...</span>
                   </div>
+                )}
+                {intuneCatalogError && (
+                  <div className="refactor-step__error">
+                    <span>❌ {intuneCatalogError}</span>
+                    <button className="btn btn-secondary btn-sm" onClick={() => loadIntuneCatalog()}>Retry</button>
+                  </div>
+                )}
+                {intuneCatalog && !intuneCatalogLoading && (
+                  <span className="refactor-step__folder-info">
+                    📡 <strong>{intuneCatalog.length}</strong> Win32 app{intuneCatalog.length !== 1 ? 's' : ''} loaded
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginLeft: '8px' }}
+                      onClick={() => loadIntuneCatalog(true)}
+                      disabled={intuneRefreshing}
+                    >
+                      {intuneRefreshing ? '⏳ Refreshing...' : '🔄 Refresh'}
+                    </button>
+                  </span>
                 )}
               </div>
 
@@ -365,7 +318,31 @@ export default function App() {
                   📥 Browse Intune Catalog ({intuneCatalog.length} apps)
                 </button>
               ) : null}
-              <span className="refactor-step__optional">Optional — but recommended for full field coverage</span>
+
+              {/* Manual JSON upload fallback */}
+              {!intuneImported && (
+                <div className="refactor-step__fallback">
+                  <span className="refactor-step__optional">
+                    or <label className="link-btn" style={{ cursor: 'pointer' }}>
+                      upload a JSON export
+                      <input type="file" accept=".json" style={{ display: 'none' }} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const text = await file.text();
+                          const data = JSON.parse(text);
+                          const { parseIntuneExport } = await import('./lib/parseIntuneExport');
+                          const { fields } = parseIntuneExport(data);
+                          handleIntuneImport(fields);
+                        } catch (err) {
+                          alert(`Failed to parse JSON: ${err.message}`);
+                        }
+                        e.target.value = '';
+                      }} />
+                    </label>
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Step 2: PSADT Upload */}
@@ -515,7 +492,7 @@ export default function App() {
           onImport={handleIntuneImport}
           onClose={() => setShowIntunePicker(false)}
           catalogData={intuneCatalog}
-          exportsData={intuneExports}
+          fetchDetail={fetchIntuneAppDetail}
         />
       )}
 
@@ -748,6 +725,16 @@ export default function App() {
         }
         .refactor-step__folder-info strong {
           color: #4ade80;
+        }
+        .refactor-step__error {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          color: var(--color-error);
+          font-size: 0.85rem;
+        }
+        .refactor-step__fallback {
+          margin-top: 4px;
         }
         .refactor-step__progress {
           display: flex;

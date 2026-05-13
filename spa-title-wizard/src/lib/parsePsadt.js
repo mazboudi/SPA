@@ -123,9 +123,10 @@ function parseV3(text, warnings) {
   const arch = extractV3Var(text, 'appArch');
   if (arch) f.applicableArch = arch.toLowerCase();
 
-  // Deploy mode from param default
-  const deployMode = extractParamDefault(text, 'DeployMode');
-  if (deployMode) f.deployMode = capitalizeFirst(deployMode);
+  // Deploy mode: ignore the legacy script default (v3 templates hardcode 'Interactive')
+  // The wizard defaults to 'Silent' which is correct for Intune deployments.
+  // const deployMode = extractParamDefault(text, 'DeployMode');
+  // if (deployMode) f.deployMode = capitalizeFirst(deployMode);
 
   // AllowRebootPassThru from param default
   const reboot = extractParamDefault(text, 'AllowRebootPassThru');

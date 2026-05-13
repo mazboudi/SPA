@@ -6,9 +6,10 @@ import './IntuneExportPicker.css';
  * IntuneExportPicker — searchable modal for selecting an existing Intune
  * Win32 app export to pre-populate wizard fields.
  *
- * @param {{ onImport: (fields: Object) => void, onClose: () => void, catalogData?: Array, exportsData?: Map }} props
+ * @param {{ onImport, onClose, catalogData?, exportsData?, fetchDetail? }} props
+ * fetchDetail: async (appId) => exportJSON — optional function to fetch full app detail from Graph API
  */
-export default function IntuneExportPicker({ onImport, onClose, catalogData, exportsData }) {
+export default function IntuneExportPicker({ onImport, onClose, catalogData, exportsData, fetchDetail }) {
   const [catalog, setCatalog] = useState(catalogData || []);
   const [loading, setLoading] = useState(!catalogData);
   const [error, setError] = useState(null);
@@ -52,19 +53,22 @@ export default function IntuneExportPicker({ onImport, onClose, catalogData, exp
     return catalog.filter(app =>
       (app.displayName || '').toLowerCase().includes(q) ||
       (app.publisher || '').toLowerCase().includes(q) ||
-      (app.version || '').toLowerCase().includes(q) ||
-      (app.appId || '').toLowerCase().includes(q)
+      (app.version || app.displayVersion || '').toLowerCase().includes(q) ||
+      (app.appId || app.id || '').toLowerCase().includes(q)
     );
   }, [catalog, search]);
 
   // ── Select an app ─────────────────────────────────────────────────────
   const handleSelect = async (app) => {
-    setImporting(app.appId);
+    setImporting(app.appId || app.id);
     setImportResult(null);
     try {
       let exportData;
-      if (exportsData && exportsData.has(app.fileName)) {
-        // Use pre-loaded data from the folder selection
+      if (fetchDetail) {
+        // Graph API: fetch full detail on demand
+        exportData = await fetchDetail(app.appId || app.id);
+      } else if (exportsData && exportsData.has(app.fileName)) {
+        // Use pre-loaded data from folder selection
         exportData = exportsData.get(app.fileName);
       } else {
         // Fallback: fetch from static build
@@ -160,10 +164,12 @@ export default function IntuneExportPicker({ onImport, onClose, catalogData, exp
           {!loading && !error && filtered.length === 0 && (
             <div className="iep-empty">No apps match "{search}"</div>
           )}
-          {filtered.map(app => (
+          {filtered.map(app => {
+            const uid = app.appId || app.id;
+            return (
             <button
-              key={app.appId}
-              className={`iep-item ${importing === app.appId ? 'iep-item--loading' : ''} ${importResult?.success && importResult.appName === app.displayName ? 'iep-item--imported' : ''}`}
+              key={uid}
+              className={`iep-item ${importing === uid ? 'iep-item--loading' : ''} ${importResult?.success && importResult.appName === app.displayName ? 'iep-item--imported' : ''}`}
               onClick={() => handleSelect(app)}
               disabled={!!importing}
             >
@@ -172,14 +178,15 @@ export default function IntuneExportPicker({ onImport, onClose, catalogData, exp
                 <span className="iep-item__publisher">{app.publisher || 'Unknown publisher'}</span>
               </div>
               <div className="iep-item__meta">
-                <span className="iep-item__version">{app.version || '—'}</span>
-                {importing === app.appId && <span className="iep-item__spinner">⏳</span>}
+                <span className="iep-item__version">{app.version || app.displayVersion || '—'}</span>
+                {importing === uid && <span className="iep-item__spinner">⏳</span>}
                 {importResult?.success && importResult.appName === app.displayName && (
                   <span className="iep-item__check">✅</span>
                 )}
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

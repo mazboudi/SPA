@@ -30,7 +30,7 @@ export function parseIntuneExport(exportData) {
   fields._intuneAppId = exportData.appId || app.id || '';
 
   // ── Architecture ──────────────────────────────────────────────────────
-  if (app.applicableArchitectures) {
+  if (app.applicableArchitectures && app.applicableArchitectures.toLowerCase() !== 'none') {
     const archs = app.applicableArchitectures.toLowerCase();
     const hasX86 = archs.includes('x86');
     const hasX64 = archs.includes('x64');
