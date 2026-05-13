@@ -10,6 +10,7 @@ import IntuneConfigStep from './components/steps/IntuneConfigStep';
 import MacConfigStep from './components/steps/MacConfigStep';
 import ReviewStep from './components/steps/ReviewStep';
 import IntuneExportPicker from './components/ui/IntuneExportPicker';
+import ServiceNowQueue from './components/ui/ServiceNowQueue';
 import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
 import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from './lib/intuneApi';
 
@@ -33,10 +34,13 @@ export default function App() {
   const [titleMismatchWarning, setTitleMismatchWarning] = useState(null);
 
   // Intune catalog — loaded from Graph API
-  const [intuneCatalog, setIntuneCatalog] = useState(null);   // [{ id, displayName, publisher, displayVersion, description }]
+  const [intuneCatalog, setIntuneCatalog] = useState(null);
   const [intuneCatalogLoading, setIntuneCatalogLoading] = useState(false);
   const [intuneCatalogError, setIntuneCatalogError] = useState(null);
   const [intuneRefreshing, setIntuneRefreshing] = useState(false);
+
+  // ServiceNow queue
+  const [showServiceNowQueue, setShowServiceNowQueue] = useState(false);
 
   // ── PSADT file upload — parse metadata, then show conversion choice ────
   const handlePsadtUpload = async (e) => {
@@ -112,6 +116,18 @@ export default function App() {
   };
 
   const handleNewTitle = () => {
+    setShowModeSelector(false);
+  };
+
+  // ── ServiceNow queue selection ──────────────────────────────────────
+  const handleQueueSelect = (fields) => {
+    // Pre-populate wizard with ServiceNow request data
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        wizard.updateField(key, value);
+      }
+    });
+    setShowServiceNowQueue(false);
     setShowModeSelector(false);
   };
 
@@ -424,9 +440,16 @@ export default function App() {
             <h2 className="mode-selector__title">What would you like to do?</h2>
             <p className="mode-selector__subtitle">Create a new application package or refactor an existing one.</p>
             <div className="mode-selector__cards">
-              <button className="mode-card" onClick={handleNewTitle} id="mode-new-title">
+              <button className="mode-card" onClick={() => setShowServiceNowQueue(true)} id="mode-new-title">
+                <span className="mode-card__icon">📥</span>
+                <h3 className="mode-card__title">New from Queue</h3>
+                <p className="mode-card__desc">Pick a packaging request from the ServiceNow intake queue to pre-populate the workbench.</p>
+                <span className="mode-card__upload-hint">ServiceNow request → Workbench</span>
+              </button>
+
+              <button className="mode-card" onClick={handleNewTitle} id="mode-blank-title">
                 <span className="mode-card__icon">🆕</span>
-                <h3 className="mode-card__title">New Application</h3>
+                <h3 className="mode-card__title">New (Blank)</h3>
                 <p className="mode-card__desc">Start from scratch — define app metadata, detection, and lifecycle phases interactively.</p>
               </button>
 
@@ -493,6 +516,14 @@ export default function App() {
           onClose={() => setShowIntunePicker(false)}
           catalogData={intuneCatalog}
           fetchDetail={fetchIntuneAppDetail}
+        />
+      )}
+
+      {/* ServiceNow Queue Modal */}
+      {showServiceNowQueue && (
+        <ServiceNowQueue
+          onSelect={handleQueueSelect}
+          onClose={() => setShowServiceNowQueue(false)}
         />
       )}
 
@@ -572,12 +603,12 @@ export default function App() {
         }
         .mode-selector__cards {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(3, 1fr);
           gap: var(--space-lg);
-          max-width: 700px;
+          max-width: 900px;
           margin: 0 auto var(--space-lg);
         }
-        @media (max-width: 640px) {
+        @media (max-width: 800px) {
           .mode-selector__cards { grid-template-columns: 1fr; }
         }
         .mode-card {

@@ -11,6 +11,11 @@
 
 import 'dotenv/config';
 import express from 'express';
+import { readFileSync, writeFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Allow self-signed / internal CA certificates (common with corporate GitLab)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -403,7 +408,61 @@ app.post('/api/intune/refresh', async (req, res) => {
   }
 });
 
-// ── Health check ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// ██  ServiceNow Queue — Packaging Requests
+// ═══════════════════════════════════════════════════════════════════════════
+
+const QUEUE_CSV_PATH = join(__dirname, 'data', 'servicenow-queue.csv');
+
+function parseQueueCsv() {
+  const raw = readFileSync(QUEUE_CSV_PATH, 'utf8');
+  const lines = raw.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    // Simple CSV parse — handles commas inside fields if not quoted
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (const ch of line) {
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { values.push(current.trim()); current = ''; continue; }
+      current += ch;
+    }
+    values.push(current.trim());
+
+    const row = {};
+    headers.forEach((h, i) => { row[h] = values[i] || ''; });
+    return row;
+  });
+}
+
+// ── GET /api/queue — return all packaging requests ──────────────────────────
+app.get('/api/queue', (req, res) => {
+  try {
+    const items = parseQueueCsv();
+    res.json({ items, count: items.length });
+  } catch (err) {
+    console.error('❌ Queue load failed:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── PATCH /api/queue/:id — mark a request as claimed ────────────────────────
+app.patch('/api/queue/:id', (req, res) => {
+  try {
+    const items = parseQueueCsv();
+    const item = items.find(i => i.RequestID === req.params.id);
+    if (!item) return res.status(404).json({ message: `Request ${req.params.id} not found` });
+    // Return the item data so the client can pre-populate wizard fields
+    res.json({ item });
+  } catch (err) {
+    console.error('❌ Queue claim failed:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
