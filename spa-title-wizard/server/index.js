@@ -329,7 +329,7 @@ let appCacheTime = 0;
 
 async function fetchAllWin32Apps() {
   const apps = [];
-  let url = `/deviceAppManagement/mobileApps?$filter=isof('microsoft.graph.win32LobApp')&$select=id,displayName,publisher,displayVersion,description&$top=999`;
+  let url = `/deviceAppManagement/mobileApps?$filter=isof('microsoft.graph.win32LobApp')&$top=999`;
   while (url) {
     const data = await graphApi(url);
     if (data.value) apps.push(...data.value);
