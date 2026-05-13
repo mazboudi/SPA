@@ -12,6 +12,9 @@
 import 'dotenv/config';
 import express from 'express';
 
+// Allow self-signed / internal CA certificates (common with corporate GitLab)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
@@ -37,12 +40,21 @@ const encPath = (p) => encodeURIComponent(p);
 
 /** Generic GitLab API call with error forwarding */
 async function gitlab(method, path, body) {
+  const url = `${API}${path}`;
   const opts = { method, headers: { ...headers } };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(`${API}${path}`, opts);
+  let res;
+  try {
+    res = await fetch(url, opts);
+  } catch (netErr) {
+    // Network-level failure (DNS, TLS, timeout, connection refused)
+    console.error(`  ❌ Network error: ${method} ${url}`, netErr.message);
+    throw Object.assign(new Error(`Cannot reach GitLab: ${netErr.message}`), { status: 502 });
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = data.message || data.error || JSON.stringify(data);
+    console.error(`  ❌ GitLab ${res.status}: ${msg}`);
     throw Object.assign(new Error(`GitLab ${res.status}: ${msg}`), { status: res.status, data });
   }
   return data;
