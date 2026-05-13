@@ -51,19 +51,11 @@ export function parseIntuneExport(exportData) {
     fields.minWinRelease = app.minimumSupportedWindowsRelease;
   }
 
-  // ── Resource Requirements ─────────────────────────────────────────────
-  if (app.minimumFreeDiskSpaceInMB != null) {
-    fields.minDiskSpaceMB = app.minimumFreeDiskSpaceInMB;
-  }
-  if (app.minimumMemoryInMB != null) {
-    fields.minMemoryMB = app.minimumMemoryInMB;
-  }
-  if (app.minimumNumberOfProcessors != null) {
-    fields.minLogicalProcessors = app.minimumNumberOfProcessors;
-  }
-  if (app.minimumCpuSpeedInMHz != null) {
-    fields.minCpuSpeedMHz = app.minimumCpuSpeedInMHz;
-  }
+  // ── Resource Requirements (always set — null values override wizard defaults) ──
+  fields.minDiskSpaceMB = app.minimumFreeDiskSpaceInMB ?? null;
+  fields.minMemoryMB = app.minimumMemoryInMB ?? null;
+  fields.minLogicalProcessors = app.minimumNumberOfProcessors ?? null;
+  fields.minCpuSpeedMHz = app.minimumCpuSpeedInMHz ?? null;
 
   // ── Install Experience ────────────────────────────────────────────────
   if (app.installExperience) {

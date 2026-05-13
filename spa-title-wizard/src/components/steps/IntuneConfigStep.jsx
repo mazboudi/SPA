@@ -218,17 +218,31 @@ export default function IntuneConfigStep({ state, updateField }) {
 
         {/* Resource requirements */}
         <div className="form-grid" style={{ marginTop: 'var(--space-md)' }}>
-          <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB">
-            <input id="minDiskSpaceMB" type="number" min="0" value={state.minDiskSpaceMB} onChange={e => updateField('minDiskSpaceMB', parseInt(e.target.value) || 500)} />
+          <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB"
+            hint={state.minDiskSpaceMB == null ? '💡 Best practice: set a minimum (e.g. 500 MB)' : 'Leave empty for no requirement'}>
+            <input id="minDiskSpaceMB" type="number" min="0"
+              placeholder="Not set"
+              value={state.minDiskSpaceMB ?? ''}
+              onChange={e => updateField('minDiskSpaceMB', e.target.value ? parseInt(e.target.value) : null)} />
           </FormField>
-          <FormField label="Min Memory (MB)" id="minMemoryMB">
-            <input id="minMemoryMB" type="number" min="0" value={state.minMemoryMB} onChange={e => updateField('minMemoryMB', parseInt(e.target.value) || 2048)} />
+          <FormField label="Min Memory (MB)" id="minMemoryMB"
+            hint={state.minMemoryMB == null ? '💡 Best practice: set a minimum (e.g. 2048 MB)' : 'Leave empty for no requirement'}>
+            <input id="minMemoryMB" type="number" min="0"
+              placeholder="Not set"
+              value={state.minMemoryMB ?? ''}
+              onChange={e => updateField('minMemoryMB', e.target.value ? parseInt(e.target.value) : null)} />
           </FormField>
           <FormField label="Min Logical Processors" id="minLogicalProcessors" hint="Leave empty for no requirement">
-            <input id="minLogicalProcessors" type="number" min="1" value={state.minLogicalProcessors ?? ''} onChange={e => updateField('minLogicalProcessors', e.target.value ? parseInt(e.target.value) : null)} />
+            <input id="minLogicalProcessors" type="number" min="1"
+              placeholder="Not set"
+              value={state.minLogicalProcessors ?? ''}
+              onChange={e => updateField('minLogicalProcessors', e.target.value ? parseInt(e.target.value) : null)} />
           </FormField>
           <FormField label="Min CPU Speed (MHz)" id="minCpuSpeedMHz" hint="Leave empty for no requirement">
-            <input id="minCpuSpeedMHz" type="number" min="1" value={state.minCpuSpeedMHz ?? ''} onChange={e => updateField('minCpuSpeedMHz', e.target.value ? parseInt(e.target.value) : null)} />
+            <input id="minCpuSpeedMHz" type="number" min="1"
+              placeholder="Not set"
+              value={state.minCpuSpeedMHz ?? ''}
+              onChange={e => updateField('minCpuSpeedMHz', e.target.value ? parseInt(e.target.value) : null)} />
           </FormField>
         </div>
       </div>

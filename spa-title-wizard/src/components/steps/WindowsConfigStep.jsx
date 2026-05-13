@@ -426,11 +426,19 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
             onChange={v => updateField('applicableArch', v)}
             options={windowsOptions.architectures}
           />
-          <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB">
-            <input id="minDiskSpaceMB" type="number" min="0" value={state.minDiskSpaceMB} onChange={e => updateField('minDiskSpaceMB', parseInt(e.target.value) || 500)} />
+          <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB"
+            hint={state.minDiskSpaceMB == null ? '💡 Best practice: set a minimum (e.g. 500 MB)' : 'Leave empty for no requirement'}>
+            <input id="minDiskSpaceMB" type="number" min="0"
+              placeholder="Not set"
+              value={state.minDiskSpaceMB ?? ''}
+              onChange={e => updateField('minDiskSpaceMB', e.target.value ? parseInt(e.target.value) : null)} />
           </FormField>
-          <FormField label="Min Memory (MB)" id="minMemoryMB">
-            <input id="minMemoryMB" type="number" min="0" value={state.minMemoryMB} onChange={e => updateField('minMemoryMB', parseInt(e.target.value) || 2048)} />
+          <FormField label="Min Memory (MB)" id="minMemoryMB"
+            hint={state.minMemoryMB == null ? '💡 Best practice: set a minimum (e.g. 2048 MB)' : 'Leave empty for no requirement'}>
+            <input id="minMemoryMB" type="number" min="0"
+              placeholder="Not set"
+              value={state.minMemoryMB ?? ''}
+              onChange={e => updateField('minMemoryMB', e.target.value ? parseInt(e.target.value) : null)} />
           </FormField>
         </div>
       </div>

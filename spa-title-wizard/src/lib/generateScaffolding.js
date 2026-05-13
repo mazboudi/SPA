@@ -257,12 +257,12 @@ ${v3Flag}`;
 
     // Intune requirements.json
     const reqObj = {
-      minimumSupportedWindowsRelease: s.minWinRelease || 'Windows11_22H2',
+      minimumSupportedWindowsRelease: s.minWinRelease || null,
       applicableArchitectures: getApplicableArchitectures(),
-      minimumFreeDiskSpaceInMB: s.minDiskSpaceMB || 500,
-      minimumMemoryInMB: s.minMemoryMB || 2048,
-      minimumNumberOfProcessors: s.minLogicalProcessors || null,
-      minimumCpuSpeedInMHz: s.minCpuSpeedMHz || null,
+      minimumFreeDiskSpaceInMB: s.minDiskSpaceMB ?? null,
+      minimumMemoryInMB: s.minMemoryMB ?? null,
+      minimumNumberOfProcessors: s.minLogicalProcessors ?? null,
+      minimumCpuSpeedInMHz: s.minCpuSpeedMHz ?? null,
     };
     if ((s.customRequirements || []).length > 0) {
       reqObj.customRequirementRules = s.customRequirements;
