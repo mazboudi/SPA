@@ -19,9 +19,9 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const GITLAB_URL   = process.env.GITLAB_URL   || 'https://gitlab.fiserv.com';
+const GITLAB_URL = process.env.GITLAB_URL || 'https://gitlab.fiserv.com';
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || '';
-const PORT         = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 if (!GITLAB_TOKEN) {
   console.error('⚠️  GITLAB_TOKEN not set — publish will fail. Copy server/.env.example → server/.env');
@@ -63,7 +63,7 @@ async function gitlab(method, path, body) {
 /**
  * Ensure a group/subgroup path exists, creating missing levels.
  * Returns the final group's ID.
- * e.g. "euc/software-package-automation/software-titles/utilities"
+ * e.g. "euc/software-package-automation/software-titles"
  */
 async function ensureGroupPath(fullPath) {
   const parts = fullPath.split('/');
@@ -145,10 +145,10 @@ app.post('/api/publish', async (req, res) => {
       return res.status(400).json({ message: slugError });
     }
 
-    console.log(`\n📦 Publishing "${displayName || packageId}" → ${gitLabGroup}/software-titles/${category || 'general'}/${packageId}`);
+    console.log(`\n📦 Publishing "${displayName || packageId}" → ${gitLabGroup}/software-titles/${packageId}`);
 
-    // 1. Resolve the full group path (creates subgroups if needed)
-    const fullGroupPath = `${gitLabGroup}/software-titles/${category || 'general'}`;
+    // 1. Resolve the group path (creates subgroups if needed)
+    const fullGroupPath = `${gitLabGroup}/software-titles`;
     const groupId = await ensureGroupPath(fullGroupPath);
     console.log(`  📂 Group resolved: ${fullGroupPath} (id: ${groupId})`);
 

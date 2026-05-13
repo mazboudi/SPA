@@ -93,7 +93,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES }) {
       {state.displayName && state.category && (
         <div className="step-preview-badge animate-in">
           <span className="badge-label">GitLab Path</span>
-          <code>{state.gitLabGroup}/software-titles/{state.category}/{state.packageId}</code>
+          <code>{state.gitLabGroup}/software-titles/{state.packageId}</code>
         </div>
       )}
 

@@ -136,7 +136,7 @@ export default function ReviewStep({ state }) {
       <div className="publish-section">
         <h3 className="publish-section__title">🚀 Publish to GitLab</h3>
         <p className="publish-section__path">
-          <code>{state.gitLabGroup}/software-titles/{state.category || 'general'}/{state.packageId}</code>
+          <code>{state.gitLabGroup}/software-titles/{state.packageId}</code>
         </p>
 
         {publishResult ? (
