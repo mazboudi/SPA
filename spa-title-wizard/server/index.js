@@ -92,12 +92,13 @@ async function ensureGroupPath(fullPath) {
 }
 
 /**
- * Search for a project by slug within a group (including subgroups).
+ * Search for a project by slug as a direct child of a group.
+ * Does NOT search subgroups — ensures projects are at the correct level.
  * Returns the project object or null.
  */
 async function findProject(groupId, slug) {
   const projects = await gitlab('GET',
-    `/groups/${groupId}/projects?search=${encodeURIComponent(slug)}&include_subgroups=true&per_page=100`
+    `/groups/${groupId}/projects?search=${encodeURIComponent(slug)}&per_page=100`
   );
   // Exact slug match (search is fuzzy)
   return projects.find(p => p.path === slug) || null;

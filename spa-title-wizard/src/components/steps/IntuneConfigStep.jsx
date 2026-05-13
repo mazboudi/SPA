@@ -146,6 +146,7 @@ export default function IntuneConfigStep({ state, updateField }) {
           </FormField>
         </div>
         <ToggleSwitch label="Featured app in Company Portal" checked={state.isFeatured} onChange={v => updateField('isFeatured', v)} id="isFeatured" />
+        <ToggleSwitch label="Allow available uninstall" checked={state.allowAvailableUninstall} onChange={v => updateField('allowAvailableUninstall', v)} id="allowAvailableUninstall" />
       </div>
 
       {/* ═══ APP LOGO ═══ */}
