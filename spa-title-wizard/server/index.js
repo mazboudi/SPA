@@ -209,7 +209,7 @@ app.post('/api/publish', async (req, res) => {
         tagName,
         tagUrl,
         webIdeUrl: `${existing.web_url}/-/ide/project/${existing.path_with_namespace}/edit/${defaultBranch}`,
-        vsCodeUrl: `vscode://vscode-remote/ssh-remote+gitlab/${existing.path_with_namespace}`,
+        vsCodeUrl: `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${existing.path_with_namespace}.git`)}`,
       });
 
     } else {
@@ -263,7 +263,7 @@ app.post('/api/publish', async (req, res) => {
         tagName,
         tagUrl,
         webIdeUrl: `${project.web_url}/-/ide/project/${project.path_with_namespace}/edit/main`,
-        vsCodeUrl: `vscode://vscode-remote/ssh-remote+gitlab/${project.path_with_namespace}`,
+        vsCodeUrl: `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${project.path_with_namespace}.git`)}`,
       });
     }
 
