@@ -285,12 +285,55 @@ Write-Log "  Azure Blob committed" -LogFile $LogFile
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 7 – Commit file upload in Graph (supply encryption info from Detection.xml)
+#          Includes retry/backoff — Azure SAS status may not have transitioned
+#          to 'success' yet (eventual consistency), causing 400 errors.
 # ─────────────────────────────────────────────────────────────────────────────
 Write-Log "Committing file in Graph API with encryption metadata..." -LogFile $LogFile
 
-Invoke-GraphRequest -Token $Token -Method POST `
-    -Uri  "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId/commit" `
-    -Body @{ fileEncryptionInfo = $fileEncryptionInfo }
+# Pre-flight: wait for the file status to show the upload is ready for commit.
+# After the Azure blocklist commit, Graph needs time to process the SAS renewal status.
+$commitReady = $false
+for ($i = 1; $i -le 12; $i++) {
+    Start-Sleep -Seconds 5
+    $preStatus = Invoke-GraphRequest -Token $Token -Method GET `
+        -Uri "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId"
+
+    $currentState = $preStatus.uploadState
+    Write-Log "  [Pre-commit $i/12] uploadState: $currentState" -LogFile $LogFile
+
+    # States that indicate readiness for commit
+    if ($currentState -in @('azureStorageUriRequestSuccess', 'commitFileSuccess')) {
+        $commitReady = $true
+        break
+    }
+    # Terminal failure — don't retry
+    if ($currentState -in @('azureStorageUriRequestFailed', 'commitFileFailed')) {
+        throw "Graph: file not ready for commit (uploadState: $currentState)"
+    }
+}
+if (-not $commitReady) {
+    Write-Log "  Pre-commit poll exhausted — attempting commit anyway" -Level WARN -LogFile $LogFile
+}
+
+# Commit with retry + exponential backoff
+$commitSuccess = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    try {
+        Invoke-GraphRequest -Token $Token -Method POST `
+            -Uri  "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId/commit" `
+            -Body @{ fileEncryptionInfo = $fileEncryptionInfo }
+        $commitSuccess = $true
+        Write-Log "  File commit request accepted (attempt $attempt)" -LogFile $LogFile
+        break
+    } catch {
+        $delay = [Math]::Min(5 * [Math]::Pow(2, $attempt - 1), 60)   # 5, 10, 20, 40, 60
+        Write-Log "  Commit attempt $attempt failed: $($_.Exception.Message). Retrying in ${delay}s..." -Level WARN -LogFile $LogFile
+        Start-Sleep -Seconds $delay
+    }
+}
+if (-not $commitSuccess) {
+    throw "Failed to commit file upload in Graph after 5 attempts."
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 8 – Poll until commit succeeds
