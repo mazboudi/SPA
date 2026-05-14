@@ -408,7 +408,7 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
           {state.logoDataUrl && (
             <div className="logo-preview">
               <img src={state.logoDataUrl} alt="App logo" style={{ maxWidth: 64, maxHeight: 64, borderRadius: 'var(--radius-sm)' }} />
-              <span className="msi-status msi-status--ok">✅ {state.logoFile?.name}</span>
+              <span className="msi-status msi-status--ok">✅ {state.logoFile?.name || state._logoFileName || 'Logo loaded'}</span>
             </div>
           )}
         </div>

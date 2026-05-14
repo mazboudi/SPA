@@ -330,15 +330,25 @@ app.get('/api/projects', async (req, res) => {
       page++;
     }
 
-    const projects = allProjects.map(p => ({
-      id: p.id,
-      name: p.name,
-      path: p.path,
-      path_with_namespace: p.path_with_namespace,
-      description: p.description || '',
-      web_url: p.web_url,
-      updated_at: p.last_activity_at || p.updated_at,
-      default_branch: p.default_branch || 'main',
+    // Fetch tags for each project (for version selection)
+    const projects = await Promise.all(allProjects.map(async p => {
+      let tags = [];
+      try {
+        const tagData = await gitlab('GET', `/projects/${p.id}/repository/tags?per_page=20&order_by=version`);
+        tags = tagData.map(t => ({ name: t.name, message: t.message || '' }));
+      } catch { /* no tags */ }
+
+      return {
+        id: p.id,
+        name: p.name,
+        path: p.path,
+        path_with_namespace: p.path_with_namespace,
+        description: p.description || '',
+        web_url: p.web_url,
+        updated_at: p.last_activity_at || p.updated_at,
+        default_branch: p.default_branch || 'main',
+        tags,
+      };
     }));
 
     console.log(`  📋 Found ${projects.length} projects`);
@@ -357,14 +367,16 @@ app.get('/api/projects/:id/files', async (req, res) => {
 
     // Get project metadata
     const project = await gitlab('GET', `/projects/${projectId}`);
-    const branch = project.default_branch || 'main';
+    // Allow caller to specify a ref (tag/branch) — defaults to default branch
+    const ref = req.query.ref || project.default_branch || 'main';
+    console.log(`  📌 Using ref: ${ref}`);
 
     // Fetch each known config file (silently skip missing files)
     const files = {};
     for (const filePath of EDITABLE_FILES) {
       try {
         const fileData = await gitlab('GET',
-          `/projects/${projectId}/repository/files/${encPath(filePath)}?ref=${encPath(branch)}`
+          `/projects/${projectId}/repository/files/${encPath(filePath)}?ref=${encPath(ref)}`
         );
         // GitLab returns base64-encoded content
         files[filePath] = Buffer.from(fileData.content, 'base64').toString('utf8');
@@ -373,7 +385,7 @@ app.get('/api/projects/:id/files', async (req, res) => {
       }
     }
 
-    console.log(`  📄 Loaded ${Object.keys(files).length} config files from ${project.path_with_namespace}`);
+    console.log(`  📄 Loaded ${Object.keys(files).length} config files from ${project.path_with_namespace} @ ${ref}`);
     res.json({
       files,
       projectMeta: {
@@ -382,7 +394,8 @@ app.get('/api/projects/:id/files', async (req, res) => {
         path: project.path,
         path_with_namespace: project.path_with_namespace,
         web_url: project.web_url,
-        default_branch: branch,
+        default_branch: project.default_branch || 'main',
+        loadedRef: ref,
       },
     });
   } catch (err) {

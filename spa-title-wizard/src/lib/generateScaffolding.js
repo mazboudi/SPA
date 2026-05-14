@@ -528,8 +528,9 @@ fi
   }
 
   // ── Wizard state snapshot (for Edit Existing round-trip) ────────────────
-  // Strip internal/transient keys that shouldn't be persisted
+  // Strip internal/transient keys and non-serializable objects
   const stateSnapshot = { ...s };
+  // Internal tracking keys
   delete stateSnapshot._psadtResult;
   delete stateSnapshot._scriptContent;
   delete stateSnapshot._intuneExportImported;
@@ -538,6 +539,12 @@ fi
   delete stateSnapshot._editProjectPath;
   delete stateSnapshot._editProjectUrl;
   delete stateSnapshot._v3Conversion;
+  // File objects can't be serialized — preserve filename as string
+  if (stateSnapshot.logoFile) {
+    stateSnapshot._logoFileName = stateSnapshot.logoFile.name || 'logo.png';
+  }
+  delete stateSnapshot.logoFile;
+  // logoDataUrl (base64 data URL) is kept — it's a plain string
   files['spa-wizard-state.json'] = JSON.stringify(stateSnapshot, null, 2);
 
   return files;
