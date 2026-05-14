@@ -476,10 +476,33 @@ export default function useWizardState() {
 
   /**
    * Import project files from GitLab into wizard state (Edit Existing mode).
+   * Uses spa-wizard-state.json for a lossless round-trip when available.
+   * Falls back to file parsing for legacy projects without the state snapshot.
    * @param {Object} files — { [path]: content } from GET /api/projects/:id/files
    * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch }
    */
   const importProjectForEdit = useCallback((files, projectMeta) => {
+    // ── Fast path: state snapshot exists → direct hydration ────────────
+    if (files['spa-wizard-state.json']) {
+      try {
+        const snapshot = JSON.parse(files['spa-wizard-state.json']);
+        setState(prev => ({
+          ...prev,
+          ...snapshot,
+          wizardMode: 'edit',
+          _editProjectId: projectMeta.id,
+          _editProjectPath: projectMeta.path_with_namespace,
+          _editProjectUrl: projectMeta.web_url,
+        }));
+        setCurrentStep(0);
+        console.log('✅ Loaded project from state snapshot');
+        return;
+      } catch (e) {
+        console.warn('⚠️ Failed to parse spa-wizard-state.json, falling back to file parsing:', e.message);
+      }
+    }
+
+    // ── Fallback: parse individual config files (legacy projects) ──────
     const { state: parsed, warnings } = parseProjectFiles(files);
     if (warnings.length > 0) {
       console.warn('⚠️ Project import warnings:', warnings);
@@ -505,11 +528,9 @@ export default function useWizardState() {
       }
       if (parsed._lifecycleVarActions || parsed._lifecyclePhases) {
         const phases = { ...prev.lifecycle.phases };
-        // Variables → variableDeclaration
         if (parsed._lifecycleVarActions) {
           phases.variableDeclaration = { actions: parsed._lifecycleVarActions };
         }
-        // Phase actions
         if (parsed._lifecyclePhases) {
           for (const [phaseKey, actions] of Object.entries(parsed._lifecyclePhases)) {
             if (phases[phaseKey]) {

@@ -527,6 +527,19 @@ fi
 `;
   }
 
+  // ── Wizard state snapshot (for Edit Existing round-trip) ────────────────
+  // Strip internal/transient keys that shouldn't be persisted
+  const stateSnapshot = { ...s };
+  delete stateSnapshot._psadtResult;
+  delete stateSnapshot._scriptContent;
+  delete stateSnapshot._intuneExportImported;
+  delete stateSnapshot._receiptIdManual;
+  delete stateSnapshot._editProjectId;
+  delete stateSnapshot._editProjectPath;
+  delete stateSnapshot._editProjectUrl;
+  delete stateSnapshot._v3Conversion;
+  files['spa-wizard-state.json'] = JSON.stringify(stateSnapshot, null, 2);
+
   return files;
 }
 

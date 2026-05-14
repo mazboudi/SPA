@@ -36,7 +36,8 @@ export function parseProjectFiles(files) {
 
   // ── windows/package.yaml ────────────────────────────────────────────────
   if (files['windows/package.yaml']) {
-    const pkg = parseSimpleYaml(files['windows/package.yaml']);
+    const yamlText = files['windows/package.yaml'];
+    const pkg = parseSimpleYaml(yamlText);
     if (pkg.installer_type) state.installerType = pkg.installer_type;
     if (pkg.source_filename) state.installerSource = pkg.source_filename;
     if (pkg.max_install_time) state.maxInstallTime = parseInt(pkg.max_install_time) || 60;
@@ -56,23 +57,18 @@ export function parseProjectFiles(files) {
       state.detectionMode = 'script';
     } else if (pkg.detection_method === 'manual') {
       state.detectionMode = 'manual';
-      // Parse detection rules from YAML
-      const rulesSection = files['windows/package.yaml'].match(/detection_rules:\n([\s\S]*?)(?:\n\w|\n$|$)/);
-      if (rulesSection) {
-        state.detectionRules = parseDetectionRules(rulesSection[1]);
-      }
+      state.detectionRules = extractDetectionRules(yamlText);
     } else {
       state.detectionMode = pkg.detection_method || 'msi';
     }
 
     // MSI information
-    if (pkg.msi_product_code || files['windows/package.yaml'].includes('msi_information:')) {
-      const msiSection = files['windows/package.yaml'];
-      const msiPc = msiSection.match(/product_code:\s*"?([^"\n]+)/);
-      const msiPv = msiSection.match(/product_version:\s*"?([^"\n]+)/);
-      const msiPn = msiSection.match(/product_name:\s*"?([^"\n]+)/);
-      const msiUc = msiSection.match(/upgrade_code:\s*"?([^"\n]+)/);
-      const msiMf = msiSection.match(/manufacturer:\s*"?([^"\n]+)/);
+    if (yamlText.includes('msi_information:')) {
+      const msiPc = yamlText.match(/product_code:\s*"?([^"\n]+)/);
+      const msiPv = yamlText.match(/product_version:\s*"?([^"\n]+)/);
+      const msiPn = yamlText.match(/product_name:\s*"?([^"\n]+)/);
+      const msiUc = yamlText.match(/upgrade_code:\s*"?([^"\n]+)/);
+      const msiMf = yamlText.match(/manufacturer:\s*"?([^"\n]+)/);
       if (msiPc) state.msiProductCode = msiPc[1].trim().replace(/"$/, '');
       if (msiPv) state.msiProductVersion = msiPv[1].trim().replace(/"$/, '');
       if (msiPn) state.msiProductName = msiPn[1].trim().replace(/"$/, '');
@@ -242,13 +238,15 @@ export function parseProjectFiles(files) {
 /**
  * Simple YAML key-value parser for SPA config files.
  * Handles: `key: value`, `key: "value"`, `key: 'value'`
- * Does NOT handle nested structures (use specific parsers for those).
+ * Only parses TOP-LEVEL keys (no leading whitespace).
  */
 function parseSimpleYaml(text) {
   const result = {};
   for (const line of text.split('\n')) {
     const t = line.trim();
     if (!t || t.startsWith('#') || t.startsWith('-')) continue;
+    // Only match lines without leading whitespace (top-level keys)
+    if (line.match(/^\s/)) continue;
     const m = t.match(/^(\w[\w_]*):\s*(.+)$/);
     if (m) {
       const key = m[1];
@@ -264,35 +262,104 @@ function parseSimpleYaml(text) {
 }
 
 /**
- * Parse detection_rules from YAML text.
- * Each rule starts with `  - type:` and may have indented fields.
+ * Extract detection rules from a package.yaml file.
+ * Matches the scaffolding format:
+ *   detection_rules:
+ *     - type: msi
+ *       product_code: "{GUID}"
+ *       version_operator: greaterThanOrEqual
+ *       version: "1.0"
  */
-function parseDetectionRules(rulesText) {
+function extractDetectionRules(yamlText) {
   const rules = [];
-  const items = rulesText.split(/\n\s*-\s*type:\s*/);
-  for (const item of items) {
-    if (!item.trim()) continue;
-    const lines = item.split('\n');
-    const type = lines[0].trim();
-    const fields = {};
-    for (let i = 1; i < lines.length; i++) {
-      const m = lines[i].trim().match(/^(\w+):\s*(.+)$/);
-      if (m) {
-        let val = m[2].trim();
+
+  // Find where detection_rules: starts
+  const startIdx = yamlText.indexOf('detection_rules:');
+  if (startIdx === -1) return rules;
+
+  const afterBlock = yamlText.substring(startIdx + 'detection_rules:'.length);
+  const lines = afterBlock.split('\n');
+
+  let currentRule = null;
+
+  for (const line of lines) {
+    // Stop at the next top-level key (no leading whitespace, not blank, not comment)
+    if (line.match(/^[a-z_]+:/) && !line.match(/^\s/)) break;
+
+    // New rule: "  - type: xxx"
+    const typeMatch = line.match(/^\s*-\s*type:\s*(\w+)/);
+    if (typeMatch) {
+      if (currentRule) rules.push(currentRule);
+      currentRule = { _type: typeMatch[1] };
+      continue;
+    }
+
+    // Field within a rule: "    key: value"
+    if (currentRule) {
+      const fieldMatch = line.trim().match(/^([\w_]+):\s*(.+)$/);
+      if (fieldMatch) {
+        let val = fieldMatch[2].trim();
         if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
           val = val.slice(1, -1);
         }
-        fields[m[1]] = val;
+        currentRule[fieldMatch[1]] = val;
       }
     }
-    rules.push({ type, ...fields, enabled: true });
   }
-  return rules;
+  if (currentRule) rules.push(currentRule);
+
+  // Map to wizard state field names
+  return rules.map(r => {
+    if (r._type === 'msi') {
+      return {
+        ruleType: 'msi',
+        productCode: r.product_code || '',
+        productVersionOperator: r.version_operator || 'notConfigured',
+        productVersion: r.version || '',
+        enabled: true,
+      };
+    } else if (r._type === 'file') {
+      return {
+        ruleType: 'file',
+        path: r.path || '',
+        fileOrFolder: r.file_or_folder || '',
+        detectionType: r.detection_type || 'exists',
+        operator: r.operator || '',
+        detectionValue: r.value || '',
+        check32BitOn64: r.check_32bit === 'true',
+        enabled: true,
+      };
+    } else if (r._type === 'registry') {
+      return {
+        ruleType: 'registry',
+        hive: r.hive || 'HKLM',
+        keyPath: r.key_path || '',
+        valueName: r.value_name || '',
+        detectionType: r.detection_type || 'exists',
+        operator: r.operator || '',
+        detectionValue: r.value || '',
+        check32BitOn64: r.check_32bit === 'true',
+        enabled: true,
+      };
+    }
+    return null;
+  }).filter(Boolean);
 }
 
 /**
  * Parse lifecycle.yaml into variables and phase actions.
  * Returns { repairMode, variables, phases }
+ *
+ * Generated format:
+ *   repair_mode: mirror
+ *   # Standard PSADT variables ...
+ *   variables:
+ *     appVendor: "value"
+ *     appName: "value"
+ *   pre_install:
+ *     actions:
+ *       - type: close_apps
+ *         close_apps: "winword,outlook"
  */
 function parseLifecycleYaml(text) {
   const result = { repairMode: 'mirror', variables: [], phases: {} };
@@ -304,13 +371,16 @@ function parseLifecycleYaml(text) {
     if (m) { result.repairMode = m[1]; break; }
   }
 
-  // Variables section
+  // Variables section — parse key: "value" pairs under `variables:`
   let inVars = false;
   for (const line of lines) {
-    if (line.match(/^variables:/)) { inVars = true; continue; }
+    if (line.match(/^variables:\s*$/)) { inVars = true; continue; }
     if (inVars) {
-      if (line.match(/^\w/) || line.match(/^#/)) { inVars = false; continue; }
-      const m = line.match(/^\s+(\w+):\s*"?([^"]*)"?/);
+      // Exit variables section on any non-indented, non-blank line (next top-level key)
+      if (line.match(/^\S/) && !line.match(/^#/)) { inVars = false; continue; }
+      // Skip blank lines and comments within variables
+      if (!line.trim() || line.trim().startsWith('#')) continue;
+      const m = line.match(/^\s+(\w+):\s*"?([^"]*)"?\s*$/);
       if (m) {
         result.variables.push({
           type: 'custom_variable',
@@ -338,37 +408,52 @@ function parseLifecycleYaml(text) {
 
   let currentPhase = null;
   let currentAction = null;
+  let inActions = false;
 
   for (const line of lines) {
-    // Check for phase header (top-level key ending with :)
-    const phaseMatch = line.match(/^(\w+):$/);
+    // Check for phase header (top-level key like "pre_install:")
+    const phaseMatch = line.match(/^(\w+):\s*$/);
     if (phaseMatch && phaseYamlToKey[phaseMatch[1]]) {
       currentPhase = phaseYamlToKey[phaseMatch[1]];
       if (!result.phases[currentPhase]) result.phases[currentPhase] = [];
       currentAction = null;
+      inActions = false;
       continue;
     }
 
-    // Skip non-phase content
+    // Exit phase on any other top-level key
+    if (line.match(/^\S/) && currentPhase) {
+      if (!phaseYamlToKey[line.replace(':', '').trim()]) {
+        currentPhase = null;
+        currentAction = null;
+        inActions = false;
+      }
+      continue;
+    }
+
     if (!currentPhase) continue;
 
-    // New action item
-    const actionMatch = line.match(/^\s+- type:\s*(\w+)/);
+    // "  actions:" sub-key
+    if (line.match(/^\s+actions:\s*$/)) { inActions = true; continue; }
+
+    if (!inActions) continue;
+
+    // New action item "    - type: xxx"
+    const actionMatch = line.match(/^\s+-\s*type:\s*(\w+)/);
     if (actionMatch) {
       currentAction = { type: actionMatch[1], enabled: true };
       result.phases[currentPhase].push(currentAction);
       continue;
     }
 
-    // Action fields
+    // Action fields "      key: value"
     if (currentAction) {
-      const fieldMatch = line.match(/^\s+(\w+):\s*(.+)$/);
+      const fieldMatch = line.match(/^\s+([\w_]+):\s*(.+)$/);
       if (fieldMatch) {
         let val = fieldMatch[2].trim();
         if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
           val = val.slice(1, -1);
         }
-        // Map YAML field names to action state keys
         const key = yamlFieldToActionKey(fieldMatch[1]);
         currentAction[key] = val;
       }

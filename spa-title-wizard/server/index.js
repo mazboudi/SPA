@@ -291,6 +291,7 @@ app.post('/api/publish', async (req, res) => {
 
 /** Files to fetch when loading an existing project for editing */
 const EDITABLE_FILES = [
+  'spa-wizard-state.json',
   'app.json',
   'windows/package.yaml',
   'windows/lifecycle.yaml',
