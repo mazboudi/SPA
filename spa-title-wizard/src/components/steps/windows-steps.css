@@ -134,3 +134,48 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
 .add-action__cat { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-accent, #7c8aff); padding: 4px 16px 6px; }
 .add-action__item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 18px; background: none; border: none; font-size: 0.88rem; color: var(--text-secondary); cursor: pointer; font-family: inherit; text-align: left; transition: background 0.1s; }
 .add-action__item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); color: var(--text-primary); }
+
+/* ── PSADT Variables Grid ── */
+.psadt-vars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 700px) {
+  .psadt-vars-grid { grid-template-columns: 1fr 1fr; }
+}
+.psadt-var-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.psadt-var-field__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.psadt-var-field__label code {
+  font-size: 0.72rem;
+  color: var(--text-accent, #7c8aff);
+  font-family: var(--font-mono, monospace);
+}
+.psadt-var-field__input {
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  background: var(--bg-input, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  transition: border-color 0.15s;
+}
+.psadt-var-field__input:focus {
+  outline: none;
+  border-color: var(--text-accent, #7c8aff);
+}
+.psadt-var-field__input::placeholder {
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-style: italic;
+}

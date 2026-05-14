@@ -11,6 +11,7 @@ import MacConfigStep from './components/steps/MacConfigStep';
 import ReviewStep from './components/steps/ReviewStep';
 import IntuneExportPicker from './components/ui/IntuneExportPicker';
 import ServiceNowQueue from './components/ui/ServiceNowQueue';
+import ProjectPicker from './components/ui/ProjectPicker';
 import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
 import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from './lib/intuneApi';
 
@@ -41,6 +42,9 @@ export default function App() {
 
   // ServiceNow queue
   const [showServiceNowQueue, setShowServiceNowQueue] = useState(false);
+
+  // Project picker (edit existing)
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
 
   // ── PSADT file upload — parse metadata, then show conversion choice ────
   const handlePsadtUpload = async (e) => {
@@ -128,6 +132,13 @@ export default function App() {
       }
     });
     setShowServiceNowQueue(false);
+    setShowModeSelector(false);
+  };
+
+  // ── Edit Existing project selection ────────────────────────────────
+  const handleProjectSelect = (files, projectMeta) => {
+    wizard.importProjectForEdit(files, projectMeta);
+    setShowProjectPicker(false);
     setShowModeSelector(false);
   };
 
@@ -459,6 +470,13 @@ export default function App() {
                 <p className="mode-card__desc">Import from your Intune catalog and PSADT script to pre-populate the workbench with existing configuration.</p>
                 <span className="mode-card__upload-hint">Intune export + PSADT script import</span>
               </button>
+
+              <button className="mode-card mode-card--edit" onClick={() => setShowProjectPicker(true)} id="mode-edit-title">
+                <span className="mode-card__icon">✏️</span>
+                <h3 className="mode-card__title">Edit Existing</h3>
+                <p className="mode-card__desc">Open a published SPA project from GitLab, edit its configuration, and push updates.</p>
+                <span className="mode-card__upload-hint">GitLab project → Workbench</span>
+              </button>
             </div>
 
             <p className="mode-selector__hint">
@@ -524,6 +542,14 @@ export default function App() {
         <ServiceNowQueue
           onSelect={handleQueueSelect}
           onClose={() => setShowServiceNowQueue(false)}
+        />
+      )}
+
+      {/* Project Picker Modal (Edit Existing) */}
+      {showProjectPicker && (
+        <ProjectPicker
+          onSelect={handleProjectSelect}
+          onClose={() => setShowProjectPicker(false)}
         />
       )}
 
@@ -603,12 +629,12 @@ export default function App() {
         }
         .mode-selector__cards {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: var(--space-lg);
-          max-width: 900px;
+          max-width: 800px;
           margin: 0 auto var(--space-lg);
         }
-        @media (max-width: 800px) {
+        @media (max-width: 640px) {
           .mode-selector__cards { grid-template-columns: 1fr; }
         }
         .mode-card {
@@ -665,6 +691,10 @@ export default function App() {
           color: var(--text-muted);
           opacity: 0.7;
           margin-top: var(--space-xs, 4px);
+        }
+        .mode-card--edit:hover {
+          border-color: rgba(52, 211, 153, 0.35);
+          background: rgba(52, 211, 153, 0.04);
         }
         /* ── Refactor Flow Panel ── */
         .refactor-flow {

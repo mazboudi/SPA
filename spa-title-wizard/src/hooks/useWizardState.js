@@ -1,13 +1,19 @@
 import { useState, useCallback, useMemo } from 'react';
+import { parseProjectFiles } from '../lib/parseProjectFiles';
 
 const INITIAL_STATE = {
-  // Wizard mode: 'new' or 'refactor'
+  // Wizard mode: 'new', 'refactor', or 'edit'
   wizardMode: 'new',
   psadtVersion: '',         // 'v3' or 'v4' when refactoring
   psadtScriptVersion: '',   // e.g. '3.8.3' or '4.1.7'
   psadtFileName: '',        // original uploaded filename
   parsedPhases: {},          // per-phase action arrays from parser
   refactorConvert: false,    // true = convert to lifecycle.yaml, false = passthrough
+
+  // Edit mode tracking
+  _editProjectId: null,       // GitLab project ID when editing
+  _editProjectPath: '',       // GitLab namespace path
+  _editProjectUrl: '',        // GitLab web URL
 
   // Step 1: Basic Info
   packageId: '',
@@ -79,6 +85,7 @@ const INITIAL_STATE = {
   minLogicalProcessors: null,
   minCpuSpeedMHz: null,
   customRequirements: [],  // [{ type: 'file'|'registry', ...fields }]
+
 
   // Lifecycle phases (PSADT) — 10-phase model with actions arrays
   lifecycle: {
@@ -467,6 +474,62 @@ export default function useWizardState() {
     });
   }, []);
 
+  /**
+   * Import project files from GitLab into wizard state (Edit Existing mode).
+   * @param {Object} files — { [path]: content } from GET /api/projects/:id/files
+   * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch }
+   */
+  const importProjectForEdit = useCallback((files, projectMeta) => {
+    const { state: parsed, warnings } = parseProjectFiles(files);
+    if (warnings.length > 0) {
+      console.warn('⚠️ Project import warnings:', warnings);
+    }
+
+    setState(prev => {
+      const next = { ...prev, ...parsed };
+      next.wizardMode = 'edit';
+      next._editProjectId = projectMeta.id;
+      next._editProjectPath = projectMeta.path_with_namespace;
+      next._editProjectUrl = projectMeta.web_url;
+
+      // Derive gitLabGroup from the project path (remove /software-titles/slug)
+      const nsPath = projectMeta.path_with_namespace || '';
+      const groupMatch = nsPath.match(/^(.+)\/software-titles\/.+$/);
+      if (groupMatch) {
+        next.gitLabGroup = groupMatch[1];
+      }
+
+      // Apply lifecycle data if parsed
+      if (parsed._lifecycleRepairMode) {
+        next.lifecycle = { ...prev.lifecycle, repairMode: parsed._lifecycleRepairMode };
+      }
+      if (parsed._lifecycleVarActions || parsed._lifecyclePhases) {
+        const phases = { ...prev.lifecycle.phases };
+        // Variables → variableDeclaration
+        if (parsed._lifecycleVarActions) {
+          phases.variableDeclaration = { actions: parsed._lifecycleVarActions };
+        }
+        // Phase actions
+        if (parsed._lifecyclePhases) {
+          for (const [phaseKey, actions] of Object.entries(parsed._lifecyclePhases)) {
+            if (phases[phaseKey]) {
+              phases[phaseKey] = { actions: actions.map(a => ({ ...a, enabled: true })) };
+            }
+          }
+        }
+        next.lifecycle = { ...(next.lifecycle || prev.lifecycle), phases };
+      }
+
+      // Clean up temporary parse keys
+      delete next._lifecycleRepairMode;
+      delete next._lifecycleVarActions;
+      delete next._lifecyclePhases;
+
+      return next;
+    });
+    setCurrentStep(0);
+  }, []);
+
   return {
     state,
     currentStep,
@@ -481,6 +544,7 @@ export default function useWizardState() {
     updateLifecycleRoot,
     importPsadtState,
     importIntuneExport,
+    importProjectForEdit,
     nextStep,
     prevStep,
     goToStep,

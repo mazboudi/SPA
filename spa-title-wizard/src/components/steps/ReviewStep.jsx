@@ -134,7 +134,12 @@ export default function ReviewStep({ state }) {
 
       {/* Publish to GitLab */}
       <div className="publish-section">
-        <h3 className="publish-section__title">🚀 Publish to GitLab</h3>
+        <h3 className="publish-section__title">{state.wizardMode === 'edit' ? '✏️ Update on GitLab' : '🚀 Publish to GitLab'}</h3>
+        {state.wizardMode === 'edit' && state._editProjectUrl && (
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-sm)' }}>
+            Source: <a href={state._editProjectUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text-accent)' }}>{state._editProjectPath}</a>
+          </p>
+        )}
         <p className="publish-section__path">
           <code>{state.gitLabGroup}/software-titles/{state.packageId}</code>
         </p>
@@ -166,7 +171,7 @@ export default function ReviewStep({ state }) {
               onClick={handlePublish}
               disabled={publishing || hasErrors || apiAvailable === false}
             >
-              {publishing ? `⏳ ${publishPhase || 'Publishing...'}` : '🚀 Publish to GitLab'}
+              {publishing ? `⏳ ${publishPhase || 'Publishing...'}` : state.wizardMode === 'edit' ? '✏️ Update Project' : '🚀 Publish to GitLab'}
             </button>
             {apiAvailable === false && <span className="publish-hint">⚠️ Publish API not reachable — start with <code>npm run server</code></span>}
             {hasErrors && <span className="publish-hint">⚠️ Fix schema errors before publishing</span>}

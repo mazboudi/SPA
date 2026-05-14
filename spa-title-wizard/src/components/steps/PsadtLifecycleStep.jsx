@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
 import DiffPreview from '../ui/DiffPreview';
@@ -89,6 +89,42 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
   const [showScript, setShowScript] = useState(false);
   const lc = state.lifecycle;
   const isRefactor = state.wizardMode === 'refactor';
+
+  // ── Auto-populate variableDeclaration with standard PSADT vars (new titles) ──
+  useEffect(() => {
+    const varPhase = lc.phases?.variableDeclaration;
+    const alreadyPopulated = (varPhase?.actions || []).length > 0;
+    const isEdit = state.wizardMode === 'edit';
+    if (isRefactor || isEdit || alreadyPopulated) return; // refactored/edited titles already have vars
+
+    const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const stdVarActions = [
+      { name: '$appVendor',        value: state.publisher || '' },
+      { name: '$appName',          value: (state.displayName || '').replace(/\s+/g, '') },
+      { name: '$appVersion',       value: state.version || '' },
+      { name: '$appArch',          value: '' },
+      { name: '$appLang',          value: 'EN' },
+      { name: '$appRevision',      value: '01' },
+      { name: '$appScriptVersion', value: '1.0.0' },
+      { name: '$appScriptDate',    value: today },
+      { name: '$appScriptAuthor',  value: state.appOwner || 'EUC Packaging' },
+    ].map(v => ({
+      type: 'custom_variable',
+      desc: `${v.name} = '${v.value}'`,
+      name: v.name,
+      value: v.value,
+      enabled: true,
+    }));
+
+    // Single state update — populate the variableDeclaration phase
+    updateField('lifecycle', {
+      ...lc,
+      phases: {
+        ...lc.phases,
+        variableDeclaration: { actions: stdVarActions },
+      },
+    });
+  }, []); // run once on mount
 
   // Compute compatibility report for v3 scripts (passthrough mode only)
   const compatReport = useMemo(() => {
@@ -271,6 +307,7 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
           : 'Configure the PowerShell App Deploy Toolkit lifecycle — the actions executed during install, uninstall, and repair.'
         }</p>
       </div>
+
 
       {/* Conversion stats banner (refactor-convert mode only) */}
       {conversionStats && (

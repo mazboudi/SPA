@@ -547,9 +547,24 @@ function generateLifecycleYaml(s) {
   lines.push(`repair_mode: ${lc.repairMode}`);
   lines.push('');
 
-  // Phase key → YAML key mapping
+  // ── Standard PSADT variables (from variableDeclaration phase actions) ──
+  const varActions = (lc.phases?.variableDeclaration?.actions || []).filter(a => a.enabled !== false);
+  if (varActions.length > 0) {
+    lines.push('# Standard PSADT variables — used in the generated Invoke-AppDeployToolkit.ps1');
+    lines.push('variables:');
+    for (const action of varActions) {
+      // Normalize name: strip leading $ if present
+      const key = (action.name || '').replace(/^\$/, '');
+      if (key) {
+        lines.push(`  ${key}: "${action.value || ''}"`);
+      }
+    }
+    lines.push('');
+  }
+
+
+  // Phase key → YAML key mapping (variableDeclaration is emitted above as `variables:`)
   const phaseYamlMap = {
-    variableDeclaration: 'variable_declaration',
     preInstall: 'pre_install',
     install: 'install',
     postInstall: 'post_install',

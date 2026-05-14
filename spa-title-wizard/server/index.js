@@ -286,6 +286,111 @@ app.post('/api/publish', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ██  Project Browser — Edit Existing Packages
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Files to fetch when loading an existing project for editing */
+const EDITABLE_FILES = [
+  'app.json',
+  'windows/package.yaml',
+  'windows/lifecycle.yaml',
+  'windows/intune/app.json',
+  'windows/intune/requirements.json',
+  'windows/intune/assignments.json',
+  'windows/intune/supersedence.json',
+  'windows/intune/dependencies.json',
+  'windows/detection/detection-config.json',
+  'macos/package.yaml',
+  'macos/jamf/package-inputs.json',
+  'macos/jamf/policy-inputs.json',
+  'macos/jamf/scope-inputs.json',
+];
+
+// ── GET /api/projects — list all title projects ─────────────────────────────
+app.get('/api/projects', async (req, res) => {
+  try {
+    const groupPath = req.query.group || 'euc/software-package-automation/software-titles';
+    console.log(`\n📂 Listing projects under: ${groupPath}`);
+
+    // Resolve group ID from path
+    const groupData = await gitlab('GET', `/groups/${encPath(groupPath)}?with_projects=false`);
+    const groupId = groupData.id;
+
+    // Paginate through all projects in this group (direct children only)
+    let page = 1;
+    const allProjects = [];
+    while (true) {
+      const batch = await gitlab('GET',
+        `/groups/${groupId}/projects?per_page=100&page=${page}&order_by=name&sort=asc&include_subgroups=false`
+      );
+      if (batch.length === 0) break;
+      allProjects.push(...batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+
+    const projects = allProjects.map(p => ({
+      id: p.id,
+      name: p.name,
+      path: p.path,
+      path_with_namespace: p.path_with_namespace,
+      description: p.description || '',
+      web_url: p.web_url,
+      updated_at: p.last_activity_at || p.updated_at,
+      default_branch: p.default_branch || 'main',
+    }));
+
+    console.log(`  📋 Found ${projects.length} projects`);
+    res.json({ projects, count: projects.length });
+  } catch (err) {
+    console.error('❌ Project listing failed:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// ── GET /api/projects/:id/files — fetch config files for editing ────────────
+app.get('/api/projects/:id/files', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    console.log(`\n📄 Fetching config files for project ${projectId}`);
+
+    // Get project metadata
+    const project = await gitlab('GET', `/projects/${projectId}`);
+    const branch = project.default_branch || 'main';
+
+    // Fetch each known config file (silently skip missing files)
+    const files = {};
+    for (const filePath of EDITABLE_FILES) {
+      try {
+        const fileData = await gitlab('GET',
+          `/projects/${projectId}/repository/files/${encPath(filePath)}?ref=${encPath(branch)}`
+        );
+        // GitLab returns base64-encoded content
+        files[filePath] = Buffer.from(fileData.content, 'base64').toString('utf8');
+      } catch {
+        // File doesn't exist in this project — skip
+      }
+    }
+
+    console.log(`  📄 Loaded ${Object.keys(files).length} config files from ${project.path_with_namespace}`);
+    res.json({
+      files,
+      projectMeta: {
+        id: project.id,
+        name: project.name,
+        path: project.path,
+        path_with_namespace: project.path_with_namespace,
+        web_url: project.web_url,
+        default_branch: branch,
+      },
+    });
+  } catch (err) {
+    console.error('❌ File fetch failed:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ██  Microsoft Graph — Intune Win32 App Catalog
 // ═══════════════════════════════════════════════════════════════════════════
 
