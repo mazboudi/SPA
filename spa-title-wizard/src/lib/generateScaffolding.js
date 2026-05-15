@@ -45,14 +45,21 @@ export default function generateScaffolding(s) {
   if (isWin) {
     vars.push('  WINDOWS_ENABLED: "true"');
     vars.push('  PSADT_FRAMEWORK_VERSION: "4.1.0"');
-    if (s.installerSource) {
-      vars.push(`  WINDOWS_INSTALLER_SOURCE: '${s.installerSource}'`);
+    // Build the full installer path from dir + filename
+    if (s.installerSourceDir && s.installerSourceFile) {
+      const dir = s.installerSourceDir.replace(/[\\/]+$/, '');  // strip trailing slash
+      vars.push(`  WINDOWS_INSTALLER_SOURCE: '${dir}\\\\${s.installerSourceFile}'`);
+    }
+    if (s.supportFilesSource) {
+      vars.push(`  WINDOWS_SUPPORT_FILES_SOURCE: '${s.supportFilesSource}'`);
     }
   }
   if (isMac) {
     vars.push('  MACOS_ENABLED: "true"');
     vars.push('  TF_JAMF_MODULES_REF: "main"');
   }
+  // Stage gating — set by SPA Workbench when triggering via Pipeline API
+  vars.push('  SPA_STAGE_LIMIT: ""');
   const uniqueVars = [...new Set(vars)];
 
   files['.gitlab-ci.yml'] = `include:
@@ -538,6 +545,8 @@ fi
   delete stateSnapshot._editProjectId;
   delete stateSnapshot._editProjectPath;
   delete stateSnapshot._editProjectUrl;
+  delete stateSnapshot._editLoadedRef;
+  delete stateSnapshot._editProjectTags;
   delete stateSnapshot._v3Conversion;
   // File objects can't be serialized — preserve filename as string
   if (stateSnapshot.logoFile) {

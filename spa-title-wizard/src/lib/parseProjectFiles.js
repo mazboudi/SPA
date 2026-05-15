@@ -39,7 +39,18 @@ export function parseProjectFiles(files) {
     const yamlText = files['windows/package.yaml'];
     const pkg = parseSimpleYaml(yamlText);
     if (pkg.installer_type) state.installerType = pkg.installer_type;
-    if (pkg.source_filename) state.installerSource = pkg.source_filename;
+    if (pkg.source_filename) {
+      // Legacy projects stored the full path as source_filename.
+      // Split into dir + filename for the new model.
+      const raw = pkg.source_filename;
+      if (raw.includes('\\') || raw.includes('/')) {
+        const parts = raw.replace(/\\/g, '/').split('/');
+        state.installerSourceFile = parts.pop();
+        state.installerSourceDir = parts.join('\\');
+      } else {
+        state.installerSourceFile = raw;
+      }
+    }
     if (pkg.max_install_time) state.maxInstallTime = parseInt(pkg.max_install_time) || 60;
     if (pkg.restart_behavior) state.restartBehavior = pkg.restart_behavior;
     if (pkg.close_apps) state.closeApps = pkg.close_apps;

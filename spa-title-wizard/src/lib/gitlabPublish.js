@@ -15,20 +15,23 @@
  * @param {string} params.displayName — human-readable app name
  * @param {string} params.version     — app version for tag (e.g. "4.8.1")
  * @param {Object} params.files       — { relativePath: content } map
+ * @param {string} [params.pipelineAction='none'] — 'none' | 'build' | 'publish' | 'assign' | 'deploy'
  * @returns {Promise<{
  *   action: 'created' | 'updated',
  *   projectUrl: string,
  *   tagName: string,
  *   tagUrl?: string,
+ *   pipelineUrl?: string,
+ *   pipelineAction: string,
  *   webIdeUrl: string,
  *   vsCodeUrl: string,
  * }>}
  */
-export async function publishToGitLab({ packageId, gitLabGroup, category, displayName, version, files }) {
+export async function publishToGitLab({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction = 'none' }) {
   const res = await fetch('/api/publish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ packageId, gitLabGroup, category, displayName, version, files }),
+    body: JSON.stringify({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction }),
   });
 
   if (!res.ok) {

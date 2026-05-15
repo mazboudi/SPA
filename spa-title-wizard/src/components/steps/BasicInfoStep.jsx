@@ -21,6 +21,47 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES }) {
         </div>
       )}
 
+      {/* Edit mode banner — shows loaded ref + staleness warning */}
+      {state.wizardMode === 'edit' && state._editLoadedRef && (() => {
+        const ref = state._editLoadedRef;
+        const tags = state._editProjectTags || [];
+        const isTag = ref.startsWith('v');
+        const latestTag = tags.length > 0 ? tags[0].name : null;
+        // Stale if loaded from a tag that isn't the latest, or loaded from main but state version
+        // doesn't match the latest tag version
+        const stateVersion = state.version ? `v${state.version.replace(/^v/i, '')}` : '';
+        const isStale = latestTag && (
+          (isTag && ref !== latestTag) ||
+          (!isTag && stateVersion && stateVersion !== latestTag)
+        );
+        return (
+          <div className={`import-banner import-banner--edit animate-in ${isStale ? 'import-banner--stale' : ''}`}>
+            <div className="import-banner__icon">{isStale ? '⚠️' : '✏️'}</div>
+            <div className="import-banner__body">
+              <strong>
+                Editing from{' '}
+                <span className="import-banner__version">{isTag ? `🏷️ ${ref}` : `📌 ${ref}`}</span>
+              </strong>
+              {state._editProjectPath && (
+                <span className="import-banner__project">
+                  {' '}— <a href={state._editProjectUrl} target="_blank" rel="noreferrer">{state._editProjectPath}</a>
+                </span>
+              )}
+              {isStale && (
+                <p className="import-banner__stale-warning">
+                  ⚠️ <strong>Newer version available:</strong> The latest tag is <code>{latestTag}</code>,
+                  but you loaded <code>{isTag ? ref : `${ref} (state version ${stateVersion || 'unknown'})`}</code>.
+                  You may be editing an outdated version.
+                </p>
+              )}
+              {!isStale && (
+                <p>Review and update the fields below, then publish to push changes.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="step-header">
         <h2>📋 Basic Information</h2>
         <p>Define the application identity. These values are used across all generated files.</p>
@@ -195,6 +236,56 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES }) {
           border-radius: 3px;
           font-size: 0.75rem;
           font-family: var(--font-mono, monospace);
+        }
+
+        /* ── Edit banner variant ── */
+        .import-banner--edit {
+          background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(56,189,248,0.06));
+          border-color: rgba(52,211,153,0.25);
+          border-left-color: #34d399;
+        }
+        .import-banner--edit .import-banner__version {
+          background: rgba(52,211,153,0.15);
+          color: #34d399;
+        }
+        .import-banner__project {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+        }
+        .import-banner__project a {
+          color: var(--text-accent, #7c8aff);
+          text-decoration: none;
+        }
+        .import-banner__project a:hover {
+          text-decoration: underline;
+        }
+
+        /* ── Stale / staleness warning variant ── */
+        .import-banner--stale {
+          background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(239,68,68,0.06));
+          border-color: rgba(245,158,11,0.3);
+          border-left-color: #f59e0b;
+        }
+        .import-banner--stale .import-banner__version {
+          background: rgba(245,158,11,0.15);
+          color: #fbbf24;
+        }
+        .import-banner__stale-warning {
+          margin-top: var(--space-sm, 8px);
+          padding: 8px 12px;
+          background: rgba(245,158,11,0.06);
+          border: 1px solid rgba(245,158,11,0.18);
+          border-radius: var(--radius-sm);
+          font-size: 0.78rem;
+          color: var(--text-secondary);
+          line-height: 1.5;
+        }
+        .import-banner__stale-warning strong {
+          color: #fbbf24;
+        }
+        .import-banner__stale-warning code {
+          background: rgba(245,158,11,0.12);
+          color: #fbbf24;
         }
       `}</style>
     </div>

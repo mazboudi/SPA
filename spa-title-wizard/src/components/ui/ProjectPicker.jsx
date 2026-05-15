@@ -58,7 +58,9 @@ export default function ProjectPicker({ onSelect, onClose }) {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      onSelect(data.files, data.projectMeta);
+      // Enrich projectMeta with tags (for staleness detection) from the list we already have
+      const enrichedMeta = { ...data.projectMeta, tags: project.tags || [] };
+      onSelect(data.files, enrichedMeta);
     } catch (err) {
       alert(`Failed to load project: ${err.message}`);
     } finally {

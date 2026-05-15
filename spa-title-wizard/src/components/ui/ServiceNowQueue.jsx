@@ -95,7 +95,15 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
         softwareCategory: item.Category || '',
         appDescription: item.Description || '',
         installerType: (item.InstallerType || 'exe').toLowerCase(),
-        installerSource: item.InstallerSource || '',
+        ...(() => {
+          // Split InstallerSource into dir + filename
+          const raw = item.InstallerSource || '';
+          if (raw.includes('\\') || raw.includes('/')) {
+            const parts = raw.replace(/\\/g, '/').split('/');
+            return { installerSourceFile: parts.pop(), installerSourceDir: parts.join('\\') };
+          }
+          return raw ? { installerSourceFile: raw } : {};
+        })(),
         appOwner: item.Requestor || 'EUC Packaging',
         _serviceNowRequestId: item.RequestID,
         _serviceNowPriority: item.Priority,

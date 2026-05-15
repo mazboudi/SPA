@@ -19,6 +19,7 @@ export default function ReviewStep({ state }) {
   const [publishResult, setPublishResult] = useState(null);
   const [publishError, setPublishError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(null);
+  const [pipelineAction, setPipelineAction] = useState('none');
 
   // Check if publish API is reachable on mount
   useEffect(() => { checkPublishHealth().then(setApiAvailable); }, []);
@@ -36,6 +37,7 @@ export default function ReviewStep({ state }) {
         displayName: state.displayName,
         version: state.version,
         files,
+        pipelineAction,
       });
       setPublishResult(result);
     } catch (err) {
@@ -136,8 +138,19 @@ export default function ReviewStep({ state }) {
       <div className="publish-section">
         <h3 className="publish-section__title">{state.wizardMode === 'edit' ? '✏️ Update on GitLab' : '🚀 Publish to GitLab'}</h3>
         {state.wizardMode === 'edit' && state._editProjectUrl && (
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-sm)' }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-sm)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             Source: <a href={state._editProjectUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--text-accent)' }}>{state._editProjectPath}</a>
+            {state._editLoadedRef && (
+              <code style={{
+                fontSize: '0.72rem',
+                padding: '2px 8px',
+                borderRadius: '99px',
+                background: state._editLoadedRef.startsWith('v') ? 'rgba(124,138,255,0.12)' : 'rgba(52,211,153,0.12)',
+                color: state._editLoadedRef.startsWith('v') ? '#a78bfa' : '#34d399',
+              }}>
+                {state._editLoadedRef.startsWith('v') ? '🏷️' : '📌'} Loaded from {state._editLoadedRef}
+              </code>
+            )}
           </p>
         )}
         <p className="publish-section__path">
@@ -151,6 +164,19 @@ export default function ReviewStep({ state }) {
               <strong>{publishResult.action === 'created' ? 'Project Created' : 'Project Updated'}</strong>
               {publishResult.tagName && <code className="publish-tag">🏷️ {publishResult.tagName}</code>}
             </div>
+            {publishResult.pipelineUrl && (
+              <div className="publish-result__pipeline">
+                🚀 Pipeline triggered ({publishResult.pipelineAction}):{' '}
+                <a href={publishResult.pipelineUrl} target="_blank" rel="noreferrer">
+                  View Pipeline →
+                </a>
+              </div>
+            )}
+            {publishResult.pipelineAction === 'none' && (
+              <div className="publish-result__pipeline publish-result__pipeline--skip">
+                ⏸️ Pipeline not triggered — commit only
+              </div>
+            )}
             <div className="publish-result__links">
               <a href={publishResult.projectUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🔗 Open Project</a>
               {publishResult.tagUrl && <a href={publishResult.tagUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🏷️ View Tag</a>}
@@ -166,6 +192,47 @@ export default function ReviewStep({ state }) {
           </div>
         ) : (
           <div className="publish-actions">
+            {/* Pipeline control */}
+            <div className="pipeline-control">
+              <div className="pipeline-control__label">Pipeline Action</div>
+              <div className="pipeline-control__options">
+                {(() => {
+                  const isWin = state.platform === 'windows' || state.platform === 'both';
+                  const isMac = state.platform === 'macos' || state.platform === 'both';
+                  const options = [{ value: 'none', label: '⏸️ Don\'t trigger', desc: 'Commit only — no pipeline' }];
+                  if (isWin) {
+                    options.push(
+                      { value: 'build', label: '📦 Build', desc: 'Package .intunewin only' },
+                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package and upload to Intune' },
+                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — deploy to Intune with assignments' },
+                    );
+                  }
+                  if (isMac && !isWin) {
+                    options.push(
+                      { value: 'deploy', label: '🍎 Deploy', desc: 'Terraform apply to Jamf' },
+                    );
+                  }
+                  if (isMac && isWin) {
+                    options.push(
+                      { value: 'deploy', label: '🍎 macOS Deploy', desc: 'Also triggers Jamf Terraform deploy' },
+                    );
+                  }
+                  return options.map(opt => (
+                    <label key={opt.value} className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''}`}>
+                      <input
+                        type="radio"
+                        name="pipelineAction"
+                        value={opt.value}
+                        checked={pipelineAction === opt.value}
+                        onChange={() => setPipelineAction(opt.value)}
+                      />
+                      <span className="pipeline-option__label">{opt.label}</span>
+                      <span className="pipeline-option__desc">{opt.desc}</span>
+                    </label>
+                  ));
+                })()}
+              </div>
+            </div>
             <button
               className="btn btn-primary"
               onClick={handlePublish}
@@ -466,6 +533,75 @@ export default function ReviewStep({ state }) {
           flex-wrap: wrap;
           gap: var(--space-sm);
           margin-top: var(--space-sm);
+        }
+        .publish-result__pipeline {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          margin-top: 4px;
+        }
+        .publish-result__pipeline a {
+          color: var(--text-accent);
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .publish-result__pipeline a:hover { text-decoration: underline; }
+        .publish-result__pipeline--skip {
+          color: var(--text-muted);
+          font-style: italic;
+        }
+
+        /* Pipeline control */
+        .pipeline-control {
+          width: 100%;
+          margin-bottom: var(--space-md);
+        }
+        .pipeline-control__label {
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          margin-bottom: var(--space-sm);
+        }
+        .pipeline-control__options {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .pipeline-option {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 10px 14px;
+          background: var(--bg-card, rgba(255,255,255,0.03));
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: all 0.15s ease;
+          flex: 1;
+          min-width: 130px;
+        }
+        .pipeline-option:hover {
+          border-color: var(--text-accent, #7c8aff);
+          background: rgba(124, 138, 255, 0.04);
+        }
+        .pipeline-option--active {
+          border-color: var(--text-accent, #7c8aff);
+          background: rgba(124, 138, 255, 0.08);
+          box-shadow: 0 0 0 1px var(--text-accent, #7c8aff);
+        }
+        .pipeline-option input[type="radio"] {
+          display: none;
+        }
+        .pipeline-option__label {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .pipeline-option__desc {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          line-height: 1.3;
         }
       `}</style>
     </div>

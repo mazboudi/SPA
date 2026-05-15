@@ -46,6 +46,9 @@ variables:
   TF_JAMF_MODULES_REF: "main"
   INTUNE_MODULES_REF: "main"
   FF_USE_FASTZIP: "true"
+  # Stage gating — set by SPA Workbench when triggering via Pipeline API.
+  # Values: 'build' | 'publish' | 'assign'. Empty = all stages run.
+  SPA_STAGE_LIMIT: ""
 
 ## ── Include platform job templates ──────────────────────────────────────────
 include:

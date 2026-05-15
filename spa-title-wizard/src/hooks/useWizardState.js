@@ -14,6 +14,8 @@ const INITIAL_STATE = {
   _editProjectId: null,       // GitLab project ID when editing
   _editProjectPath: '',       // GitLab namespace path
   _editProjectUrl: '',        // GitLab web URL
+  _editLoadedRef: '',         // git ref used to load files (tag name or branch)
+  _editProjectTags: [],       // available tags for staleness check
 
   // Step 1: Basic Info
   packageId: '',
@@ -135,7 +137,9 @@ const INITIAL_STATE = {
   allowRebootPassThru: false,
 
   // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
-  installerSource: '',             // e.g. 'C:\\files\\7-zip\\7z2600-x64.msi'
+  installerSourceDir: '',            // e.g. 'C:\\files\\7-zip'
+  installerSourceFile: '',           // e.g. '7z2600-x64.msi'
+  supportFilesSource: '',            // e.g. 'C:\\files\\7-zip' (defaults to installerSourceDir)
 };
 
 const CATEGORIES = [
@@ -334,10 +338,8 @@ export default function useWizardState() {
         phases[key] = { ...phases[key], actions };
       };
 
-      // Derive source filename from installerSource path
-      const srcFile = prev.installerSource
-        ? prev.installerSource.split(/[\\/]/).pop()
-        : '';
+      // Derive source filename from installer source fields
+      const srcFile = prev.installerSourceFile || '';
 
       if (prev.installerType === 'msi') {
         const msiFile = prev.msiFileName || srcFile || 'installer.msi';
@@ -479,7 +481,7 @@ export default function useWizardState() {
    * Uses spa-wizard-state.json for a lossless round-trip when available.
    * Falls back to file parsing for legacy projects without the state snapshot.
    * @param {Object} files — { [path]: content } from GET /api/projects/:id/files
-   * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch }
+   * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch, loadedRef, tags }
    */
   const importProjectForEdit = useCallback((files, projectMeta) => {
     // ── Fast path: state snapshot exists → direct hydration ────────────
@@ -493,6 +495,8 @@ export default function useWizardState() {
           _editProjectId: projectMeta.id,
           _editProjectPath: projectMeta.path_with_namespace,
           _editProjectUrl: projectMeta.web_url,
+          _editLoadedRef: projectMeta.loadedRef || projectMeta.default_branch || 'main',
+          _editProjectTags: projectMeta.tags || [],
         }));
         setCurrentStep(0);
         console.log('✅ Loaded project from state snapshot');
@@ -514,6 +518,8 @@ export default function useWizardState() {
       next._editProjectId = projectMeta.id;
       next._editProjectPath = projectMeta.path_with_namespace;
       next._editProjectUrl = projectMeta.web_url;
+      next._editLoadedRef = projectMeta.loadedRef || projectMeta.default_branch || 'main';
+      next._editProjectTags = projectMeta.tags || [];
 
       // Derive gitLabGroup from the project path (remove /software-titles/slug)
       const nsPath = projectMeta.path_with_namespace || '';

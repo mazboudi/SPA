@@ -145,14 +145,38 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
             ]}
           />
         </div>
-        <FormField label="Installer Source (Runner Path)" id="installerSource"
-          hint="Full path to the installer pre-staged on the runner. Leave empty if the installer is committed to git in windows/src/Files/.">
-          <input id="installerSource" type="text"
-            value={state.installerSource}
-            onChange={e => updateField('installerSource', e.target.value)}
-            placeholder="C:/files/7-zip/7z2600-x64.msi"
-          />
-        </FormField>
+        <div className="form-grid">
+          <FormField label="Install Source (Runner Directory)" id="installerSourceDir"
+            hint="Directory on the runner where installer files are staged. Leave empty if committed to git.">
+            <input id="installerSourceDir" type="text"
+              value={state.installerSourceDir}
+              onChange={e => {
+                const dir = e.target.value;
+                updateField('installerSourceDir', dir);
+                if (!state.supportFilesSource || state.supportFilesSource === state.installerSourceDir) {
+                  updateField('supportFilesSource', dir);
+                }
+              }}
+              placeholder="C:\files\7-zip"
+            />
+          </FormField>
+          <FormField label={`${state.installerType === 'msi' ? 'MSI' : 'EXE'} Filename`} id="installerSourceFile"
+            hint="Name of the installer file within the source directory.">
+            <input id="installerSourceFile" type="text"
+              value={state.installerSourceFile}
+              onChange={e => updateField('installerSourceFile', e.target.value)}
+              placeholder={state.installerType === 'msi' ? '7z2600-x64.msi' : 'Setup.exe'}
+            />
+          </FormField>
+          <FormField label="Support Files Source" id="supportFilesSource"
+            hint="Directory with additional files to include. Defaults to the install source.">
+            <input id="supportFilesSource" type="text"
+              value={state.supportFilesSource}
+              onChange={e => updateField('supportFilesSource', e.target.value)}
+              placeholder={state.installerSourceDir || 'C:\\files\\7-zip'}
+            />
+          </FormField>
+        </div>
       </div>
 
       {/* ═══ MSI METADATA (with file upload) ═══ */}

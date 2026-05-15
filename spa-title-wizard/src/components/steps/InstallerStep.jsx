@@ -61,15 +61,44 @@ export default function InstallerStep({ state, updateField }) {
             onChange={v => updateField('installerType', v)}
             options={[{ value: 'msi', label: 'MSI' }, { value: 'exe', label: 'EXE' }]}
           />
-          <FormField label="Installer Source (Runner Path)" id="installerSource" required
-            hint="Full path to the installer on the runner or network share.">
-            <input id="installerSource" type="text"
-              value={state.installerSource}
-              onChange={e => updateField('installerSource', e.target.value)}
-              placeholder="C:/files/7-zip/7z2600-x64.msi"
+          <FormField label="Install Source (Runner Directory)" id="installerSourceDir" required
+            hint="Directory on the runner where installer files are staged.">
+            <input id="installerSourceDir" type="text"
+              value={state.installerSourceDir}
+              onChange={e => {
+                const dir = e.target.value;
+                updateField('installerSourceDir', dir);
+                // Auto-default support files to the same directory if not manually set
+                if (!state.supportFilesSource || state.supportFilesSource === state.installerSourceDir) {
+                  updateField('supportFilesSource', dir);
+                }
+              }}
+              placeholder="C:\files\7-zip"
+            />
+          </FormField>
+          <FormField label={`${state.installerType === 'msi' ? 'MSI' : 'EXE'} Filename`} id="installerSourceFile" required
+            hint="Name of the installer file within the source directory.">
+            <input id="installerSourceFile" type="text"
+              value={state.installerSourceFile}
+              onChange={e => updateField('installerSourceFile', e.target.value)}
+              placeholder={state.installerType === 'msi' ? '7z2600-x64.msi' : 'Setup.exe'}
+            />
+          </FormField>
+          <FormField label="Support Files Source" id="supportFilesSource"
+            hint="Directory with additional files to include. Defaults to the install source.">
+            <input id="supportFilesSource" type="text"
+              value={state.supportFilesSource}
+              onChange={e => updateField('supportFilesSource', e.target.value)}
+              placeholder={state.installerSourceDir || 'C:\\files\\7-zip'}
             />
           </FormField>
         </div>
+        {state.installerSourceDir && state.installerSourceFile && (
+          <div className="installer-preview animate-in">
+            <span className="installer-preview__label">Full Path</span>
+            <code>{state.installerSourceDir.replace(/[\\/]+$/, '')}{'\\' + state.installerSourceFile}</code>
+          </div>
+        )}
       </div>
 
       {/* ═══ MSI METADATA ═══ */}
@@ -200,6 +229,30 @@ export default function InstallerStep({ state, updateField }) {
         .return-codes-table td { padding: 4px 8px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.04)); vertical-align: middle; }
         .return-code-input { width: 80px; padding: 4px 8px; font-size: 0.82rem; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-mono); }
         .return-code-select { padding: 4px 8px; font-size: 0.82rem; background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-family: inherit; }
+
+        .installer-preview {
+          display: flex;
+          align-items: center;
+          gap: var(--space-md);
+          padding: var(--space-sm) var(--space-md);
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+          margin-top: var(--space-md);
+        }
+        .installer-preview__label {
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          flex-shrink: 0;
+        }
+        .installer-preview code {
+          font-family: var(--font-mono);
+          font-size: 0.78rem;
+          color: var(--text-accent);
+        }
       `}</style>
     </div>
   );
