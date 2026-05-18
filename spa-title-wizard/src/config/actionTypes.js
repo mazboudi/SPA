@@ -292,6 +292,17 @@ export const ACTION_TYPES = [
       { key: 'note', label: 'Note', type: 'text', placeholder: 'Brief description of what this does' },
     ],
   },
+  {
+    type: 'raw_ps',
+    label: 'Raw PowerShell Block',
+    icon: '🔷',
+    category: 'Custom',
+    phases: PHASE_KEYS,
+    fields: [
+      { key: 'script', label: 'PowerShell Script Block', type: 'textarea', placeholder: '# Unparsed block — edit or delete', required: true },
+      { key: 'note', label: 'Note', type: 'text', placeholder: 'Brief description of what this block does' },
+    ],
+  },
 ];
 
 /** Lookup map: type → definition */

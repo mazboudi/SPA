@@ -649,13 +649,85 @@ function extractPsParamValue(line, paramName) {
   return null;
 }
 
+// ─── Brace-balanced block extractor ────────────────────────────────────────
+
+/**
+ * Keywords that open a brace-balanced control-flow block in PowerShell.
+ * These are Allman or K&R style constructs we want to extract wholesale.
+ */
+const BLOCK_OPENERS = /^(?:try|catch|finally|if|elseif|else|foreach|for|while|do|switch)\b/i;
+
+/**
+ * Regex matching a recognizable PSADT/ADT cmdlet — used to decide whether to
+ * parse the interior of a block individually or emit it as raw_ps.
+ */
+const ADT_CMDLET_RE = /(?:Start-ADT|Execute-MSI|Execute-Process|Set-ADTRegistry|Remove-ADTRegistry|Copy-ADTFile|Remove-ADTFolder|New-ADTFolder|Uninstall-ADTApplication|Show-ADTInstallation|Close-ADTInstallation|Start-ADTMsiProcess|Start-ADTProcess|Set-RegistryKey|Remove-RegistryKey|Copy-Item|Remove-Item|Start-Process|Start-Sleep|Stop-Process|Write-ADTLogEntry)\b/i;
+
+/**
+ * Given a list of already-joined logical lines and a starting index whose
+ * line either IS the opening brace or will be followed by one, walk forward
+ * consuming lines until all opened braces are balanced.
+ *
+ * Returns { blockText, endIndex } where endIndex is the LAST consumed line index.
+ */
+function extractBraceBlock(lines, startIdx) {
+  let depth = 0;
+  let blockLines = [];
+  let started = false;
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const raw = lines[i];
+    const t = raw.trim();
+
+    // Count brace changes in this line
+    for (const ch of t) {
+      if (ch === '{') { depth++; started = true; }
+      if (ch === '}') depth--;
+    }
+
+    blockLines.push(raw);
+
+    // Once we've seen at least one { and depth returns to 0, we're done
+    if (started && depth === 0) {
+      return { blockText: blockLines.join('\n'), endIndex: i };
+    }
+  }
+
+  // Unclosed block — return everything we consumed
+  return { blockText: blockLines.join('\n'), endIndex: lines.length - 1 };
+}
+
 /** Scan a script block for all recognizable PowerShell commands and return action objects. */
 function extractBlockActions(block) {
   if (!block) return [];
   const actions = [];
-  const lines = block.split('\n');
 
-  for (const line of lines) {
+  // ── Step 1: Join backtick-continuation lines ────────────────────────────
+  // PowerShell uses ` at end of line for line continuation. Join them so
+  // that -FilePath, -ArgumentList etc. on continuation lines are captured.
+  const rawLines = block.split('\n');
+
+  const lines = [];
+  let pending = '';
+  for (const line of rawLines) {
+    const trimmed = line.trimEnd();
+    if (trimmed.endsWith('`')) {
+      // Append without the backtick, keep building
+      pending += (pending ? ' ' : '') + trimmed.slice(0, -1).trim();
+    } else {
+      if (pending) {
+        lines.push(pending + ' ' + trimmed.trim());
+        pending = '';
+      } else {
+        lines.push(line);
+      }
+    }
+  }
+  if (pending) lines.push(pending);
+
+  // ── Step 2: Index-based loop with block-level pre-scan ─────────────────
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx];
     const t = line.trim();
     if (!t || t.startsWith('#') || t.startsWith('##') || t.startsWith('[string]') || t.startsWith('[String]') || t.startsWith('[int') || t.startsWith('[Int')) continue;
     // v3 zero-config MSI boilerplate
@@ -670,9 +742,42 @@ function extractBlockActions(block) {
     if (/^\$ExecuteDefaultMSISplat\.Add\b/i.test(t)) continue;
     // v4 PSADT internal: phase label tracking (every phase starts with this)
     if (/^\$adtSession\.InstallPhase\s*=/i.test(t)) continue;
-    if (/^\}$/.test(t) || /^\{$/.test(t) || /^try\s*\{/i.test(t) || /^catch\s*\{/i.test(t) || /^\}\s*$/.test(t)) continue;
+    // Standalone braces (handled inside block extraction now)
+    if (/^\}$/.test(t) || /^\{$/.test(t) || /^\}\s*$/.test(t)) continue;
     if (/^\[hashtable\]/i.test(t)) continue;
     if (t.length < 3) continue;
+
+    // ── Block-level pre-scan: try/catch/finally/if/foreach/while/etc. ──
+    // If the line opens a control-flow block, extract the entire brace-balanced
+    // construct as one unit. Decide individually vs raw_ps based on content.
+    if (BLOCK_OPENERS.test(t)) {
+      const { blockText, endIndex } = extractBraceBlock(lines, lineIdx);
+      lineIdx = endIndex; // skip consumed lines
+
+      if (ADT_CMDLET_RE.test(blockText)) {
+        // Block contains recognizable cmdlets — parse interior individually.
+        // Strip the outer keyword/brace lines and recurse on the interior.
+        const innerLines = blockText.split('\n');
+        // Find the first line that has a '{', extract interior, recurse
+        const innerBlock = innerLines.slice(1, innerLines.length - 1).join('\n');
+        // Recursively extract actions from inner block (will pick up matched cmds)
+        const innerActions = extractBlockActions(innerBlock);
+        for (const ia of innerActions) actions.push(ia);
+      } else {
+        // No recognizable cmdlet — preserve the whole block verbatim as raw_ps
+        const trimmedBlock = blockText.trim();
+        if (trimmedBlock.length > 3) {
+          actions.push({
+            type: 'raw_ps',
+            desc: `Raw block: ${trimmedBlock.split('\n')[0].trim().substring(0, 60)}`,
+            script: trimmedBlock,
+            note: 'Could not be fully parsed — block preserved as-is',
+            enabled: true,
+          });
+        }
+      }
+      continue;
+    }
 
     let matched = false;
 

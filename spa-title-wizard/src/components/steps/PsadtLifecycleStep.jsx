@@ -7,12 +7,60 @@ import { PHASE_KEYS, PHASE_META, ACTION_TYPE_MAP, getActionsForPhase, getCategor
 import { checkV3Compatibility } from '../../lib/psadtCompatCheck';
 import './windows-steps.css';
 
+/**
+ * Dedicated card for raw_ps (unparsed block) actions.
+ * Shows the full PowerShell block in a resizable monospace editor with a warning badge.
+ */
+function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
+  return (
+    <div className="action-card action-card--raw-ps">
+      <div className="action-card__header">
+        <span className="action-card__icon">🔷</span>
+        <span className="action-card__label">Raw PowerShell Block</span>
+        <span className="action-card__badge-warn" title="This block could not be fully parsed — verify before publishing">⚠ Needs Review</span>
+        <div className="action-card__controls">
+          <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
+          <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
+          <button className="action-btn action-btn--toggle" onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })} title={action.enabled ? 'Disable' : 'Enable'}>{action.enabled ? '✓' : '○'}</button>
+          <button className="action-btn action-btn--del" onClick={() => onRemove(phaseKey, index)} title="Remove">✕</button>
+        </div>
+      </div>
+      {action.enabled && (
+        <div className="action-card__fields">
+          <div className="action-field">
+            <label className="action-field__label">Note</label>
+            <input type="text" placeholder="Brief description of what this block does"
+              value={action.note || ''}
+              onChange={e => onUpdate(phaseKey, index, { note: e.target.value })} />
+          </div>
+          <div className="action-field">
+            <label className="action-field__label">PowerShell Script</label>
+            <textarea
+              rows={Math.max(4, (action.script || '').split('\n').length + 1)}
+              value={action.script || ''}
+              onChange={e => onUpdate(phaseKey, index, { script: e.target.value })}
+              style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.78rem', lineHeight: 1.5 }}
+              placeholder="# Raw PowerShell block"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Inline action card — editable, deletable, reorderable */
 function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
   const def = ACTION_TYPE_MAP[action.type];
   const icon = def?.icon || '▪️';
   const label = def?.label || action.type;
   const isCustom = action.type === 'custom_script';
+  const isRawPs = action.type === 'raw_ps';
+
+  if (isRawPs) {
+    return <RawPsCard action={action} index={index} total={total} phaseKey={phaseKey}
+      onUpdate={onUpdate} onRemove={onRemove} onMove={onMove} />;
+  }
 
   return (
     <div className={`action-card ${!action.enabled ? 'action-card--disabled' : ''} ${isCustom ? 'action-card--custom' : ''}`}>
@@ -287,14 +335,16 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
     const phases = lc.phases || {};
     let totalActions = 0;
     let customScriptCount = 0;
+    let rawPsCount = 0;
     let populatedPhases = 0;
     for (const [, phaseData] of Object.entries(phases)) {
       const actions = (phaseData.actions || []).filter(a => a.enabled !== false);
       if (actions.length > 0) populatedPhases++;
       totalActions += actions.length;
       customScriptCount += actions.filter(a => a.type === 'custom_script').length;
+      rawPsCount += actions.filter(a => a.type === 'raw_ps').length;
     }
-    return { totalActions, customScriptCount, populatedPhases };
+    return { totalActions, customScriptCount, rawPsCount, populatedPhases };
   })() : null;
 
   // ── Full interactive lifecycle editor (New Title + Refactor Convert) ──
@@ -316,10 +366,18 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
             <span className="refactor-banner__badge">CONVERTED</span>
             <div className="refactor-banner__text">
               <strong>Extracted {conversionStats.totalActions} action{conversionStats.totalActions !== 1 ? 's' : ''}</strong> across {conversionStats.populatedPhases} phase{conversionStats.populatedPhases !== 1 ? 's' : ''}.
-              {conversionStats.customScriptCount > 0 && (
-                <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>⚠ {conversionStats.customScriptCount} item{conversionStats.customScriptCount !== 1 ? 's' : ''}</span> could not be auto-mapped — look for the "Manual Review" badge below.</>
+              {(conversionStats.customScriptCount > 0 || conversionStats.rawPsCount > 0) && (
+                <>
+                  {conversionStats.rawPsCount > 0 && (
+                    <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>🔷 {conversionStats.rawPsCount} raw block{conversionStats.rawPsCount !== 1 ? 's' : ''}</span> preserved as-is — look for the "Needs Review" badge.</>
+                  )}
+                  {conversionStats.customScriptCount > 0 && (
+                    <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>⚠ {conversionStats.customScriptCount} unmatched line{conversionStats.customScriptCount !== 1 ? 's' : ''}</span> could not be auto-mapped.
+                    </>
+                  )}
+                </>
               )}
-              {conversionStats.customScriptCount === 0 && (
+              {conversionStats.customScriptCount === 0 && conversionStats.rawPsCount === 0 && (
                 <> All actions mapped to known types — ready to configure.</>  
               )}
             </div>

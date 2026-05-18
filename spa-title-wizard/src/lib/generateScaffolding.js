@@ -711,6 +711,14 @@ function generateLifecycleYaml(s) {
             }
           }
           break;
+        case 'raw_ps':
+          if (action.note) lines.push(`      note: "${action.note.replace(/"/g, '\\"')}"`);
+          if (action.script) {
+            // Always use block-scalar for raw_ps — preserves multi-line script exactly
+            lines.push('      script: |');
+            for (const sl of action.script.split('\n')) lines.push(`        ${sl}`);
+          }
+          break;
         default:
           // For unrecognized types, serialize all non-meta fields
           for (const [k, v] of Object.entries(action)) {
