@@ -843,7 +843,7 @@ function extractBlockActions(block) {
       matched = true;
     }
 
-    // Start-ADTMsiProcess (v4)
+    // Start-ADTMsiProcess (v4) — with -FilePath (install/repair)
     if (!matched) {
       const adtMsiMatch = t.match(/Start-ADTMsiProcess\b.*-FilePath\s+['"]([^'"]+)['"]/i);
       if (adtMsiMatch) {
@@ -851,6 +851,18 @@ function extractBlockActions(block) {
         const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
         const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
         actions.push({ type: `msi_${(actionMatch?.[1] || 'install').toLowerCase()}`, desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argMatch?.[1] || '', raw: t });
+        matched = true;
+      }
+    }
+
+    // Start-ADTMsiProcess (v4) — with -ProductCode GUID (uninstall by product code)
+    if (!matched) {
+      const adtMsiPcMatch = t.match(/Start-ADTMsiProcess\b.*-ProductCode\s+['"]?(\{?[0-9A-Fa-f\-]{32,38}\}?)['"]?/i);
+      if (adtMsiPcMatch) {
+        const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
+        const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
+        const action = actionMatch?.[1] || 'uninstall';
+        actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action} by ProductCode: ${adtMsiPcMatch[1]}`, productCode: adtMsiPcMatch[1], args: argMatch?.[1] || '', raw: t });
         matched = true;
       }
     }

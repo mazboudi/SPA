@@ -95,7 +95,14 @@ function Build-DeployApplication {
                     $lines += "        }"
                 }
                 'MsiUninstall' {
-                    $lines += "        Uninstall-ADTApplication -Name '$($action.AppName)' -ApplicationType 'MSI' -ErrorAction Stop"
+                    $args = if ($action.ArgumentList) { " -ArgumentList '$($action.ArgumentList)'" } else { '' }
+                    if ($action.ProductCode) {
+                        $lines += "        Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '$($action.ProductCode)'$args -ErrorAction Stop"
+                    } elseif ($action.AppName) {
+                        $lines += "        Uninstall-ADTApplication -Name '$($action.AppName)' -ApplicationType 'MSI' -ErrorAction Stop"
+                    } else {
+                        $lines += "        ## TODO: MSI Uninstall — no ProductCode or AppName configured"
+                    }
                 }
                 'ExeUninstall' {
                     $args = if ($action.ArgumentList) { " -ArgumentList '$($action.ArgumentList)'" } else { '' }
