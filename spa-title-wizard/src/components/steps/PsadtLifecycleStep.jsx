@@ -330,22 +330,38 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
     );
   }
 
-  // ── Refactor Mode: CONVERT — compute conversion stats for the banner ──
+  // ── Refactor Mode: CONVERT — compute conversion stats + per-phase warnings ──
   const conversionStats = (isRefactor && state.refactorConvert) ? (() => {
     const phases = lc.phases || {};
     let totalActions = 0;
     let customScriptCount = 0;
     let rawPsCount = 0;
     let populatedPhases = 0;
-    for (const [, phaseData] of Object.entries(phases)) {
+    const phaseWarnings = {}; // phaseKey → { rawPs, custom, total }
+    for (const [phaseKey, phaseData] of Object.entries(phases)) {
       const actions = (phaseData.actions || []).filter(a => a.enabled !== false);
       if (actions.length > 0) populatedPhases++;
       totalActions += actions.length;
-      customScriptCount += actions.filter(a => a.type === 'custom_script').length;
-      rawPsCount += actions.filter(a => a.type === 'raw_ps').length;
+      const raw = actions.filter(a => a.type === 'raw_ps').length;
+      const custom = actions.filter(a => a.type === 'custom_script').length;
+      customScriptCount += custom;
+      rawPsCount += raw;
+      if (raw + custom > 0) phaseWarnings[phaseKey] = { rawPs: raw, custom, total: raw + custom };
     }
-    return { totalActions, customScriptCount, rawPsCount, populatedPhases };
+    return { totalActions, customScriptCount, rawPsCount, populatedPhases, phaseWarnings };
   })() : null;
+
+  // Auto-expand phases that contain warnings after conversion
+  useEffect(() => {
+    if (!conversionStats?.phaseWarnings) return;
+    const toExpand = {};
+    for (const phaseKey of Object.keys(conversionStats.phaseWarnings)) {
+      toExpand[phaseKey] = true;
+    }
+    if (Object.keys(toExpand).length > 0) {
+      setExpandedPhases(prev => ({ ...prev, ...toExpand }));
+    }
+  }, [!!conversionStats]); // run once when conversion stats are first available
 
   // ── Full interactive lifecycle editor (New Title + Refactor Convert) ──
   return (
@@ -425,14 +441,22 @@ export default function PsadtLifecycleStep({ state, updateField, addAction, remo
             const actions = phaseData.actions || [];
             const isExpanded = expandedPhases[phaseKey];
             const togglePhase = () => setExpandedPhases(prev => ({ ...prev, [phaseKey]: !isExpanded }));
+            const warn = conversionStats?.phaseWarnings?.[phaseKey];
 
             return (
-              <div key={phaseKey} className={`lifecycle-phase ${isExpanded ? 'lifecycle-phase--open' : ''}`}>
-                <button type="button" className="phase-header" onClick={togglePhase}>
+              <div key={phaseKey} className={`lifecycle-phase ${isExpanded ? 'lifecycle-phase--open' : ''} ${warn ? 'lifecycle-phase--warn' : ''}`}>
+                <button type="button" className={`phase-header ${warn ? 'phase-header--warn' : ''}`} onClick={togglePhase}>
                   <span className="phase-header__icon">{meta.icon}</span>
                   <span className="phase-header__label">{meta.label}</span>
                   {actions.length > 0 && (
                     <span className="phase-header__badge">{actions.length} action{actions.length !== 1 ? 's' : ''}</span>
+                  )}
+                  {warn && (
+                    <span className="phase-header__warn-pill" title={`${warn.rawPs > 0 ? `${warn.rawPs} raw block${warn.rawPs !== 1 ? 's' : ''}` : ''}${warn.rawPs > 0 && warn.custom > 0 ? ', ' : ''}${warn.custom > 0 ? `${warn.custom} unmatched` : ''} — needs review`}>
+                      {warn.rawPs > 0 && <span>🔷 {warn.rawPs}</span>}
+                      {warn.custom > 0 && <span>⚠ {warn.custom}</span>}
+                      <span className="phase-header__warn-label">Review</span>
+                    </span>
                   )}
                   <span className="phase-header__chevron">{isExpanded ? '▾' : '▸'}</span>
                 </button>

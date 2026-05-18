@@ -31,6 +31,26 @@
 .phase-body { padding: var(--space-sm) var(--space-md) var(--space-md); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px; }
 .phase-empty { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin: 0; padding: 4px 0; }
 
+/* ── Phase warning highlight (has raw_ps / custom_script after conversion) ── */
+.lifecycle-phase--warn { border-color: rgba(245, 158, 11, 0.35); }
+.lifecycle-phase--warn.lifecycle-phase--open { border-color: rgba(245, 158, 11, 0.55); }
+.phase-header--warn { background: rgba(245, 158, 11, 0.04); border-left: 3px solid #f59e0b; padding-left: calc(var(--space-md) - 3px); }
+.phase-header--warn:hover { background: rgba(245, 158, 11, 0.08); }
+.phase-header__warn-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.62rem; font-weight: 700;
+  background: rgba(245, 158, 11, 0.12); color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  animation: warn-pulse 2s ease-in-out 1;
+}
+.phase-header__warn-label { color: #f59e0b; font-weight: 700; }
+@keyframes warn-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50%  { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
 /* ── Action Cards ── */
 .action-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); overflow: hidden; transition: opacity 0.2s; }
 .action-card--disabled { opacity: 0.5; }
