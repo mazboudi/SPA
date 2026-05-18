@@ -93,19 +93,25 @@ function ConvertFrom-SimpleYaml {
             $lineIndent = $Matches[1].Length
             $lineText   = $raw.TrimEnd()
 
-            # A line that is blank OR more indented than the block base → belongs to the scalar
-            if ($lineText.Trim() -eq '' -or $lineIndent -gt $blockScalarIndent) {
+            # Auto-detect the block base indent from the first non-empty content line
+            if ($blockScalarIndent -eq -1 -and $lineText.Trim() -ne '') {
+                $blockScalarIndent = $lineIndent
+            }
+
+            # A line that is blank OR indented >= the block base indent → belongs to the scalar
+            if ($lineText.Trim() -eq '' -or ($blockScalarIndent -ne -1 -and $lineIndent -ge $blockScalarIndent)) {
                 # Strip the base indent from the line
-                $stripped = if ($lineText.Length -gt $blockScalarIndent) { $lineText.Substring($blockScalarIndent) } else { '' }
+                $stripped = if ($blockScalarIndent -ge 0 -and $lineText.Length -ge $blockScalarIndent) { $lineText.Substring($blockScalarIndent) } else { $lineText }
                 $blockScalarLines.Add($stripped) | Out-Null
                 continue
             }
 
-            # Line with equal or less indent → block scalar ends, flush
+            # Line with less indent than base → block scalar ends, flush
             $blockValue = ($blockScalarLines -join "`n").TrimEnd()
             $blockScalarParent[$blockScalarKey] = $blockValue
             $blockScalarKey    = $null
             $blockScalarParent = $null
+            $blockScalarIndent = -1
             $blockScalarLines.Clear()
             # Fall through to process current line normally
         }
@@ -181,11 +187,9 @@ function ConvertFrom-SimpleYaml {
                 $blockScalarKey    = $key
                 $blockScalarParent = $parent
                 $blockScalarFolded = ($val -eq '>')
-                # Block base indent = indent of the key + 2 (standard YAML convention)
-                # We'll auto-detect from the first non-empty content line instead
-                $blockScalarIndent = $indent + 2
+                # Base indent will be auto-detected from the first non-empty content line
+                $blockScalarIndent = -1
                 $blockScalarLines.Clear()
-                # Push an entry for this key so the stack is correct if nested items follow after the block
                 $parent[$key] = ''
                 continue
             }
