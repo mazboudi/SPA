@@ -157,7 +157,7 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
                   updateField('supportFilesSource', dir);
                 }
               }}
-              placeholder="C:\files\7-zip"
+              placeholder={'C:\\files\\7-zip'}
             />
           </FormField>
           <FormField label={`${state.installerType === 'msi' ? 'MSI' : 'EXE'} Filename`} id="installerSourceFile"

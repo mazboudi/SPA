@@ -264,9 +264,10 @@ export default function useWizardState() {
   // Determine visible steps based on platform and mode
   const steps = useMemo(() => {
     if (state.wizardMode === 'refactor') {
-      // Refactor mode: skip Platform (always Windows) and Installer (derived from imports)
+      // Refactor mode: skip Platform (always Windows)
       return [
         { id: 'basic', label: 'Basic Info', icon: '📋' },
+        { id: 'installer', label: 'Installer', icon: '📦' },
         { id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' },
         { id: 'detection', label: 'Detection', icon: '🔍' },
         { id: 'intune', label: 'Intune', icon: '☁️' },
@@ -274,11 +275,15 @@ export default function useWizardState() {
       ];
     }
 
-    // New title mode
+    // New title and edit mode
     const base = [
       { id: 'basic', label: 'Basic Info', icon: '📋' },
-      { id: 'platform', label: 'Platform', icon: '🖥️' },
     ];
+
+    // Edit mode skips platform selection (already known)
+    if (state.wizardMode !== 'edit') {
+      base.push({ id: 'platform', label: 'Platform', icon: '🖥️' });
+    }
 
     if (state.platform === 'windows' || state.platform === 'both') {
       base.push({ id: 'installer', label: 'Installer', icon: '📦' });
@@ -402,7 +407,19 @@ export default function useWizardState() {
    */
   const importPsadtState = useCallback((parsedResult, wizardFields, convertToLifecycle = false) => {
     setState(prev => {
-      const next = { ...prev, ...wizardFields };
+      const next = { ...prev };
+
+      // Merge wizard fields, but protect basic-info fields already set by Intune
+      const intuneProtectedFields = ['displayName', 'publisher', 'version', 'appDescription'];
+      for (const [key, value] of Object.entries(wizardFields)) {
+        if (value == null || value === '') continue;
+        // If Intune already populated this field, keep the Intune value
+        if (intuneProtectedFields.includes(key) && prev._intuneExportImported && prev[key] && prev[key] !== INITIAL_STATE[key]) {
+          continue;
+        }
+        next[key] = value;
+      }
+
       next.wizardMode = 'refactor';
       next.refactorConvert = convertToLifecycle;
       next.psadtVersion = parsedResult.psadtVersion || '';
@@ -435,6 +452,15 @@ export default function useWizardState() {
       // Auto-derive packageId if displayName was set
       if (next.displayName && (!next.packageId || next.packageId === prev.packageId)) {
         next.packageId = toKebabCase(next.displayName);
+      }
+
+      // Auto-fill installer source filename from parsed MSI/EXE data
+      if (!next.installerSourceFile) {
+        if (next.installerType === 'msi' && next.msiFileName) {
+          next.installerSourceFile = next.msiFileName;
+        } else if (next.installerType === 'exe' && next.exeSourceFilename) {
+          next.installerSourceFile = next.exeSourceFilename;
+        }
       }
 
       return next;

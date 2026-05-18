@@ -281,6 +281,24 @@
         }
       }
 
+      # Copy support files from runner VM if WINDOWS_SUPPORT_FILES_SOURCE is set
+      # Copies all files from the specified directory into windows/src/SupportFiles/
+      if ($env:WINDOWS_SUPPORT_FILES_SOURCE) {
+        $supportDir = 'windows\src\SupportFiles'
+        if (!(Test-Path $supportDir)) { New-Item -ItemType Directory -Path $supportDir | Out-Null }
+        if (Test-Path $env:WINDOWS_SUPPORT_FILES_SOURCE) {
+          $supportItems = Get-ChildItem -Path $env:WINDOWS_SUPPORT_FILES_SOURCE -File -ErrorAction SilentlyContinue
+          if ($supportItems.Count -gt 0) {
+            Write-Host "Copying $($supportItems.Count) support files from: $($env:WINDOWS_SUPPORT_FILES_SOURCE) -> $supportDir"
+            Copy-Item -Path (Join-Path $env:WINDOWS_SUPPORT_FILES_SOURCE '*') -Destination $supportDir -Recurse -Force
+          } else {
+            Write-Host "WINDOWS_SUPPORT_FILES_SOURCE set but directory is empty: $($env:WINDOWS_SUPPORT_FILES_SOURCE)"
+          }
+        } else {
+          Write-Host "⚠️ WINDOWS_SUPPORT_FILES_SOURCE set but path not found: $($env:WINDOWS_SUPPORT_FILES_SOURCE)" -ForegroundColor Yellow
+        }
+      }
+
       # Overlay src/ content (Files, SupportFiles, Assets)
       foreach ($subDir in @('Files','SupportFiles','Assets')) {
         $srcPath = Join-Path 'windows/src' $subDir

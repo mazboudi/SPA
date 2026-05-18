@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
@@ -107,6 +107,11 @@ export default function IntuneConfigStep({ state, updateField }) {
         <h2>☁️ Intune Configuration</h2>
         <p>Configure Intune app metadata, requirements, assignments, dependencies, and supersedence.</p>
       </div>
+
+      {/* ═══ INTUNE METADATA SUMMARY ═══ */}
+      {(state._intuneExportImported || state.wizardMode === 'edit') && (
+        <IntuneMetaSummary state={state} />
+      )}
 
       {hasErrors && (
         <div className="validation-banner">
@@ -392,6 +397,189 @@ export default function IntuneConfigStep({ state, updateField }) {
         .detection-rule-card__type { font-size: 0.78rem; font-weight: 600; color: var(--text-accent, #7c8aff); }
         .detection-add-buttons { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
         .detection-add-buttons .btn { font-size: 0.78rem; padding: 6px 12px; }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Intune Metadata Summary ─────────────────────────────────────────────
+
+function IntuneMetaSummary({ state }) {
+  const [expanded, setExpanded] = useState(true);
+
+  // Build metadata rows — show all Intune-relevant fields with their current values
+  const metaRows = [
+    { label: 'Display Name', value: state.displayName },
+    { label: 'Publisher', value: state.publisher },
+    { label: 'Version', value: state.version },
+    { label: 'Description', value: state.appDescription, truncate: true },
+    { label: 'Owner', value: state.appOwner },
+    { label: 'Developer', value: state.appDeveloper },
+    { label: 'Category', value: state.softwareCategory },
+    { label: 'Information URL', value: state.informationUrl, isUrl: true },
+    { label: 'Privacy URL', value: state.privacyUrl, isUrl: true },
+    { label: 'Notes', value: state.appNotes, truncate: true },
+    { label: 'Featured', value: state.isFeatured ? 'Yes' : 'No', badge: state.isFeatured ? 'accent' : 'muted' },
+    { label: 'Allow Uninstall', value: state.allowAvailableUninstall ? 'Yes' : 'No', badge: state.allowAvailableUninstall ? 'accent' : 'muted' },
+    { label: 'Installer Type', value: state.installerType?.toUpperCase() },
+    { label: 'Detection Mode', value: state.detectionMode },
+    { label: 'Restart Behavior', value: state.restartBehavior },
+    { label: 'Max Install Time', value: state.maxInstallTime ? `${state.maxInstallTime} min` : '' },
+    { label: 'Install Context', value: state.installContext },
+    { label: 'Min Windows', value: state.minWinRelease },
+    { label: 'Min Disk Space', value: state.minDiskSpaceMB != null ? `${state.minDiskSpaceMB} MB` : '' },
+    { label: 'Min Memory', value: state.minMemoryMB != null ? `${state.minMemoryMB} MB` : '' },
+    { label: 'Assignments', value: state.assignments?.length ? `${state.assignments.length} group(s)` : '' },
+    { label: 'Supersedes', value: state.supersedesAppId || '' },
+    { label: 'Intune App ID', value: state._intuneAppId, mono: true },
+  ].filter(r => r.value && r.value !== '');
+
+  const populatedCount = metaRows.length;
+
+  return (
+    <div className="intune-meta-summary">
+      <button type="button" className="intune-meta-summary__header" onClick={() => setExpanded(!expanded)}>
+        <span className="intune-meta-summary__icon">📋</span>
+        <span className="intune-meta-summary__title">Intune Properties</span>
+        <span className="intune-meta-summary__badge">{populatedCount} populated</span>
+        {state._intuneExportImported && (
+          <span className="intune-meta-summary__source">from Intune catalog</span>
+        )}
+        <span className="intune-meta-summary__chevron">{expanded ? '▾' : '▸'}</span>
+      </button>
+      {expanded && (
+        <div className="intune-meta-summary__body">
+          <div className="intune-meta-grid">
+            {metaRows.map(row => (
+              <div key={row.label} className="intune-meta-row">
+                <span className="intune-meta-row__label">{row.label}</span>
+                {row.isUrl && row.value ? (
+                  <a className="intune-meta-row__value intune-meta-row__value--link" href={row.value} target="_blank" rel="noopener noreferrer">{row.value}</a>
+                ) : row.badge ? (
+                  <span className={`intune-meta-row__badge intune-meta-row__badge--${row.badge}`}>{row.value}</span>
+                ) : (
+                  <span className={`intune-meta-row__value ${row.mono ? 'intune-meta-row__value--mono' : ''} ${row.truncate ? 'intune-meta-row__value--truncate' : ''}`}>{row.value}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .intune-meta-summary {
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          margin-bottom: var(--space-lg);
+          overflow: hidden;
+          background: var(--bg-card, rgba(255,255,255,0.02));
+        }
+        .intune-meta-summary__header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          width: 100%;
+          padding: 10px var(--space-md);
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          color: inherit;
+          transition: background 0.15s;
+        }
+        .intune-meta-summary__header:hover {
+          background: var(--bg-hover, rgba(255,255,255,0.04));
+        }
+        .intune-meta-summary__icon { font-size: 1rem; flex-shrink: 0; }
+        .intune-meta-summary__title {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .intune-meta-summary__badge {
+          font-size: 0.65rem;
+          font-weight: 700;
+          background: rgba(99,140,255,0.15);
+          color: var(--text-accent, #7c8aff);
+          padding: 2px 8px;
+          border-radius: 10px;
+        }
+        .intune-meta-summary__source {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          font-style: italic;
+          margin-left: auto;
+        }
+        .intune-meta-summary__chevron {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          width: 14px;
+          flex-shrink: 0;
+        }
+        .intune-meta-summary__body {
+          padding: var(--space-sm) var(--space-md) var(--space-md);
+          border-top: 1px solid var(--border-subtle);
+        }
+        .intune-meta-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 6px 16px;
+        }
+        .intune-meta-row {
+          display: flex;
+          align-items: baseline;
+          gap: var(--space-sm);
+          padding: 3px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .intune-meta-row__label {
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          flex-shrink: 0;
+          min-width: 100px;
+        }
+        .intune-meta-row__value {
+          font-size: 0.78rem;
+          color: var(--text-primary);
+          word-break: break-word;
+        }
+        .intune-meta-row__value--mono {
+          font-family: var(--font-mono);
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+        }
+        .intune-meta-row__value--truncate {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .intune-meta-row__value--link {
+          font-size: 0.74rem;
+          color: var(--text-accent, #7c8aff);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .intune-meta-row__value--link:hover {
+          color: var(--text-primary);
+        }
+        .intune-meta-row__badge {
+          font-size: 0.7rem;
+          font-weight: 600;
+          padding: 1px 8px;
+          border-radius: 8px;
+        }
+        .intune-meta-row__badge--accent {
+          background: rgba(99,140,255,0.12);
+          color: var(--text-accent, #7c8aff);
+        }
+        .intune-meta-row__badge--muted {
+          background: rgba(255,255,255,0.06);
+          color: var(--text-muted);
+        }
       `}</style>
     </div>
   );
