@@ -11,6 +11,20 @@
 .msi-status { font-size: 0.8rem; color: var(--text-secondary); }
 .msi-status--ok { color: var(--color-success); }
 .msi-status--err { color: var(--color-error); }
+
+/* MSI mode toggle (Upload File / Local Path tabs) */
+.msi-mode-toggle { display: flex; gap: 4px; margin-bottom: 12px; }
+.msi-mode-btn { background: none; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 5px 14px; font-size: 0.78rem; font-family: inherit; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.msi-mode-btn:hover { border-color: var(--text-accent, #7c8aff); color: var(--text-accent, #7c8aff); }
+.msi-mode-btn--active { background: rgba(99,140,255,0.12); border-color: rgba(99,140,255,0.4); color: var(--text-accent, #7c8aff); font-weight: 600; }
+
+/* MSI local path mode */
+.msi-path-area { display: flex; flex-direction: column; gap: 8px; }
+.msi-path-hint { font-size: 0.78rem; color: var(--text-muted); margin: 0; line-height: 1.5; }
+.msi-path-hint code { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; }
+.msi-path-row { display: flex; gap: 8px; align-items: center; }
+.msi-path-input { flex: 1; font-size: 0.8rem; padding: 6px 10px; background: var(--bg-input, rgba(255,255,255,0.04)); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-mono, monospace); }
+.msi-path-input:focus { outline: none; border-color: var(--text-accent, #7c8aff); }
 .link-btn { background: none; border: none; color: var(--color-accent, #7c8aff); cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0; font-family: inherit; }
 .link-btn:hover { color: var(--text-primary); }
 .msi-manual-banner { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); background: var(--bg-hover); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-secondary); }

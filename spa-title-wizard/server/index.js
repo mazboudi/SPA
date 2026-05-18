@@ -11,9 +11,12 @@
 
 import 'dotenv/config';
 import express from 'express';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
+import multer from 'multer';
+import CFB from 'cfb';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -627,6 +630,135 @@ app.get('/api/health', (req, res) => {
     hasToken: !!GITLAB_TOKEN,
     intune: graphConfigured,
   });
+});
+
+// ── MSI Metadata Extraction ─────────────────────────────────────────────────
+
+/** Parse an MSI file buffer and return property metadata */
+function extractMsiProperties(buffer) {
+  const cfb = CFB.read(buffer, { type: 'buffer' });
+  const result = {};
+
+  // Find _StringData — the concatenated string pool of the MSI database
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const markers = ['ProductCode', 'ProductName', 'Manufacturer', 'ProductVersion'];
+  let bestEntry = null, bestScore = 0;
+  for (const entry of cfb.FileIndex) {
+    if (!entry.content) continue;
+    const bytes = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
+    if (bytes.length < 100 || bytes.length > 500000) continue;
+    const text = decoder.decode(bytes);
+    const score = markers.filter(m => text.includes(m)).length;
+    if (score > bestScore) { bestScore = score; bestEntry = entry; }
+  }
+
+  if (!bestEntry || bestScore < 2) {
+    // Fallback: binary scan for GUIDs and versions
+    const all = decoder.decode(buffer);
+    const utf16 = new TextDecoder('utf-16le', { fatal: false }).decode(buffer);
+    const guidRe = /\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/g;
+    const guids = utf16.match(guidRe) || all.match(guidRe) || [];
+    if (guids[0]) result.productCode = guids[0];
+    if (guids[1]) result.upgradeCode = guids[1];
+    const vm = utf16.match(/(\d+\.\d+\.\d+[.\d]*)/);
+    if (vm) result.productVersion = vm[1];
+    return result;
+  }
+
+  const stringDataBytes = Buffer.isBuffer(bestEntry.content) ? bestEntry.content : Buffer.from(bestEntry.content);
+  const stringDataSize = stringDataBytes.length;
+
+  // Find _StringPool (4-byte-aligned, entries sum to stringDataSize)
+  let poolEntry = null;
+  for (const entry of cfb.FileIndex) {
+    if (!entry.content || entry === bestEntry) continue;
+    const bytes = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
+    if (bytes.length < 8 || bytes.length % 4 !== 0 || bytes.length === stringDataSize) continue;
+    let total = 0;
+    for (let i = 4; i + 3 < bytes.length; i += 4) total += bytes.readUInt16LE(i);
+    if (total === stringDataSize) { poolEntry = entry; break; }
+  }
+
+  if (!poolEntry) return result;
+
+  // Decode string pool
+  const poolBytes = Buffer.isBuffer(poolEntry.content) ? poolEntry.content : Buffer.from(poolEntry.content);
+  const strings = [''];
+  let offset = 0;
+  for (let i = 4; i + 3 < poolBytes.length; i += 4) {
+    const len = poolBytes.readUInt16LE(i);
+    if (len > 0 && offset + len <= stringDataSize) {
+      strings.push(decoder.decode(stringDataBytes.slice(offset, offset + len)));
+      offset += len;
+    } else {
+      strings.push('');
+    }
+  }
+
+  // Find Property table and decode it (2-column, column-major layout)
+  const knownKeys = new Set(['ProductCode','ProductVersion','ProductName','Manufacturer','UpgradeCode']);
+  let bestProps = {}, bestPropScore = 0;
+  for (const entry of cfb.FileIndex) {
+    if (!entry.content) continue;
+    const bytes = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
+    const rowSize = 4; // 2 x u16
+    if (bytes.length < rowSize * 2 || bytes.length % rowSize !== 0) continue;
+    const numRows = bytes.length / rowSize;
+    if (numRows < 2 || numRows > 5000) continue;
+    const colSize = numRows * 2;
+    const props = {};
+    let score = 0;
+    for (let r = 0; r < numRows; r++) {
+      const ki = bytes.readUInt16LE(r * 2);
+      const vi = bytes.readUInt16LE(colSize + r * 2);
+      if (ki > 0 && ki < strings.length) {
+        const k = strings[ki];
+        const v = vi > 0 && vi < strings.length ? strings[vi] : '';
+        if (k && /^[A-Za-z_]/.test(k)) { props[k] = v; if (knownKeys.has(k)) score++; }
+      }
+    }
+    if (score > bestPropScore) { bestPropScore = score; bestProps = props; }
+  }
+
+  if (bestProps.ProductCode)   result.productCode   = bestProps.ProductCode;
+  if (bestProps.ProductName)   result.productName   = bestProps.ProductName;
+  if (bestProps.ProductVersion) result.productVersion = bestProps.ProductVersion;
+  if (bestProps.Manufacturer)  result.manufacturer  = bestProps.Manufacturer;
+  if (bestProps.UpgradeCode)   result.upgradeCode   = bestProps.UpgradeCode;
+
+  return result;
+}
+
+// Multer — store upload in memory (MSI files are typically < 200MB; fine for metadata extraction)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
+
+/** POST /api/msi-info — extract MSI metadata from uploaded file */
+app.post('/api/msi-info', upload.single('msi'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const meta = extractMsiProperties(req.file.buffer);
+    meta.fileName = req.file.originalname;
+    res.json(meta);
+  } catch (err) {
+    console.error('MSI parse error:', err);
+    res.status(500).json({ error: `Failed to parse MSI: ${err.message}` });
+  }
+});
+
+/** POST /api/msi-info-path — extract MSI metadata from a local file path (no upload) */
+app.post('/api/msi-info-path', express.json(), (req, res) => {
+  try {
+    const { path: filePath } = req.body || {};
+    if (!filePath) return res.status(400).json({ error: 'path is required' });
+    if (!existsSync(filePath)) return res.status(404).json({ error: `File not found: ${filePath}` });
+    const buffer = readFileSync(filePath);
+    const meta = extractMsiProperties(buffer);
+    meta.fileName = filePath.split(/[\\/]/).pop();
+    res.json(meta);
+  } catch (err) {
+    console.error('MSI path parse error:', err);
+    res.status(500).json({ error: `Failed to parse MSI: ${err.message}` });
+  }
 });
 
 // ── Start ───────────────────────────────────────────────────────────────────
