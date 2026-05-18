@@ -146,6 +146,64 @@ function Build-DeployApplication {
                 'RemoveRegistryKey' {
                     $lines += "        Remove-ADTRegistryKey -LiteralPath '$($action.Path)'"
                 }
+                'RegistrySet' {
+                    $key  = $action.Key  ?? $action.Path
+                    $name = $action.Name ?? ''
+                    $val  = $action.Value ?? ''
+                    $type = $action.RegType ?? 'String'
+                    $lines += "        Set-ADTRegistryKey -Key '$key' -Name '$name' -Type '$type' -Value '$val'"
+                }
+                'RegistryRemove' {
+                    $key  = $action.Key  ?? $action.Path
+                    $name = $action.Name ?? ''
+                    if ($name) {
+                        $lines += "        Remove-ADTRegistryKey -Key '$key' -Name '$name'"
+                    } else {
+                        $lines += "        Remove-ADTRegistryKey -Key '$key'"
+                    }
+                }
+                'ExecuteProcess' {
+                    $fp   = $action.FilePath ?? ''
+                    $args = if ($action.ArgumentList) { " -ArgumentList '$($action.ArgumentList)'" } else { '' }
+                    $lines += "        Start-ADTProcess -FilePath '$fp'$args -WindowStyle Hidden -Wait -ErrorAction Stop"
+                }
+                'StopProcess' {
+                    $lines += "        Stop-Process -Name '$($action.Name)' -Force -ErrorAction SilentlyContinue"
+                }
+                'FileCopy' {
+                    $lines += "        Copy-Item -Path '$($action.Source)' -Destination '$($action.Destination)' -Force"
+                }
+                'FileRemove' {
+                    $lines += "        Remove-Item -Path '$($action.Path)' -Force -ErrorAction SilentlyContinue"
+                }
+                'CreateFolder' {
+                    $lines += "        New-Item -Path '$($action.Path)' -ItemType Directory -Force | Out-Null"
+                }
+                'Sleep' {
+                    $sec = $action.Seconds ?? 5
+                    $lines += "        Start-Sleep -Seconds $sec"
+                }
+                'ShowWelcome' {
+                    $apps = if ($action.Apps) { " -CloseProcesses '$($action.Apps)' -CloseProcessesCountdown 60" } else { '' }
+                    $lines += "        Show-ADTInstallationWelcome$apps"
+                }
+                'ShowProgress' {
+                    $msg = if ($action.Message) { $action.Message } else { 'Operation in progress...' }
+                    $lines += "        Show-ADTInstallationProgress -StatusMessage '$msg'"
+                }
+                'RawPs' {
+                    # Inject the raw PowerShell block verbatim
+                    $content = $action.Content
+                    if ($content) {
+                        $lines += "        ## Raw PowerShell block (preserved from source script)"
+                        if ($action.Note) { $lines += "        ## $($action.Note)" }
+                        foreach ($line in ($content -split "`n")) {
+                            $trimmed = $line.TrimEnd("`r")
+                            $lines += "        $trimmed"
+                        }
+                    }
+                }
+
                 'ShowCompletion' {
                     $lines += "        Show-ADTInstallationPrompt -Message 'The install has completed.' ``"
                     $lines += "            -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5"

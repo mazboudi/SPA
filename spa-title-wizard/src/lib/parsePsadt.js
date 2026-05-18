@@ -653,22 +653,19 @@ function extractPsParamValue(line, paramName) {
 
 /**
  * Keywords that open a brace-balanced control-flow block in PowerShell.
- * These are Allman or K&R style constructs we want to extract wholesale.
+ * Split into two sets:
+ *   TRY_OPENERS  — error-handling constructs → always raw_ps (Catch/Finally must not be dropped)
+ *   FLOW_OPENERS — regular flow control → parse interior if it contains known ADT cmdlets
  */
-const BLOCK_OPENERS = /^(?:try|catch|finally|if|elseif|else|foreach|for|while|do|switch)\b/i;
+const TRY_OPENERS  = /^(?:try)\b/i;
+const FLOW_OPENERS = /^(?:if|elseif|else|foreach|for|while|do|switch)\b/i;
+// Combined — used for the first-pass check
+const BLOCK_OPENERS = /^(?:try|if|elseif|else|foreach|for|while|do|switch)\b/i;
 
 /**
- * Regex matching a recognizable PSADT/ADT cmdlet — used to decide whether to
- * parse the interior of a block individually or emit it as raw_ps.
- */
-const ADT_CMDLET_RE = /(?:Start-ADT|Execute-MSI|Execute-Process|Set-ADTRegistry|Remove-ADTRegistry|Copy-ADTFile|Remove-ADTFolder|New-ADTFolder|Uninstall-ADTApplication|Show-ADTInstallation|Close-ADTInstallation|Start-ADTMsiProcess|Start-ADTProcess|Set-RegistryKey|Remove-RegistryKey|Copy-Item|Remove-Item|Start-Process|Start-Sleep|Stop-Process|Write-ADTLogEntry)\b/i;
-
-/**
- * Given a list of already-joined logical lines and a starting index whose
- * line either IS the opening brace or will be followed by one, walk forward
- * consuming lines until all opened braces are balanced.
- *
- * Returns { blockText, endIndex } where endIndex is the LAST consumed line index.
+ * Extract a brace-balanced block starting at startIdx.
+ * Stops as soon as depth returns to 0 after the first '{' is seen.
+ * Returns { blockText, endIndex }.
  */
 function extractBraceBlock(lines, startIdx) {
   let depth = 0;
@@ -679,7 +676,6 @@ function extractBraceBlock(lines, startIdx) {
     const raw = lines[i];
     const t = raw.trim();
 
-    // Count brace changes in this line
     for (const ch of t) {
       if (ch === '{') { depth++; started = true; }
       if (ch === '}') depth--;
@@ -687,15 +683,51 @@ function extractBraceBlock(lines, startIdx) {
 
     blockLines.push(raw);
 
-    // Once we've seen at least one { and depth returns to 0, we're done
     if (started && depth === 0) {
       return { blockText: blockLines.join('\n'), endIndex: i };
     }
   }
 
-  // Unclosed block — return everything we consumed
   return { blockText: blockLines.join('\n'), endIndex: lines.length - 1 };
 }
+
+/**
+ * Extract a complete Try { } Catch { } Finally { } sequence as one unit.
+ * PowerShell requires Catch/Finally to immediately follow the Try body,
+ * so we keep consuming brace-balanced blocks as long as the NEXT non-blank
+ * line starts with 'catch' or 'finally'.
+ * Returns { blockText, endIndex }.
+ */
+function extractTryCatchBlock(lines, startIdx) {
+  let allLines = [];
+  let endIdx = startIdx;
+
+  // Extract the Try body
+  const tryResult = extractBraceBlock(lines, startIdx);
+  allLines.push(...tryResult.blockText.split('\n'));
+  endIdx = tryResult.endIndex;
+
+  // Keep consuming Catch / Finally clauses
+  while (endIdx + 1 < lines.length) {
+    // Peek ahead — skip blank lines to find the next keyword
+    let peekIdx = endIdx + 1;
+    while (peekIdx < lines.length && !lines[peekIdx].trim()) peekIdx++;
+
+    const peek = (lines[peekIdx] || '').trim();
+    if (/^(?:catch|finally)\b/i.test(peek)) {
+      const clauseResult = extractBraceBlock(lines, peekIdx);
+      // Add any blank lines between
+      for (let b = endIdx + 1; b <= peekIdx - 1; b++) allLines.push(lines[b]);
+      allLines.push(...clauseResult.blockText.split('\n'));
+      endIdx = clauseResult.endIndex;
+    } else {
+      break;
+    }
+  }
+
+  return { blockText: allLines.join('\n'), endIndex: endIdx };
+}
+
 
 /** Scan a script block for all recognizable PowerShell commands and return action objects. */
 function extractBlockActions(block) {
@@ -747,24 +779,37 @@ function extractBlockActions(block) {
     if (/^\[hashtable\]/i.test(t)) continue;
     if (t.length < 3) continue;
 
-    // ── Block-level pre-scan: try/catch/finally/if/foreach/while/etc. ──
-    // If the line opens a control-flow block, extract the entire brace-balanced
-    // construct as one unit. Decide individually vs raw_ps based on content.
-    if (BLOCK_OPENERS.test(t)) {
+    // ── Block-level pre-scan ────────────────────────────────────────────
+    // TRY blocks: always raw_ps — Catch/Finally error handlers must not be dropped
+    if (TRY_OPENERS.test(t)) {
+      const { blockText, endIndex } = extractTryCatchBlock(lines, lineIdx);
+      lineIdx = endIndex;
+      const trimmedBlock = blockText.trim();
+      if (trimmedBlock.length > 3) {
+        actions.push({
+          type: 'raw_ps',
+          desc: `Try/Catch block: ${trimmedBlock.split('\n')[0].trim().substring(0, 60)}`,
+          script: trimmedBlock,
+          note: 'Error-handling block preserved as-is (Try/Catch/Finally)',
+          enabled: true,
+        });
+      }
+      continue;
+    }
+
+    // FLOW blocks (if/foreach/while/etc.): parse interior if ADT cmdlets found, else raw_ps
+    if (FLOW_OPENERS.test(t)) {
       const { blockText, endIndex } = extractBraceBlock(lines, lineIdx);
-      lineIdx = endIndex; // skip consumed lines
+      lineIdx = endIndex;
 
       if (ADT_CMDLET_RE.test(blockText)) {
-        // Block contains recognizable cmdlets — parse interior individually.
-        // Strip the outer keyword/brace lines and recurse on the interior.
+        // Contains recognizable cmdlets — strip outer braces and parse interior
         const innerLines = blockText.split('\n');
-        // Find the first line that has a '{', extract interior, recurse
         const innerBlock = innerLines.slice(1, innerLines.length - 1).join('\n');
-        // Recursively extract actions from inner block (will pick up matched cmds)
         const innerActions = extractBlockActions(innerBlock);
         for (const ia of innerActions) actions.push(ia);
       } else {
-        // No recognizable cmdlet — preserve the whole block verbatim as raw_ps
+        // No recognizable cmdlet — preserve verbatim as raw_ps
         const trimmedBlock = blockText.trim();
         if (trimmedBlock.length > 3) {
           actions.push({

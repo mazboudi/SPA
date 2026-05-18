@@ -73,14 +73,42 @@ function ConvertFrom-SimpleYaml {
 
     $lines = $Yaml -split "`r?`n"
     $root  = @{}
-    # Stack entries: @{ indent = <int>; node = <hashtable|ArrayList>; key = <string|$null> }
-    # 'key' tracks the last key set on the parent, so we can retroactively swap
-    # a hashtable placeholder to an ArrayList when the first "- " child appears.
     $stack = [System.Collections.ArrayList]@(
         @{ indent = -1; node = $root; key = $null }
     )
 
+    # Block scalar state: when we see 'key: |' or 'key: >', we collect
+    # subsequent indented lines as a single multiline string value.
+    $blockScalarKey     = $null
+    $blockScalarParent  = $null
+    $blockScalarIndent  = -1
+    $blockScalarLines   = [System.Collections.ArrayList]::new()
+    $blockScalarFolded  = $false  # true = '>' (folded), false = '|' (literal)
+
     foreach ($raw in $lines) {
+
+        # ── Block scalar collection mode ─────────────────────────────────
+        if ($blockScalarKey) {
+            $null = $raw -match '^(\s*)'
+            $lineIndent = $Matches[1].Length
+            $lineText   = $raw.TrimEnd()
+
+            # A line that is blank OR more indented than the block base → belongs to the scalar
+            if ($lineText.Trim() -eq '' -or $lineIndent -gt $blockScalarIndent) {
+                # Strip the base indent from the line
+                $stripped = if ($lineText.Length -gt $blockScalarIndent) { $lineText.Substring($blockScalarIndent) } else { '' }
+                $blockScalarLines.Add($stripped) | Out-Null
+                continue
+            }
+
+            # Line with equal or less indent → block scalar ends, flush
+            $blockValue = ($blockScalarLines -join "`n").TrimEnd()
+            $blockScalarParent[$blockScalarKey] = $blockValue
+            $blockScalarKey    = $null
+            $blockScalarParent = $null
+            $blockScalarLines.Clear()
+            # Fall through to process current line normally
+        }
 
         $trimmed = $raw.Trim()
 
@@ -95,14 +123,10 @@ function ConvertFrom-SimpleYaml {
             continue
         }
 
-        # ── Compute indentation correctly ────────────────────────────────
-        # PowerShell's -match returns a bool and populates $Matches.
-        # We must read $Matches[1] AFTER the -match call, not chain off the bool.
         $null = $line -match '^(\s*)'
         $indent = $Matches[1].Length
         $text   = $line.Trim()
 
-        # ── Walk stack back to correct parent for this indent level ───────
         while ($stack.Count -gt 1 -and $stack[$stack.Count - 1].indent -ge $indent) {
             $stack.RemoveAt($stack.Count - 1)
         }
@@ -114,8 +138,6 @@ function ConvertFrom-SimpleYaml {
         if ($text -match '^-\s+(.+)$') {
             $itemContent = $Matches[1].Trim()
 
-            # If parent is a hashtable, the previous key created it as a
-            # placeholder @{}.  We need to retroactively swap it to an ArrayList.
             if ($parent -is [hashtable] -and $stack.Count -ge 2) {
                 $gpEntry = $stack[$stack.Count - 2]
                 $gpNode  = $gpEntry.node
@@ -132,7 +154,6 @@ function ConvertFrom-SimpleYaml {
                 throw "YAML error: array item without array context: $text"
             }
 
-            # Array item that is a mapping: "- key: value"
             if ($itemContent -match '^([^:]+):\s*(.*)$') {
                 $arrKey = $Matches[1].Trim()
                 $arrVal = $Matches[2].Trim()
@@ -143,12 +164,8 @@ function ConvertFrom-SimpleYaml {
                     $mapItem[$arrKey] = @{}
                 }
                 $parent.Add($mapItem) | Out-Null
-                # Push so subsequent indented keys (e.g. file_path, arguments)
-                # attach to this map item
                 $stack.Add(@{ indent = $indent; node = $mapItem; key = $arrKey }) | Out-Null
-            }
-            # Simple scalar array item: "- value"
-            else {
+            } else {
                 $parent.Add((Convert-YamlValue $itemContent)) | Out-Null
             }
             continue
@@ -159,8 +176,21 @@ function ConvertFrom-SimpleYaml {
             $key = $Matches[1].Trim()
             $val = $Matches[2].Trim()
 
+            # ── Block scalar indicator: 'key: |' or 'key: >' ────────────
+            if ($val -eq '|' -or $val -eq '>') {
+                $blockScalarKey    = $key
+                $blockScalarParent = $parent
+                $blockScalarFolded = ($val -eq '>')
+                # Block base indent = indent of the key + 2 (standard YAML convention)
+                # We'll auto-detect from the first non-empty content line instead
+                $blockScalarIndent = $indent + 2
+                $blockScalarLines.Clear()
+                # Push an entry for this key so the stack is correct if nested items follow after the block
+                $parent[$key] = ''
+                continue
+            }
+
             if ($val -eq '') {
-                # Empty value → start a nested object (may become array later)
                 $child = @{}
                 $parent[$key] = $child
                 $stack.Add(@{ indent = $indent; node = $child; key = $key }) | Out-Null
@@ -170,7 +200,19 @@ function ConvertFrom-SimpleYaml {
             continue
         }
 
+        # If we get here with a block scalar active, this line is block content
+        if ($blockScalarKey) {
+            $blockScalarLines.Add($raw.TrimEnd()) | Out-Null
+            continue
+        }
+
         throw "Invalid YAML syntax: $text"
+    }
+
+    # Flush any pending block scalar at EOF
+    if ($blockScalarKey) {
+        $blockValue = ($blockScalarLines -join "`n").TrimEnd()
+        $blockScalarParent[$blockScalarKey] = $blockValue
     }
 
     return $root
@@ -333,20 +375,41 @@ function Import-LifecycleYaml {
 
     # ── Snake_case → PascalCase action type map ──────────────────────────────
     $typeMap = @{
+        # Installers
         'msi_install'             = 'MsiInstall'
-        'exe_install'             = 'ExeInstall'
         'msi_uninstall'           = 'MsiUninstall'
+        'msi_uninstall_batch'     = 'MsiUninstallBatch'
+        'exe_install'             = 'ExeInstall'
         'exe_uninstall'           = 'ExeUninstall'
+        # Process
+        'execute_process'         = 'ExecuteProcess'
+        'stop_process'            = 'StopProcess'
+        # File operations
+        'file_copy'               = 'FileCopy'
+        'file_remove'             = 'FileRemove'
         'folder_copy'             = 'FolderCopy'
         'folder_remove'           = 'FolderRemove'
+        'create_folder'           = 'CreateFolder'
+        # Registry
+        'registry_set'            = 'RegistrySet'
+        'registry_remove'         = 'RegistryRemove'
         'registry_marker'         = 'RegistryMarker'
         'remove_registry_marker'  = 'RemoveRegistryMarker'
         'set_registry_key'        = 'SetRegistryKey'
         'remove_registry_key'     = 'RemoveRegistryKey'
+        # Environment
+        'env_variable'            = 'SetEnvVariable'
         'set_env_variable'        = 'SetEnvVariable'
         'remove_env_variable'     = 'RemoveEnvVariable'
+        # UI
+        'show_welcome'            = 'ShowWelcome'
+        'show_progress'           = 'ShowProgress'
         'show_completion'         = 'ShowCompletion'
+        # Misc
+        'sleep'                   = 'Sleep'
+        # Custom / catch-all
         'custom_script'           = 'CustomScript'
+        'raw_ps'                  = 'RawPs'
     }
 
     function Convert-Actions {
@@ -363,9 +426,10 @@ function Import-LifecycleYaml {
 
             $action = @{ Type = $actionType }
 
-            # Map YAML properties to hashtable properties
+            # ── Common field mapping ─────────────────────────────────────
             if ($a.file_path)     { $action.FilePath     = $a.file_path }
             if ($a.arguments)     { $action.ArgumentList = $a.arguments }
+            if ($a.args)          { $action.ArgumentList = $a.args }
             if ($a.app_name)      { $action.AppName      = $a.app_name }
             if ($a.product_code)  { $action.ProductCode  = $a.product_code }
             if ($a.source)        { $action.Source        = $a.source }
@@ -374,20 +438,34 @@ function Import-LifecycleYaml {
             if ($a.name)          { $action.Name          = $a.name }
             if ($a.value)         { $action.Value         = $a.value }
             if ($a.reg_type)      { $action.RegType       = $a.reg_type }
+            if ($a.key)           { $action.Key           = $a.key }
+            if ($a.close_apps)    { $action.Apps          = $a.close_apps }
+            if ($a.seconds)       { $action.Seconds       = $a.seconds }
+            if ($a.file)          { $action.FilePath      = $a.file }
+            if ($a.code)          { $action.Content       = $a.code }
+            if ($a.note)          { $action.Note          = $a.note }
 
-            # CustomScript: inline the script content from file
-            if ($actionType -eq 'CustomScript' -and $a.script_path) {
-                $scriptFile = $a.script_path
-                if (Test-Path $scriptFile) {
-                    $action.Path    = $scriptFile
-                    $action.Content = Get-Content $scriptFile -Raw
-                } else {
-                    Write-Warning "Custom script not found: $scriptFile"
-                    $action.Content = "# TODO: Script not found at build time: $scriptFile"
+            # ── raw_ps: inline script content verbatim ───────────────────
+            if ($actionType -eq 'RawPs') {
+                $action.Content = $a.script
+            }
+
+            # ── custom_script: inline code or file ───────────────────────
+            if ($actionType -eq 'CustomScript') {
+                if ($a.code)        { $action.Content = $a.code }
+                if ($a.script_path) {
+                    $scriptFile = $a.script_path
+                    if (Test-Path $scriptFile) {
+                        $action.Path    = $scriptFile
+                        $action.Content = Get-Content $scriptFile -Raw
+                    } else {
+                        Write-Warning "Custom script not found: $scriptFile"
+                        $action.Content = "# TODO: Script not found at build time: $scriptFile"
+                    }
                 }
             }
 
-            # RegistryMarker: inject package metadata from caller
+            # ── RegistryMarker: inject package metadata ──────────────────
             if ($actionType -eq 'RegistryMarker') {
                 $action.PackageId   = $PackageId
                 $action.DisplayName = $DisplayName
