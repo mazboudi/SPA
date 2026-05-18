@@ -663,6 +663,12 @@ const FLOW_OPENERS = /^(?:if|elseif|else|foreach|for|while|do|switch)\b/i;
 const BLOCK_OPENERS = /^(?:try|if|elseif|else|foreach|for|while|do|switch)\b/i;
 
 /**
+ * Regex matching a recognizable PSADT/ADT cmdlet inside a block.
+ * Used to decide: parse interior individually vs preserve as raw_ps.
+ */
+const ADT_CMDLET_RE = /(?:Start-ADTMsiProcess|Start-ADTProcessAsUser|Start-ADTProcess|Execute-MSI|Execute-Process|Set-ADTRegistryKey|Set-RegistryKey|Remove-ADTRegistryKey|Remove-RegistryKey|Copy-ADTFile|Remove-ADTFolder|New-ADTFolder|Uninstall-ADTApplication|Show-ADTInstallationWelcome|Show-ADTInstallationProgress|Show-ADTInstallationPrompt|Show-InstallationWelcome|Show-InstallationProgress|Show-InstallationPrompt|Close-ADTInstallation|Copy-Item|Remove-Item|Start-Process|Start-Sleep|Stop-Process|Write-ADTLogEntry)/i;
+
+/**
  * Extract a brace-balanced block starting at startIdx.
  * Stops as soon as depth returns to 0 after the first '{' is seen.
  * Returns { blockText, endIndex }.
