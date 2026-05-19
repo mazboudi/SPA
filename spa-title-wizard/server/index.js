@@ -653,7 +653,7 @@ function extractMsiProperties(buffer) {
   }
 
   if (!bestEntry || bestScore < 2) {
-    // Fallback: binary scan for GUIDs and versions
+    // Fallback: binary scan for GUIDs, versions, and ProductName
     const all = decoder.decode(buffer);
     const utf16 = new TextDecoder('utf-16le', { fatal: false }).decode(buffer);
     const guidRe = /\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/g;
@@ -662,6 +662,11 @@ function extractMsiProperties(buffer) {
     if (guids[1]) result.upgradeCode = guids[1];
     const vm = utf16.match(/(\d+\.\d+\.\d+[.\d]*)/);
     if (vm) result.productVersion = vm[1];
+    // Scan for ProductName and Manufacturer — they appear right after their key string in UTF-16LE
+    const pnMatch = utf16.match(/ProductName\0([^\0]{2,128})/);
+    if (pnMatch && pnMatch[1].trim()) result.productName = pnMatch[1].trim();
+    const mfMatch = utf16.match(/Manufacturer\0([^\0]{2,128})/);
+    if (mfMatch && mfMatch[1].trim()) result.manufacturer = mfMatch[1].trim();
     return result;
   }
 
@@ -725,6 +730,19 @@ function extractMsiProperties(buffer) {
   if (bestProps.ProductVersion) result.productVersion = bestProps.ProductVersion;
   if (bestProps.Manufacturer) result.manufacturer = bestProps.Manufacturer;
   if (bestProps.UpgradeCode) result.upgradeCode = bestProps.UpgradeCode;
+
+  // Last-resort: if string-pool path didn't yield ProductName or Manufacturer, try UTF-16LE scan
+  if (!result.productName || !result.manufacturer) {
+    const utf16 = new TextDecoder('utf-16le', { fatal: false }).decode(buffer);
+    if (!result.productName) {
+      const pnMatch = utf16.match(/ProductName\0([^\0]{2,128})/);
+      if (pnMatch && pnMatch[1].trim()) result.productName = pnMatch[1].trim();
+    }
+    if (!result.manufacturer) {
+      const mfMatch = utf16.match(/Manufacturer\0([^\0]{2,128})/);
+      if (mfMatch && mfMatch[1].trim()) result.manufacturer = mfMatch[1].trim();
+    }
+  }
 
   return result;
 }
