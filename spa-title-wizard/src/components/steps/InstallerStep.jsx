@@ -6,56 +6,36 @@ import windowsOptions from '../../config/windowsOptions.json';
 import './windows-steps.css';
 
 export default function InstallerStep({ state, updateField }) {
-  const [msiParsing, setMsiParsing] = useState(false);
+  const [msiParsing, setMsiParsing]     = useState(false);
   const [msiParseResult, setMsiParseResult] = useState(null);
   const [msiManualEntry, setMsiManualEntry] = useState(false);
-  const [msiPathInput, setMsiPathInput] = useState('');
-  const [msiPathMode, setMsiPathMode] = useState(false); // true = path mode, false = upload mode
+  const [msiPathInput, setMsiPathInput]  = useState('');
 
-  /** Apply extracted MSI metadata to the wizard state */
+  /** Apply extracted MSI metadata to wizard state */
   const applyMsiMeta = (meta) => {
     setMsiParseResult(meta);
-    if (meta.productCode)   updateField('msiProductCode',   meta.productCode);
+    if (meta.productCode)    updateField('msiProductCode',    meta.productCode);
     if (meta.productVersion) updateField('msiProductVersion', meta.productVersion);
-    if (meta.productName)   updateField('msiProductName',   meta.productName);
-    if (meta.manufacturer)  updateField('msiManufacturer',  meta.manufacturer);
-    if (meta.upgradeCode)   updateField('msiUpgradeCode',   meta.upgradeCode);
-    if (meta.fileName)      updateField('msiFileName',      meta.fileName);
+    if (meta.productName)    updateField('msiProductName',    meta.productName);
+    if (meta.manufacturer)   updateField('msiManufacturer',   meta.manufacturer);
+    if (meta.upgradeCode)    updateField('msiUpgradeCode',    meta.upgradeCode);
+    if (meta.fileName)       updateField('msiFileName',       meta.fileName);
   };
 
-  // ── Upload mode: send the file to the local API server ──────────────────
-  const handleMsiUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setMsiParsing(true);
-    setMsiParseResult(null);
-    try {
-      const form = new FormData();
-      form.append('msi', file);
-      const res = await fetch('http://localhost:3001/api/msi-info', { method: 'POST', body: form });
-      const meta = await res.json();
-      if (!res.ok) throw new Error(meta.error || 'Server error');
-      applyMsiMeta(meta);
-    } catch (err) {
-      setMsiParseResult({ error: err.message });
-    } finally {
-      setMsiParsing(false);
-    }
-  };
-
-  // ── Path mode: send local file path to the API — no browser file picker ─
+  /** Send the local file path to the server — no browser file picker, no CORS issues */
   const handleMsiPath = async () => {
-    if (!msiPathInput.trim()) return;
+    const p = msiPathInput.trim();
+    if (!p) return;
     setMsiParsing(true);
     setMsiParseResult(null);
     try {
-      const res = await fetch('http://localhost:3001/api/msi-info-path', {
+      const res = await fetch('/api/msi-info-path', {   // relative URL → Vite proxy → localhost:3001
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: msiPathInput.trim() }),
+        body: JSON.stringify({ path: p }),
       });
       const meta = await res.json();
-      if (!res.ok) throw new Error(meta.error || 'Server error');
+      if (!res.ok) throw new Error(meta.error || `Server error ${res.status}`);
       applyMsiMeta(meta);
     } catch (err) {
       setMsiParseResult({ error: err.message });
@@ -137,61 +117,38 @@ export default function InstallerStep({ state, updateField }) {
         <div className="config-section animate-slide">
           <h3 className="section-title">MSI Metadata</h3>
           {!msiManualEntry && (
-            <div>
-              {/* Mode toggle */}
-              <div className="msi-mode-toggle">
-                <button type="button" className={`msi-mode-btn ${!msiPathMode ? 'msi-mode-btn--active' : ''}`}
-                  onClick={() => { setMsiPathMode(false); setMsiParseResult(null); }}>
-                  📂 Upload File
-                </button>
-                <button type="button" className={`msi-mode-btn ${msiPathMode ? 'msi-mode-btn--active' : ''}`}
-                  onClick={() => { setMsiPathMode(true); setMsiParseResult(null); }}>
-                  📁 Local Path
+            <div className="msi-path-area">
+              <p className="msi-path-hint">
+                📁 Paste the full path to the <code>.msi</code> file — the server reads it directly and extracts the product metadata.
+              </p>
+              <div className="msi-path-row">
+                <input
+                  type="text"
+                  className="msi-path-input"
+                  placeholder="/Users/you/Downloads/installer.msi  or  C:\files\installer.msi"
+                  value={msiPathInput}
+                  onChange={e => setMsiPathInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleMsiPath()}
+                />
+                <button type="button" className="btn btn-secondary"
+                  onClick={handleMsiPath}
+                  disabled={msiParsing || !msiPathInput.trim()}>
+                  {msiParsing ? '⏳ Reading...' : '→ Extract'}
                 </button>
               </div>
-
-              {/* Upload mode */}
-              {!msiPathMode && (
-                <div className="msi-upload-area">
-                  <label className="msi-upload-btn btn btn-secondary">
-                    Choose .msi file
-                    <input type="file" accept=".msi" onChange={handleMsiUpload} style={{ display: 'none' }} />
-                  </label>
-                  {msiParsing && <span className="msi-status">⏳ Extracting...</span>}
-                  {msiParseResult && !msiParseResult.error && (
-                    <span className="msi-status msi-status--ok">✅ Extracted {Object.keys(msiParseResult).filter(k => k !== 'fileName' && msiParseResult[k]).length} fields</span>
-                  )}
-                  {msiParseResult?.error && <span className="msi-status msi-status--err">❌ {msiParseResult.error}</span>}
-                  <button type="button" className="link-btn" onClick={() => setMsiManualEntry(true)}>or enter manually</button>
-                </div>
+              {msiParseResult && !msiParseResult.error && (
+                <span className="msi-status msi-status--ok">
+                  ✅ Extracted {Object.keys(msiParseResult).filter(k => k !== 'fileName' && msiParseResult[k]).length} fields
+                  {msiParseResult.fileName && <> from <code>{msiParseResult.fileName}</code></>}
+                </span>
               )}
-
-              {/* Local path mode — no browser file picker, server reads the file directly */}
-              {msiPathMode && (
-                <div className="msi-path-area">
-                  <p className="msi-path-hint">
-                    💡 Paste the full path to the <code>.msi</code> file on this machine. The local server reads it directly — no browser security restrictions.
-                  </p>
-                  <div className="msi-path-row">
-                    <input
-                      type="text"
-                      className="msi-path-input"
-                      placeholder="e.g. /Users/you/Downloads/app.msi or C:\files\app.msi"
-                      value={msiPathInput}
-                      onChange={e => setMsiPathInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleMsiPath()}
-                    />
-                    <button type="button" className="btn btn-secondary" onClick={handleMsiPath} disabled={msiParsing || !msiPathInput.trim()}>
-                      {msiParsing ? '⏳ Reading...' : '→ Extract'}
-                    </button>
-                  </div>
-                  {msiParseResult && !msiParseResult.error && (
-                    <span className="msi-status msi-status--ok">✅ Extracted {Object.keys(msiParseResult).filter(k => k !== 'fileName' && msiParseResult[k]).length} fields from {msiParseResult.fileName}</span>
-                  )}
-                  {msiParseResult?.error && <span className="msi-status msi-status--err">❌ {msiParseResult.error}</span>}
-                  <button type="button" className="link-btn" onClick={() => setMsiManualEntry(true)} style={{ marginTop: '8px' }}>or enter manually</button>
-                </div>
+              {msiParseResult?.error && (
+                <span className="msi-status msi-status--err">❌ {msiParseResult.error}</span>
               )}
+              <button type="button" className="link-btn" onClick={() => setMsiManualEntry(true)}
+                style={{ marginTop: '4px', fontSize: '0.75rem' }}>
+                or enter manually
+              </button>
             </div>
           )}
           {msiManualEntry && (

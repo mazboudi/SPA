@@ -27,13 +27,13 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const GITLAB_URL      = process.env.GITLAB_URL      || 'https://gitlab.fiserv.com';
-const GITLAB_TOKEN    = process.env.GITLAB_TOKEN    || '';
-const PORT            = Number(process.env.PORT)    || 3001;
+const GITLAB_URL = process.env.GITLAB_URL || 'https://gitlab.onefiserv.net';
+const GITLAB_TOKEN = process.env.GITLAB_TOKEN || '';
+const PORT = Number(process.env.PORT) || 3001;
 
 // Azure / Microsoft Graph (Intune)
-const AZURE_TENANT_ID     = process.env.AZURE_TENANT_ID     || '';
-const AZURE_CLIENT_ID     = process.env.AZURE_CLIENT_ID     || '';
+const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '';
+const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '';
 const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET || '';
 
 if (!GITLAB_TOKEN) {
@@ -696,7 +696,7 @@ function extractMsiProperties(buffer) {
   }
 
   // Find Property table and decode it (2-column, column-major layout)
-  const knownKeys = new Set(['ProductCode','ProductVersion','ProductName','Manufacturer','UpgradeCode']);
+  const knownKeys = new Set(['ProductCode', 'ProductVersion', 'ProductName', 'Manufacturer', 'UpgradeCode']);
   let bestProps = {}, bestPropScore = 0;
   for (const entry of cfb.FileIndex) {
     if (!entry.content) continue;
@@ -720,11 +720,11 @@ function extractMsiProperties(buffer) {
     if (score > bestPropScore) { bestPropScore = score; bestProps = props; }
   }
 
-  if (bestProps.ProductCode)   result.productCode   = bestProps.ProductCode;
-  if (bestProps.ProductName)   result.productName   = bestProps.ProductName;
+  if (bestProps.ProductCode) result.productCode = bestProps.ProductCode;
+  if (bestProps.ProductName) result.productName = bestProps.ProductName;
   if (bestProps.ProductVersion) result.productVersion = bestProps.ProductVersion;
-  if (bestProps.Manufacturer)  result.manufacturer  = bestProps.Manufacturer;
-  if (bestProps.UpgradeCode)   result.upgradeCode   = bestProps.UpgradeCode;
+  if (bestProps.Manufacturer) result.manufacturer = bestProps.Manufacturer;
+  if (bestProps.UpgradeCode) result.upgradeCode = bestProps.UpgradeCode;
 
   return result;
 }
