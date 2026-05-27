@@ -187,7 +187,7 @@ export default function App() {
       case 'psadt':
         return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':
-        return <InstallerStep state={wizard.state} updateField={wizard.updateField} />;
+        return <InstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
       case 'detection':
         return <DetectionStep state={wizard.state} updateField={wizard.updateField} />;
       case 'intune':

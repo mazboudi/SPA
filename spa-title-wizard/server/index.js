@@ -779,6 +779,184 @@ app.post('/api/msi-info-path', express.json(), (req, res) => {
   }
 });
 
+/** Parse winget installer yaml manifests to extract installer info */
+function parseWingetYaml(yamlText) {
+  const result = {
+    packageIdentifier: '',
+    packageVersion: '',
+    publisher: '',
+    packageName: '',
+    installerType: 'exe',
+    installerUrl: '',
+    installerSha256: '',
+    productCode: '',
+    silentArgs: '',
+  };
+
+  // Match top-level keys
+  const idMatch = yamlText.match(/PackageIdentifier\s*:\s*["']?([^"'\r\n]+)/i);
+  if (idMatch) result.packageIdentifier = idMatch[1].trim();
+
+  const verMatch = yamlText.match(/PackageVersion\s*:\s*["']?([^"'\r\n]+)/i);
+  if (verMatch) result.packageVersion = verMatch[1].trim();
+
+  const pubMatch = yamlText.match(/Publisher\s*:\s*["']?([^"'\r\n]+)/i);
+  if (pubMatch) result.publisher = pubMatch[1].trim();
+
+  const nameMatch = yamlText.match(/PackageName\s*:\s*["']?([^"'\r\n]+)/i);
+  if (nameMatch) result.packageName = nameMatch[1].trim();
+
+  // Find x64 installer block first, or fallback to first installer block
+  const installerBlocks = yamlText.split(/-\s*Architecture\s*:\s*/gi);
+  let selectedBlock = yamlText;
+  
+  if (installerBlocks.length > 1) {
+    const x64Block = installerBlocks.find(b => b.trim().startsWith('x64'));
+    if (x64Block) {
+      selectedBlock = x64Block;
+    } else {
+      selectedBlock = installerBlocks[1];
+    }
+  }
+
+  // 1. Try global InstallerType first
+  const globalTypeMatch = yamlText.match(/InstallerType\s*:\s*["']?([^"'\r\n]+)/i);
+  if (globalTypeMatch) result.installerType = globalTypeMatch[1].trim().toLowerCase();
+
+  // 2. Try overriding local block InstallerType
+  const localTypeMatch = selectedBlock.match(/InstallerType\s*:\s*["']?([^"'\r\n]+)/i);
+  if (localTypeMatch) result.installerType = localTypeMatch[1].trim().toLowerCase();
+
+  // 3. Extract URL
+  const urlMatch = selectedBlock.match(/InstallerUrl\s*:\s*["']?([^"'\r\n]+)/i);
+  if (urlMatch) result.installerUrl = urlMatch[1].trim();
+
+  // 4. Extract SHA256 and productCode
+  const shaMatch = selectedBlock.match(/InstallerSha256\s*:\s*["']?([^"'\r\n]+)/i);
+  if (shaMatch) result.installerSha256 = shaMatch[1].trim();
+
+  const prodCodeMatch = selectedBlock.match(/ProductCode\s*:\s*["']?([^"'\r\n]+)/i);
+  if (prodCodeMatch) result.productCode = prodCodeMatch[1].trim();
+
+  // 5. Force validation check based on the resolved download URL file extension
+  if (result.installerUrl && result.installerUrl.toLowerCase().endsWith('.msi')) {
+    result.installerType = 'msi';
+  }
+
+  // Find switches
+  const silentMatch = yamlText.match(/Silent\s*:\s*["']?([^"'\r\n]+)/i);
+  if (silentMatch) result.silentArgs = silentMatch[1].trim();
+  
+  if (!result.silentArgs) {
+    if (result.installerType === 'msi' || result.installerType === 'wix') {
+      result.silentArgs = '/qn /norestart';
+    } else if (result.installerType === 'nullsoft') {
+      result.silentArgs = '/S';
+    } else if (result.installerType === 'inno') {
+      result.silentArgs = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART';
+    }
+  }
+
+  return result;
+}
+
+/** POST /api/winget-info — resolve package metadata from public microsoft/winget-pkgs repository */
+app.post('/api/winget-info', express.json(), async (req, res) => {
+  try {
+    const { packageId } = req.body || {};
+    if (!packageId) return res.status(400).json({ error: 'packageId is required' });
+
+    const parts = packageId.trim().split('.');
+    if (parts.length < 2) {
+      return res.status(400).json({ error: 'Package ID must follow the Publisher.Application format (e.g. Google.Chrome)' });
+    }
+
+    const publisher = parts[0];
+    const appName = parts.slice(1).join('.');
+    const letter = publisher[0].toLowerCase();
+
+    // Query versions folder from public GitHub API
+    const versionsUrl = `https://api.github.com/repos/microsoft/winget-pkgs/contents/manifests/${letter}/${publisher}/${appName}`;
+    const versionsRes = await fetch(versionsUrl, { headers: { 'User-Agent': 'SPA-Workbench' } });
+    if (!versionsRes.ok) {
+      return res.status(404).json({ error: `WinGet package not found: ${packageId}` });
+    }
+
+    const versionsJson = await versionsRes.json();
+    const versionDirs = versionsJson.filter(v => v.type === 'dir').map(v => v.name);
+
+    if (versionDirs.length === 0) {
+      return res.status(404).json({ error: `No versions found for package: ${packageId}` });
+    }
+
+    // Sort versions to grab the latest one
+    versionDirs.sort((a, b) => {
+      const parse = (v) => v.split('.').map(x => parseInt(x) || 0);
+      const pa = parse(a);
+      const pb = parse(b);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const na = pa[i] || 0;
+        const nb = pb[i] || 0;
+        if (na !== nb) return na - nb;
+      }
+      return a.localeCompare(b);
+    });
+    const latestVersion = versionDirs[versionDirs.length - 1];
+
+    // Fetch the installer manifest file
+    const installerManifestUrl = `https://raw.githubusercontent.com/microsoft/winget-pkgs/master/manifests/${letter}/${publisher}/${appName}/${latestVersion}/${publisher}.${appName}.installer.yaml`;
+    let manifestRes = await fetch(installerManifestUrl, { headers: { 'User-Agent': 'SPA-Workbench' } });
+    if (!manifestRes.ok) {
+      // Fallback to unified single-file manifest
+      const singleManifestUrl = `https://raw.githubusercontent.com/microsoft/winget-pkgs/master/manifests/${letter}/${publisher}/${appName}/${latestVersion}/${publisher}.${appName}.yaml`;
+      manifestRes = await fetch(singleManifestUrl, { headers: { 'User-Agent': 'SPA-Workbench' } });
+    }
+
+    if (!manifestRes.ok) {
+      return res.status(404).json({ error: `Manifest file not found for version ${latestVersion}` });
+    }
+
+    const yamlText = await manifestRes.text();
+    const parsedData = parseWingetYaml(yamlText);
+
+    // Make sure we have the latest version in the parsed data if not set
+    if (!parsedData.packageVersion) parsedData.packageVersion = latestVersion;
+    if (!parsedData.packageIdentifier) parsedData.packageIdentifier = packageId;
+
+    res.json(parsedData);
+  } catch (err) {
+    console.error('WinGet info fetch error:', err);
+    res.status(500).json({ error: `Failed to resolve WinGet package: ${err.message}` });
+  }
+});
+
+/** POST /api/winget-download — download direct installer binary file into the local workspace source directory */
+app.post('/api/winget-download', express.json(), async (req, res) => {
+  try {
+    const { url, filename, targetDir } = req.body || {};
+    if (!url) return res.status(400).json({ error: 'url is required' });
+    if (!filename) return res.status(400).json({ error: 'filename is required' });
+    if (!targetDir) return res.status(400).json({ error: 'targetDir is required' });
+
+    if (!existsSync(targetDir)) {
+      return res.status(400).json({ error: `Target directory does not exist: ${targetDir}` });
+    }
+
+    const destPath = join(targetDir, filename);
+    const fetchRes = await fetch(url);
+    if (!fetchRes.ok) throw new Error(`Server returned status ${fetchRes.status}`);
+
+    const arrayBuffer = await fetchRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    writeFileSync(destPath, buffer);
+
+    res.json({ success: true, path: destPath });
+  } catch (err) {
+    console.error('WinGet download error:', err);
+    res.status(500).json({ error: `Failed to download installer binary: ${err.message}` });
+  }
+});
+
 // ── Start ───────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 SPA Publish API running on http://localhost:${PORT}`);

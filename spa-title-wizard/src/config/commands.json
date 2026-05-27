@@ -159,5 +159,76 @@
     "icon": "🔷",
     "category": "Custom",
     "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "execute_process_as_user",
+    "label": "Run Process as Logged-On User",
+    "icon": "👤",
+    "category": "Process",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "block_app_execution",
+    "label": "Block Conflicting Applications",
+    "icon": "🛡️",
+    "category": "Process",
+    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
+  },
+  {
+    "name": "unblock_app_execution",
+    "label": "Unblock Conflicting Applications",
+    "icon": "🔓",
+    "category": "Process",
+    "supportedPhases": ["postInstall", "postUninstall", "postRepair"]
+  },
+  {
+    "name": "copy_file_to_user_profiles",
+    "label": "Copy File to User Profiles",
+    "icon": "👥",
+    "category": "File Operations",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "new_shortcut",
+    "label": "Create Shortcut",
+    "icon": "🔗",
+    "category": "File Operations",
+    "supportedPhases": ["install", "postInstall", "repair", "postRepair"]
+  },
+  {
+    "name": "show_balloon_tip",
+    "label": "Show Balloon Notification",
+    "icon": "💬",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "show_dialog_box",
+    "label": "Show Dialog Box Prompt",
+    "icon": "🔲",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "get_installed_application",
+    "label": "Query Installed Application",
+    "icon": "🔍",
+    "category": "System",
+    "supportedPhases": ["variableDeclaration", "preInstall", "preUninstall", "preRepair"]
+  },
+  {
+    "name": "set_service_state",
+    "label": "Set Service State",
+    "icon": "⚙️",
+    "category": "System",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "write_log_entry",
+    "label": "Write Custom Log Entry",
+    "icon": "📝",
+    "category": "System",
+    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
   }
 ]
+

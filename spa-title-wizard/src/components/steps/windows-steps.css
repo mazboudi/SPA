@@ -219,3 +219,106 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
   font-size: 0.72rem;
   font-style: italic;
 }
+
+/* ── WinGet Bootstrapper Styles ── */
+.winget-section {
+  background: rgba(99, 140, 255, 0.02) !important;
+  border: 1px dashed rgba(99, 140, 255, 0.2) !important;
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg) !important;
+  margin-bottom: var(--space-xl);
+}
+.winget-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+.winget-input {
+  flex: 1;
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  background: var(--bg-input, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  transition: all 0.15s;
+}
+.winget-input:focus {
+  outline: none;
+  border-color: var(--text-accent, #7c8aff);
+}
+.winget-btn {
+  white-space: nowrap;
+}
+.winget-result-box {
+  background: var(--bg-surface, rgba(0,0,0,0.2));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin-top: var(--space-md);
+}
+.winget-status {
+  font-size: 0.8rem;
+  display: block;
+}
+.winget-status--err {
+  color: var(--color-error, #ef4444);
+}
+.winget-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px var(--space-md);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+.winget-details-grid code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.74rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--text-accent, #7c8aff);
+}
+.winget-details-grid .col-span-2 {
+  grid-column: span 2;
+}
+.winget-details-grid .url-field {
+  word-break: break-all;
+}
+.winget-link {
+  color: var(--text-accent, #7c8aff);
+  text-decoration: underline;
+}
+.winget-link:hover {
+  color: var(--text-primary);
+}
+.winget-actions-row {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-top: var(--space-md);
+}
+.download-hint {
+  font-size: 0.74rem;
+  color: #fbbf24;
+  font-style: italic;
+}
+.download-status-msg {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: var(--space-sm);
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+.download-status-msg.ok {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+.download-status-msg.err {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+

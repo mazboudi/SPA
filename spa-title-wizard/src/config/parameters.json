@@ -256,5 +256,208 @@
     "label": "Note",
     "type": "text",
     "placeholder": "Brief description of what this block does"
+  },
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "file",
+    "label": "File Path / Program",
+    "type": "text",
+    "placeholder": "setup.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/S"
+  },
+  {
+    "cmdlet": "block_app_execution",
+    "parameter": "processName",
+    "label": "Process Name(s)",
+    "type": "text",
+    "placeholder": "chrome (comma-separated)",
+    "required": true
+  },
+  {
+    "cmdlet": "block_app_execution",
+    "parameter": "textHeader",
+    "label": "Header Title",
+    "type": "text",
+    "placeholder": "Google Chrome must close"
+  },
+  {
+    "cmdlet": "block_app_execution",
+    "parameter": "textMessage",
+    "label": "Prompt Message",
+    "type": "text",
+    "placeholder": "Please save your work and close Chrome to continue."
+  },
+  {
+    "cmdlet": "unblock_app_execution",
+    "parameter": "processName",
+    "label": "Process Name(s)",
+    "type": "text",
+    "placeholder": "chrome (comma-separated)",
+    "required": true
+  },
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "source",
+    "label": "Source File",
+    "type": "text",
+    "placeholder": "config.json",
+    "required": true
+  },
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "destination",
+    "label": "Destination Directory (relative to user profile)",
+    "type": "text",
+    "placeholder": "AppData\\Local\\MyApp",
+    "required": true
+  },
+  {
+    "cmdlet": "new_shortcut",
+    "parameter": "shortcutPath",
+    "label": "Shortcut Path Link",
+    "type": "text",
+    "placeholder": "$envDesktop\\MyApp.lnk",
+    "required": true
+  },
+  {
+    "cmdlet": "new_shortcut",
+    "parameter": "targetPath",
+    "label": "Target Executable Path",
+    "type": "text",
+    "placeholder": "$envProgramFiles\\MyApp\\app.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "new_shortcut",
+    "parameter": "arguments",
+    "label": "Shortcut Arguments",
+    "type": "text",
+    "placeholder": "--verbose"
+  },
+  {
+    "cmdlet": "new_shortcut",
+    "parameter": "iconLocation",
+    "label": "Icon Path & Index",
+    "type": "text",
+    "placeholder": "$envProgramFiles\\MyApp\\app.exe,0"
+  },
+  {
+    "cmdlet": "new_shortcut",
+    "parameter": "description",
+    "label": "Shortcut Tooltip/Description",
+    "type": "text",
+    "placeholder": "Launch MyApp"
+  },
+  {
+    "cmdlet": "show_balloon_tip",
+    "parameter": "balloonText",
+    "label": "Balloon Message Text",
+    "type": "text",
+    "placeholder": "Installation of MyApp completed successfully.",
+    "required": true
+  },
+  {
+    "cmdlet": "show_balloon_tip",
+    "parameter": "balloonTitle",
+    "label": "Balloon Title",
+    "type": "text",
+    "placeholder": "MyApp Install",
+    "required": true
+  },
+  {
+    "cmdlet": "show_balloon_tip",
+    "parameter": "balloonIcon",
+    "label": "Icon (Info/Warning/Error)",
+    "type": "text",
+    "placeholder": "Info",
+    "default": "Info"
+  },
+  {
+    "cmdlet": "show_dialog_box",
+    "parameter": "text",
+    "label": "Message Text",
+    "type": "text",
+    "placeholder": "Please save all your work before proceeding.",
+    "required": true
+  },
+  {
+    "cmdlet": "show_dialog_box",
+    "parameter": "title",
+    "label": "Dialog Title",
+    "type": "text",
+    "placeholder": "Important Notice",
+    "required": true
+  },
+  {
+    "cmdlet": "show_dialog_box",
+    "parameter": "buttons",
+    "label": "Buttons (OK, OKCancel, YesNo, YesNoCancel)",
+    "type": "text",
+    "placeholder": "OK",
+    "default": "OK"
+  },
+  {
+    "cmdlet": "show_dialog_box",
+    "parameter": "icon",
+    "label": "Icon (Asterisk, Error, Exclamation, Information, None, Question, Stop, Warning)",
+    "type": "text",
+    "placeholder": "Information",
+    "default": "Information"
+  },
+  {
+    "cmdlet": "get_installed_application",
+    "parameter": "name",
+    "label": "Application Name to Query",
+    "type": "text",
+    "placeholder": "Google Chrome",
+    "required": true
+  },
+  {
+    "cmdlet": "get_installed_application",
+    "parameter": "varName",
+    "label": "Store in Variable Name (e.g. appInfo)",
+    "type": "text",
+    "placeholder": "appInfo",
+    "required": true
+  },
+  {
+    "cmdlet": "set_service_state",
+    "parameter": "name",
+    "label": "Service Name",
+    "type": "text",
+    "placeholder": "Spooler",
+    "required": true
+  },
+  {
+    "cmdlet": "set_service_state",
+    "parameter": "state",
+    "label": "Desired State (Running/Stopped/Disabled/Automatic)",
+    "type": "text",
+    "placeholder": "Stopped",
+    "required": true
+  },
+  {
+    "cmdlet": "write_log_entry",
+    "parameter": "message",
+    "label": "Log Message",
+    "type": "text",
+    "placeholder": "Starting custom configuration tasks...",
+    "required": true
+  },
+  {
+    "cmdlet": "write_log_entry",
+    "parameter": "severity",
+    "label": "Severity (1 = Info, 2 = Warning, 3 = Error)",
+    "type": "number",
+    "default": 1,
+    "required": true
   }
 ]
+

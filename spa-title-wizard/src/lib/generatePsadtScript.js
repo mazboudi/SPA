@@ -212,6 +212,58 @@ export default function generatePsadtScript(s) {
           }
           break;
         }
+        case 'execute_process_as_user': {
+          const isMsi = (action.file || '').toLowerCase().endsWith('.msi');
+          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
+          if (isMsi) {
+            actionLines.push(`        Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args} -ErrorAction Stop`);
+          } else {
+            actionLines.push(`        Start-ADTProcessAsUser -FilePath '$dirFiles\\${action.file}'${args} -ErrorAction Stop`);
+          }
+          break;
+        }
+        case 'block_app_execution': {
+          const header = action.textHeader ? ` -TextHeader '${action.textHeader}'` : '';
+          const message = action.textMessage ? ` -TextMessage '${action.textMessage}'` : '';
+          actionLines.push(`        Block-AppExecution -ProcessName '${action.processName}'${header}${message}`);
+          break;
+        }
+        case 'unblock_app_execution': {
+          actionLines.push(`        Unblock-AppExecution -ProcessName '${action.processName}'`);
+          break;
+        }
+        case 'copy_file_to_user_profiles': {
+          actionLines.push(`        Copy-FileToUserProfiles -FilePath "$dirFiles\\${action.source}" -DestinationFolderPath '${action.destination}'`);
+          break;
+        }
+        case 'new_shortcut': {
+          const args = action.arguments ? ` -Arguments '${action.arguments}'` : '';
+          const icon = action.iconLocation ? ` -IconLocation '${action.iconLocation}'` : '';
+          const desc = action.description ? ` -Description '${action.description}'` : '';
+          actionLines.push(`        New-Shortcut -ShortcutPath '${action.shortcutPath}' -TargetPath '${action.targetPath}'${args}${icon}${desc}`);
+          break;
+        }
+        case 'show_balloon_tip': {
+          actionLines.push(`        Show-ADTBalloonTip -BalloonText '${action.balloonText}' -BalloonTitle '${action.balloonTitle}' -BalloonIcon '${action.balloonIcon || 'Info'}'`);
+          break;
+        }
+        case 'show_dialog_box': {
+          actionLines.push(`        Show-ADTDialogBox -Text '${action.text}' -Title '${action.title}' -Buttons '${action.buttons || 'OK'}' -Icon '${action.icon || 'Information'}'`);
+          break;
+        }
+        case 'get_installed_application': {
+          const cleanVar = (action.varName || '').replace(/^\$/, '');
+          actionLines.push(`        $${cleanVar} = Get-InstalledApplication -Name '${action.name}'`);
+          break;
+        }
+        case 'set_service_state': {
+          actionLines.push(`        Set-ADTServiceState -Name '${action.name}' -State '${action.state}'`);
+          break;
+        }
+        case 'write_log_entry': {
+          actionLines.push(`        Write-ADTLogEntry -Message '${action.message}' -Severity ${action.severity || 1}`);
+          break;
+        }
         default:
           break;
       }

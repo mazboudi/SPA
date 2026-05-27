@@ -174,6 +174,64 @@ function toKebabCase(str) {
     .replace(/^-|-$/g, '');
 }
 
+/** Synchronizes visual action cards whenever the installerType changes (e.g. MSI <-> EXE) */
+function syncInstallerActions(next, prevInstallerType) {
+  if (next.installerType === prevInstallerType) return next;
+  
+  const phases = { ...next.lifecycle.phases };
+  const value = next.installerType;
+
+  // 1. Install phase: swap msi_install <-> exe_install
+  if (phases.install && Array.isArray(phases.install.actions)) {
+    phases.install.actions = phases.install.actions.map(action => {
+      if (value === 'exe' && action.type === 'msi_install') {
+        return {
+          ...action,
+          type: 'exe_install',
+          file: next.installerSourceFile || next.exeSourceFilename || 'setup.exe',
+          args: next.exeInstallArgs || '/S'
+        };
+      }
+      if (value === 'msi' && action.type === 'exe_install') {
+        return {
+          ...action,
+          type: 'msi_install',
+          file: next.installerSourceFile || next.msiFileName || 'installer.msi',
+          args: '/QN /norestart'
+        };
+      }
+      return action;
+    });
+  }
+
+  // 2. Uninstall phase: swap msi_uninstall <-> exe_uninstall
+  if (phases.uninstall && Array.isArray(phases.uninstall.actions)) {
+    phases.uninstall.actions = phases.uninstall.actions.map(action => {
+      if (value === 'exe' && action.type === 'msi_uninstall') {
+        return {
+          ...action,
+          type: 'exe_uninstall',
+          file: next.exeUninstallPath || '',
+          args: next.exeUninstallArgs || '/S'
+        };
+      }
+      if (value === 'msi' && action.type === 'exe_uninstall') {
+        return {
+          ...action,
+          type: 'msi_uninstall',
+          appName: next.displayName || '',
+          productCode: next.msiProductCode || '',
+          args: '/qn /NORESTART'
+        };
+      }
+      return action;
+    });
+  }
+  
+  next.lifecycle = { ...next.lifecycle, phases };
+  return next;
+}
+
 export default function useWizardState() {
   const [state, setState] = useState(INITIAL_STATE);
   const [currentStep, setCurrentStep] = useState(0);
@@ -205,14 +263,23 @@ export default function useWizardState() {
         next.appDeveloper = value;
       }
 
-      // Note: Detection rules are now managed in the Detection step via detectionRules array
+      // Auto-migrate action cards when installerType changes
+      if (field === 'installerType') {
+        return syncInstallerActions(next, prev.installerType);
+      }
 
       return next;
     });
   }, []);
 
   const updateFields = useCallback((fields) => {
-    setState(prev => ({ ...prev, ...fields }));
+    setState(prev => {
+      const next = { ...prev, ...fields };
+      if (fields.hasOwnProperty('installerType')) {
+        return syncInstallerActions(next, prev.installerType);
+      }
+      return next;
+    });
   }, []);
 
   // ── Lifecycle action CRUD ──────────────────────────────────────────────

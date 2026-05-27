@@ -5,11 +5,123 @@ import ToggleSwitch from '../ui/ToggleSwitch';
 import windowsOptions from '../../config/windowsOptions.json';
 import './windows-steps.css';
 
-export default function InstallerStep({ state, updateField }) {
+export default function InstallerStep({ state, updateField, updateFields }) {
   const [msiParsing, setMsiParsing]     = useState(false);
   const [msiParseResult, setMsiParseResult] = useState(null);
   const [msiManualEntry, setMsiManualEntry] = useState(false);
   const [msiPathInput, setMsiPathInput]  = useState('');
+
+  // WinGet Bootstrapper States
+  const [wingetInput, setWingetInput] = useState('');
+  const [wingetLoading, setWingetLoading] = useState(false);
+  const [wingetResult, setWingetResult] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState(null);
+
+  /** Fetch installer details from WinGet repository */
+  const handleWingetFetch = async () => {
+    const pkg = wingetInput.trim();
+    if (!pkg) return;
+    setWingetLoading(true);
+    setWingetResult(null);
+    setDownloadStatus(null);
+    try {
+      const res = await fetch('/api/winget-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId: pkg }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+      setWingetResult(data);
+    } catch (err) {
+      setWingetResult({ error: err.message });
+    } finally {
+      setWingetLoading(false);
+    }
+  };
+
+  /** Apply parsed WinGet fields to standard form values */
+  const applyWingetMeta = () => {
+    if (!wingetResult || wingetResult.error) return;
+    
+    // 1. Resolve installer type
+    const type = wingetResult.installerType === 'msi' ? 'msi' : 'exe';
+
+    // 2. Resolve default file name from download URL
+    const urlParts = wingetResult.installerUrl.split('/');
+    let filename = urlParts[urlParts.length - 1].split('?')[0];
+    if (!filename || !filename.includes('.')) {
+      const ext = type;
+      filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${ext}`;
+    }
+
+    // 3. Assemble atomic updates list
+    const updates = {
+      installerType: type,
+      installerSourceFile: filename,
+      displayName: wingetResult.packageName || wingetResult.packageIdentifier,
+      publisher: wingetResult.publisher || 'WinGet',
+      version: wingetResult.packageVersion || '1.0.0'
+    };
+
+    // 4. Map installer-specific fields
+    if (type === 'msi') {
+      updates.msiFileName = filename;
+      updates.msiProductVersion = wingetResult.packageVersion;
+      updates.msiProductName = wingetResult.packageName || wingetResult.packageIdentifier;
+      updates.msiManufacturer = wingetResult.publisher || 'WinGet';
+      if (wingetResult.productCode) {
+        updates.msiProductCode = wingetResult.productCode;
+      }
+    } else {
+      updates.exeSourceFilename = filename;
+      if (wingetResult.silentArgs) {
+        updates.exeInstallArgs = wingetResult.silentArgs;
+      }
+    }
+
+    if (updateFields) {
+      updateFields(updates);
+    } else {
+      // Fallback if updateFields is not supplied
+      Object.entries(updates).forEach(([k, v]) => updateField(k, v));
+    }
+  };
+
+  /** Download installer file directly into staging folder */
+  const handleWingetDownload = async () => {
+    if (!wingetResult || !wingetResult.installerUrl || !state.installerSourceDir) return;
+    
+    setDownloading(true);
+    setDownloadStatus(null);
+
+    const urlParts = wingetResult.installerUrl.split('/');
+    let filename = urlParts[urlParts.length - 1].split('?')[0];
+    if (!filename || !filename.includes('.')) {
+      const ext = wingetResult.installerType === 'msi' ? 'msi' : 'exe';
+      filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${ext}`;
+    }
+
+    try {
+      const res = await fetch('/api/winget-download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: wingetResult.installerUrl,
+          filename,
+          targetDir: state.installerSourceDir
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+      setDownloadStatus({ success: true, path: data.path });
+    } catch (err) {
+      setDownloadStatus({ error: err.message });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   /** Apply extracted MSI metadata to wizard state */
   const applyMsiMeta = (meta) => {
@@ -62,6 +174,77 @@ export default function InstallerStep({ state, updateField }) {
       <div className="step-header">
         <h2>📦 Installer & Behavior</h2>
         <p>Configure the installer type, source metadata, and install behavior.</p>
+      </div>
+
+      {/* ═══ WINGET BOOTSTRAPPER ═══ */}
+      <div className="config-section winget-section animate-slide">
+        <h3 className="section-title">🚀 WinGet Package Bootstrapper</h3>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+          Enter a public WinGet Package ID (e.g. <code>Google.Chrome</code>, <code>Zoom.Zoom</code>, <code>Git.Git</code>) to automatically resolve installer files, silent arguments, version numbers, and product detection keys!
+        </p>
+        <div className="winget-row">
+          <input
+            type="text"
+            className="winget-input"
+            placeholder="e.g. Google.Chrome"
+            value={wingetInput}
+            onChange={e => setWingetInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleWingetFetch()}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary winget-btn"
+            onClick={handleWingetFetch}
+            disabled={wingetLoading || !wingetInput.trim()}
+          >
+            {wingetLoading ? '⏳ Fetching...' : 'Fetch Package'}
+          </button>
+        </div>
+        
+        {wingetResult && (
+          <div className="winget-result-box animate-in">
+            {wingetResult.error ? (
+              <span className="winget-status winget-status--err">❌ {wingetResult.error}</span>
+            ) : (
+              <div className="winget-details">
+                <div className="winget-details-grid">
+                  <div><strong>Package Name:</strong> {wingetResult.packageName || 'N/A'}</div>
+                  <div><strong>Publisher:</strong> {wingetResult.publisher || 'N/A'}</div>
+                  <div><strong>Version:</strong> {wingetResult.packageVersion || 'N/A'}</div>
+                  <div><strong>Type:</strong> {wingetResult.installerType.toUpperCase()}</div>
+                  <div className="col-span-2"><strong>Silent Switches:</strong> <code>{wingetResult.silentArgs || 'None'}</code></div>
+                  {wingetResult.productCode && <div className="col-span-2"><strong>Product Code (GUID):</strong> <code>{wingetResult.productCode}</code></div>}
+                  <div className="col-span-2 url-field">
+                    <strong>Download URL:</strong> <a href={wingetResult.installerUrl} target="_blank" rel="noreferrer" className="winget-link">{wingetResult.installerUrl}</a>
+                  </div>
+                </div>
+                
+                <div className="winget-actions-row">
+                  <button type="button" className="btn btn-primary" onClick={applyWingetMeta}>
+                    ✓ Apply to Form
+                  </button>
+                  {state.installerSourceDir ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleWingetDownload}
+                      disabled={downloading}
+                    >
+                      {downloading ? '⏳ Downloading...' : '📥 Download Installer File'}
+                    </button>
+                  ) : (
+                    <span className="download-hint">⚠️ Set "Install Source" directory to enable direct downloads.</span>
+                  )}
+                </div>
+                {downloadStatus && (
+                  <div className={`download-status-msg ${downloadStatus.error ? 'err' : 'ok'}`}>
+                    {downloadStatus.error ? `❌ ${downloadStatus.error}` : `✅ Successfully downloaded to ${downloadStatus.path}!`}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ═══ INSTALLER ═══ */}
