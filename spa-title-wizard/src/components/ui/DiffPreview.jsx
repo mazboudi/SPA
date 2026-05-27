@@ -11,13 +11,13 @@ import generateScaffolding from '../../lib/generateScaffolding';
 export default function DiffPreview({ originalScript, state, fileName }) {
   const [open, setOpen] = useState(false);
 
-  // Generate lifecycle.yaml from current state for right pane
-  const lifecycleYaml = useMemo(() => {
+  // Generate Invoke-AppDeployToolkit.ps1 from current state for right pane
+  const generatedScript = useMemo(() => {
     try {
       const files = generateScaffolding(state);
-      return files['windows/lifecycle.yaml'] || '# No lifecycle.yaml generated';
+      return files['windows/src/Invoke-AppDeployToolkit.ps1'] || '# No script generated';
     } catch {
-      return '# Error generating lifecycle.yaml preview';
+      return '# Error generating script preview';
     }
   }, [state]);
 
@@ -42,10 +42,10 @@ export default function DiffPreview({ originalScript, state, fileName }) {
           <div className="diff-preview__pane">
             <div className="diff-preview__pane-header">
               <span className="diff-preview__pane-icon">📋</span>
-              <span className="diff-preview__pane-label">Extracted lifecycle.yaml</span>
-              <span className="diff-preview__pane-hint">generated from parsed actions</span>
+              <span className="diff-preview__pane-label">Generated Script</span>
+              <span className="diff-preview__pane-hint">windows/src/Invoke-AppDeployToolkit.ps1</span>
             </div>
-            <pre className="diff-preview__code">{lifecycleYaml}</pre>
+            <pre className="diff-preview__code">{generatedScript}</pre>
           </div>
         </div>
       )}

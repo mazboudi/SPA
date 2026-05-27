@@ -63,7 +63,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES }) {
       })()}
 
       <div className="step-header">
-        <h2>📋 Basic Information</h2>
+        <h2>📋 Project Information</h2>
         <p>Define the application identity. These values are used across all generated files.</p>
       </div>
 

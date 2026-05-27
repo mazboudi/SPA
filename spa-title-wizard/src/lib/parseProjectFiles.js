@@ -192,6 +192,10 @@ export function parseProjectFiles(files) {
     if (Object.keys(lcResult.phases).length > 0) {
       state._lifecyclePhases = lcResult.phases;
     }
+  } else if (files['windows/src/Invoke-AppDeployToolkit.ps1']) {
+    // Manually customized project (no lifecycle.yaml, but v4 script is present)
+    state.isCustomized = true;
+    state.customScriptContent = files['windows/src/Invoke-AppDeployToolkit.ps1'];
   }
 
   // ── windows/detection/detection-config.json ─────────────────────────────
@@ -357,137 +361,4 @@ function extractDetectionRules(yamlText) {
   }).filter(Boolean);
 }
 
-/**
- * Parse lifecycle.yaml into variables and phase actions.
- * Returns { repairMode, variables, phases }
- *
- * Generated format:
- *   repair_mode: mirror
- *   # Standard PSADT variables ...
- *   variables:
- *     appVendor: "value"
- *     appName: "value"
- *   pre_install:
- *     actions:
- *       - type: close_apps
- *         close_apps: "winword,outlook"
- */
-function parseLifecycleYaml(text) {
-  const result = { repairMode: 'mirror', variables: [], phases: {} };
-  const lines = text.split('\n');
 
-  // Repair mode
-  for (const line of lines) {
-    const m = line.match(/^repair_mode:\s*(\w+)/);
-    if (m) { result.repairMode = m[1]; break; }
-  }
-
-  // Variables section — parse key: "value" pairs under `variables:`
-  let inVars = false;
-  for (const line of lines) {
-    if (line.match(/^variables:\s*$/)) { inVars = true; continue; }
-    if (inVars) {
-      // Exit variables section on any non-indented, non-blank line (next top-level key)
-      if (line.match(/^\S/) && !line.match(/^#/)) { inVars = false; continue; }
-      // Skip blank lines and comments within variables
-      if (!line.trim() || line.trim().startsWith('#')) continue;
-      const m = line.match(/^\s+(\w+):\s*"?([^"]*)"?\s*$/);
-      if (m) {
-        result.variables.push({
-          type: 'custom_variable',
-          name: `$${m[1]}`,
-          value: m[2],
-          desc: `$${m[1]} = '${m[2]}'`,
-          enabled: true,
-        });
-      }
-    }
-  }
-
-  // Phase sections
-  const phaseYamlToKey = {
-    pre_install: 'preInstall',
-    install: 'install',
-    post_install: 'postInstall',
-    pre_uninstall: 'preUninstall',
-    uninstall: 'uninstall',
-    post_uninstall: 'postUninstall',
-    pre_repair: 'preRepair',
-    repair: 'repair',
-    post_repair: 'postRepair',
-  };
-
-  let currentPhase = null;
-  let currentAction = null;
-  let inActions = false;
-
-  for (const line of lines) {
-    // Check for phase header (top-level key like "pre_install:")
-    const phaseMatch = line.match(/^(\w+):\s*$/);
-    if (phaseMatch && phaseYamlToKey[phaseMatch[1]]) {
-      currentPhase = phaseYamlToKey[phaseMatch[1]];
-      if (!result.phases[currentPhase]) result.phases[currentPhase] = [];
-      currentAction = null;
-      inActions = false;
-      continue;
-    }
-
-    // Exit phase on any other top-level key
-    if (line.match(/^\S/) && currentPhase) {
-      if (!phaseYamlToKey[line.replace(':', '').trim()]) {
-        currentPhase = null;
-        currentAction = null;
-        inActions = false;
-      }
-      continue;
-    }
-
-    if (!currentPhase) continue;
-
-    // "  actions:" sub-key
-    if (line.match(/^\s+actions:\s*$/)) { inActions = true; continue; }
-
-    if (!inActions) continue;
-
-    // New action item "    - type: xxx"
-    const actionMatch = line.match(/^\s+-\s*type:\s*(\w+)/);
-    if (actionMatch) {
-      currentAction = { type: actionMatch[1], enabled: true };
-      result.phases[currentPhase].push(currentAction);
-      continue;
-    }
-
-    // Action fields "      key: value"
-    if (currentAction) {
-      const fieldMatch = line.match(/^\s+([\w_]+):\s*(.+)$/);
-      if (fieldMatch) {
-        let val = fieldMatch[2].trim();
-        if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
-          val = val.slice(1, -1);
-        }
-        const key = yamlFieldToActionKey(fieldMatch[1]);
-        currentAction[key] = val;
-      }
-    }
-  }
-
-  return result;
-}
-
-/** Map lifecycle.yaml field names to wizard action state keys */
-function yamlFieldToActionKey(yamlField) {
-  const map = {
-    file_path: 'file',
-    arguments: 'args',
-    app_name: 'appName',
-    product_code: 'productCode',
-    close_apps: 'closeApps',
-    source: 'source',
-    destination: 'dest',
-    path: 'path',
-    key: 'key',
-    name: 'name',
-    value: 'value',
-  };
-  return map[yamlField] || yamlField;
-}

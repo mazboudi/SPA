@@ -6,7 +6,7 @@ import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
-export default function ReviewStep({ state }) {
+export default function ReviewStep({ state, updateField }) {
   const files = useMemo(() => generateScaffolding(state), [state]);
   const filePaths = Object.keys(files).sort();
   const [selectedFile, setSelectedFile] = useState(filePaths[0] || '');
@@ -602,6 +602,90 @@ export default function ReviewStep({ state }) {
           font-size: 0.7rem;
           color: var(--text-muted);
           line-height: 1.3;
+        }
+
+        /* ── Script Editor CSS ── */
+        .script-editor {
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          margin-bottom: var(--space-md);
+          background: var(--bg-elevated);
+        }
+        .script-editor__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: var(--space-md);
+          background: rgba(255,255,255,0.02);
+          border-bottom: 1px solid var(--border-subtle);
+          gap: var(--space-md);
+        }
+        .script-editor__info {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .badge {
+          display: inline-block;
+          font-size: 0.72rem;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 99px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+        .badge--sync {
+          background: rgba(59, 130, 246, 0.12);
+          color: #60a5fa;
+        }
+        .badge--custom {
+          background: rgba(245, 158, 11, 0.12);
+          color: #fbbf24;
+        }
+        .script-editor__desc {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+        .textarea-editor-container {
+          display: flex;
+          background: rgba(8, 10, 20, 0.9);
+          min-height: 450px;
+          max-height: 650px;
+          overflow-y: auto;
+          font-family: var(--font-mono);
+          font-size: 0.8rem;
+          line-height: 1.7;
+        }
+        .line-numbers {
+          display: flex;
+          flex-direction: column;
+          text-align: right;
+          padding: var(--space-md) var(--space-sm);
+          color: rgba(255,255,255,0.25);
+          background: rgba(0, 0, 0, 0.2);
+          border-right: 1px solid var(--border-subtle);
+          user-select: none;
+          min-width: 32px;
+        }
+        .line-numbers span {
+          height: 1.7em;
+        }
+        .textarea-editor {
+          flex: 1;
+          background: transparent;
+          color: var(--text-primary);
+          border: none;
+          resize: none;
+          font-family: inherit;
+          font-size: inherit;
+          line-height: inherit;
+          padding: var(--space-md);
+          outline: none;
+          white-space: pre;
+          overflow-x: auto;
+          tab-size: 4;
         }
       `}</style>
     </div>

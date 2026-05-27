@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { parseProjectFiles } from '../lib/parseProjectFiles';
+import parsePsadtBlocks from '../lib/parsePsadtBlocks';
 
 const INITIAL_STATE = {
   // Wizard mode: 'new', 'refactor', or 'edit'
@@ -266,9 +267,9 @@ export default function useWizardState() {
     if (state.wizardMode === 'refactor') {
       // Refactor mode: skip Platform (always Windows)
       return [
-        { id: 'basic', label: 'Basic Info', icon: '📋' },
+        { id: 'basic', label: 'Project Info', icon: '📋' },
         { id: 'installer', label: 'Installer', icon: '📦' },
-        { id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' },
+        { id: 'psadt', label: 'PSADT', icon: '⚡' },
         { id: 'detection', label: 'Detection', icon: '🔍' },
         { id: 'intune', label: 'Intune', icon: '☁️' },
         { id: 'review', label: 'Review & Export', icon: '🚀' },
@@ -277,7 +278,7 @@ export default function useWizardState() {
 
     // New title and edit mode
     const base = [
-      { id: 'basic', label: 'Basic Info', icon: '📋' },
+      { id: 'basic', label: 'Project Info', icon: '📋' },
     ];
 
     // Edit mode skips platform selection (already known)
@@ -288,7 +289,7 @@ export default function useWizardState() {
     if (state.platform === 'windows' || state.platform === 'both') {
       base.push({ id: 'installer', label: 'Installer', icon: '📦' });
       base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
-      base.push({ id: 'psadt', label: 'PSADT Lifecycle', icon: '⚡' });
+      base.push({ id: 'psadt', label: 'PSADT', icon: '⚡' });
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
     if (state.platform === 'macos' || state.platform === 'both') {
@@ -510,10 +511,22 @@ export default function useWizardState() {
    * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch, loadedRef, tags }
    */
   const importProjectForEdit = useCallback((files, projectMeta) => {
+    let parsedPsadt = null;
+    const ps1Path = files['windows/src/Invoke-AppDeployToolkit.ps1'] ? 'windows/src/Invoke-AppDeployToolkit.ps1' : (files['windows/src/Deploy-Application.ps1'] ? 'windows/src/Deploy-Application.ps1' : null);
+    if (ps1Path && files[ps1Path]) {
+      parsedPsadt = parsePsadtBlocks(files[ps1Path]);
+    }
+
     // ── Fast path: state snapshot exists → direct hydration ────────────
     if (files['spa-wizard-state.json']) {
       try {
         const snapshot = JSON.parse(files['spa-wizard-state.json']);
+        
+        // If we successfully parsed action blocks from the PS1 script, override the visual phase actions!
+        if (parsedPsadt) {
+          snapshot.lifecycle = parsedPsadt.lifecycle;
+        }
+
         setState(prev => ({
           ...prev,
           ...snapshot,
@@ -525,7 +538,7 @@ export default function useWizardState() {
           _editProjectTags: projectMeta.tags || [],
         }));
         setCurrentStep(0);
-        console.log('✅ Loaded project from state snapshot');
+        console.log('✅ Loaded project from state snapshot with parsed PSADT blocks');
         return;
       } catch (e) {
         console.warn('⚠️ Failed to parse spa-wizard-state.json, falling back to file parsing:', e.message);
@@ -554,23 +567,27 @@ export default function useWizardState() {
         next.gitLabGroup = groupMatch[1];
       }
 
-      // Apply lifecycle data if parsed
-      if (parsed._lifecycleRepairMode) {
-        next.lifecycle = { ...prev.lifecycle, repairMode: parsed._lifecycleRepairMode };
-      }
-      if (parsed._lifecycleVarActions || parsed._lifecyclePhases) {
-        const phases = { ...prev.lifecycle.phases };
-        if (parsed._lifecycleVarActions) {
-          phases.variableDeclaration = { actions: parsed._lifecycleVarActions };
+      // Apply parsed actions from the PS1 script if available, else fallback to metadata parsing
+      if (parsedPsadt) {
+        next.lifecycle = parsedPsadt.lifecycle;
+      } else {
+        if (parsed._lifecycleRepairMode) {
+          next.lifecycle = { ...prev.lifecycle, repairMode: parsed._lifecycleRepairMode };
         }
-        if (parsed._lifecyclePhases) {
-          for (const [phaseKey, actions] of Object.entries(parsed._lifecyclePhases)) {
-            if (phases[phaseKey]) {
-              phases[phaseKey] = { actions: actions.map(a => ({ ...a, enabled: true })) };
+        if (parsed._lifecycleVarActions || parsed._lifecyclePhases) {
+          const phases = { ...prev.lifecycle.phases };
+          if (parsed._lifecycleVarActions) {
+            phases.variableDeclaration = { actions: parsed._lifecycleVarActions };
+          }
+          if (parsed._lifecyclePhases) {
+            for (const [phaseKey, actions] of Object.entries(parsed._lifecyclePhases)) {
+              if (phases[phaseKey]) {
+                phases[phaseKey] = { actions: actions.map(a => ({ ...a, enabled: true })) };
+              }
             }
           }
+          next.lifecycle = { ...(next.lifecycle || prev.lifecycle), phases };
         }
-        next.lifecycle = { ...(next.lifecycle || prev.lifecycle), phases };
       }
 
       // Clean up temporary parse keys

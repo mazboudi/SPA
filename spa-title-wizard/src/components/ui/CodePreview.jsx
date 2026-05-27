@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { ACTION_TYPE_MAP } from '../../config/actionTypes';
 
 function highlightSyntax(code, language) {
   if (language === 'json') {
@@ -39,16 +40,122 @@ function detectLanguage(filename) {
   return 'text';
 }
 
-export default function CodePreview({ code, filename }) {
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return hash.toString(36);
+}
+
+export default function CodePreview({ code, filename, activePhase }) {
   const [copied, setCopied] = useState(false);
   const lang = detectLanguage(filename || '');
-  const highlighted = highlightSyntax(code, lang);
+  const bodyRef = useRef(null);
+
+  const blocks = useMemo(() => {
+    if (!code) return [];
+    if (lang !== 'powershell') {
+      return [{ type: 'normal', lines: code.split(/\r?\n/) }];
+    }
+
+    const lines = code.split(/\r?\n/);
+    const parsedBlocks = [];
+    let currentBlock = { type: 'normal', lines: [] };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const startMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"\s+Hash="([^"]+)">/);
+
+      if (startMatch) {
+        if (currentBlock.lines.length > 0) {
+          parsedBlocks.push(currentBlock);
+        }
+        let actionObj = null;
+        try {
+          actionObj = JSON.parse(decodeURIComponent(startMatch[1]));
+        } catch (e) {
+          console.error("Failed to parse action metadata in preview:", e);
+        }
+        currentBlock = {
+          type: 'action',
+          action: actionObj,
+          expectedHash: startMatch[2],
+          lines: [line]
+        };
+      } else if (/#\s*<\/SPA:Action>/.test(line)) {
+        currentBlock.lines.push(line);
+        parsedBlocks.push(currentBlock);
+        currentBlock = { type: 'normal', lines: [] };
+      } else {
+        currentBlock.lines.push(line);
+      }
+    }
+
+    if (currentBlock.lines.length > 0) {
+      parsedBlocks.push(currentBlock);
+    }
+
+    return parsedBlocks;
+  }, [code, lang]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // Smooth scroll to the active phase and pulse highlight the code block!
+  useEffect(() => {
+    if (!activePhase || !bodyRef.current) return;
+
+    // Strip timestamp suffix if present
+    const phaseKey = activePhase.split('_')[0];
+
+    const phaseMarkers = {
+      variableDeclaration: '## MARK: Variables',
+      preInstall: '## MARK: Pre-Install',
+      install: '## MARK: Install',
+      postInstall: '## MARK: Post-Install',
+      preUninstall: '## MARK: Pre-Uninstall',
+      uninstall: '## MARK: Uninstall',
+      postUninstall: '## MARK: Post-Uninstall',
+      preRepair: '## MARK: Pre-Repair',
+      repair: '## MARK: Repair',
+      postRepair: '## MARK: Post-Repair'
+    };
+
+    const marker = phaseMarkers[phaseKey];
+    if (!marker) return;
+
+    // Find pre or code elements that contain the marker text
+    const elements = bodyRef.current.querySelectorAll('.code-preview__code code');
+    for (const el of elements) {
+      if (el.textContent.includes(marker)) {
+        const preElement = el.closest('pre');
+        if (preElement) {
+          const elementTop = preElement.offsetTop;
+          bodyRef.current.scrollTo({
+            top: Math.max(0, elementTop - 15),
+            behavior: 'smooth'
+          });
+
+          // Highlight the pre tag briefly
+          preElement.style.transition = 'background-color 0.25s ease, border-left-color 0.25s ease';
+          preElement.style.backgroundColor = 'rgba(99, 140, 255, 0.15)';
+          preElement.style.borderLeft = '3px solid var(--text-accent, #7c8aff)';
+          
+          setTimeout(() => {
+            preElement.style.backgroundColor = '';
+            preElement.style.borderLeft = '';
+          }, 1500);
+        }
+        break;
+      }
+    }
+  }, [activePhase, code]);
 
   return (
     <div className="code-preview">
@@ -58,9 +165,42 @@ export default function CodePreview({ code, filename }) {
           {copied ? '✓ Copied' : '📋 Copy'}
         </button>
       </div>
-      <pre className="code-preview__code">
-        <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-      </pre>
+      <div className="code-preview__body" ref={bodyRef}>
+        {blocks.map((block, idx) => {
+          const codeString = block.lines.join('\n');
+          const highlighted = highlightSyntax(codeString, lang);
+
+          if (block.type === 'action') {
+            const innerLines = block.lines.slice(1, -1);
+            const innerCode = innerLines.join('\n');
+            const isManual = block.action?.isManuallyEdited || simpleHash(innerCode) !== block.expectedHash;
+            const cardName = block.action?.type ? (ACTION_TYPE_MAP[block.action.type]?.label || block.action.type) : 'Action Card';
+
+            return (
+              <div key={idx} className={`cp-block ${isManual ? 'cp-block--manual' : 'cp-block--locked'}`}>
+                <div className="cp-block__header">
+                  <span className="cp-block__icon">{isManual ? '🔓' : '🔒'}</span>
+                  <span className="cp-block__title">
+                    {isManual ? `Manual Customization: ${cardName}` : `Form-Synchronized Action: ${cardName}`}
+                  </span>
+                  <span className="cp-block__badge">
+                    {isManual ? 'Manual Script Code' : 'Locked Form Sync'}
+                  </span>
+                </div>
+                <pre className="code-preview__code cp-block__code">
+                  <code dangerouslySetInnerHTML={{ __html: highlighted }} />
+                </pre>
+              </div>
+            );
+          }
+
+          return (
+            <pre key={idx} className="code-preview__code">
+              <code dangerouslySetInnerHTML={{ __html: highlighted }} />
+            </pre>
+          );
+        })}
+      </div>
 
       <style>{`
         .code-preview {
@@ -86,17 +226,79 @@ export default function CodePreview({ code, filename }) {
           padding: 4px 10px;
           font-size: 0.75rem;
         }
-        .code-preview__code {
-          padding: var(--space-md);
+        .code-preview__body {
           background: rgba(8, 10, 20, 0.9);
+          max-height: 500px;
+          overflow-y: auto;
+          padding: var(--space-sm) 0;
+        }
+        .code-preview__code {
+          padding: 0 var(--space-md);
+          background: transparent !important;
           overflow-x: auto;
           font-family: var(--font-mono);
           font-size: 0.8rem;
           line-height: 1.7;
           color: var(--text-primary);
           margin: 0;
-          max-height: 500px;
-          overflow-y: auto;
+          overflow-y: visible !important;
+          max-height: none !important;
+        }
+        .cp-block {
+          border-left: 3px solid;
+          margin: var(--space-sm) var(--space-md);
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.01);
+        }
+        .cp-block--locked {
+          border-left-color: #3b82f6;
+          background: rgba(59, 130, 246, 0.02);
+          border: 1px solid rgba(59, 130, 246, 0.08);
+          border-left-width: 4px;
+        }
+        .cp-block--manual {
+          border-left-color: #f59e0b;
+          background: rgba(245, 158, 11, 0.02);
+          border: 1px solid rgba(245, 158, 11, 0.08);
+          border-left-width: 4px;
+        }
+        .cp-block__header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+          user-select: none;
+        }
+        .cp-block--locked .cp-block__header {
+          background: rgba(59, 130, 246, 0.05);
+          color: #60a5fa;
+        }
+        .cp-block--manual .cp-block__header {
+          background: rgba(245, 158, 11, 0.05);
+          color: #fbbf24;
+        }
+        .cp-block__badge {
+          margin-left: auto;
+          font-size: 0.6rem;
+          font-weight: 700;
+          padding: 1px 6px;
+          border-radius: 99px;
+          text-transform: uppercase;
+        }
+        .cp-block--locked .cp-block__badge {
+          background: rgba(59, 130, 246, 0.12);
+          color: #60a5fa;
+        }
+        .cp-block--manual .cp-block__badge {
+          background: rgba(245, 158, 11, 0.12);
+          color: #fbbf24;
+        }
+        .cp-block__code {
+          padding: 6px 10px !important;
         }
         .cp-key { color: #93c5fd; }
         .cp-str { color: #86efac; }

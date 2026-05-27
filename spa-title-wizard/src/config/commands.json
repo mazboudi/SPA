@@ -1,0 +1,163 @@
+[
+  {
+    "name": "msi_install",
+    "label": "MSI Install",
+    "icon": "📦",
+    "category": "Installer",
+    "supportedPhases": ["install", "repair"]
+  },
+  {
+    "name": "msi_uninstall",
+    "label": "MSI Uninstall",
+    "icon": "🗑️",
+    "category": "Installer",
+    "supportedPhases": ["uninstall", "preInstall", "preRepair"]
+  },
+  {
+    "name": "msi_uninstall_batch",
+    "label": "Batch MSI Uninstall (GUIDs)",
+    "icon": "🗑️",
+    "category": "Installer",
+    "supportedPhases": ["preInstall", "preRepair", "uninstall"]
+  },
+  {
+    "name": "exe_install",
+    "label": "EXE Install",
+    "icon": "⚙️",
+    "category": "Installer",
+    "supportedPhases": ["install", "repair"]
+  },
+  {
+    "name": "exe_uninstall",
+    "label": "EXE Uninstall",
+    "icon": "🗑️",
+    "category": "Installer",
+    "supportedPhases": ["uninstall", "preInstall"]
+  },
+  {
+    "name": "execute_process",
+    "label": "Run Process / Script",
+    "icon": "▶️",
+    "category": "Process",
+    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "stop_process",
+    "label": "Stop / Close Apps",
+    "icon": "🛑",
+    "category": "Process",
+    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
+  },
+  {
+    "name": "file_copy",
+    "label": "Copy File / Folder",
+    "icon": "📋",
+    "category": "File Operations",
+    "supportedPhases": ["preInstall", "install", "postInstall", "repair", "postRepair"]
+  },
+  {
+    "name": "file_remove",
+    "label": "Delete File / Folder",
+    "icon": "🧹",
+    "category": "File Operations",
+    "supportedPhases": ["preInstall", "postInstall", "postUninstall", "postRepair"]
+  },
+  {
+    "name": "create_folder",
+    "label": "Create Folder",
+    "icon": "📁",
+    "category": "File Operations",
+    "supportedPhases": ["preInstall", "install", "postInstall"]
+  },
+  {
+    "name": "registry_set",
+    "label": "Set Registry Value",
+    "icon": "🔑",
+    "category": "Registry",
+    "supportedPhases": ["postInstall", "postRepair", "preInstall", "install"]
+  },
+  {
+    "name": "registry_remove",
+    "label": "Remove Registry Key / Value",
+    "icon": "🔑",
+    "category": "Registry",
+    "supportedPhases": ["postUninstall", "postInstall", "preInstall"]
+  },
+  {
+    "name": "registry_marker",
+    "label": "Write Fiserv Detection Marker",
+    "icon": "🏷️",
+    "category": "Registry",
+    "supportedPhases": ["postInstall", "postRepair"]
+  },
+  {
+    "name": "remove_registry_marker",
+    "label": "Remove Fiserv Detection Marker",
+    "icon": "🏷️",
+    "category": "Registry",
+    "supportedPhases": ["postUninstall"]
+  },
+  {
+    "name": "env_variable",
+    "label": "Set Environment Variable",
+    "icon": "🌍",
+    "category": "Environment",
+    "supportedPhases": ["postInstall", "preInstall", "postRepair"]
+  },
+  {
+    "name": "remove_env_variable",
+    "label": "Remove Environment Variable",
+    "icon": "🌍",
+    "category": "Environment",
+    "supportedPhases": ["postUninstall"]
+  },
+  {
+    "name": "show_welcome",
+    "label": "Show Welcome Dialog",
+    "icon": "👋",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
+  },
+  {
+    "name": "show_progress",
+    "label": "Show Progress Dialog",
+    "icon": "⏳",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "install", "preUninstall", "uninstall", "preRepair", "repair"]
+  },
+  {
+    "name": "show_completion",
+    "label": "Show Completion Message",
+    "icon": "🎉",
+    "category": "UI Prompts",
+    "supportedPhases": ["postInstall", "postRepair"]
+  },
+  {
+    "name": "custom_variable",
+    "label": "Custom Variable",
+    "icon": "📝",
+    "category": "Variables",
+    "supportedPhases": ["variableDeclaration"]
+  },
+  {
+    "name": "sleep",
+    "label": "Wait / Delay",
+    "icon": "⏱️",
+    "category": "Misc",
+    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "custom_script",
+    "label": "Custom PowerShell",
+    "icon": "📜",
+    "category": "Custom",
+    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "raw_ps",
+    "label": "Raw PowerShell Block",
+    "icon": "🔷",
+    "category": "Custom",
+    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  }
+]

@@ -92,6 +92,9 @@
 .action-card--raw-ps .action-card__header { background: rgba(96, 165, 250, 0.06); }
 .action-card--raw-ps textarea { width: 100%; resize: vertical; min-height: 80px; }
 .action-card__badge-warn { font-size: 0.62rem; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.action-card--locked { border-left: 3px solid #f59e0b; }
+.action-card--locked .action-card__header { background: rgba(245, 158, 11, 0.08); }
+.action-card__badge-locked { font-size: 0.62rem; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
 
 /* ── Refactor Mode ── */
 .refactor-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid; }

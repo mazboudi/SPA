@@ -185,7 +185,7 @@ export default function App() {
       case 'platform':
         return <PlatformStep state={wizard.state} updateField={wizard.updateField} />;
       case 'psadt':
-        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
+        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':
         return <InstallerStep state={wizard.state} updateField={wizard.updateField} />;
       case 'detection':
@@ -195,7 +195,7 @@ export default function App() {
       case 'macos':
         return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':
-        return <ReviewStep state={wizard.state} />;
+        return <ReviewStep state={wizard.state} updateField={wizard.updateField} />;
       default:
         return null;
     }
@@ -256,9 +256,9 @@ export default function App() {
               id="choice-convert"
             >
               <span className="mode-card__icon">🔄</span>
-              <h3 className="mode-card__title">Convert to Lifecycle</h3>
+              <h3 className="mode-card__title">Extract Actions</h3>
               <p className="mode-card__desc">
-                Extract all lifecycle actions into <code>lifecycle.yaml</code> for full control. Edit, reorder, and manage actions through the workbench.
+                Extract all actions into the interactive visual workbench. Edit, reorder, and manage actions with forms and cards.
               </p>
               <span className="mode-card__upload-hint">Original script is archived as a .bak reference file</span>
               {convertParsing && <span className="mode-card__status">⏳ Extracting actions...</span>}
@@ -461,7 +461,7 @@ export default function App() {
               <button className="mode-card" onClick={handleNewTitle} id="mode-blank-title">
                 <span className="mode-card__icon">🆕</span>
                 <h3 className="mode-card__title">New (Blank)</h3>
-                <p className="mode-card__desc">Start from scratch — define app metadata, detection, and lifecycle phases interactively.</p>
+                <p className="mode-card__desc">Start from scratch — define app metadata, detection, and PSADT actions interactively.</p>
               </button>
 
               <button className="mode-card mode-card--refactor" onClick={() => setShowRefactorFlow(true)} id="mode-refactor-title">

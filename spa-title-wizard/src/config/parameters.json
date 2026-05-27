@@ -1,0 +1,260 @@
+[
+  {
+    "cmdlet": "msi_install",
+    "parameter": "file",
+    "label": "MSI File",
+    "type": "text",
+    "placeholder": "app.msi",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/QN /norestart",
+    "default": "/QN /norestart"
+  },
+  {
+    "cmdlet": "msi_uninstall",
+    "parameter": "appName",
+    "label": "App Name",
+    "type": "text",
+    "placeholder": "Application Name"
+  },
+  {
+    "cmdlet": "msi_uninstall",
+    "parameter": "productCode",
+    "label": "Product Code (GUID)",
+    "type": "text",
+    "placeholder": "{GUID}"
+  },
+  {
+    "cmdlet": "msi_uninstall",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/qn /NORESTART"
+  },
+  {
+    "cmdlet": "msi_uninstall_batch",
+    "parameter": "guids",
+    "label": "Product Code GUIDs (one per line)",
+    "type": "guids",
+    "required": true
+  },
+  {
+    "cmdlet": "exe_install",
+    "parameter": "file",
+    "label": "EXE File Path",
+    "type": "text",
+    "placeholder": "setup.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "exe_install",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/S",
+    "default": "/S"
+  },
+  {
+    "cmdlet": "exe_uninstall",
+    "parameter": "file",
+    "label": "Uninstaller Path",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\App\\uninstall.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "exe_uninstall",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/S",
+    "default": "/S"
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "file",
+    "label": "File Path",
+    "type": "text",
+    "placeholder": "powershell.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "-ExecutionPolicy Bypass -File script.ps1"
+  },
+  {
+    "cmdlet": "stop_process",
+    "parameter": "closeApps",
+    "label": "Process Names (comma-separated)",
+    "type": "text",
+    "placeholder": "chrome,firefox",
+    "required": true
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "source",
+    "label": "Source Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "dest",
+    "label": "Destination Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "file_remove",
+    "parameter": "path",
+    "label": "Path to Remove",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "create_folder",
+    "parameter": "path",
+    "label": "Folder Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "registry_set",
+    "parameter": "key",
+    "label": "Registry Key Path",
+    "type": "text",
+    "placeholder": "HKLM:\\SOFTWARE\\...",
+    "required": true
+  },
+  {
+    "cmdlet": "registry_set",
+    "parameter": "name",
+    "label": "Value Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "registry_set",
+    "parameter": "value",
+    "label": "Value Data",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "registry_remove",
+    "parameter": "key",
+    "label": "Registry Key Path",
+    "type": "text",
+    "placeholder": "HKLM:\\SOFTWARE\\...",
+    "required": true
+  },
+  {
+    "cmdlet": "registry_remove",
+    "parameter": "name",
+    "label": "Value Name (blank = entire key)",
+    "type": "text",
+    "placeholder": "Leave empty to remove entire key"
+  },
+  {
+    "cmdlet": "env_variable",
+    "parameter": "name",
+    "label": "Variable Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "env_variable",
+    "parameter": "value",
+    "label": "Variable Value",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "remove_env_variable",
+    "parameter": "name",
+    "label": "Variable Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "closeApps",
+    "label": "Close Apps",
+    "type": "text"
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "deferTimes",
+    "label": "Defer Times",
+    "type": "number",
+    "default": 0
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "checkDiskSpace",
+    "label": "Check Disk Space",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "custom_variable",
+    "parameter": "name",
+    "label": "Variable Name",
+    "type": "text",
+    "placeholder": "$myVar",
+    "required": true
+  },
+  {
+    "cmdlet": "custom_variable",
+    "parameter": "value",
+    "label": "Value",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "sleep",
+    "parameter": "seconds",
+    "label": "Seconds",
+    "type": "number",
+    "default": 5,
+    "required": true
+  },
+  {
+    "cmdlet": "custom_script",
+    "parameter": "code",
+    "label": "PowerShell Code",
+    "type": "textarea",
+    "placeholder": "# Custom PowerShell commands",
+    "required": true
+  },
+  {
+    "cmdlet": "custom_script",
+    "parameter": "note",
+    "label": "Note",
+    "type": "text",
+    "placeholder": "Brief description of what this does"
+  },
+  {
+    "cmdlet": "raw_ps",
+    "parameter": "script",
+    "label": "PowerShell Script Block",
+    "type": "textarea",
+    "placeholder": "# Unparsed block — edit or delete",
+    "required": true
+  },
+  {
+    "cmdlet": "raw_ps",
+    "parameter": "note",
+    "label": "Note",
+    "type": "text",
+    "placeholder": "Brief description of what this block does"
+  }
+]

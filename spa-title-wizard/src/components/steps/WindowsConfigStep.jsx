@@ -495,7 +495,7 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
       {/* ═══════════════════════════════════════════════════════════════════ */}
       <div className="section-divider">
         <span className="section-divider__line" />
-        <span className="section-divider__label">PSADT Lifecycle Phases</span>
+        <span className="section-divider__label">PSADT Actions</span>
         <span className="section-divider__line" />
       </div>
 
