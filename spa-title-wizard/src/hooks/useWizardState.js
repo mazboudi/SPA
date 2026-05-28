@@ -136,6 +136,7 @@ const INITIAL_STATE = {
   // PSADT Deploy Mode
   deployMode: 'Silent',            // 'Silent' | 'NonInteractive' | 'Interactive'
   allowRebootPassThru: false,
+  pristineScripts: true,           // true = clean script without SPA comments, false = annotated script
 
   // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
   installerSourceDir: '',            // e.g. 'C:\\files\\7-zip'
@@ -586,7 +587,9 @@ export default function useWizardState() {
         const snapshot = JSON.parse(files['spa-wizard-state.json']);
         
         // If we successfully parsed action blocks from the PS1 script, override the visual phase actions!
-        if (parsedPsadt) {
+        // ONLY if the script actually has SPA:Action comment blocks, ensuring we don't erase visual blocks for clean scripts
+        const hasComments = ps1Path && files[ps1Path] && /#\s*<SPA:Action/i.test(files[ps1Path]);
+        if (parsedPsadt && hasComments) {
           snapshot.lifecycle = parsedPsadt.lifecycle;
         }
 

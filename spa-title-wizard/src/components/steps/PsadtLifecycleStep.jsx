@@ -857,6 +857,23 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       </button>
                     </>
                   )}
+                  {/* Pristine Code Toggle */}
+                  <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
+                      ✨ Pristine Code
+                    </span>
+                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!state.pristineScripts}
+                        onChange={(e) => updateField('pristineScripts', e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: state.pristineScripts ? '#3b82f6' : '#4b5563', transition: '.4s', borderRadius: '18px' }}>
+                        <span style={{ position: 'absolute', content: '""', height: '12px', width: '12px', left: state.pristineScripts ? '16px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
+                      </span>
+                    </label>
+                  </div>
                   <button 
                     type="button"
                     className={`btn btn-sm ${state.isCustomized ? 'btn-secondary' : 'btn-primary'}`} 
@@ -921,10 +938,31 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         {activeTab === 'compare' && (
           <div className="psadt-workspace-tab-content compare-tab animate-in">
             <div className="config-section" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
-              <h3 className="section-title">🔍 Original vs. Converted Script Comparison</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-                Compare the original legacy PowerShell script with the newly compiled and structured script. Use this side-by-side view to verify successful conversion of all custom actions.
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h3 className="section-title" style={{ margin: 0 }}>🔍 Original vs. Converted Script Comparison</h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Compare the original legacy PowerShell script with the newly compiled and structured script. Use this side-by-side view to verify successful conversion of all custom actions.
+                  </p>
+                </div>
+                {/* Pristine Code Toggle in Compare tab */}
+                <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
+                    ✨ Pristine Code
+                  </span>
+                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={!!state.pristineScripts}
+                      onChange={(e) => updateField('pristineScripts', e.target.checked)}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: state.pristineScripts ? '#3b82f6' : '#4b5563', transition: '.4s', borderRadius: '18px' }}>
+                      <span style={{ position: 'absolute', content: '""', height: '12px', width: '12px', left: state.pristineScripts ? '16px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
+                    </span>
+                  </label>
+                </div>
+              </div>
               {compatReport && (
                 <div className="compat-report-card" style={{ marginBottom: 'var(--space-md)', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>

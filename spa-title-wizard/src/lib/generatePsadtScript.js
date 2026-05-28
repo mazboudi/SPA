@@ -4,7 +4,8 @@
  * Mirrors the exact code generation logic of Build-DeployApplication.ps1.
  */
 
-export default function generatePsadtScript(s) {
+export default function generatePsadtScript(s, clean = false) {
+  const isClean = clean || !!s.pristineScripts;
   const lc = s.lifecycle || {};
   const phases = lc.phases || {};
   const packageId = s.packageId || 'TODO-PACKAGE-ID';
@@ -269,12 +270,16 @@ export default function generatePsadtScript(s) {
       }
 
       if (actionLines.length > 0) {
-        const actionCode = actionLines.join('\n');
-        const hash = simpleHash(actionCode);
-        const actionData = encodeURIComponent(JSON.stringify(action));
-        lines.push(`        # <SPA:Action Data="${actionData}" Hash="${hash}">`);
-        actionLines.forEach(l => lines.push(l));
-        lines.push(`        # </SPA:Action>`);
+        if (isClean) {
+          actionLines.forEach(l => lines.push(l));
+        } else {
+          const actionCode = actionLines.join('\n');
+          const hash = simpleHash(actionCode);
+          const actionData = encodeURIComponent(JSON.stringify(action));
+          lines.push(`        # <SPA:Action Data="${actionData}" Hash="${hash}">`);
+          actionLines.forEach(l => lines.push(l));
+          lines.push(`        # </SPA:Action>`);
+        }
       }
     });
 
@@ -298,11 +303,15 @@ export default function generatePsadtScript(s) {
     const cleanName = (action.name || '').replace(/^\$/, '');
     if (cleanName) {
       const codeLine = `    ${cleanName} = '${action.value || ''}'`;
-      const hash = simpleHash(codeLine);
-      const actionData = encodeURIComponent(JSON.stringify(action));
-      standardVars.push(`    # <SPA:Action Data="${actionData}" Hash="${hash}">`);
-      standardVars.push(codeLine);
-      standardVars.push(`    # </SPA:Action>`);
+      if (isClean) {
+        standardVars.push(codeLine);
+      } else {
+        const hash = simpleHash(codeLine);
+        const actionData = encodeURIComponent(JSON.stringify(action));
+        standardVars.push(`    # <SPA:Action Data="${actionData}" Hash="${hash}">`);
+        standardVars.push(codeLine);
+        standardVars.push(`    # </SPA:Action>`);
+      }
     }
   });
 

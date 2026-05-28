@@ -409,34 +409,56 @@ function extractV3Phase(text, phaseName) {
   } else if (sectionPos > 0) {
     endPos = sectionPos;
   } else {
-    endPos = Math.min(afterPhase.length, 2000); // safety limit
+    endPos = Math.min(afterPhase.length, 5000); // safety limit
   }
 
   let block = afterPhase.substring(0, endPos);
 
-  // Clean trailing template boilerplate from the bottom of the block
   const lines = block.split(/\r?\n/);
-  let lastIdx = lines.length - 1;
-  while (lastIdx >= 0) {
-    const line = lines[lastIdx];
+  let depth = 0;
+  let cleanLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const t = line.trim();
-    if (!t) {
-      lastIdx--;
-      continue;
+
+    // Check for the end of the outer block if we hit a deploymentType conditional line at depth 0
+    if (depth === 0 && /^(?:if|elseif|else)\b/i.test(t) && /deploymentType/i.test(t)) {
+      break;
     }
-    // Match closing braces or deployment type control structures
-    if (t === '}' || /^\}\s*(#.*)?$/.test(t)) {
-      lastIdx--;
-      continue;
+
+    // Update brace depth
+    let tempDepth = depth;
+    let foundNegative = false;
+    for (let charIdx = 0; charIdx < line.length; charIdx++) {
+      const ch = line[charIdx];
+      if (ch === '{') {
+        tempDepth++;
+      } else if (ch === '}') {
+        tempDepth--;
+        if (tempDepth < 0) {
+          foundNegative = true;
+          break;
+        }
+      }
     }
-    if (/^(?:if|elseif|else)\b/i.test(t) && /deploymentType/i.test(t)) {
-      lastIdx--;
-      continue;
+
+    if (foundNegative) {
+      // This line has a closing brace that closes the outer block scope.
+      // We stop here to prevent stripping inner custom closing braces.
+      break;
     }
-    break;
+
+    depth = tempDepth;
+    cleanLines.push(line);
   }
 
-  return lines.slice(0, lastIdx + 1).join('\n');
+  // Trim trailing empty lines from cleanLines
+  while (cleanLines.length > 0 && !cleanLines[cleanLines.length - 1].trim()) {
+    cleanLines.pop();
+  }
+
+  return cleanLines.join('\n');
 }
 
 /** Extract a v4 function body: function FuncName { ... } */
