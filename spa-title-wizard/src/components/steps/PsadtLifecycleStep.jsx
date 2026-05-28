@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import FormField from '../ui/FormField';
 import DiffPreview from '../ui/DiffPreview';
 import windowsOptions from '../../config/windowsOptions.json';
 import { PHASE_KEYS, PHASE_META, ACTION_TYPE_MAP, getActionsForPhase, getCategoriesForPhase, createAction } from '../../config/actionTypes';
@@ -758,9 +759,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               </div>
             )}
 
-            {/* Deploy Mode */}
+            {/* Deploy Mode & Behavior */}
             <div className="config-section">
-              <h3 className="section-title">PSADT Deploy Mode</h3>
+              <h3 className="section-title">PSADT Deploy Mode & Behavior</h3>
               <div className="form-grid">
                 <SelectField label="Deploy Mode" id="deployMode" value={state.deployMode}
                   hint="Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only."
@@ -771,6 +772,12 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   onChange={v => updateField('installContext', v)}
                   options={windowsOptions.installContexts}
                 />
+                <FormField label="Close Apps Before Install" id="closeApps" hint="Comma-separated process names (e.g., chrome,msedge)">
+                  <input id="closeApps" type="text" placeholder="chrome,msedge" value={state.closeApps || ''} onChange={e => updateField('closeApps', e.target.value)} />
+                </FormField>
+                <FormField label="Max Install Time (minutes)" id="maxInstallTime">
+                  <input id="maxInstallTime" type="number" min="1" value={state.maxInstallTime} onChange={e => updateField('maxInstallTime', parseInt(e.target.value) || 60)} />
+                </FormField>
               </div>
               <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
               <div style={{ marginTop: 'var(--space-md)' }}>
@@ -941,45 +948,6 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       </div>
 
       <style>{`
-        /* Premium Tab Bar styling */
-        .psadt-tab-bar {
-          display: flex;
-          gap: var(--space-md, 12px);
-          border-bottom: 1px solid var(--border-subtle);
-          margin-bottom: var(--space-xl);
-          padding-bottom: 2px;
-        }
-        .psadt-tab-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: transparent;
-          border: none;
-          padding: 12px 20px;
-          cursor: pointer;
-          color: var(--text-muted);
-          font-family: inherit;
-          font-size: 0.9rem;
-          font-weight: 600;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-          border-bottom: 3px solid transparent;
-          border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-          outline: none;
-        }
-        .psadt-tab-btn:hover {
-          color: var(--text-primary);
-          background: rgba(255, 255, 255, 0.02);
-        }
-        .psadt-tab-btn--active {
-          color: var(--text-accent, #3b82f6);
-          border-bottom-color: var(--text-accent, #3b82f6);
-          background: rgba(59, 130, 246, 0.04);
-          text-shadow: 0 0 1px rgba(59, 130, 246, 0.2);
-        }
-        .psadt-tab-btn__icon {
-          font-size: 1.1rem;
-        }
-
         .psadt-workspace-tabs {
           width: 100%;
         }

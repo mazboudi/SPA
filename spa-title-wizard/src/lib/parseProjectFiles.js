@@ -192,10 +192,15 @@ export function parseProjectFiles(files) {
     if (Object.keys(lcResult.phases).length > 0) {
       state._lifecyclePhases = lcResult.phases;
     }
-  } else if (files['windows/src/Invoke-AppDeployToolkit.ps1']) {
-    // Manually customized project (no lifecycle.yaml, but v4 script is present)
-    state.isCustomized = true;
-    state.customScriptContent = files['windows/src/Invoke-AppDeployToolkit.ps1'];
+  } else {
+    const ps1Path = files['windows/src/Invoke-AppDeployToolkit.ps1'] 
+      ? 'windows/src/Invoke-AppDeployToolkit.ps1' 
+      : (files['windows/src/Deploy-Application.ps1'] ? 'windows/src/Deploy-Application.ps1' : null);
+    if (ps1Path && files[ps1Path]) {
+      // Manually customized project (no lifecycle.yaml, but script is present)
+      state.isCustomized = true;
+      state.customScriptContent = files[ps1Path];
+    }
   }
 
   // ── windows/detection/detection-config.json ─────────────────────────────

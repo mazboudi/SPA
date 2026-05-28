@@ -342,10 +342,19 @@ const EDITABLE_FILES = [
   'windows/intune/supersedence.json',
   'windows/intune/dependencies.json',
   'windows/detection/detection-config.json',
+  'windows/detection/detect.ps1',
+  'windows/src/Invoke-AppDeployToolkit.ps1',
+  'windows/src/Deploy-Application.ps1',
+  'windows/src/files-manifest.yaml',
   'macos/package.yaml',
   'macos/jamf/package-inputs.json',
   'macos/jamf/policy-inputs.json',
   'macos/jamf/scope-inputs.json',
+  'macos/src/scripts/preinstall',
+  'macos/src/scripts/postinstall',
+  'macos/src/postinstall.sh',
+  'macos/detection/extension-attribute.sh',
+  'macos/detection/receipt-check.sh',
 ];
 
 // ── GET /api/projects — list all title projects ─────────────────────────────

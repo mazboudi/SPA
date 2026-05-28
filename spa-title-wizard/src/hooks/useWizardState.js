@@ -337,7 +337,6 @@ export default function useWizardState() {
         { id: 'basic', label: 'Project Info', icon: '📋' },
         { id: 'installer', label: 'Installer', icon: '📦' },
         { id: 'psadt', label: 'PSADT', icon: '⚡' },
-        { id: 'detection', label: 'Detection', icon: '🔍' },
         { id: 'intune', label: 'Intune', icon: '☁️' },
         { id: 'review', label: 'Review & Export', icon: '🚀' },
       ];
@@ -355,7 +354,6 @@ export default function useWizardState() {
 
     if (state.platform === 'windows' || state.platform === 'both') {
       base.push({ id: 'installer', label: 'Installer', icon: '📦' });
-      base.push({ id: 'detection', label: 'Detection', icon: '🔍' });
       base.push({ id: 'psadt', label: 'PSADT', icon: '⚡' });
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
@@ -382,8 +380,6 @@ export default function useWizardState() {
         return true;
       case 'installer':
         return true; // Installer source is optional guidance, not a blocker
-      case 'detection':
-        return true;
       case 'intune':
         return true;
       case 'macos':

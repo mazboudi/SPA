@@ -363,3 +363,43 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
   font-style: italic;
 }
 
+/* ── Premium Tab Bar & Buttons ── */
+.psadt-tab-bar {
+  display: flex;
+  gap: var(--space-md, 12px);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-xl);
+  padding-bottom: 2px;
+}
+.psadt-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 3px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  outline: none;
+}
+.psadt-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+.psadt-tab-btn--active {
+  color: var(--text-accent, #7c8aff);
+  border-bottom-color: var(--text-accent, #7c8aff);
+  background: rgba(99, 140, 255, 0.04);
+  text-shadow: 0 0 1px rgba(99, 140, 255, 0.2);
+}
+.psadt-tab-btn__icon {
+  font-size: 1.1rem;
+}
+
+
