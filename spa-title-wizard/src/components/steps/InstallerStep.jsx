@@ -20,6 +20,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
 
   /** Fetch installer details from WinGet repository */
   const handleWingetFetch = async (targetVersion = null) => {
+    const version = typeof targetVersion === 'string' ? targetVersion : null;
     const pkg = wingetInput.trim();
     if (!pkg) return;
     setWingetLoading(true);
@@ -27,7 +28,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     
     // If fetching a specific version, keep the current wingetResult (especially the versions list)
     // so the dropdown doesn't flicker/disappear, but clear any errors.
-    if (!targetVersion) {
+    if (!version) {
       setWingetResult(null);
     } else {
       setWingetResult(prev => prev ? { ...prev, error: null } : null);
@@ -37,7 +38,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       const res = await fetch('/api/winget-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId: pkg, version: targetVersion }),
+        body: JSON.stringify({ packageId: pkg, version }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
@@ -206,7 +207,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           <button
             type="button"
             className="btn btn-secondary winget-btn"
-            onClick={handleWingetFetch}
+            onClick={() => handleWingetFetch()}
             disabled={wingetLoading || !wingetInput.trim()}
           >
             {wingetLoading ? '⏳ Fetching...' : 'Fetch Package'}

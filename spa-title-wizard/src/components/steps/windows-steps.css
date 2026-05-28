@@ -342,9 +342,9 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
   gap: var(--space-md);
 }
 .winget-version-dropdown {
-  padding: 6px 12px;
+  padding: 6px 36px 6px 12px;
   font-size: 0.82rem;
-  background: var(--bg-input, rgba(255,255,255,0.04));
+  background-color: var(--bg-input, rgba(255,255,255,0.04));
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
