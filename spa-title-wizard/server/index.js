@@ -11,9 +11,10 @@
 
 import 'dotenv/config';
 import express from 'express';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
 import { tmpdir } from 'os';
 import multer from 'multer';
 import CFB from 'cfb';
@@ -629,6 +630,81 @@ app.patch('/api/queue/:id', (req, res) => {
   } catch (err) {
     console.error('❌ Queue claim failed:', err.message);
     res.status(500).json({ message: err.message });
+  }
+});
+
+// ── VS Code Integration — local filesystem round-trip ───────────────────────
+
+/** 
+ * POST /api/open-vscode — Writes content to local file and opens in local VS Code
+ */
+app.post('/api/open-vscode', express.json(), (req, res) => {
+  try {
+    const { packageId, relativePath, content } = req.body || {};
+    if (!packageId || !relativePath) {
+      return res.status(400).json({ error: 'Missing packageId or relativePath' });
+    }
+
+    // Resolve absolute path under the SPA titles directory
+    const workspaceRoot = join(__dirname, '..', '..');
+    const absoluteDir = join(workspaceRoot, 'titles', packageId, dirname(relativePath));
+    const absolutePath = join(workspaceRoot, 'titles', packageId, relativePath);
+
+    // Write content locally if provided (or create a skeleton if it doesn't exist)
+    if (content) {
+      if (!existsSync(absoluteDir)) {
+        mkdirSync(absoluteDir, { recursive: true });
+      }
+      writeFileSync(absolutePath, content, 'utf8');
+      console.log(`💾 Saved local file: ${absolutePath}`);
+    } else if (!existsSync(absolutePath)) {
+      if (!existsSync(absoluteDir)) {
+        mkdirSync(absoluteDir, { recursive: true });
+      }
+      writeFileSync(absolutePath, '# Customized script template\n', 'utf8');
+    }
+
+    console.log(`💻 Opening in VS Code: ${absolutePath}`);
+
+    // Fallback deep link for browser
+    const vsCodeUrl = `vscode://file${absolutePath}`;
+
+    // Execute local 'code' command in background
+    exec(`code "${absolutePath}"`, (err) => {
+      if (err) {
+        console.warn('⚠️ code CLI command failed (might not be in PATH). Falling back to vscode:// URL protocol.', err.message);
+        return res.json({ success: true, method: 'protocol', url: vsCodeUrl });
+      }
+      res.json({ success: true, method: 'cli', url: vsCodeUrl });
+    });
+  } catch (err) {
+    console.error('❌ VS Code open failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/read-local-file — Reads content from local title file
+ */
+app.get('/api/read-local-file', (req, res) => {
+  try {
+    const { packageId, relativePath } = req.query || {};
+    if (!packageId || !relativePath) {
+      return res.status(400).json({ error: 'Missing packageId or relativePath' });
+    }
+
+    const workspaceRoot = join(__dirname, '..', '..');
+    const absolutePath = join(workspaceRoot, 'titles', packageId, relativePath);
+
+    if (!existsSync(absolutePath)) {
+      return res.status(404).json({ error: `Local file not found at ${absolutePath}` });
+    }
+
+    const content = readFileSync(absolutePath, 'utf8');
+    res.json({ content });
+  } catch (err) {
+    console.error('❌ Local file read failed:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

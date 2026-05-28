@@ -576,7 +576,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   useEffect(() => {
     const latestScript = generatePsadtScript(state);
     // If the user is actively typing in the textarea, do NOT overwrite it (prevents cursor jumps!)
-    const isTyping = document.activeElement && document.activeElement.classList.contains('textarea-editor');
+    const isTyping = activeTab === 'script' && document.activeElement && document.activeElement.classList.contains('textarea-editor');
     
     if (!state.isCustomized || !isTyping) {
       setLocalScript(latestScript);
@@ -585,7 +585,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         updateField('customScriptContent', latestScript);
       }
     }
-  }, [state, state.isCustomized, state.customScriptContent]);
+  }, [state, state.isCustomized, state.customScriptContent, activeTab]);
 
   // Smooth scroll the manual editing textarea to the active phase marker
   useEffect(() => {
@@ -669,6 +669,69 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
   };
 
+  const [vsCodeSyncing, setVsCodeSyncing] = useState(false);
+  const [vsCodeOpening, setVsCodeOpening] = useState(false);
+
+  const handleOpenInVsCode = async () => {
+    if (!state.packageId) {
+      alert('Please specify a Package ID in the Basic Info step first.');
+      return;
+    }
+    setVsCodeOpening(true);
+    try {
+      const scriptName = state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1';
+      const relPath = `windows/src/${scriptName}`;
+      
+      const res = await fetch('/api/open-vscode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          packageId: state.packageId,
+          relativePath: relPath,
+          content: localScript // save browser's current code to disk!
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.method === 'protocol' && data.url) {
+          // Fallback url scheme redirection
+          window.location.href = data.url;
+        }
+      } else {
+        alert(`Could not open in VS Code: ${data.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error('Failed to open VS Code:', e);
+      alert(`Error opening VS Code: ${e.message}`);
+    } finally {
+      setVsCodeOpening(false);
+    }
+  };
+
+  const handleSyncFromVsCode = async () => {
+    if (!state.packageId) return;
+    setVsCodeSyncing(true);
+    try {
+      const scriptName = state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1';
+      const relPath = `windows/src/${scriptName}`;
+      
+      const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
+      if (!res.ok) {
+        throw new Error(await res.text() || 'File not found locally');
+      }
+      const data = await res.json();
+      if (data.content) {
+        handleScriptChange(data.content);
+        alert('📥 Successfully synchronized edits from local VS Code file!');
+      }
+    } catch (e) {
+      console.error('Failed to sync from disk:', e);
+      alert(`Could not sync from VS Code file: ${e.message}\n\nMake sure you have clicked "Open in VS Code" at least once to save the file locally first.`);
+    } finally {
+      setVsCodeSyncing(false);
+    }
+  };
+
   const handleFormatScript = () => {
     const formatted = formatPowerShell(localScript);
     setLocalScript(formatted);
@@ -705,11 +768,19 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       <div className="psadt-tab-bar">
         <button
           type="button"
+          className={`psadt-tab-btn ${activeTab === 'behavior' ? 'psadt-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('behavior')}
+        >
+          <span className="psadt-tab-btn__icon">⚙️</span>
+          <span className="psadt-tab-btn__label">Deploy Behavior</span>
+        </button>
+        <button
+          type="button"
           className={`psadt-tab-btn ${activeTab === 'visual' ? 'psadt-tab-btn--active' : ''}`}
           onClick={() => setActiveTab('visual')}
         >
-          <span className="psadt-tab-btn__icon">📁</span>
-          <span className="psadt-tab-btn__label">Visual Action Wizard</span>
+          <span className="psadt-tab-btn__icon">🛠️</span>
+          <span className="psadt-tab-btn__label">Visual Action Builder</span>
         </button>
         <button
           type="button"
@@ -727,38 +798,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       </div>
 
       <div className="psadt-workspace-tabs">
-        {activeTab === 'visual' ? (
-          <div className="psadt-workspace-tab-content visual-tab animate-in">
-            {/* Conversion stats banner (refactor-convert mode only) */}
-            {conversionStats && (
-              <div className="config-section">
-                <div className="refactor-banner refactor-banner--v4">
-                  <span className="refactor-banner__badge">CONVERTED</span>
-                  <div className="refactor-banner__text">
-                    <strong>Extracted {conversionStats.totalActions} action{conversionStats.totalActions !== 1 ? 's' : ''}</strong> across {conversionStats.populatedPhases} phase{conversionStats.populatedPhases !== 1 ? 's' : ''}.
-                    {(conversionStats.customScriptCount > 0 || conversionStats.rawPsCount > 0) && (
-                      <>
-                        {conversionStats.rawPsCount > 0 && (
-                          <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>🔷 {conversionStats.rawPsCount} raw block{conversionStats.rawPsCount !== 1 ? 's' : ''}</span> preserved as-is — look for the "Needs Review" badge.</>
-                        )}
-                        {conversionStats.customScriptCount > 0 && (
-                          <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>⚠️ {conversionStats.customScriptCount} unmatched line{conversionStats.customScriptCount !== 1 ? 's' : ''}</span> could not be auto-mapped.</>
-                        )}
-                      </>
-                    )}
-                    {conversionStats.customScriptCount === 0 && conversionStats.rawPsCount === 0 && (
-                      <> All actions mapped to known types — ready to configure.</>  
-                    )}
-                  </div>
-                </div>
-
-                {/* Diff Preview */}
-                {state._scriptContent && (
-                  <DiffPreview originalScript={state._scriptContent} state={state} fileName={state.psadtFileName} />
-                )}
-              </div>
-            )}
-
+        {activeTab === 'behavior' && (
+          <div className="psadt-workspace-tab-content behavior-tab animate-in">
             {/* Deploy Mode & Behavior */}
             <div className="config-section">
               <h3 className="section-title">PSADT Deploy Mode & Behavior</h3>
@@ -789,6 +830,40 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'visual' && (
+          <div className="psadt-workspace-tab-content visual-tab animate-in">
+            {/* Conversion stats banner (refactor-convert mode only) */}
+            {conversionStats && (
+              <div className="config-section">
+                <div className="refactor-banner refactor-banner--v4">
+                  <span className="refactor-banner__badge">CONVERTED</span>
+                  <div className="refactor-banner__text">
+                    <strong>Extracted {conversionStats.totalActions} action{conversionStats.totalActions !== 1 ? 's' : ''}</strong> across {conversionStats.populatedPhases} phase{conversionStats.populatedPhases !== 1 ? 's' : ''}.
+                    {(conversionStats.customScriptCount > 0 || conversionStats.rawPsCount > 0) && (
+                      <>
+                        {conversionStats.rawPsCount > 0 && (
+                          <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>🔷 {conversionStats.rawPsCount} raw block{conversionStats.rawPsCount !== 1 ? 's' : ''}</span> preserved as-is — look for the "Needs Review" badge.</>
+                        )}
+                        {conversionStats.customScriptCount > 0 && (
+                          <> <span style={{ color: 'var(--color-warning, #f59e0b)' }}>⚠️ {conversionStats.customScriptCount} unmatched line{conversionStats.customScriptCount !== 1 ? 's' : ''}</span> could not be auto-mapped.</>
+                        )}
+                      </>
+                    )}
+                    {conversionStats.customScriptCount === 0 && conversionStats.rawPsCount === 0 && (
+                      <> All actions mapped to known types — ready to configure.</>  
+                    )}
+                  </div>
+                </div>
+
+                {/* Diff Preview */}
+                {state._scriptContent && (
+                  <DiffPreview originalScript={state._scriptContent} state={state} fileName={state.psadtFileName} />
+                )}
+              </div>
+            )}
 
             {/* Phase Panels */}
             <div className="config-section">
@@ -858,7 +933,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'script' && (
           <div className="psadt-workspace-tab-content script-tab animate-in">
             <div className="script-editor">
               <div className="script-editor__header">
@@ -874,15 +951,37 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 </div>
                 <div className="script-editor__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {state.isCustomized && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={handleFormatScript}
-                      title="Auto-indent and clean up PowerShell code formatting"
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      🧹 Format
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleOpenInVsCode}
+                        disabled={vsCodeOpening}
+                        title="Open this file in local VS Code"
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleSyncFromVsCode}
+                        disabled={vsCodeSyncing}
+                        title="Sync edits from the local file on disk"
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        {vsCodeSyncing ? '⏳ Syncing...' : '📥 Sync from VS Code'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleFormatScript}
+                        title="Auto-indent and clean up PowerShell code formatting"
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        🧹 Format
+                      </button>
+                    </>
                   )}
                   <button 
                     type="button"

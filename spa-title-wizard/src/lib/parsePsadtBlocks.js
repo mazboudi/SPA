@@ -130,22 +130,30 @@ export default function parsePsadtBlocks(content) {
     // Detect function boundaries to switch phases
     if (/function\s+Install-ADTDeployment/.test(line)) {
       currentPhase = 'preInstall';
-      bracesCount = 0;
+      bracesCount = line.includes('{') ? 1 : 0;
       continue;
     }
     if (/function\s+Uninstall-ADTDeployment/.test(line)) {
       currentPhase = 'preUninstall';
-      bracesCount = 0;
+      bracesCount = line.includes('{') ? 1 : 0;
       continue;
     }
     if (/function\s+Repair-ADTDeployment/.test(line)) {
       currentPhase = 'preRepair';
-      bracesCount = 0;
+      bracesCount = line.includes('{') ? 1 : 0;
       result.lifecycle.repairMode = 'custom'; // If Repair-ADTDeployment function is defined, it is a custom repair
       continue;
     }
 
     if (currentPhase) {
+      const trimmed = line.trim();
+
+      // Skip the function's opening brace line if it's on a line by itself and we haven't entered the body
+      if (trimmed === '{' && bracesCount === 0) {
+        bracesCount = 1;
+        continue;
+      }
+
       if (line.includes('{')) bracesCount++;
       if (line.includes('}')) bracesCount--;
 
@@ -160,7 +168,7 @@ export default function parsePsadtBlocks(content) {
         continue;
       }
 
-      if (bracesCount < 0) {
+      if (bracesCount <= 0) {
         currentPhase = null; // exited function block
         continue;
       }
@@ -200,7 +208,8 @@ export default function parsePsadtBlocks(content) {
             type: 'raw_ps',
             enabled: true,
             script: cleanRaw,
-            note: 'Legacy or custom script block'
+            note: 'Legacy or custom script block',
+            isManuallyEdited: true
           });
         }
         currentRawBuffer = [];
