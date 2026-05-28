@@ -469,7 +469,7 @@ export default function useWizardState() {
    * @param {Object} wizardFields - from toWizardState()
    * @param {boolean} convertToLifecycle - true if user chose "Convert to Lifecycle"
    */
-  const importPsadtState = useCallback((parsedResult, wizardFields, convertToLifecycle = false) => {
+  const importPsadtState = useCallback((parsedResult, wizardFields, convertToLifecycle = true) => {
     setState(prev => {
       const next = { ...prev };
 
@@ -485,7 +485,7 @@ export default function useWizardState() {
       }
 
       next.wizardMode = 'refactor';
-      next.refactorConvert = convertToLifecycle;
+      next.refactorConvert = true;
       next.psadtVersion = parsedResult.psadtVersion || '';
       next.psadtScriptVersion = parsedResult.psadtScriptVersion || '';
       next.psadtFileName = parsedResult.fileName || '';

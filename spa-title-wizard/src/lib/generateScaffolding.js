@@ -13,6 +13,10 @@ export default function generateScaffolding(s, forPublish = false) {
   const winEnabled = isWin ? 'true' : 'false';
   const macEnabled = isMac ? 'true' : 'false';
 
+  const isV3Passthrough = s.wizardMode === 'refactor' && !s.refactorConvert && (s.psadtVersion === 'v3' || s._psadtResult?.psadtVersion === 'v3');
+  const v3Version = s._psadtResult?.psadtScriptVersion || '3.9.3';
+  const winFrameworkVersion = isV3Passthrough ? v3Version : '4.1.0';
+
   // ── app.json ────────────────────────────────────────────────────────────
   files['app.json'] = JSON.stringify({
     title: s.displayName,
@@ -22,7 +26,7 @@ export default function generateScaffolding(s, forPublish = false) {
     owners: { team: 'euc-packaging', contact_email: 'euc-packaging@fiserv.com' },
     lifecycle: 'active',
     platforms: {
-      windows: { enabled: isWin, framework: 'psadt-enterprise', framework_version: '4.1.0' },
+      windows: { enabled: isWin, framework: 'psadt-enterprise', framework_version: winFrameworkVersion },
       macos: { enabled: isMac, framework: 'macos-packaging-framework', framework_version: '1.0.0' },
     },
     deployment: { windows: 'intune', macos: 'jamf' },
@@ -46,7 +50,7 @@ export default function generateScaffolding(s, forPublish = false) {
   const vars = [];
   if (isWin) {
     vars.push('  WINDOWS_ENABLED: "true"');
-    vars.push('  PSADT_FRAMEWORK_VERSION: "4.1.0"');
+    vars.push(`  PSADT_FRAMEWORK_VERSION: "${winFrameworkVersion}"`);
     // Build the full installer path from dir + filename
     if (s.installerSourceDir && s.installerSourceFile) {
       const dir = s.installerSourceDir.replace(/[\\/]+$/, '');  // strip trailing slash
@@ -167,13 +171,12 @@ detection:
       psadtFlags.push('-AllowRebootPassThru');
     }
     const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    const installCmd = `Invoke-AppDeployToolkit.exe${installSuffix}`;
-    const uninstallCmd = `Invoke-AppDeployToolkit.exe -DeploymentType Uninstall${installSuffix}`;
-    // Add v3_conversion flag when refactoring a v3 script in PASSTHROUGH mode only.
-    // In convert mode, v3 actions are already extracted into lifecycle.yaml → no pipeline conversion needed.
-    const v3Flag = (s.wizardMode === 'refactor' && !s.refactorConvert && s._psadtResult?.psadtVersion === 'v3')
-      ? '\n# Pipeline will auto-convert v3 → v4 using Convert-ADTDeployment\nv3_conversion: true\n'
-      : '';
+    const bootstrapperExe = isV3Passthrough ? 'Deploy-Application.exe' : 'Invoke-AppDeployToolkit.exe';
+    const installCmd = `${bootstrapperExe}${installSuffix}`;
+    const uninstallCmd = `${bootstrapperExe} -DeploymentType Uninstall${installSuffix}`;
+    // Add v3_conversion flag only if we are in passthrough mode AND NOT using the legacy template natively.
+    // Since we now use the native template if isV3Passthrough is true, we don't need or want the auto-conversion flag.
+    const v3Flag = '';
 
     files['windows/package.yaml'] = `# ${s.displayName} ${s.version} — Windows package definition
 package_id: ${s.packageId}

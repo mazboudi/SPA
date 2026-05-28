@@ -347,164 +347,21 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         ...lc.phases,
         variableDeclaration: { actions: stdVarActions },
       },
-    });
   }, []); // run once on mount
 
-  // Compute compatibility report for v3 scripts (passthrough mode only)
+  // Compute compatibility report for converted v3 scripts
   const compatReport = useMemo(() => {
-    if (isRefactor && !state.refactorConvert && psadtResult?.scriptContent && psadtResult?.psadtVersion === 'v3') {
-      return checkV3Compatibility(psadtResult.scriptContent);
+    const origScript = state._scriptContent || psadtResult?.scriptContent;
+    const isV3 = state.psadtVersion === 'v3' || psadtResult?.psadtVersion === 'v3';
+    if (isRefactor && origScript && isV3) {
+      return checkV3Compatibility(origScript);
     }
     return null;
-  }, [isRefactor, state.refactorConvert, psadtResult]);
+  }, [isRefactor, state._scriptContent, psadtResult, state.psadtVersion]);
 
-  // ── Refactor Mode: PASSTHROUGH — read-only view (no lifecycle conversion) ─
-  if (isRefactor && !state.refactorConvert && psadtResult) {
-    const version = psadtResult.psadtVersion || 'v3';
-    const isV3 = version === 'v3';
-    const vars = lc.phases?.variableDeclaration?.actions || [];
 
-    return (
-      <div className="step-content animate-in">
-        <div className="step-header">
-          <h2>⚡ PSADT Script — Passthrough Mode</h2>
-          <p>The uploaded script will be passed directly to the pipeline. Variables below are used for Intune metadata.</p>
-        </div>
 
-        {/* Version + conversion banner */}
-        <div className="config-section">
-          <div className={`refactor-banner ${isV3 ? 'refactor-banner--v3' : 'refactor-banner--v4'}`}>
-            <span className="refactor-banner__badge">{version.toUpperCase()}</span>
-            <div className="refactor-banner__text">
-              {isV3 ? (
-                <>
-                  <strong>v3 script detected.</strong> The pipeline will run{' '}
-                  <code>Convert-ADTDeployment</code> to migrate to v4 before building.
-                </>
-              ) : (
-                <>
-                  <strong>v4 script detected.</strong> Ready for direct pipeline deployment — no conversion needed.
-                </>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* v3 Compatibility Report */}
-        {compatReport && (
-          <div className="config-section">
-            <h3 className="section-title">🔍 v3 → v4 Compatibility Report
-              <span className="section-optional">{compatReport.summary.total} finding{compatReport.summary.total !== 1 ? 's' : ''}</span>
-            </h3>
-
-            {/* Top-level verdict */}
-            {compatReport.summary.manualReview === 0 ? (
-              <div className="compat-verdict compat-verdict--ok">
-                <span className="compat-verdict__icon">✅</span>
-                <div>
-                  <strong>Ready to commit.</strong> All {compatReport.summary.autoResolved} findings will be auto-resolved by{' '}
-                  <code>Convert-ADTDeployment</code> in the pipeline. No manual changes needed.
-                </div>
-              </div>
-            ) : (
-              <div className="compat-verdict compat-verdict--action">
-                <span className="compat-verdict__icon">⚠️</span>
-                <div>
-                  <strong>{compatReport.summary.manualReview} item{compatReport.summary.manualReview !== 1 ? 's' : ''} need your review</strong> before committing.
-                  These use native PowerShell or patterns that <code>Convert-ADTDeployment</code> may not handle.
-                </div>
-              </div>
-            )}
-
-            {/* Section 1: Needs Manual Review */}
-            {compatReport.manualFindings.length > 0 && (
-              <div className="compat-section compat-section--manual">
-                <h4 className="compat-section__title">🛑 Needs Your Review</h4>
-                <table className="compat-table">
-                  <thead><tr><th>Line</th><th>Section</th><th>Code</th><th>What to Check</th></tr></thead>
-                  <tbody>
-                    {compatReport.manualFindings.map((f, i) => (
-                      <tr key={i} className="compat-row compat-row--caution">
-                        <td className="compat-line">{f.line}</td>
-                        <td className="compat-section-cell">{f.section}</td>
-                        <td><code className="compat-code-snippet">{f.v3}</code></td>
-                        <td className="compat-reason">{f.v4}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Section 2: Auto-resolved (collapsed) */}
-            {compatReport.autoFindings.length > 0 && (
-              <details className="compat-section compat-section--auto">
-                <summary className="compat-section__title compat-section__title--toggle">
-                  ✅ Auto-resolved by pipeline ({compatReport.autoFindings.length} items)
-                </summary>
-                <table className="compat-table">
-                  <thead><tr><th>Line</th><th>Section</th><th>Type</th><th>v3</th><th>v4 Replacement</th></tr></thead>
-                  <tbody>
-                    {compatReport.autoFindings.map((f, i) => (
-                      <tr key={i} className="compat-row compat-row--auto">
-                        <td className="compat-line">{f.line}</td>
-                        <td className="compat-section-cell">{f.section}</td>
-                        <td className="compat-type">
-                          {f.type === 'renamed' && '⚠ Renamed'}
-                          {f.type === 'deprecated_var' && 'ℹ Deprecated'}
-                          {f.type === 'param_change' && '🔧 Param'}
-                        </td>
-                        <td><code>{f.v3}</code>{f.count > 1 ? ` (×${f.count})` : ''}</td>
-                        <td><code>{f.v4}</code></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
-            )}
-          </div>
-        )}
-
-        {/* Extracted Variables */}
-        <div className="config-section">
-          <h3 className="section-title">📝 Extracted Variables <span className="section-optional">{vars.length} found</span></h3>
-          {vars.length > 0 ? (
-            <table className="refactor-var-table">
-              <thead><tr><th>Variable</th><th>Value</th></tr></thead>
-              <tbody>
-                {vars.map((v, i) => (
-                  <tr key={i}>
-                    <td><code>{v.name}</code></td>
-                    <td>
-                      <input type="text" value={v.value || ''} className="refactor-var-input"
-                        onChange={e => updateAction('variableDeclaration', i, { value: e.target.value })} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="phase-empty">No variable declarations found in the script.</p>
-          )}
-        </div>
-
-        {/* Script preview (collapsible) */}
-        <div className="config-section">
-          <h3 className="section-title">
-            <button className="link-btn" onClick={() => setShowScript(!showScript)}>
-              {showScript ? '▾ Hide' : '▸ Show'} Script Preview
-            </button>
-            <span className="section-optional">{psadtResult.fileName}</span>
-          </h3>
-          {showScript && (
-            <div className="script-preview">
-              <pre>{psadtResult.scriptContent?.substring(0, 8000)}{psadtResult.scriptContent?.length > 8000 ? '\n\n... (truncated)' : ''}</pre>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   // ── Refactor Mode: CONVERT — compute conversion stats + per-phase warnings ──
   const conversionStats = (isRefactor && state.refactorConvert) ? (() => {
@@ -801,6 +658,16 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
           <span className="psadt-tab-btn__icon">📜</span>
           <span className="psadt-tab-btn__label">Live Script Developer</span>
         </button>
+        {(state._scriptContent || psadtResult?.scriptContent) && (
+          <button
+            type="button"
+            className={`psadt-tab-btn ${activeTab === 'compare' ? 'psadt-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab('compare')}
+          >
+            <span className="psadt-tab-btn__icon">🔍</span>
+            <span className="psadt-tab-btn__label">Script Comparison</span>
+          </button>
+        )}
       </div>
 
       <div className="psadt-workspace-tabs">
@@ -1047,6 +914,89 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        {activeTab === 'compare' && (
+          <div className="psadt-workspace-tab-content compare-tab animate-in">
+            <div className="config-section" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+              <h3 className="section-title">🔍 Original vs. Converted Script Comparison</h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+                Compare the original legacy PowerShell script with the newly compiled and structured script. Use this side-by-side view to verify successful conversion of all custom actions.
+              </p>
+              {compatReport && (
+                <div className="compat-report-card" style={{ marginBottom: 'var(--space-md)', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>{compatReport.summary.manualReview > 0 ? '⚠️' : '✅'}</span>
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        {compatReport.summary.manualReview > 0 
+                          ? `Modernization Report: ${compatReport.summary.manualReview} items require verification`
+                          : 'Modernization Report: All actions successfully converted to standard v4 structure!'}
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {compatReport.summary.autoResolved} parameters/variables auto-migrated
+                    </span>
+                  </div>
+                  
+                  {compatReport.manualFindings.length > 0 && (
+                    <details style={{ marginTop: '8px' }}>
+                      <summary style={{ fontSize: '0.75rem', color: 'var(--text-accent)', cursor: 'pointer', outline: 'none', userSelect: 'none' }}>
+                        ▸ View {compatReport.manualFindings.length} legacy patterns to verify on visual cards
+                      </summary>
+                      <div style={{ marginTop: '8px', maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-sm)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                              <th style={{ padding: '6px 10px', width: '50px' }}>Line</th>
+                              <th style={{ padding: '6px 10px', width: '120px' }}>Section</th>
+                              <th style={{ padding: '6px 10px' }}>Original Code</th>
+                              <th style={{ padding: '6px 10px' }}>Verify Action / Guidance</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {compatReport.manualFindings.map((f, i) => (
+                              <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: i % 2 === 0 ? 'transparent' : 'rgba(255, 255, 255, 0.01)' }}>
+                                <td style={{ padding: '6px 10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono, monospace)' }}>{f.line}</td>
+                                <td style={{ padding: '6px 10px', color: 'var(--text-muted)' }}>{f.section}</td>
+                                <td style={{ padding: '6px 10px' }}><code style={{ fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '3px', color: '#fb7185' }}>{f.v3}</code></td>
+                                <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{f.v4}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
+              <div className="diff-preview__panels" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', minHeight: '550px' }}>
+                <div className="diff-preview__pane" style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-elevated)' }}>
+                  <div className="diff-preview__pane-header" style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="diff-preview__pane-icon" style={{ fontSize: '0.9rem' }}>📄</span>
+                      <span className="diff-preview__pane-label" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Original Legacy Script</span>
+                    </div>
+                    <span className="diff-preview__pane-hint" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{state.psadtFileName || 'Uploaded .ps1'}</span>
+                  </div>
+                  <pre className="diff-preview__code" style={{ padding: 'var(--space-md)', margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: '0.72rem', lineHeight: 1.6, color: 'var(--text-secondary)', background: 'rgba(8, 10, 20, 0.9)', overflow: 'auto', height: '500px', boxSizing: 'border-box', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {state._scriptContent || psadtResult?.scriptContent}
+                  </pre>
+                </div>
+                <div className="diff-preview__pane" style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-elevated)' }}>
+                  <div className="diff-preview__pane-header" style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="diff-preview__pane-icon" style={{ fontSize: '0.9rem' }}>📋</span>
+                      <span className="diff-preview__pane-label" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Converted Structured Script</span>
+                    </div>
+                    <span className="diff-preview__pane-hint" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Invoke-AppDeployToolkit.ps1</span>
+                  </div>
+                  <pre className="diff-preview__code" style={{ padding: 'var(--space-md)', margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: '0.72rem', lineHeight: 1.6, color: 'var(--text-secondary)', background: 'rgba(8, 10, 20, 0.9)', overflow: 'auto', height: '500px', boxSizing: 'border-box', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {localScript}
+                  </pre>
+                </div>
+              </div>
             </div>
           </div>
         )}

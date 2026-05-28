@@ -412,7 +412,31 @@ function extractV3Phase(text, phaseName) {
     endPos = Math.min(afterPhase.length, 2000); // safety limit
   }
 
-  return afterPhase.substring(0, endPos);
+  let block = afterPhase.substring(0, endPos);
+
+  // Clean trailing template boilerplate from the bottom of the block
+  const lines = block.split(/\r?\n/);
+  let lastIdx = lines.length - 1;
+  while (lastIdx >= 0) {
+    const line = lines[lastIdx];
+    const t = line.trim();
+    if (!t) {
+      lastIdx--;
+      continue;
+    }
+    // Match closing braces or deployment type control structures
+    if (t === '}' || /^\}\s*(#.*)?$/.test(t)) {
+      lastIdx--;
+      continue;
+    }
+    if (/^(?:if|elseif|else)\b/i.test(t) && /deploymentType/i.test(t)) {
+      lastIdx--;
+      continue;
+    }
+    break;
+  }
+
+  return lines.slice(0, lastIdx + 1).join('\n');
 }
 
 /** Extract a v4 function body: function FuncName { ... } */

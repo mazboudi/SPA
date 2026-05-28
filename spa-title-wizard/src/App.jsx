@@ -25,13 +25,8 @@ export default function App() {
   const refactorInputRef = useRef(null);
 
 
-  // Pending state for the conversion choice panel
-  const [pendingPsadtFile, setPendingPsadtFile] = useState(null);
-  const [pendingParsed, setPendingParsed] = useState(null);
-  const [showConversionChoice, setShowConversionChoice] = useState(false);
-  const [convertParsing, setConvertParsing] = useState(false);
+  // ServiceNow queue
   const [showIntunePicker, setShowIntunePicker] = useState(false);
-  const [titleMismatchWarning, setTitleMismatchWarning] = useState(null);
 
   // Intune catalog — loaded from Graph API
   const [intuneCatalog, setIntuneCatalog] = useState(null);
@@ -45,7 +40,7 @@ export default function App() {
   // Project picker (edit existing)
   const [showProjectPicker, setShowProjectPicker] = useState(false);
 
-  // ── PSADT file upload — parse metadata, then show conversion choice ────
+  // ── PSADT file upload — parse metadata and immediately convert to lifecycle ────
   const handlePsadtUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     // Reset the file input so re-selecting the same file triggers onChange
@@ -59,62 +54,28 @@ export default function App() {
         || files.find(f => f.name.endsWith('.ps1'));
       if (!psFile) throw new Error('No .ps1 script found. Please upload a Deploy-Application.ps1 or Invoke-AppDeployToolkit.ps1 file.');
 
-      // Quick parse for metadata + variables only
-      const parsed = await parsePsadtFile(psFile, 'refactor');
-      setPendingPsadtFile(psFile);
-      setPendingParsed(parsed);
+      // Perform full conversion parsing immediately
+      const fullParsed = await parsePsadtFile(psFile, 'refactor-convert');
+      const wizardFields = toWizardState(fullParsed);
+      setPsadtResult(fullParsed);
 
-      // ── Title mismatch check ─────────────────────────────────────────
+      // Title mismatch check (warn user but proceed to import directly)
       const intuneDisplayName = wizard.state.displayName;
-      const psadtDisplayName = parsed.fields?.displayName || '';
+      const psadtDisplayName = fullParsed.fields?.displayName || '';
       if (intuneDisplayName && psadtDisplayName) {
         const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
         if (normalize(intuneDisplayName) !== normalize(psadtDisplayName)) {
-          setTitleMismatchWarning({
-            intuneName: intuneDisplayName,
-            psadtName: psadtDisplayName,
-          });
-        } else {
-          setTitleMismatchWarning(null);
+          alert(`⚠️ Title mismatch warning:\n\nIntune export app name: "${intuneDisplayName}"\nPSADT script app name: "${psadtDisplayName}"\n\nPlease verify that these files belong to the same application.`);
         }
-      } else {
-        setTitleMismatchWarning(null);
       }
 
-      setShowConversionChoice(true);
-      setShowRefactorFlow(false);
-    } catch (err) {
-      // Keep refactor flow visible so the error message is shown
-      setPsadtError(err.message);
-    } finally {
-      setPsadtParsing(false);
-    }
-  };
-
-  // ── User chose Passthrough ─────────────────────────────────────────────
-  const handlePassthrough = () => {
-    const wizardFields = toWizardState(pendingParsed);
-    setPsadtResult(pendingParsed);
-    wizard.importPsadtState(pendingParsed, wizardFields, false);
-    setShowConversionChoice(false);
-    setShowModeSelector(false);
-  };
-
-  // ── User chose Convert to Lifecycle ────────────────────────────────────
-  const handleConvertToLifecycle = async () => {
-    setConvertParsing(true);
-    setPsadtError(null);
-    try {
-      const fullParsed = await parsePsadtFile(pendingPsadtFile, 'refactor-convert');
-      const wizardFields = toWizardState(fullParsed);
-      setPsadtResult(fullParsed);
       wizard.importPsadtState(fullParsed, wizardFields, true);
-      setShowConversionChoice(false);
+      setShowRefactorFlow(false);
       setShowModeSelector(false);
     } catch (err) {
       setPsadtError(err.message);
     } finally {
-      setConvertParsing(false);
+      setPsadtParsing(false);
     }
   };
 
@@ -145,12 +106,8 @@ export default function App() {
     wizard.reset();
     setShowModeSelector(true);
     setShowRefactorFlow(false);
-    setShowConversionChoice(false);
     setPsadtResult(null);
     setPsadtError(null);
-    setPendingPsadtFile(null);
-    setPendingParsed(null);
-    setTitleMismatchWarning(null);
     // Keep intuneCatalog cached — don't clear it on restart
   };
 
@@ -196,78 +153,6 @@ export default function App() {
       default:
         return null;
     }
-  };
-
-  // ── Conversion choice panel ─────────────────────────────────────────────
-  const renderConversionChoice = () => {
-    const ver = pendingParsed?.psadtVersion || 'v3';
-    const name = pendingParsed?.fields?.displayName || pendingParsed?.fileName || 'Script';
-
-    return (
-      <main className="app-main glass-panel">
-        <div className="mode-selector">
-          <h2 className="mode-selector__title">Script Parsed Successfully</h2>
-          <p className="mode-selector__subtitle">
-            <strong>{name}</strong> — detected as <code>{ver.toUpperCase()}</code>.
-            How would you like to proceed?
-          </p>
-
-          {/* Title mismatch warning */}
-          {titleMismatchWarning && (
-            <div className="title-mismatch-warning">
-              <span className="title-mismatch-warning__icon">⚠️</span>
-              <div>
-                <strong>Title mismatch detected</strong>
-                <p className="title-mismatch-warning__detail">
-                  Intune export: <strong>{titleMismatchWarning.intuneName}</strong><br />
-                  PSADT script: <strong>{titleMismatchWarning.psadtName}</strong>
-                </p>
-                <p className="title-mismatch-warning__hint">
-                  Verify these files belong to the same application, or choose a different script.
-                </p>
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: '6px' }} onClick={() => {
-                  setShowConversionChoice(false);
-                  setShowRefactorFlow(true);
-                  setPendingPsadtFile(null);
-                  setPendingParsed(null);
-                  setTitleMismatchWarning(null);
-                }}>📄 Choose different .ps1</button>
-              </div>
-            </div>
-          )}
-
-          <div className="mode-selector__cards">
-            <button className="mode-card" onClick={handlePassthrough} id="choice-passthrough">
-              <span className="mode-card__icon">📋</span>
-              <h3 className="mode-card__title">Passthrough</h3>
-              <p className="mode-card__desc">
-                Commit the script as-is. Metadata is extracted for Intune configuration, but lifecycle actions remain in the .ps1 file.
-              </p>
-              <span className="mode-card__upload-hint">Best for scripts you don't plan to edit through the workbench</span>
-            </button>
-
-            <button
-              className="mode-card mode-card--refactor"
-              onClick={handleConvertToLifecycle}
-              disabled={convertParsing}
-              id="choice-convert"
-            >
-              <span className="mode-card__icon">🔄</span>
-              <h3 className="mode-card__title">Extract Actions</h3>
-              <p className="mode-card__desc">
-                Extract all actions into the interactive visual workbench. Edit, reorder, and manage actions with forms and cards.
-              </p>
-              <span className="mode-card__upload-hint">Original script is archived as a .bak reference file</span>
-              {convertParsing && <span className="mode-card__status">⏳ Extracting actions...</span>}
-            </button>
-          </div>
-          {psadtError && <p className="mode-card__status mode-card__status--err" style={{ marginBottom: 'var(--space-md)' }}>❌ {psadtError}</p>}
-          <p className="mode-selector__hint">
-            <button className="link-btn" onClick={handleStartOver}>← Choose a different file</button>
-          </p>
-        </div>
-      </main>
-    );
   };
 
   // ── Refactor flow panel ─────────────────────────────────────────────────
@@ -430,17 +315,13 @@ export default function App() {
             <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
           </div>
         </div>
-        {!showModeSelector && !showConversionChoice && !showRefactorFlow && (
-          <button className="btn btn-ghost" onClick={handleStartOver}>
-            ↻ Start Over
-          </button>
-        )}
-      </header>
-
-      {/* Flow: Mode Selector → Refactor Flow / Conversion Choice → Wizard */}
-      {showConversionChoice ? (
-        renderConversionChoice()
-      ) : showRefactorFlow ? (
+      {/* Flow: Mode Selector → Refactor Flow → Wizard */}
+      {!showModeSelector && !showRefactorFlow && (
+        <button className="btn btn-ghost" onClick={handleStartOver} style={{ position: 'absolute', top: '24px', right: '24px' }}>
+          ↻ Start Over
+        </button>
+      )}
+      {showRefactorFlow ? (
         renderRefactorFlow()
       ) : showModeSelector ? (
         <main className="app-main glass-panel">
