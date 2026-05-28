@@ -322,3 +322,44 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
   color: #ef4444;
 }
 
+/* ── WinGet Version Selector ── */
+.winget-version-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+}
+.winget-version-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.winget-version-select-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.winget-version-dropdown {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  background: var(--bg-input, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  min-width: 150px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.winget-version-dropdown:focus {
+  border-color: var(--text-accent, #7c8aff);
+}
+.winget-ver-spinner {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+

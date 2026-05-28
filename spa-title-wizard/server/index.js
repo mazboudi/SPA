@@ -863,7 +863,7 @@ function parseWingetYaml(yamlText) {
 /** POST /api/winget-info — resolve package metadata from public microsoft/winget-pkgs repository */
 app.post('/api/winget-info', express.json(), async (req, res) => {
   try {
-    const { packageId } = req.body || {};
+    const { packageId, version } = req.body || {};
     if (!packageId) return res.status(400).json({ error: 'packageId is required' });
 
     const parts = packageId.trim().split('.');
@@ -889,39 +889,45 @@ app.post('/api/winget-info', express.json(), async (req, res) => {
       return res.status(404).json({ error: `No versions found for package: ${packageId}` });
     }
 
-    // Sort versions to grab the latest one
-    versionDirs.sort((a, b) => {
+    // Sort versions descending (newest first)
+    const sortedVersions = [...versionDirs].sort((a, b) => {
       const parse = (v) => v.split('.').map(x => parseInt(x) || 0);
       const pa = parse(a);
       const pb = parse(b);
       for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
         const na = pa[i] || 0;
         const nb = pb[i] || 0;
-        if (na !== nb) return na - nb;
+        if (na !== nb) return nb - na;
       }
-      return a.localeCompare(b);
+      return b.localeCompare(a);
     });
-    const latestVersion = versionDirs[versionDirs.length - 1];
+
+    // Determine target version: either the requested version, or the latest (first in descending sorted list)
+    let targetVersion = version;
+    if (!targetVersion || !versionDirs.includes(targetVersion)) {
+      targetVersion = sortedVersions[0];
+    }
 
     // Fetch the installer manifest file
-    const installerManifestUrl = `https://raw.githubusercontent.com/microsoft/winget-pkgs/master/manifests/${letter}/${publisher}/${appName}/${latestVersion}/${publisher}.${appName}.installer.yaml`;
+    const installerManifestUrl = `https://raw.githubusercontent.com/microsoft/winget-pkgs/master/manifests/${letter}/${publisher}/${appName}/${targetVersion}/${publisher}.${appName}.installer.yaml`;
     let manifestRes = await fetch(installerManifestUrl, { headers: { 'User-Agent': 'SPA-Workbench' } });
     if (!manifestRes.ok) {
       // Fallback to unified single-file manifest
-      const singleManifestUrl = `https://raw.githubusercontent.com/microsoft/winget-pkgs/master/manifests/${letter}/${publisher}/${appName}/${latestVersion}/${publisher}.${appName}.yaml`;
+      const singleManifestUrl = `https://raw.githubusercontent.com/microsoft/winget-pkgs/master/manifests/${letter}/${publisher}/${appName}/${targetVersion}/${publisher}.${appName}.yaml`;
       manifestRes = await fetch(singleManifestUrl, { headers: { 'User-Agent': 'SPA-Workbench' } });
     }
 
     if (!manifestRes.ok) {
-      return res.status(404).json({ error: `Manifest file not found for version ${latestVersion}` });
+      return res.status(404).json({ error: `Manifest file not found for version ${targetVersion}` });
     }
 
     const yamlText = await manifestRes.text();
     const parsedData = parseWingetYaml(yamlText);
 
-    // Make sure we have the latest version in the parsed data if not set
-    if (!parsedData.packageVersion) parsedData.packageVersion = latestVersion;
+    // Make sure we have the correct version in the parsed data if not set
+    if (!parsedData.packageVersion) parsedData.packageVersion = targetVersion;
     if (!parsedData.packageIdentifier) parsedData.packageIdentifier = packageId;
+    parsedData.versions = sortedVersions;
 
     res.json(parsedData);
   } catch (err) {

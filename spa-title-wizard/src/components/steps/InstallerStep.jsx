@@ -19,23 +19,35 @@ export default function InstallerStep({ state, updateField, updateFields }) {
   const [downloadStatus, setDownloadStatus] = useState(null);
 
   /** Fetch installer details from WinGet repository */
-  const handleWingetFetch = async () => {
+  const handleWingetFetch = async (targetVersion = null) => {
     const pkg = wingetInput.trim();
     if (!pkg) return;
     setWingetLoading(true);
-    setWingetResult(null);
     setDownloadStatus(null);
+    
+    // If fetching a specific version, keep the current wingetResult (especially the versions list)
+    // so the dropdown doesn't flicker/disappear, but clear any errors.
+    if (!targetVersion) {
+      setWingetResult(null);
+    } else {
+      setWingetResult(prev => prev ? { ...prev, error: null } : null);
+    }
+
     try {
       const res = await fetch('/api/winget-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId: pkg }),
+        body: JSON.stringify({ packageId: pkg, version: targetVersion }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setWingetResult(data);
     } catch (err) {
-      setWingetResult({ error: err.message });
+      // If we failed to load a specific version, preserve the versions list from previous result if possible
+      setWingetResult(prev => ({
+        ...(prev?.versions ? { versions: prev.versions, packageIdentifier: pkg } : {}),
+        error: err.message
+      }));
     } finally {
       setWingetLoading(false);
     }
@@ -203,15 +215,41 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         
         {wingetResult && (
           <div className="winget-result-box animate-in">
-            {wingetResult.error ? (
-              <span className="winget-status winget-status--err">❌ {wingetResult.error}</span>
-            ) : (
+            {wingetResult.error && (
+              <div style={{ marginBottom: 'var(--space-md)' }}>
+                <span className="winget-status winget-status--err">❌ {wingetResult.error}</span>
+              </div>
+            )}
+            
+            {wingetResult.versions && wingetResult.versions.length > 1 && (
+              <div className="winget-version-selector">
+                <label className="winget-version-label" htmlFor="winget-version-dropdown">
+                  Select Version:
+                </label>
+                <div className="winget-version-select-container">
+                  <select
+                    id="winget-version-dropdown"
+                    className="winget-version-dropdown"
+                    value={wingetResult.packageVersion || ''}
+                    onChange={e => handleWingetFetch(e.target.value)}
+                    disabled={wingetLoading}
+                  >
+                    {wingetResult.versions.map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                  {wingetLoading && <span className="winget-ver-spinner">⏳ Loading details...</span>}
+                </div>
+              </div>
+            )}
+
+            {!wingetResult.error && wingetResult.installerUrl && (
               <div className="winget-details">
-                <div className="winget-details-grid">
+                <div className="winget-details-grid" style={{ opacity: wingetLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
                   <div><strong>Package Name:</strong> {wingetResult.packageName || 'N/A'}</div>
                   <div><strong>Publisher:</strong> {wingetResult.publisher || 'N/A'}</div>
                   <div><strong>Version:</strong> {wingetResult.packageVersion || 'N/A'}</div>
-                  <div><strong>Type:</strong> {wingetResult.installerType.toUpperCase()}</div>
+                  <div><strong>Type:</strong> {wingetResult.installerType ? wingetResult.installerType.toUpperCase() : 'N/A'}</div>
                   <div className="col-span-2"><strong>Silent Switches:</strong> <code>{wingetResult.silentArgs || 'None'}</code></div>
                   {wingetResult.productCode && <div className="col-span-2"><strong>Product Code (GUID):</strong> <code>{wingetResult.productCode}</code></div>}
                   <div className="col-span-2 url-field">
