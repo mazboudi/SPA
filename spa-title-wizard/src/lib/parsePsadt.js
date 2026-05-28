@@ -704,9 +704,9 @@ function extractPsParamValue(line, paramName) {
  *   FLOW_OPENERS — regular flow control → parse interior if it contains known ADT cmdlets
  */
 const TRY_OPENERS  = /^(?:try)\b/i;
-const FLOW_OPENERS = /^(?:if|elseif|else|foreach|for|while|do|switch)\b/i;
+const FLOW_OPENERS = /^(?:if\s*\(|elseif\s*\(|else\b|foreach\s*\(|for\s*\(|while\s*\(|do\b|switch\s*\()/i;
 // Combined — used for the first-pass check
-const BLOCK_OPENERS = /^(?:try|if|elseif|else|foreach|for|while|do|switch)\b/i;
+const BLOCK_OPENERS = /^(?:try\b|if\s*\(|elseif\s*\(|else\b|foreach\s*\(|for\s*\(|while\s*\(|do\b|switch\s*\()/i;
 
 /**
  * Regex matching a recognizable PSADT/ADT cmdlet inside a block.
@@ -781,22 +781,33 @@ function extractTryCatchBlock(lines, startIdx) {
 }
 
 
+/** Modernize legacy PSADT v3 cmdlets to standard v4 cmdlets inside custom blocks. */
+function modernizeLegacyScriptParts(scriptText) {
+  if (!scriptText) return '';
+  return scriptText
+    .replace(/\bRemove-RegistryKey\b/g, 'Remove-ADTRegistryKey')
+    .replace(/\bSet-RegistryKey\b/g, 'Set-ADTRegistryKey')
+    .replace(/\bExecute-MSI\b/g, 'Start-ADTMsiProcess')
+    .replace(/\bExecute-Process\b/g, 'Start-ADTProcess')
+    .replace(/\bShow-InstallationWelcome\b/g, 'Show-ADTInstallationWelcome')
+    .replace(/\bShow-InstallationProgress\b/g, 'Show-ADTInstallationProgress')
+    .replace(/\bShow-InstallationPrompt\b/g, 'Show-ADTInstallationPrompt')
+    .replace(/\$dirFiles\b/g, '$($adtSession.DirFiles)')
+    .replace(/\$dirSupportFiles\b/g, '$($adtSession.DirSupportFiles)');
+}
+
 /** Scan a script block for all recognizable PowerShell commands and return action objects. */
 function extractBlockActions(block) {
   if (!block) return [];
   const actions = [];
 
   // ── Step 1: Join backtick-continuation lines ────────────────────────────
-  // PowerShell uses ` at end of line for line continuation. Join them so
-  // that -FilePath, -ArgumentList etc. on continuation lines are captured.
   const rawLines = block.split('\n');
-
   const lines = [];
   let pending = '';
   for (const line of rawLines) {
     const trimmed = line.trimEnd();
     if (trimmed.endsWith('`')) {
-      // Append without the backtick, keep building
       pending += (pending ? ' ' : '') + trimmed.slice(0, -1).trim();
     } else {
       if (pending) {
@@ -809,39 +820,55 @@ function extractBlockActions(block) {
   }
   if (pending) lines.push(pending);
 
-  // ── Step 2: Index-based loop with block-level pre-scan ─────────────────
+  // Buffer to accumulate consecutive lines of custom PowerShell code
+  const customBuffer = [];
+  const flushCustomBuffer = () => {
+    if (customBuffer.length > 0) {
+      // Trim empty lines from top and bottom of buffer
+      let start = 0;
+      while (start < customBuffer.length && !customBuffer[start].trim()) {
+        start++;
+      }
+      let end = customBuffer.length - 1;
+      while (end >= start && !customBuffer[end].trim()) {
+        end--;
+      }
+      const trimmedLines = customBuffer.slice(start, end + 1);
+      if (trimmedLines.length > 0) {
+        const scriptText = modernizeLegacyScriptParts(trimmedLines.join('\n'));
+        actions.push({
+          type: 'raw_ps',
+          desc: `PowerShell block: ${scriptText.split('\n')[0].trim().substring(0, 60)}`,
+          script: scriptText,
+          note: 'PowerShell script block',
+          enabled: true,
+        });
+      }
+      customBuffer.length = 0; // clear
+    }
+  };
+
+  // ── Step 2: Index-based loop ──────────────────────────────────────────
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
     const t = line.trim();
-    if (!t || t.startsWith('#') || t.startsWith('##') || t.startsWith('[string]') || t.startsWith('[String]') || t.startsWith('[int') || t.startsWith('[Int')) continue;
-    // v3 zero-config MSI boilerplate
-    if (/^\s*If\s*\(\$useDefaultMsi/i.test(t)) continue;
-    if (/^\$ExecuteDefaultMSISplat/i.test(t)) continue;
-    if (/^Execute-MSI\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
-    // v4 zero-config MSI boilerplate
-    if (/^\s*if\s*\(\$adtSession\.UseDefaultMsi/i.test(t)) continue;
-    if (/^Start-ADTMsiProcess\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
-    if (/^\$adtSession\.DefaultMspFiles\s*\|/i.test(t)) continue;
-    if (/^\s*if\s*\(\$adtSession\.DefaultMstFile/i.test(t)) continue;
-    if (/^\$ExecuteDefaultMSISplat\.Add\b/i.test(t)) continue;
-    // v4 PSADT internal: phase label tracking (every phase starts with this)
-    if (/^\$adtSession\.InstallPhase\s*=/i.test(t)) continue;
-    // Standalone braces (handled inside block extraction now)
-    if (/^\}$/.test(t) || /^\{$/.test(t) || /^\}\s*$/.test(t)) continue;
-    if (/^\[hashtable\]/i.test(t)) continue;
-    if (t.length < 3) continue;
 
-    // ── Block-level pre-scan ────────────────────────────────────────────
-    // TRY blocks: always raw_ps — Catch/Finally error handlers must not be dropped
+    // Skip empty lines at the very beginning of parsing to avoid leading raw blocks
+    if (!t && customBuffer.length === 0) {
+      continue;
+    }
+
+    // Try block opener
     if (TRY_OPENERS.test(t)) {
       const { blockText, endIndex } = extractTryCatchBlock(lines, lineIdx);
       lineIdx = endIndex;
-      const trimmedBlock = blockText.trim();
-      if (trimmedBlock.length > 3) {
+      flushCustomBuffer();
+      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
+      if (modernizedBlock.length > 3) {
         actions.push({
           type: 'raw_ps',
-          desc: `Try/Catch block: ${trimmedBlock.split('\n')[0].trim().substring(0, 60)}`,
-          script: trimmedBlock,
+          desc: `Try/Catch block: ${modernizedBlock.split('\n')[0].trim().substring(0, 60)}`,
+          script: modernizedBlock,
           note: 'Error-handling block preserved as-is (Try/Catch/Finally)',
           enabled: true,
         });
@@ -849,38 +876,31 @@ function extractBlockActions(block) {
       continue;
     }
 
-    // FLOW blocks (if/foreach/while/etc.): parse interior if ADT cmdlets found, else raw_ps
+    // Flow block opener (if/foreach/etc.) - always treat as raw_ps to preserve exact control-flow scope and balance braces
     if (FLOW_OPENERS.test(t)) {
       const { blockText, endIndex } = extractBraceBlock(lines, lineIdx);
       lineIdx = endIndex;
-
-      if (ADT_CMDLET_RE.test(blockText)) {
-        // Contains recognizable cmdlets — strip outer braces and parse interior
-        const innerLines = blockText.split('\n');
-        const innerBlock = innerLines.slice(1, innerLines.length - 1).join('\n');
-        const innerActions = extractBlockActions(innerBlock);
-        for (const ia of innerActions) actions.push(ia);
-      } else {
-        // No recognizable cmdlet — preserve verbatim as raw_ps
-        const trimmedBlock = blockText.trim();
-        if (trimmedBlock.length > 3) {
-          actions.push({
-            type: 'raw_ps',
-            desc: `Raw block: ${trimmedBlock.split('\n')[0].trim().substring(0, 60)}`,
-            script: trimmedBlock,
-            note: 'Could not be fully parsed — block preserved as-is',
-            enabled: true,
-          });
-        }
+      flushCustomBuffer();
+      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
+      if (modernizedBlock.length > 3) {
+        actions.push({
+          type: 'raw_ps',
+          desc: `Control block: ${modernizedBlock.split('\n')[0].trim().substring(0, 60)}`,
+          script: modernizedBlock,
+          note: 'Control flow block preserved as-is',
+          enabled: true,
+        });
       }
       continue;
     }
 
     let matched = false;
 
+    // Check for ADT cmdlet matches
     // Execute-MSI
     const msiMatch = t.match(/Execute-MSI\s+.*-Action\s+['"]?(\w+)['"]?/i);
     if (msiMatch) {
+      flushCustomBuffer();
       const action = msiMatch[1];
       const pathMatch = t.match(/-Path\s+['"]([^'"]+)['"]/i);
       const paramsMatch = t.match(/-Parameters\s+['"]([^'"]+)['"]/i);
@@ -893,6 +913,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const adtMsiMatch = t.match(/Start-ADTMsiProcess\b.*-FilePath\s+['"]([^'"]+)['"]/i);
       if (adtMsiMatch) {
+        flushCustomBuffer();
         const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
         const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
         const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
@@ -905,6 +926,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const adtMsiPcMatch = t.match(/Start-ADTMsiProcess\b.*-ProductCode\s+['"]?(\{?[0-9A-Fa-f\-]{32,38}\}?)['"]?/i);
       if (adtMsiPcMatch) {
+        flushCustomBuffer();
         const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
         const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
         const action = actionMatch?.[1] || 'uninstall';
@@ -917,6 +939,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const unAppMatch = t.match(/Uninstall-ADTApplication\s+-Name\s+['"]([^'"]+)['"]/i);
       if (unAppMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'msi_uninstall', desc: `Uninstall by name: ${unAppMatch[1]}`, appName: unAppMatch[1], raw: t });
         matched = true;
       }
@@ -926,6 +949,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
       if (rmMsiMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'msi_uninstall', desc: `Remove MSI: ${rmMsiMatch[1]}`, appName: rmMsiMatch[1], raw: t });
         matched = true;
       }
@@ -935,6 +959,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const procMatch = t.match(/(?:Execute-Process|Start-ADTProcess(?:AsUser)?)\s+.*-(?:Path|FilePath)\s+['"]([^'"]+)['"]/i);
       if (procMatch) {
+        flushCustomBuffer();
         const paramMatch = t.match(/-(?:Parameters|ArgumentList)\s+['"]([^'"]+)['"]/i);
         actions.push({ type: 'execute_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramMatch?.[1] || '', raw: t });
         matched = true;
@@ -945,6 +970,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const startProcMatch = t.match(/Start-Process\s+.*-FilePath\s+['"]?([^\s'"}{]+)/i);
       if (startProcMatch) {
+        flushCustomBuffer();
         const spArgMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
         actions.push({ type: 'execute_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgMatch?.[1] || '', raw: t });
         matched = true;
@@ -956,6 +982,7 @@ function extractBlockActions(block) {
       const copySrc = extractPsParamValue(t, '(?:Path|Source)');
       const copyDst = extractPsParamValue(t, 'Destination');
       if (copySrc && copyDst) {
+        flushCustomBuffer();
         actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: copySrc, dest: copyDst, raw: t });
         matched = true;
       }
@@ -965,6 +992,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const pipedRemoveMatch = t.match(/Get-ChildItem\s+['"]([^'"]+)['"]\s*\|\s*Remove-Item/i);
       if (pipedRemoveMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'file_remove', desc: `Remove (piped): ${pipedRemoveMatch[1]}`, path: pipedRemoveMatch[1], raw: t });
         matched = true;
       }
@@ -974,6 +1002,7 @@ function extractBlockActions(block) {
     if (!matched && /(?:Remove-Item|Remove-File|Remove-ADTFolder)\b/i.test(t)) {
       const removePath = extractPsParamValue(t, '(?:Path|LiteralPath)');
       if (removePath) {
+        flushCustomBuffer();
         actions.push({ type: 'file_remove', desc: `Remove: ${removePath}`, path: removePath, raw: t });
         matched = true;
       }
@@ -983,6 +1012,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const regSetMatch = t.match(/(?:Set-RegistryKey|Set-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"].*-Name\s+['"]([^'"]+)['"].*-Value\s+['"]?([^'"\s]+)/i);
       if (regSetMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], raw: t });
         matched = true;
       }
@@ -992,6 +1022,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const setIPMatch = t.match(/Set-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
       if (setIPMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'registry_set', desc: `Registry (native): ${setIPMatch[2]} = ${setIPMatch[3]}`, key: setIPMatch[1], name: setIPMatch[2], value: setIPMatch[3], raw: t });
         matched = true;
       }
@@ -1001,6 +1032,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const newIPMatch = t.match(/New-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
       if (newIPMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'registry_set', desc: `Registry (new): ${newIPMatch[2]} = ${newIPMatch[3]}`, key: newIPMatch[1], name: newIPMatch[2], value: newIPMatch[3], raw: t });
         matched = true;
       }
@@ -1010,6 +1042,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const regRemoveMatch = t.match(/(?:Remove-RegistryKey|Remove-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"]/i);
       if (regRemoveMatch) {
+        flushCustomBuffer();
         const regNameMatch = t.match(/-Name\s+['"]([^'"]+)['"]/i);
         const nameVal = regNameMatch ? regNameMatch[1] : '';
         const descSuffix = nameVal ? ` \u2192 ${nameVal}` : '';
@@ -1022,6 +1055,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const removeIPMatch = t.match(/Remove-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]?([^\s'"}{]+)/i);
       if (removeIPMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'registry_remove', desc: `Remove reg value (native): ${removeIPMatch[2]}`, key: removeIPMatch[1], name: removeIPMatch[2], raw: t });
         matched = true;
       }
@@ -1031,6 +1065,7 @@ function extractBlockActions(block) {
     if (!matched && /New-ADTFolder\b/i.test(t)) {
       const mkdirPath = extractPsParamValue(t, '(?:Path|LiteralPath)');
       if (mkdirPath) {
+        flushCustomBuffer();
         actions.push({ type: 'create_folder', desc: `Create: ${mkdirPath}`, path: mkdirPath, raw: t });
         matched = true;
       }
@@ -1040,6 +1075,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const envMatch = t.match(/SetEnvironmentVariable\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/i);
       if (envMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'env_variable', desc: `Env: ${envMatch[1]} = ${envMatch[2]}`, name: envMatch[1], value: envMatch[2], raw: t });
         matched = true;
       }
@@ -1049,6 +1085,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const welcomeMatch = t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
       if (welcomeMatch) {
+        flushCustomBuffer();
         const closeMatch = welcomeMatch[1].match(/-Close(?:Apps|Processes)\s+['"]?([^'"\s-]+)/i);
         actions.push({ type: 'show_welcome', desc: `Welcome dialog${closeMatch ? ` (close: ${closeMatch[1]})` : ''}`, closeApps: closeMatch?.[1] || '', raw: t });
         matched = true;
@@ -1057,6 +1094,7 @@ function extractBlockActions(block) {
 
     // Show-InstallationProgress / Show-ADTInstallationProgress
     if (!matched && /Show-(?:ADT)?InstallationProgress/i.test(t)) {
+      flushCustomBuffer();
       actions.push({ type: 'show_progress', desc: 'Show progress dialog', raw: t });
       matched = true;
     }
@@ -1065,16 +1103,17 @@ function extractBlockActions(block) {
     if (!matched) {
       const promptMatch = t.match(/Show-(?:ADT)?InstallationPrompt\b/i);
       if (promptMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'show_completion', desc: 'Show completion dialog', raw: t });
         matched = true;
       }
     }
 
     // ForEach-Object with Execute-MSI (multi-GUID uninstall pattern)
-    // Matches both: ForEach-Object { Execute-MSI ... } and | ForEach-Object { Execute-MSI ... }
     if (!matched) {
       const foreachMsi = t.match(/\|?\s*ForEach-Object\s*\{\s*Execute-MSI\s+-Action\s+['"]?(\w+)['"]?/i);
       if (foreachMsi) {
+        flushCustomBuffer();
         actions.push({ type: `msi_${foreachMsi[1].toLowerCase()}_batch`, desc: `Batch MSI ${foreachMsi[1]} (multiple GUIDs)`, raw: t });
         matched = true;
       }
@@ -1084,6 +1123,7 @@ function extractBlockActions(block) {
     if (!matched) {
       const sleepMatch = t.match(/Start-Sleep\s+-Seconds\s+(\d+)/i);
       if (sleepMatch) {
+        flushCustomBuffer();
         actions.push({ type: 'sleep', desc: `Wait ${sleepMatch[1]}s`, seconds: parseInt(sleepMatch[1]), raw: t });
         matched = true;
       }
@@ -1098,60 +1138,42 @@ function extractBlockActions(block) {
     if (!matched) {
       const stopProcMatch = t.match(/(?:Get-Process\s.*\|\s*)?Stop-Process\s+.*-(?:Name|Id)\s+['"]*(\w+)['"]*|Stop-Process\s+-Name\s+['"]*(\w+)['"]*|Get-Process\s+['"]*(\w+)['"]*\s*\|\s*Stop-Process/i);
       if (stopProcMatch) {
+        flushCustomBuffer();
         const procName = stopProcMatch[1] || stopProcMatch[2] || stopProcMatch[3] || 'process';
         actions.push({ type: 'stop_process', desc: `Stop: ${procName}`, closeApps: procName, raw: t });
         matched = true;
       }
     }
 
-    // ── Unmatched line — surface as custom_script ──────────────────────
+    // ── Unmatched line — buffer or skip ────────────────────────────────
     if (!matched) {
-      // Skip trivial lines: control flow, variable assignments, braces
-      if (/^(?:if|else|elseif|switch|foreach|for|while|do|return|break|continue|exit)\b/i.test(t)) continue;
-      if (/^\$[\w.]+\s*=/i.test(t)) continue;
-      if (/^\}.*\{/.test(t)) continue;
-      if (/^\)\s*$/.test(t)) continue;
-      if (/^\|\s*\w+/i.test(t)) continue;
-      if (/^[)\]}]+\s*$/i.test(t)) continue;
-      if (/^Select\b|^Sort\b|^Where\b|^ForEach\b/i.test(t)) continue;
-      // Skip phase label lines (e.g. 'Pre-Installation')
-      if (/^'[A-Za-z-]+'\s*$/.test(t)) continue;
-      // Skip bare property names from multi-line Select/Sort pipelines
-      if (/^\w+,?\s*$/.test(t)) continue;
-      // Skip pipeline continuation lines starting with $
-      if (/^\$[\w.]+\s*\|/i.test(t)) continue;
-      // Skip bare property/variable refs ending with pipe (multi-line pipeline)
-      if (/^\w+\s*\|?\s*$/.test(t)) continue;
-      // Skip bare GUID lines from multi-line batch uninstall patterns
-      // e.g. "{203D4C43-...}", <# comment #>`
-      if (/^"\{[0-9A-Fa-f-]{36}\}"/.test(t)) continue;
-
-      // Skip splatting variable definitions: @{ ... } and bare @param blocks
-      if (/^@\{/i.test(t) || /^\$\w+\s*=\s*@\{/i.test(t)) continue;
-      // Skip bare hashtable entry lines: Key = Value (inside splatting blocks)
-      if (/^\w+\s*=\s*\$?\w+\s*$/.test(t)) continue;
-      // Skip variable method calls: $var.Add(...), $var.Remove(...), etc.
-      if (/^\$[\w.]+\.\w+\s*\(/.test(t)) continue;
-      // Skip try/catch/finally patterns (more comprehensive)
-      if (/^try\s*\{?\s*$/i.test(t) || /^catch\s*(\[[\w.]+\])?\s*\{?\s*$/i.test(t) || /^finally\s*\{?\s*$/i.test(t)) continue;
-      if (/^\}\s*catch\b/i.test(t) || /^\}\s*finally\b/i.test(t)) continue;
-      // Skip closing braces with optional comments
-      if (/^\}\s*(#.*)?$/.test(t)) continue;
-      // Skip backtick line-continuations (trailing backtick only)
-      if (/`\s*$/.test(t) && t.length < 5) continue;
-      // Skip splatting invocations: @paramVar
-      if (/^@\w+\s*$/i.test(t)) continue;
-      // Skip Write-Host / Write-Output / Write-Verbose (informational)
-      if (/^Write-(?:Host|Output|Verbose|Warning|Debug)\b/i.test(t)) continue;
-      // Skip $installPhase assignment (PSADT internal)
+      // Boilerplate skips to ignore clean skeleton noise
+      if (t.startsWith('[string]') || t.startsWith('[String]') || t.startsWith('[int') || t.startsWith('[Int')) continue;
+      if (/^\s*If\s*\(\$useDefaultMsi/i.test(t)) continue;
+      if (/^\$ExecuteDefaultMSISplat/i.test(t)) continue;
+      if (/^Execute-MSI\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
+      if (/^\s*if\s*\(\$adtSession\.UseDefaultMsi/i.test(t)) continue;
+      if (/^Start-ADTMsiProcess\s+@ExecuteDefaultMSISplat/i.test(t)) continue;
+      if (/^\$adtSession\.DefaultMspFiles\s*\|/i.test(t)) continue;
+      if (/^\s*if\s*\(\$adtSession\.DefaultMstFile/i.test(t)) continue;
+      if (/^\$ExecuteDefaultMSISplat\.Add\b/i.test(t)) continue;
+      if (/^\$adtSession\.InstallPhase\s*=/i.test(t)) continue;
       if (/^\$installPhase\s*=/i.test(t)) continue;
-      // Skip Show-ADTInstallationRestartPrompt / Show-InstallationRestartPrompt
       if (/^Show-(?:ADT)?InstallationRestartPrompt\b/i.test(t)) continue;
+      if (/^Write-(?:Host|Output|Verbose|Warning|Debug)\b/i.test(t)) continue;
 
-      // Meaningful unmatched command
-      actions.push({ type: 'custom_script', desc: `Unmatched: ${t.substring(0, 60)}${t.length > 60 ? '\u2026' : ''}`, code: t, note: 'Auto-detected \u2014 could not be mapped to a known action type', raw: t });
+      // Skip standalone braces if customBuffer is empty
+      if (customBuffer.length === 0 && (/^\}$/.test(t) || /^\{$/.test(t) || /^\}\s*$/.test(t))) {
+        continue;
+      }
+
+      // Buffer custom PowerShell line
+      customBuffer.push(line);
     }
   }
+
+  // Flush remaining buffer at the end
+  flushCustomBuffer();
 
   return actions;
 }
