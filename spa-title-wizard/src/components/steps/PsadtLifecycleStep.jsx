@@ -575,14 +575,20 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   // Synchronize local script with the generated script when state changes
   useEffect(() => {
     const latestScript = generatePsadtScript(state);
-    // If the user is actively typing in the textarea, do NOT overwrite it (prevents cursor jumps!)
-    const isTyping = activeTab === 'script' && document.activeElement && document.activeElement.classList.contains('textarea-editor');
     
-    if (!state.isCustomized || !isTyping) {
+    if (!state.isCustomized) {
+      // Form-Synchronized mode: always keep localScript in sync with forms
       setLocalScript(latestScript);
       setLintErrors(validateSyntax(latestScript));
-      if (state.isCustomized && latestScript !== state.customScriptContent) {
-        updateField('customScriptContent', latestScript);
+    } else {
+      // Customized mode: ONLY update script if the user made changes in visual/behavior tabs!
+      // If they are in the script tab, the editor code is the source of truth — do NOT overwrite it!
+      if (activeTab !== 'script') {
+        setLocalScript(latestScript);
+        setLintErrors(validateSyntax(latestScript));
+        if (latestScript !== state.customScriptContent) {
+          updateField('customScriptContent', latestScript);
+        }
       }
     }
   }, [state, state.isCustomized, state.customScriptContent, activeTab]);
