@@ -315,6 +315,8 @@ export default function App() {
             <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
           </div>
         </div>
+      </header>
+
       {/* Flow: Mode Selector → Refactor Flow → Wizard */}
       {!showModeSelector && !showRefactorFlow && (
         <button className="btn btn-ghost" onClick={handleStartOver} style={{ position: 'absolute', top: '24px', right: '24px' }}>

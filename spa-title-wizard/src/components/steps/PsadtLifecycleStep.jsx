@@ -347,6 +347,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         ...lc.phases,
         variableDeclaration: { actions: stdVarActions },
       },
+    });
   }, []); // run once on mount
 
   // Compute compatibility report for converted v3 scripts
