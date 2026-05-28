@@ -50,27 +50,16 @@ $adtSession = @{
     AppRebootExitCodes     = @(1641, 3010)
     AppProcessesToClose    = @()
     AppScriptVersion       = '1.0.0'
-    AppScriptDate          = '2026-05-28'
-    AppScriptAuthor        = 'SPA Factory'
+    AppScriptDate          = '1/14/2026'
+    AppScriptAuthor        = 'Shubham'
     RequireAdmin           = $true
 
-    InstallName            = 'PK Protect 20.35.0008'
-    InstallTitle           = 'PK Protect 20.35.0008'
+    InstallName            = 'PKWARE_PKProtect_20.35.0008_v1.0'
+    InstallTitle           = 'PKWARE_PKProtect_20.35.0008_v1.0'
 
     DeployAppScriptFriendlyName = $MyInvocation.MyCommand.Name
     DeployAppScriptParameters   = $PSBoundParameters
     DeployAppScriptVersion      = '4.1.0'
-    appVendor = 'PKWARE, Inc'
-    appName = 'PK Protect'
-    appVersion = '20.35.0008'
-    appArch = 'x64'
-    appLang = 'EN'
-    appRevision = '01'
-    appScriptVersion = '1.0.0'
-    appScriptDate = '1/14/2026'
-    appScriptAuthor = 'Shubham'
-    installName = 'PKWARE_PKProtect_20.35.0008_v1.0'
-    installTitle = 'PKWARE_PKProtect_20.35.0008_v1.0'
 }
 
 function Install-ADTDeployment

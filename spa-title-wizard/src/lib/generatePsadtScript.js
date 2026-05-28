@@ -295,13 +295,49 @@ export default function generatePsadtScript(s, clean = false) {
     closeAppsList = `@(${list})`;
   }
 
+  // Extract parsed v3/v4 custom variables from the variableDeclaration phase
+  const varActions = phases.variableDeclaration?.actions || [];
+
+  // Helper to find a parsed variable value case-insensitively
+  function getVarVal(name, fallback) {
+    const act = varActions.find(a => {
+      const cleanName = (a.name || '').replace(/^\$/, '').toLowerCase();
+      return cleanName === name.toLowerCase();
+    });
+    return act ? act.value : fallback;
+  }
+
+  // Map onto PascalCase official PSADT v4 standard keys
+  const appVendor = getVarVal('appVendor', s.publisher || 'Fiserv');
+  const appName = getVarVal('appName', s.displayName || 'TODO-DISPLAY-NAME');
+  const appVersion = getVarVal('appVersion', s.version || '1.0.0');
+  const appArch = getVarVal('appArch', 'x64');
+  const appLang = getVarVal('appLang', 'EN');
+  const appRevision = getVarVal('appRevision', '01');
+  const appScriptVersion = getVarVal('appScriptVersion', '1.0.0');
+  const appScriptDate = getVarVal('appScriptDate', today);
+  const appScriptAuthor = getVarVal('appScriptAuthor', 'SPA Factory');
+
+  // Support v3 style installName/installTitle overrides if present, otherwise default to v4 standard format
+  const defaultInstallName = `${appName} ${appVersion}`;
+  const installName = getVarVal('installName', defaultInstallName);
+  const installTitle = getVarVal('installTitle', defaultInstallName);
+
   // ── 2. Standard custom variables ─────────────────────────────────────────
   const standardVars = [];
-  const varActions = phases.variableDeclaration?.actions || [];
+  const standardKeys = [
+    'appvendor', 'appname', 'appversion', 'apparch', 'applang',
+    'apprevision', 'appscriptversion', 'appscriptdate', 'appscriptauthor',
+    'installname', 'installtitle'
+  ];
+
   varActions.forEach(action => {
     if (action.enabled === false) return;
     const cleanName = (action.name || '').replace(/^\$/, '');
     if (cleanName) {
+      // If it is one of the standard official variables, omit it from custom variables list to avoid duplicates
+      if (standardKeys.includes(cleanName.toLowerCase())) return;
+
       const codeLine = `    ${cleanName} = '${action.value || ''}'`;
       if (isClean) {
         standardVars.push(codeLine);
@@ -400,22 +436,22 @@ param
 ##================================================
 
 $adtSession = @{
-    AppVendor              = '${publisher}'
-    AppName                = '${displayName}'
-    AppVersion             = '${version}'
-    AppArch                = 'x64'
-    AppLang                = 'EN'
-    AppRevision            = '01'
+    AppVendor              = '${appVendor}'
+    AppName                = '${appName}'
+    AppVersion             = '${appVersion}'
+    AppArch                = '${appArch}'
+    AppLang                = '${appLang}'
+    AppRevision            = '${appRevision}'
     AppSuccessExitCodes    = @(0)
     AppRebootExitCodes     = @(1641, 3010)
     AppProcessesToClose    = ${closeAppsList}
-    AppScriptVersion       = '1.0.0'
-    AppScriptDate          = '${today}'
-    AppScriptAuthor        = 'SPA Factory'
+    AppScriptVersion       = '${appScriptVersion}'
+    AppScriptDate          = '${appScriptDate}'
+    AppScriptAuthor        = '${appScriptAuthor}'
     RequireAdmin           = $true
 
-    InstallName            = '${displayName} ${version}'
-    InstallTitle           = '${displayName} ${version}'
+    InstallName            = '${installName}'
+    InstallTitle           = '${installTitle}'
 
     DeployAppScriptFriendlyName = $MyInvocation.MyCommand.Name
     DeployAppScriptParameters   = $PSBoundParameters
