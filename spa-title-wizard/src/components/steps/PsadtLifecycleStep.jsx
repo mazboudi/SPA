@@ -275,6 +275,13 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   const [activePhase, setActivePhase] = useState(null);
   const [vsCodeOpening, setVsCodeOpening] = useState(false);
+  const [copiedText, setCopiedText] = useState(null);
+
+  const copyToClipboard = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(key);
+    setTimeout(() => setCopiedText(null), 2000);
+  };
 
   // Wrapped local handlers
   const handleAddAction = (phaseKey, action) => {
@@ -738,6 +745,128 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   )}
                 </div>
               )}
+
+              {/* Collapsible Test & Debug Panel with Sysinternals PsExec */}
+              <div className="compat-report-card" style={{ marginBottom: 'var(--space-md)', padding: '14px 18px', background: 'rgba(59, 130, 246, 0.03)', border: '1px solid rgba(59, 130, 246, 0.15)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>⚡</span>
+                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                    Local SYSTEM Testing & Debugging (Sysinternals PsExec)
+                  </strong>
+                  <span className="badge badge--sync" style={{ fontSize: '0.62rem', padding: '1px 6px', marginLeft: 'auto' }}>Test Guide</span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.45 }}>
+                  Enterprise deployment tools (like Intune or SCCM) execute software installations under the <strong>Local SYSTEM Account</strong>. To verify your converted PSADT v4 script in the exact same environment before publishing, you can use Sysinternals <strong>PsExec</strong> on a Windows test machine or VM.
+                </p>
+                <details style={{ marginTop: '6px' }}>
+                  <summary style={{ fontSize: '0.74rem', color: 'var(--text-accent)', cursor: 'pointer', outline: 'none', userSelect: 'none', fontWeight: 600 }}>
+                    ▸ View Setup Instructions & Dynamic Command Generator
+                  </summary>
+                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.72rem', borderTop: '1px solid rgba(59, 130, 246, 0.08)', paddingTop: '12px' }}>
+                    
+                    <div>
+                      <strong style={{ color: 'var(--text-secondary)' }}>Step 1: Download & Extract PsExec</strong>
+                      <p style={{ margin: '2px 0 6px 0', color: 'var(--text-muted)' }}>Run this clean PowerShell command on your Windows test system to download Sysinternals PSTools automatically:</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#a7f3d0', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                          {`Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile "$env:TEMP\\PSTools.zip"; Expand-Archive -Path "$env:TEMP\\PSTools.zip" -DestinationPath "$env:ProgramFiles\\PSTools" -Force`}
+                        </code>
+                        <button 
+                          type="button"
+                          className="btn btn-ghost" 
+                          style={{ padding: '4px 8px', fontSize: '0.65rem', flexShrink: 0, minWidth: '60px' }}
+                          onClick={() => copyToClipboard(`Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile "$env:TEMP\\PSTools.zip"; Expand-Archive -Path "$env:TEMP\\PSTools.zip" -DestinationPath "$env:ProgramFiles\\PSTools" -Force`, 'dl-pstools')}
+                        >
+                          {copiedText === 'dl-pstools' ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <strong style={{ color: 'var(--text-secondary)' }}>Step 2: Copy Package Files</strong>
+                      <p style={{ margin: '2px 0 0 0', color: 'var(--text-muted)' }}>
+                        Copy your entire local package directory (containing the <code>Files</code>, <code>SupportFiles</code>, and <code>Invoke-AppDeployToolkit.ps1</code>) to a folder on your Windows test system (e.g., <code>C:\\SPA_Test</code>).
+                      </p>
+                    </div>
+
+                    <div>
+                      <strong style={{ color: 'var(--text-secondary)' }}>Step 3: Run PSADT under SYSTEM Context</strong>
+                      <p style={{ margin: '2px 0 6px 0', color: 'var(--text-muted)' }}>Open an <strong>Elevated Command Prompt (Run as Administrator)</strong> on your Windows machine, navigate to your PSTools folder or ensure psexec is in your PATH, and run one of the following commands:</p>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#60a5fa', marginBottom: '3px' }}>🟢 Test Install Phase (Interactive, full UI progress bar visible):</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                              {`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Interactive`}
+                            </code>
+                            <button 
+                              type="button"
+                              className="btn btn-ghost" 
+                              style={{ padding: '4px 8px', fontSize: '0.65rem', flexShrink: 0, minWidth: '60px' }}
+                              onClick={() => copyToClipboard(`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Interactive`, 'run-install')}
+                            >
+                              {copiedText === 'run-install' ? '✓ Copied' : '📋 Copy'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#f87171', marginBottom: '3px' }}>🔴 Test Uninstall Phase (Interactive, full UI progress bar visible):</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                              {`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Uninstall -DeployMode Interactive`}
+                            </code>
+                            <button 
+                              type="button"
+                              className="btn btn-ghost" 
+                              style={{ padding: '4px 8px', fontSize: '0.65rem', flexShrink: 0, minWidth: '60px' }}
+                              onClick={() => copyToClipboard(`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Uninstall -DeployMode Interactive`, 'run-uninstall')}
+                            >
+                              {copiedText === 'run-uninstall' ? '✓ Copied' : '📋 Copy'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#fbbf24', marginBottom: '3px' }}>🔧 Test Repair Phase (Interactive, full UI progress bar visible):</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                              {`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Repair -DeployMode Interactive`}
+                            </code>
+                            <button 
+                              type="button"
+                              className="btn btn-ghost" 
+                              style={{ padding: '4px 8px', fontSize: '0.65rem', flexShrink: 0, minWidth: '60px' }}
+                              onClick={() => copyToClipboard(`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Repair -DeployMode Interactive`, 'run-repair')}
+                            >
+                              {copiedText === 'run-repair' ? '✓ Copied' : '📋 Copy'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>🤫 Test Fully Silent Deployment (Production/Intune simulation, no UI):</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                              {`psexec.exe -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Silent`}
+                            </code>
+                            <button 
+                              type="button"
+                              className="btn btn-ghost" 
+                              style={{ padding: '4px 8px', fontSize: '0.65rem', flexShrink: 0, minWidth: '60px' }}
+                              onClick={() => copyToClipboard(`psexec.exe -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Silent`, 'run-silent')}
+                            >
+                              {copiedText === 'run-silent' ? '✓ Copied' : '📋 Copy'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </details>
+              </div>
 
               {/* Display view based on legacy script presence and layout choice */}
               {!hasLegacyScript ? (
