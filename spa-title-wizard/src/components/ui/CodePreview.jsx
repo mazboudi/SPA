@@ -50,7 +50,7 @@ function simpleHash(str) {
   return hash.toString(36);
 }
 
-export default function CodePreview({ code, filename, activePhase }) {
+export default function CodePreview({ code, filename, activePhase, hideHeader = false, maxHeight = '500px' }) {
   const [copied, setCopied] = useState(false);
   const lang = detectLanguage(filename || '');
   const bodyRef = useRef(null);
@@ -157,18 +157,26 @@ export default function CodePreview({ code, filename, activePhase }) {
     }
   }, [activePhase, code]);
 
+  // Set up running line counter for line-number gutters
+  let runningLine = 1;
+
   return (
-    <div className="code-preview">
-      <div className="code-preview__header">
-        <span className="code-preview__filename">{filename}</span>
-        <button className="btn btn-ghost code-preview__copy" onClick={handleCopy}>
-          {copied ? '✓ Copied' : '📋 Copy'}
-        </button>
-      </div>
-      <div className="code-preview__body" ref={bodyRef}>
+    <div className="code-preview" style={{ marginBottom: hideHeader ? 0 : 'var(--space-md)' }}>
+      {!hideHeader && (
+        <div className="code-preview__header">
+          <span className="code-preview__filename">{filename}</span>
+          <button className="btn btn-ghost code-preview__copy" onClick={handleCopy}>
+            {copied ? '✓ Copied' : '📋 Copy'}
+          </button>
+        </div>
+      )}
+      <div className="code-preview__body" ref={bodyRef} style={{ maxHeight }}>
         {blocks.map((block, idx) => {
+          const startLine = runningLine;
+          runningLine += block.lines.length;
           const codeString = block.lines.join('\n');
           const highlighted = highlightSyntax(codeString, lang);
+          const lineNumbers = Array.from({ length: block.lines.length }, (_, i) => startLine + i).join('\n');
 
           if (block.type === 'action') {
             const innerLines = block.lines.slice(1, -1);
@@ -187,17 +195,27 @@ export default function CodePreview({ code, filename, activePhase }) {
                     {isManual ? 'Manual Script Code' : 'Locked Form Sync'}
                   </span>
                 </div>
-                <pre className="code-preview__code cp-block__code">
-                  <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-                </pre>
+                <div className="code-preview__row">
+                  <pre className="code-preview__gutter">
+                    {lineNumbers}
+                  </pre>
+                  <pre className="code-preview__code cp-block__code">
+                    <code dangerouslySetInnerHTML={{ __html: highlighted }} />
+                  </pre>
+                </div>
               </div>
             );
           }
 
           return (
-            <pre key={idx} className="code-preview__code">
-              <code dangerouslySetInnerHTML={{ __html: highlighted }} />
-            </pre>
+            <div key={idx} className="code-preview__row">
+              <pre className="code-preview__gutter">
+                {lineNumbers}
+              </pre>
+              <pre className="code-preview__code">
+                <code dangerouslySetInnerHTML={{ __html: highlighted }} />
+              </pre>
+            </div>
           );
         })}
       </div>
@@ -207,7 +225,10 @@ export default function CodePreview({ code, filename, activePhase }) {
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-md);
           overflow: hidden;
-          margin-bottom: var(--space-md);
+          background: rgba(8, 10, 20, 0.9);
+          display: flex;
+          flex-direction: column;
+          height: 100%;
         }
         .code-preview__header {
           display: flex;
@@ -216,6 +237,7 @@ export default function CodePreview({ code, filename, activePhase }) {
           padding: var(--space-sm) var(--space-md);
           background: var(--bg-elevated);
           border-bottom: 1px solid var(--border-subtle);
+          flex-shrink: 0;
         }
         .code-preview__filename {
           font-family: var(--font-mono);
@@ -227,20 +249,41 @@ export default function CodePreview({ code, filename, activePhase }) {
           font-size: 0.75rem;
         }
         .code-preview__body {
-          background: rgba(8, 10, 20, 0.9);
-          max-height: 500px;
+          background: transparent;
           overflow-y: auto;
           padding: var(--space-sm) 0;
+          flex: 1;
         }
-        .code-preview__code {
-          padding: 0 var(--space-md);
-          background: transparent !important;
-          overflow-x: auto;
+        .code-preview__row {
+          display: flex;
           font-family: var(--font-mono);
           font-size: 0.8rem;
           line-height: 1.7;
+        }
+        .code-preview__gutter {
+          text-align: right;
+          padding: 0 10px;
+          margin: 0;
+          color: rgba(255, 255, 255, 0.25);
+          background: rgba(0, 0, 0, 0.15);
+          border-right: 1px solid var(--border-subtle);
+          user-select: none;
+          min-width: 44px;
+          font-family: inherit;
+          font-size: inherit;
+          line-height: inherit;
+          flex-shrink: 0;
+        }
+        .code-preview__code {
+          padding: 0 16px;
+          background: transparent !important;
+          overflow-x: auto;
+          font-family: inherit;
+          font-size: inherit;
+          line-height: inherit;
           color: var(--text-primary);
           margin: 0;
+          flex: 1;
           overflow-y: visible !important;
           max-height: none !important;
         }
@@ -297,8 +340,15 @@ export default function CodePreview({ code, filename, activePhase }) {
           background: rgba(245, 158, 11, 0.12);
           color: #fbbf24;
         }
-        .cp-block__code {
-          padding: 6px 10px !important;
+        .cp-block .code-preview__gutter {
+          padding-top: 6px;
+          padding-bottom: 6px;
+        }
+        .cp-block .code-preview__code {
+          padding-top: 6px;
+          padding-bottom: 6px;
+          padding-left: 12px;
+          padding-right: 12px;
         }
         .cp-key { color: #93c5fd; }
         .cp-str { color: #86efac; }

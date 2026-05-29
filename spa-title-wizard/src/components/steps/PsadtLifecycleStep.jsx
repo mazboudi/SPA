@@ -266,7 +266,13 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
   }, [!!conversionStats]); // run once when conversion stats are first available
 
-  const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'script'
+  const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'compare'
+  const [layout, setLayout] = useState('side-by-side'); // 'side-by-side' | 'stacked'
+
+  const hasLegacyScript = useMemo(() => {
+    return !!(state._scriptContent || psadtResult?.scriptContent);
+  }, [state._scriptContent, psadtResult]);
+
   const [activePhase, setActivePhase] = useState(null);
   const [vsCodeOpening, setVsCodeOpening] = useState(false);
 
@@ -318,7 +324,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
       fetchLatestFromDisk();
 
-      if (activeTab === 'script' || activeTab === 'compare') {
+      if (activeTab === 'compare') {
         fetchLatestFromDisk();
       }
     }
@@ -415,27 +421,19 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         </button>
         <button
           type="button"
-          className={`psadt-tab-btn ${activeTab === 'script' ? 'psadt-tab-btn--active' : ''}`}
+          className={`psadt-tab-btn ${activeTab === 'compare' ? 'psadt-tab-btn--active' : ''}`}
           onClick={() => {
-            setActiveTab('script');
+            setActiveTab('compare');
             if (activePhase) {
               setActivePhase(activePhase.split('_')[0] + '_' + Date.now());
             }
           }}
         >
-          <span className="psadt-tab-btn__icon">📜</span>
-          <span className="psadt-tab-btn__label">Live Script Developer</span>
+          <span className="psadt-tab-btn__icon">🔍</span>
+          <span className="psadt-tab-btn__label">
+            {hasLegacyScript ? 'Script Comparison' : 'Script Developer'}
+          </span>
         </button>
-        {(state._scriptContent || psadtResult?.scriptContent) && (
-          <button
-            type="button"
-            className={`psadt-tab-btn ${activeTab === 'compare' ? 'psadt-tab-btn--active' : ''}`}
-            onClick={() => setActiveTab('compare')}
-          >
-            <span className="psadt-tab-btn__icon">🔍</span>
-            <span className="psadt-tab-btn__label">Script Comparison</span>
-          </button>
-        )}
       </div>
 
       <div className="psadt-workspace-tabs">
@@ -576,36 +574,75 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
           </div>
         )}
 
-        {activeTab === 'script' && (
-          <div className="psadt-workspace-tab-content script-tab animate-in">
-            <div className="script-editor">
-              <div className="script-editor__header">
-                <div className="script-editor__info">
-                  <span className={`badge ${state.isCustomized ? 'badge--custom' : 'badge--sync'}`}>
+        {activeTab === 'compare' && (
+          <div className="psadt-workspace-tab-content compare-tab animate-in">
+            <div className="config-section" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '300px' }}>
+                  <h3 className="section-title" style={{ margin: 0 }}>
+                    {hasLegacyScript ? '🔍 Original vs. Converted Script Comparison' : '📜 Converted PowerShell Script'}
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                    {hasLegacyScript 
+                      ? 'Compare the original legacy PowerShell script with the newly compiled and structured script. Use this view to verify successful conversion.'
+                      : 'View the generated PowerShell script. Customize it in VS Code to make manual edits.'
+                    }
+                  </p>
+                </div>
+                
+                {/* Unified Toolbar containing VS Code Actions, Badges, Layout Selector, and Pristine Code Toggle */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span className={`badge ${state.isCustomized ? 'badge--custom' : 'badge--sync'}`} style={{ padding: '4px 10px', height: 'fit-content' }}>
                     {state.isCustomized ? '🔓 Customized in VS Code' : '🔒 Form-Synchronized'}
                   </span>
-                  <span className="script-editor__desc">
-                    {state.isCustomized 
-                      ? 'Manual changes are made directly in VS Code. Form-synchronized baseline is shown below.' 
-                      : 'Generated from form inputs. Read-only preview.'}
-                  </span>
-                </div>
-                <div className="script-editor__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {state.isCustomized && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => handleOpenInVsCode()}
-                      disabled={vsCodeOpening}
-                      title="Open this file in local VS Code"
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
-                    </button>
+                  
+                  {/* Layout Selector (only visible if there is a legacy script) */}
+                  {hasLegacyScript && (
+                    <div className="layout-selector" style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)', padding: '2px' }}>
+                      <button
+                        type="button"
+                        className={`btn-layout ${layout === 'side-by-side' ? 'btn-layout--active' : ''}`}
+                        style={{
+                          background: layout === 'side-by-side' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                          color: layout === 'side-by-side' ? '#60a5fa' : 'var(--text-muted)',
+                          border: 'none',
+                          padding: '4px 12px',
+                          borderRadius: '14px',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          transition: 'all 0.2s ease',
+                          outline: 'none'
+                        }}
+                        onClick={() => setLayout('side-by-side')}
+                      >
+                        ♊ Side-by-Side
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-layout ${layout === 'stacked' ? 'btn-layout--active' : ''}`}
+                        style={{
+                          background: layout === 'stacked' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                          color: layout === 'stacked' ? '#60a5fa' : 'var(--text-muted)',
+                          border: 'none',
+                          padding: '4px 12px',
+                          borderRadius: '14px',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          transition: 'all 0.2s ease',
+                          outline: 'none'
+                        }}
+                        onClick={() => setLayout('stacked')}
+                      >
+                        ☰ Stacked
+                      </button>
+                    </div>
                   )}
+
                   {/* Pristine Code Toggle */}
-                  <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
+                  <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
                       ✨ Pristine Code
                     </span>
                     <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0 }}>
@@ -620,6 +657,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       </span>
                     </label>
                   </div>
+
+                  {/* Customize in VS Code Button */}
                   <button 
                     type="button"
                     className={`btn btn-sm ${state.isCustomized ? 'btn-secondary' : 'btn-primary'}`} 
@@ -627,50 +666,27 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   >
                     {state.isCustomized ? '🔒 Lock Sync (Reset)' : '✏️ Customize in VS Code'}
                   </button>
+
+                  {/* Open in VS Code Button (customized mode only) */}
+                  {state.isCustomized && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handleOpenInVsCode()}
+                      disabled={vsCodeOpening}
+                      title="Open this file in local VS Code"
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
+                    </button>
+                  )}
                 </div>
               </div>
               
-              <div className="script-editor__body">
-                <CodePreview
-                  code={activeScript}
-                  filename={state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1'}
-                  activePhase={activePhase}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-        {activeTab === 'compare' && (
-          <div className="psadt-workspace-tab-content compare-tab animate-in">
-            <div className="config-section" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <h3 className="section-title" style={{ margin: 0 }}>🔍 Original vs. Converted Script Comparison</h3>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Compare the original legacy PowerShell script with the newly compiled and structured script. Use this side-by-side view to verify successful conversion of all custom actions.
-                  </p>
-                </div>
-                {/* Pristine Code Toggle in Compare tab */}
-                <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
-                    ✨ Pristine Code
-                  </span>
-                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={!!state.pristineScripts}
-                      onChange={(e) => updateField('pristineScripts', e.target.checked)}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: state.pristineScripts ? '#3b82f6' : '#4b5563', transition: '.4s', borderRadius: '18px' }}>
-                      <span style={{ position: 'absolute', content: '""', height: '12px', width: '12px', left: state.pristineScripts ? '16px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-              {compatReport && (
+              {/* Modernization Report */}
+              {compatReport && hasLegacyScript && (
                 <div className="compat-report-card" style={{ marginBottom: 'var(--space-md)', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.1rem' }}>{compatReport.summary.manualReview > 0 ? '⚠️' : '✅'}</span>
                       <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
@@ -683,6 +699,13 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       {compatReport.summary.autoResolved} parameters/variables auto-migrated
                     </span>
                   </div>
+
+                  {compatReport.summary.manualReview > 0 && (
+                    <div style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '4px', padding: '6px 10px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>💡</span>
+                      <span>Line numbers in the report correspond to the <strong>Original Legacy Script (left pane / top pane)</strong>. Use them to locate exact legacy context before conversion.</span>
+                    </div>
+                  )}
                   
                   {compatReport.manualFindings.length > 0 && (
                     <details style={{ marginTop: '8px' }}>
@@ -693,7 +716,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left' }}>
                           <thead>
                             <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                              <th style={{ padding: '6px 10px', width: '50px' }}>Line</th>
+                              <th style={{ padding: '6px 10px', width: '90px' }}>Original Line</th>
                               <th style={{ padding: '6px 10px', width: '120px' }}>Section</th>
                               <th style={{ padding: '6px 10px' }}>Original Code</th>
                               <th style={{ padding: '6px 10px' }}>Verify Action / Guidance</th>
@@ -715,32 +738,58 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   )}
                 </div>
               )}
-              <div className="diff-preview__panels" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', minHeight: '550px' }}>
-                <div className="diff-preview__pane" style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-elevated)' }}>
-                  <div className="diff-preview__pane-header" style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="diff-preview__pane-icon" style={{ fontSize: '0.9rem' }}>📄</span>
-                      <span className="diff-preview__pane-label" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Original Legacy Script</span>
-                    </div>
-                    <span className="diff-preview__pane-hint" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{state.psadtFileName || 'Uploaded .ps1'}</span>
-                  </div>
-                  <pre className="diff-preview__code" style={{ padding: 'var(--space-md)', margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: '0.72rem', lineHeight: 1.6, color: 'var(--text-secondary)', background: 'rgba(8, 10, 20, 0.9)', overflow: 'auto', height: '500px', boxSizing: 'border-box', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {state._scriptContent || psadtResult?.scriptContent}
-                  </pre>
+
+              {/* Display view based on legacy script presence and layout choice */}
+              {!hasLegacyScript ? (
+                <div style={{ minHeight: '550px' }}>
+                  <CodePreview
+                    code={activeScript}
+                    filename="Invoke-AppDeployToolkit.ps1"
+                    activePhase={activePhase}
+                    maxHeight="600px"
+                  />
                 </div>
-                <div className="diff-preview__pane" style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-elevated)' }}>
-                  <div className="diff-preview__pane-header" style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifycontent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="diff-preview__pane-icon" style={{ fontSize: '0.9rem' }}>📋</span>
-                      <span className="diff-preview__pane-label" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Converted Structured Script</span>
-                    </div>
-                    <span className="diff-preview__pane-hint" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1'}</span>
-                  </div>
-                  <pre className="diff-preview__code" style={{ padding: 'var(--space-md)', margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: '0.72rem', lineHeight: 1.6, color: 'var(--text-secondary)', background: 'rgba(8, 10, 20, 0.9)', overflow: 'auto', height: '500px', boxSizing: 'border-box', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {activeScript}
-                  </pre>
+              ) : layout === 'side-by-side' ? (
+                <div className="diff-preview__panels" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', minHeight: '550px' }}>
+                  <CodePreview
+                    code={state._scriptContent || psadtResult?.scriptContent}
+                    filename={state.psadtFileName || 'Deploy-Application.ps1'}
+                  />
+                  <CodePreview
+                    code={activeScript}
+                    filename="Invoke-AppDeployToolkit.ps1"
+                    activePhase={activePhase}
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="diff-preview__panels" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📄 Original Legacy Script:</span>
+                      <span style={{ color: 'var(--text-accent)' }}>{state.psadtFileName || 'Deploy-Application.ps1'}</span>
+                    </div>
+                    <CodePreview
+                      code={state._scriptContent || psadtResult?.scriptContent}
+                      filename={state.psadtFileName || 'Deploy-Application.ps1'}
+                      hideHeader={true}
+                      maxHeight="320px"
+                    />
+                  </div>
+                  <div style={{ flex: 1, marginTop: 'var(--space-sm)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📋 Converted Structured Script:</span>
+                      <span style={{ color: 'var(--text-accent)' }}>Invoke-AppDeployToolkit.ps1</span>
+                    </div>
+                    <CodePreview
+                      code={activeScript}
+                      filename="Invoke-AppDeployToolkit.ps1"
+                      activePhase={activePhase}
+                      hideHeader={true}
+                      maxHeight="320px"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

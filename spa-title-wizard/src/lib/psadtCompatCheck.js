@@ -122,7 +122,7 @@ const BOOL_TO_SWITCH = [
  */
 export function checkV3Compatibility(scriptContent) {
   const findings = [];
-  const lines = scriptContent.split('\n');
+  const lines = (scriptContent || '').split(/\r?\n/);
 
   // ── Build a section map: lineIndex → section name ─────────────────────
   // v3 scripts use markers like:  ##*=======================================
@@ -130,12 +130,12 @@ export function checkV3Compatibility(scriptContent) {
   //                                ##*=======================================
   const SECTION_MARKERS = [
     { regex: /^\s*##\*.*VARIABLE\s+DECLARATION/i, label: 'Variable Declaration' },
-    { regex: /^\s*##\*.*PRE-INSTALL/i,            label: 'Pre-Installation' },
-    { regex: /^\s*##\*.*POST-INSTALL/i,           label: 'Post-Installation' },
-    { regex: /^\s*##\*.*INSTALL/i,                label: 'Installation' },
     { regex: /^\s*##\*.*PRE-UNINSTALL/i,          label: 'Pre-Uninstallation' },
     { regex: /^\s*##\*.*POST-UNINSTALL/i,         label: 'Post-Uninstallation' },
     { regex: /^\s*##\*.*UNINSTALL/i,              label: 'Uninstallation' },
+    { regex: /^\s*##\*.*PRE-INSTALL/i,            label: 'Pre-Installation' },
+    { regex: /^\s*##\*.*POST-INSTALL/i,           label: 'Post-Installation' },
+    { regex: /^\s*##\*.*INSTALL/i,                label: 'Installation' },
     { regex: /^\s*##\*.*PRE-REPAIR/i,             label: 'Pre-Repair' },
     { regex: /^\s*##\*.*POST-REPAIR/i,            label: 'Post-Repair' },
     { regex: /^\s*##\*.*REPAIR/i,                 label: 'Repair' },
