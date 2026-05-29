@@ -15,138 +15,7 @@ import './windows-steps.css';
  * Dedicated card for raw_ps (unparsed block) actions.
  * Shows the full PowerShell block in a resizable monospace editor with a warning badge.
  */
-function formatPowerShell(code) {
-  if (!code) return '';
-  const lines = code.split(/\r?\n/);
-  let indentLevel = 0;
-  const formattedLines = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
-
-    // Decrease indent level if line starts with closing brace
-    if (line.startsWith('}')) {
-      indentLevel = Math.max(0, indentLevel - 1);
-    }
-
-    // Generate indentation spaces
-    const indent = ' '.repeat(indentLevel * 4);
-
-    if (line) {
-      formattedLines.push(indent + line);
-    } else {
-      formattedLines.push('');
-    }
-
-    // Adjust indent level for next line
-    const openBraces = (line.match(/{/g) || []).length;
-    const closeBraces = (line.match(/}/g) || []).length;
-    indentLevel += openBraces - closeBraces;
-    indentLevel = Math.max(0, indentLevel);
-  }
-
-  return formattedLines.join('\n');
-}
-
-function validateSyntax(code) {
-  const errors = [];
-  if (!code) return errors;
-
-  const lines = code.split(/\r?\n/);
-  const stack = [];
-  let spaBlockOpen = false;
-  let spaBlockLine = 0;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-
-    // SPA Block Checks
-    if (/#\s*<SPA:Action\b/.test(line)) {
-      if (spaBlockOpen) {
-        errors.push({
-          line: lineNum,
-          message: `Mismatched # <SPA:Action> block tag! Found start of block while another block starting at line ${spaBlockLine} is still open.`
-        });
-      }
-      spaBlockOpen = true;
-      spaBlockLine = lineNum;
-    }
-    if (/#\s*<\/SPA:Action>/.test(line)) {
-      if (!spaBlockOpen) {
-        errors.push({
-          line: lineNum,
-          message: `Orphaned closing tag # </SPA:Action> without a matching opening tag.`
-        });
-      }
-      spaBlockOpen = false;
-    }
-
-    // Skip comment lines for bracket/brace linting
-    if (/^\s*#/.test(line)) continue;
-
-    let inSingleQuote = false;
-    let inDoubleQuote = false;
-
-    for (let c = 0; c < line.length; c++) {
-      const char = line[c];
-
-      // Handle quotes escaping and string state
-      if (char === "'" && !inDoubleQuote) {
-        inSingleQuote = !inSingleQuote;
-        continue;
-      }
-      if (char === '"' && !inSingleQuote) {
-        inDoubleQuote = !inDoubleQuote;
-        continue;
-      }
-
-      if (inSingleQuote || inDoubleQuote) continue;
-
-      if (char === '{') stack.push({ char, line: lineNum });
-      if (char === '(') stack.push({ char, line: lineNum });
-      if (char === '[') stack.push({ char, line: lineNum });
-
-      if (char === '}') {
-        const last = stack.pop();
-        if (!last || last.char !== '{') {
-          errors.push({ line: lineNum, message: `Mismatched closing brace '}' without a matching opening '{'.` });
-        }
-      }
-      if (char === ')') {
-        const last = stack.pop();
-        if (!last || last.char !== '(') {
-          errors.push({ line: lineNum, message: `Mismatched closing parenthesis ')' without a matching opening '('.` });
-        }
-      }
-      if (char === ']') {
-        const last = stack.pop();
-        if (!last || last.char !== '[') {
-          errors.push({ line: lineNum, message: `Mismatched closing bracket ']' without a matching opening '['.` });
-        }
-      }
-    }
-  }
-
-  if (spaBlockOpen) {
-    errors.push({
-      line: spaBlockLine,
-      message: `Unclosed # <SPA:Action> block. This block started at line ${spaBlockLine} and must be closed with # </SPA:Action>.`
-    });
-  }
-
-  // Check remaining items in stack
-  while (stack.length > 0) {
-    const item = stack.pop();
-    const typeName = item.char === '{' ? 'brace' : item.char === '(' ? 'parenthesis' : 'bracket';
-    errors.push({
-      line: item.line,
-      message: `Mismatched opening ${typeName} '${item.char}' at line ${item.line} is never closed.`
-    });
-  }
-
-  return errors;
-}
+// Functions formatPowerShell and validateSyntax removed - editing is offloaded to VS Code
 
 /**
  * Dedicated card for raw_ps (unparsed block) actions.
@@ -398,13 +267,10 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   }, [!!conversionStats]); // run once when conversion stats are first available
 
   const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'script'
-  const [localScript, setLocalScript] = useState('');
-  const [lintErrors, setLintErrors] = useState([]);
-  const lineNumbersRef = useRef(null);
-  const textareaRef = useRef(null);
   const [activePhase, setActivePhase] = useState(null);
+  const [vsCodeOpening, setVsCodeOpening] = useState(false);
 
-  // Wrapped local handlers that trigger scroll sync on visual changes!
+  // Wrapped local handlers
   const handleAddAction = (phaseKey, action) => {
     addAction(phaseKey, action);
     setActivePhase(phaseKey + '_' + Date.now());
@@ -424,119 +290,41 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   // Generate compiled script or load customized script
   const compiledScript = useMemo(() => {
-    if (state.isCustomized) {
-      return state.customScriptContent || generatePsadtScript(state);
-    }
     return generatePsadtScript(state);
   }, [state]);
 
-  // Synchronize local script with the generated script when state changes
+  const activeScript = useMemo(() => {
+    return state.isCustomized ? (state.customScriptContent || compiledScript) : compiledScript;
+  }, [state.isCustomized, state.customScriptContent, compiledScript]);
+
+  // Seamless background file sync when Customized in VS Code
   useEffect(() => {
-    const latestScript = generatePsadtScript(state);
-    
-    if (!state.isCustomized) {
-      // Form-Synchronized mode: always keep localScript in sync with forms
-      setLocalScript(latestScript);
-      setLintErrors(validateSyntax(latestScript));
-    } else {
-      // Customized mode: ONLY update script if the user made changes in visual/behavior tabs!
-      // If they are in the script tab, the editor code is the source of truth — do NOT overwrite it!
-      if (activeTab !== 'script') {
-        setLocalScript(latestScript);
-        setLintErrors(validateSyntax(latestScript));
-        if (latestScript !== state.customScriptContent) {
-          updateField('customScriptContent', latestScript);
+    if (state.isCustomized && state.packageId) {
+      const fetchLatestFromDisk = async () => {
+        try {
+          const scriptName = state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1';
+          const relPath = `windows/src/${scriptName}`;
+          const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.content && data.content !== state.customScriptContent) {
+              updateField('customScriptContent', data.content);
+            }
+          }
+        } catch (e) {
+          console.warn('Background sync failed:', e);
         }
+      };
+
+      fetchLatestFromDisk();
+
+      if (activeTab === 'script' || activeTab === 'compare') {
+        fetchLatestFromDisk();
       }
     }
-  }, [state, state.isCustomized, state.customScriptContent, activeTab]);
+  }, [state.isCustomized, state.packageId, activeTab]);
 
-  // Smooth scroll the manual editing textarea to the active phase marker
-  useEffect(() => {
-    if (!activePhase || !textareaRef.current || !state.isCustomized) return;
-
-    // Strip timestamp suffix if present
-    const phaseKey = activePhase.split('_')[0];
-
-    const phaseMarkers = {
-      variableDeclaration: '## MARK: Variables',
-      preInstall: '## MARK: Pre-Install',
-      install: '## MARK: Install',
-      postInstall: '## MARK: Post-Install',
-      preUninstall: '## MARK: Pre-Uninstall',
-      uninstall: '## MARK: Uninstall',
-      postUninstall: '## MARK: Post-Uninstall',
-      preRepair: '## MARK: Pre-Repair',
-      repair: '## MARK: Repair',
-      postRepair: '## MARK: Post-Repair'
-    };
-
-    const marker = phaseMarkers[phaseKey];
-    if (!marker) return;
-
-    const lines = localScript.split('\n');
-    const lineIndex = lines.findIndex(l => l.includes(marker));
-
-    if (lineIndex !== -1) {
-      // Line numbers and textarea have line-height: 1.7. Font size is 0.8rem (approx 12.8px).
-      // Line height is approx 21.76px. Let's calculate the exact offset.
-      const lineHeight = 21.76;
-      textareaRef.current.scrollTo({
-        top: Math.max(0, lineIndex * lineHeight - 15),
-        behavior: 'smooth'
-      });
-    }
-  }, [activePhase, state.isCustomized, localScript]);
-
-  const handleToggleCustomize = () => {
-    if (!state.isCustomized) {
-      const ok = window.confirm(
-        "Decouple script from visual builder?\n\nThis will allow you to edit the raw PowerShell script directly. Future changes to visual card forms will be dynamically parsed, but manually modified cards will lock visual inputs to preserve your custom code."
-      );
-      if (ok) {
-        updateFields({
-          customScriptContent: compiledScript,
-          isCustomized: true
-        });
-        setLocalScript(compiledScript);
-        setLintErrors(validateSyntax(compiledScript));
-      }
-    } else {
-      const ok = window.confirm(
-        "Reset to Form-Synchronized Mode?\n\nThis will discard ALL manual changes you made to the PowerShell script and link it back to the wizard forms. This action cannot be undone."
-      );
-      if (ok) {
-        updateFields({
-          isCustomized: false,
-          customScriptContent: ''
-        });
-      }
-    }
-  };
-
-  const handleScriptChange = (val) => {
-    setLocalScript(val);
-    updateField('customScriptContent', val);
-    
-    // Live syntax validation
-    const errs = validateSyntax(val);
-    setLintErrors(errs);
-
-    try {
-      // Live-parse the script blocks in the background to sync visual builder cards and locks!
-      const parsed = parsePsadtBlocks(val);
-      if (parsed && parsed.lifecycle) {
-        updateField('lifecycle', parsed.lifecycle);
-      }
-    } catch (e) {
-      console.error('Failed to live-parse custom script blocks:', e);
-    }
-  };
-
-  const [vsCodeSyncing, setVsCodeSyncing] = useState(false);
-  const [vsCodeOpening, setVsCodeOpening] = useState(false);
-
-  const handleOpenInVsCode = async () => {
+  const handleOpenInVsCode = async (overrideContent = null) => {
     if (!state.packageId) {
       alert('Please specify a Package ID in the Basic Info step first.');
       return;
@@ -552,13 +340,12 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         body: JSON.stringify({
           packageId: state.packageId,
           relativePath: relPath,
-          content: localScript // save browser's current code to disk!
+          content: overrideContent || state.customScriptContent || compiledScript
         })
       });
       const data = await res.json();
       if (data.success) {
         if (data.method === 'protocol' && data.url) {
-          // Fallback url scheme redirection
           window.location.href = data.url;
         }
       } else {
@@ -572,48 +359,28 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
   };
 
-  const handleSyncFromVsCode = async () => {
-    if (!state.packageId) return;
-    setVsCodeSyncing(true);
-    try {
-      const scriptName = state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1';
-      const relPath = `windows/src/${scriptName}`;
-      
-      const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
-      if (!res.ok) {
-        throw new Error(await res.text() || 'File not found locally');
+  const handleToggleCustomize = () => {
+    if (!state.isCustomized) {
+      const ok = window.confirm(
+        "Decouple script from visual builder?\n\nThis will write the fully converted Invoke-AppDeployToolkit script to disk and open it in local VS Code. Future manual edits must be done directly in VS Code."
+      );
+      if (ok) {
+        updateFields({
+          isCustomized: true,
+          customScriptContent: compiledScript
+        });
+        handleOpenInVsCode(compiledScript);
       }
-      const data = await res.json();
-      if (data.content) {
-        handleScriptChange(data.content);
-        alert('📥 Successfully synchronized edits from local VS Code file!');
+    } else {
+      const ok = window.confirm(
+        "Reset to Form-Synchronized Mode?\n\nThis will discard ALL manual changes you made to the PowerShell script and link it back to the wizard forms. This action cannot be undone."
+      );
+      if (ok) {
+        updateFields({
+          isCustomized: false,
+          customScriptContent: ''
+        });
       }
-    } catch (e) {
-      console.error('Failed to sync from disk:', e);
-      alert(`Could not sync from VS Code file: ${e.message}\n\nMake sure you have clicked "Open in VS Code" at least once to save the file locally first.`);
-    } finally {
-      setVsCodeSyncing(false);
-    }
-  };
-
-  const handleFormatScript = () => {
-    const formatted = formatPowerShell(localScript);
-    setLocalScript(formatted);
-    updateField('customScriptContent', formatted);
-    setLintErrors(validateSyntax(formatted));
-    try {
-      const parsed = parsePsadtBlocks(formatted);
-      if (parsed && parsed.lifecycle) {
-        updateField('lifecycle', parsed.lifecycle);
-      }
-    } catch (e) {
-      console.error('Failed to live-parse formatted script blocks:', e);
-    }
-  };
-
-  const handleScroll = (e) => {
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = e.target.scrollTop;
     }
   };
 
@@ -815,47 +582,26 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               <div className="script-editor__header">
                 <div className="script-editor__info">
                   <span className={`badge ${state.isCustomized ? 'badge--custom' : 'badge--sync'}`}>
-                    {state.isCustomized ? '🔓 Customized Manually' : '🔒 Form-Synchronized'}
+                    {state.isCustomized ? '🔓 Customized in VS Code' : '🔒 Form-Synchronized'}
                   </span>
                   <span className="script-editor__desc">
                     {state.isCustomized 
-                      ? 'Visual actions and script are synchronized. Custom edits in blocks will lock visual inputs.' 
+                      ? 'Manual changes are made directly in VS Code. Form-synchronized baseline is shown below.' 
                       : 'Generated from form inputs. Read-only preview.'}
                   </span>
                 </div>
                 <div className="script-editor__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {state.isCustomized && (
-                    <>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-secondary"
-                        onClick={handleOpenInVsCode}
-                        disabled={vsCodeOpening}
-                        title="Open this file in local VS Code"
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-secondary"
-                        onClick={handleSyncFromVsCode}
-                        disabled={vsCodeSyncing}
-                        title="Sync edits from the local file on disk"
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        {vsCodeSyncing ? '⏳ Syncing...' : '📥 Sync from VS Code'}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-secondary"
-                        onClick={handleFormatScript}
-                        title="Auto-indent and clean up PowerShell code formatting"
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        🧹 Format
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handleOpenInVsCode()}
+                      disabled={vsCodeOpening}
+                      title="Open this file in local VS Code"
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
+                    </button>
                   )}
                   {/* Pristine Code Toggle */}
                   <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -879,59 +625,18 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     className={`btn btn-sm ${state.isCustomized ? 'btn-secondary' : 'btn-primary'}`} 
                     onClick={handleToggleCustomize}
                   >
-                    {state.isCustomized ? '🔒 Lock Sync' : '✏️ Customize'}
+                    {state.isCustomized ? '🔒 Lock Sync (Reset)' : '✏️ Customize in VS Code'}
                   </button>
                 </div>
               </div>
               
               <div className="script-editor__body">
-                {state.isCustomized ? (
-                  <div className="textarea-editor-container">
-                    <div className="line-numbers" ref={lineNumbersRef}>
-                      {localScript.split('\n').map((_, i) => (
-                        <span key={i}>{i + 1}</span>
-                      ))}
-                    </div>
-                    <textarea
-                      className="textarea-editor"
-                      ref={textareaRef}
-                      value={localScript}
-                      onChange={(e) => handleScriptChange(e.target.value)}
-                      onScroll={handleScroll}
-                      spellCheck="false"
-                      autoFocus
-                    />
-                  </div>
-                ) : (
-                  <CodePreview
-                    code={compiledScript}
-                    filename="Invoke-AppDeployToolkit.ps1"
-                    activePhase={activePhase}
-                  />
-                )}
+                <CodePreview
+                  code={activeScript}
+                  filename={state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1'}
+                  activePhase={activePhase}
+                />
               </div>
-
-              {state.isCustomized && (
-                <div className="linter-panel">
-                  <div className="linter-panel__header">
-                    <span className="linter-panel__icon">{lintErrors.length === 0 ? '✅' : '⚠️'}</span>
-                    <span className="linter-panel__title">
-                      {lintErrors.length === 0 ? 'PowerShell Syntax Check Passed' : `PowerShell Syntax Warnings (${lintErrors.length})`}
-                    </span>
-                  </div>
-                  {lintErrors.length > 0 ? (
-                    <ul className="linter-panel__errors">
-                      {lintErrors.map((err, idx) => (
-                        <li key={idx} className="linter-panel__error-item">
-                          <span className="linter-panel__line">Line {err.line}:</span> {err.message}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="linter-panel__ok-msg">No syntax errors, unmatched braces, or unclosed quotes found. Ready for deployment.</div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -1024,15 +729,15 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   </pre>
                 </div>
                 <div className="diff-preview__pane" style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-elevated)' }}>
-                  <div className="diff-preview__pane-header" style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="diff-preview__pane-header" style={{ padding: 'var(--space-sm) var(--space-md)', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifycontent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className="diff-preview__pane-icon" style={{ fontSize: '0.9rem' }}>📋</span>
                       <span className="diff-preview__pane-label" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.78rem' }}>Converted Structured Script</span>
                     </div>
-                    <span className="diff-preview__pane-hint" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Invoke-AppDeployToolkit.ps1</span>
+                    <span className="diff-preview__pane-hint" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1'}</span>
                   </div>
                   <pre className="diff-preview__code" style={{ padding: 'var(--space-md)', margin: 0, fontFamily: 'var(--font-mono, monospace)', fontSize: '0.72rem', lineHeight: 1.6, color: 'var(--text-secondary)', background: 'rgba(8, 10, 20, 0.9)', overflow: 'auto', height: '500px', boxSizing: 'border-box', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {localScript}
+                    {activeScript}
                   </pre>
                 </div>
               </div>
