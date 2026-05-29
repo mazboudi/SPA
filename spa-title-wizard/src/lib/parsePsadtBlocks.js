@@ -130,17 +130,29 @@ export default function parsePsadtBlocks(content) {
     // Detect function boundaries to switch phases
     if (/function\s+Install-ADTDeployment/.test(line)) {
       currentPhase = 'preInstall';
-      bracesCount = line.includes('{') ? 1 : 0;
+      bracesCount = 0;
+      for (const ch of line) {
+        if (ch === '{') bracesCount++;
+        if (ch === '}') bracesCount--;
+      }
       continue;
     }
     if (/function\s+Uninstall-ADTDeployment/.test(line)) {
       currentPhase = 'preUninstall';
-      bracesCount = line.includes('{') ? 1 : 0;
+      bracesCount = 0;
+      for (const ch of line) {
+        if (ch === '{') bracesCount++;
+        if (ch === '}') bracesCount--;
+      }
       continue;
     }
     if (/function\s+Repair-ADTDeployment/.test(line)) {
       currentPhase = 'preRepair';
-      bracesCount = line.includes('{') ? 1 : 0;
+      bracesCount = 0;
+      for (const ch of line) {
+        if (ch === '{') bracesCount++;
+        if (ch === '}') bracesCount--;
+      }
       result.lifecycle.repairMode = 'custom'; // If Repair-ADTDeployment function is defined, it is a custom repair
       continue;
     }
@@ -154,25 +166,32 @@ export default function parsePsadtBlocks(content) {
         continue;
       }
 
-      if (line.includes('{')) bracesCount++;
-      if (line.includes('}')) bracesCount--;
+      // Track exact nested braces
+      let tempBraces = bracesCount;
+      for (const ch of line) {
+        if (ch === '{') tempBraces++;
+        if (ch === '}') tempBraces--;
+      }
 
       // Detect sub-phase marker overrides
       if (currentPhase.startsWith('pre') && /##\s*MARK:\s*(Install|Uninstall|Repair)\b/.test(line)) {
         currentPhase = currentPhase.replace('pre', '').toLowerCase();
+        bracesCount = tempBraces;
         continue;
       }
       if (!currentPhase.startsWith('post') && /##\s*MARK:\s*Post-/.test(line)) {
         const type = currentPhase.includes('install') ? 'install' : currentPhase.includes('uninstall') ? 'uninstall' : 'repair';
         currentPhase = 'post' + type.charAt(0).toUpperCase() + type.slice(1);
+        bracesCount = tempBraces;
         continue;
       }
 
-      if (bracesCount <= 0) {
+      if (tempBraces <= 0) {
         currentPhase = null; // exited function block
         continue;
       }
 
+      bracesCount = tempBraces;
       phaseLines[currentPhase].push(line);
     }
   }

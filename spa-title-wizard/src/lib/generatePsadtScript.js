@@ -458,8 +458,14 @@ $adtSession = @{
     DeployAppScriptVersion      = '${frameworkVersion}'${standardVars.length > 0 ? '\n' + standardVars.join('\n') : ''}
 }
 
+
+##================================================
+## MARK: Deployment Flow
+##================================================
+
 function Install-ADTDeployment
 {
+
     [CmdletBinding()]
     param
     (
