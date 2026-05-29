@@ -223,13 +223,21 @@ export default function parsePsadtBlocks(content) {
           .trim();
 
         if (cleanRaw) {
-          actions.push({
-            type: 'raw_ps',
-            enabled: true,
-            script: cleanRaw,
-            note: 'Legacy or custom script block',
-            isManuallyEdited: true
+          // Check if cleanRaw contains at least one line of executable code
+          const hasExecutableCode = cleanRaw.split('\n').some(line => {
+            const t = line.trim();
+            return t && !t.startsWith('#') && !t.startsWith('<#');
           });
+
+          if (hasExecutableCode) {
+            actions.push({
+              type: 'raw_ps',
+              enabled: true,
+              script: cleanRaw,
+              note: 'Legacy or custom script block',
+              isManuallyEdited: true
+            });
+          }
         }
         currentRawBuffer = [];
       }

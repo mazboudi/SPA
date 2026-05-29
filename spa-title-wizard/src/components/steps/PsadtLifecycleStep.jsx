@@ -302,7 +302,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     if (state.isCustomized && state.packageId) {
       const fetchLatestFromDisk = async () => {
         try {
-          const scriptName = state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1';
+          const scriptName = 'Invoke-AppDeployToolkit.ps1';
           const relPath = `windows/src/${scriptName}`;
           const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
           if (res.ok) {
@@ -331,7 +331,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
     setVsCodeOpening(true);
     try {
-      const scriptName = state.psadtVersion === 'v3' ? 'Deploy-Application.ps1' : 'Invoke-AppDeployToolkit.ps1';
+      const scriptName = 'Invoke-AppDeployToolkit.ps1';
       const relPath = `windows/src/${scriptName}`;
       
       const res = await fetch('/api/open-vscode', {

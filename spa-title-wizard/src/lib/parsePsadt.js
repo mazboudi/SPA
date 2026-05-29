@@ -835,14 +835,22 @@ function extractBlockActions(block) {
       }
       const trimmedLines = customBuffer.slice(start, end + 1);
       if (trimmedLines.length > 0) {
-        const scriptText = modernizeLegacyScriptParts(trimmedLines.join('\n'));
-        actions.push({
-          type: 'raw_ps',
-          desc: `PowerShell block: ${scriptText.split('\n')[0].trim().substring(0, 60)}`,
-          script: scriptText,
-          note: 'PowerShell script block',
-          enabled: true,
+        // Only flush if there is at least one line with executable code (not comment only)
+        const hasExecutableCode = trimmedLines.some(line => {
+          const t = line.trim();
+          return t && !t.startsWith('#') && !t.startsWith('<#');
         });
+
+        if (hasExecutableCode) {
+          const scriptText = modernizeLegacyScriptParts(trimmedLines.join('\n'));
+          actions.push({
+            type: 'raw_ps',
+            desc: `PowerShell block: ${scriptText.split('\n')[0].trim().substring(0, 60)}`,
+            script: scriptText,
+            note: 'PowerShell script block',
+            enabled: true,
+          });
+        }
       }
       customBuffer.length = 0; // clear
     }
