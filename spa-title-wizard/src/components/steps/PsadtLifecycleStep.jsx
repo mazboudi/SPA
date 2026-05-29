@@ -312,30 +312,58 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   // Seamless background file sync when Customized in VS Code
   useEffect(() => {
-    if (state.isCustomized && state.packageId) {
-      const fetchLatestFromDisk = async () => {
-        try {
-          const scriptName = 'Invoke-AppDeployToolkit.ps1';
-          const relPath = `windows/src/${scriptName}`;
-          const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.content && data.content !== state.customScriptContent) {
-              updateField('customScriptContent', data.content);
-            }
+    if (!state.isCustomized || !state.packageId) return;
+
+    const fetchLatestFromDisk = async () => {
+      try {
+        const scriptName = 'Invoke-AppDeployToolkit.ps1';
+        const relPath = `windows/src/${scriptName}`;
+        const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.content && data.content !== state.customScriptContent) {
+            updateField('customScriptContent', data.content);
           }
-        } catch (e) {
-          console.warn('Background sync failed:', e);
         }
-      };
+      } catch (e) {
+        console.warn('Background sync failed:', e);
+      }
+    };
 
-      fetchLatestFromDisk();
+    // Fetch once on mount/tab change
+    fetchLatestFromDisk();
 
+    // Auto-fetch whenever the browser window is refocused!
+    const handleWindowFocus = () => {
       if (activeTab === 'compare') {
         fetchLatestFromDisk();
       }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [state.isCustomized, state.packageId, activeTab, state.customScriptContent]);
+
+  // Manual trigger to force re-reading the customized script from disk
+  const handleManualRefresh = async () => {
+    if (!state.packageId) return;
+    try {
+      const scriptName = 'Invoke-AppDeployToolkit.ps1';
+      const relPath = `windows/src/${scriptName}`;
+      const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.content) {
+          updateField('customScriptContent', data.content);
+          copyToClipboard('', 'synced'); // trigger ✓ Synced indicator
+        }
+      }
+    } catch (e) {
+      console.warn('Manual sync failed:', e);
     }
-  }, [state.isCustomized, state.packageId, activeTab]);
+  };
 
   const handleOpenInVsCode = async (overrideContent = null) => {
     if (!state.packageId) {
@@ -664,6 +692,19 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       </span>
                     </label>
                   </div>
+
+                  {/* Manual Refresh / Sync Button (only visible in customized mode) */}
+                  {state.isCustomized && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={handleManualRefresh}
+                      title="Read latest customized script from disk"
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {copiedText === 'synced' ? '✓ Synced' : '🔄 Sync'}
+                    </button>
+                  )}
 
                   {/* Customize in VS Code Button */}
                   <button 
