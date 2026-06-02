@@ -265,6 +265,17 @@ export default function useWizardState() {
         next.appDeveloper = value;
       }
 
+      // Keep intuneAppName in sync with basic info changes if untouched or currently matching the old default
+      const oldDefault = `${prev.publisher || ''} ${prev.displayName || ''} ${prev.version || ''}`.trim().replace(/\s+/g, ' ');
+      if (['displayName', 'publisher', 'version'].includes(field)) {
+        if (!prev.intuneAppName || prev.intuneAppName === oldDefault) {
+          const pub = field === 'publisher' ? value : prev.publisher;
+          const name = field === 'displayName' ? value : prev.displayName;
+          const ver = field === 'version' ? value : prev.version;
+          next.intuneAppName = `${pub || ''} ${name || ''} ${ver || ''}`.trim().replace(/\s+/g, ' ');
+        }
+      }
+
       // Auto-migrate action cards when installerType changes
       if (field === 'installerType') {
         return syncInstallerActions(next, prev.installerType);
@@ -511,6 +522,11 @@ export default function useWizardState() {
       // Auto-derive packageId if displayName was set
       if (next.displayName && (!next.packageId || next.packageId === prev.packageId)) {
         next.packageId = toKebabCase(next.displayName);
+      }
+
+      // Auto-populate intuneAppName if not already set
+      if (!next.intuneAppName) {
+        next.intuneAppName = `${next.publisher || ''} ${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
       }
 
       // Auto-fill installer source filename from parsed MSI/EXE data
