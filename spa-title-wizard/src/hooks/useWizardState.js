@@ -122,6 +122,7 @@ const INITIAL_STATE = {
   macExtensionAttribute: false, // whether to generate the Jamf extension attribute script
 
   // Intune App Metadata
+  intuneAppName: '',
   appDescription: '',
   informationUrl: '',
   privacyUrl: '',
@@ -348,11 +349,6 @@ export default function useWizardState() {
       { id: 'basic', label: 'Project Info', icon: '📋' },
     ];
 
-    // Edit mode skips platform selection (already known)
-    if (state.wizardMode !== 'edit') {
-      base.push({ id: 'platform', label: 'Platform', icon: '🖥️' });
-    }
-
     if (state.platform === 'windows' || state.platform === 'both') {
       base.push({ id: 'installer', label: 'Installer', icon: '📦' });
       base.push({ id: 'psadt', label: 'PSADT', icon: '⚡' });
@@ -374,9 +370,7 @@ export default function useWizardState() {
 
     switch (step.id) {
       case 'basic':
-        return !!(state.displayName.trim() && state.version.trim() && state.category);
-      case 'platform':
-        return !!state.platform;
+        return !!(state.displayName.trim() && state.version.trim() && state.category && state.platform);
       case 'psadt':
         return true;
       case 'installer':
@@ -528,6 +522,11 @@ export default function useWizardState() {
         }
       }
 
+      // Ensure platform is set for the wizard flow
+      if (!next.platform) {
+        next.platform = 'windows';
+      }
+
       return next;
     });
     setCurrentStep(0);
@@ -553,6 +552,11 @@ export default function useWizardState() {
           continue;
         }
         next[key] = value;
+      }
+
+      // If we got a displayName from Intune, map it to intuneAppName to keep customization
+      if (intuneFields.displayName) {
+        next.intuneAppName = intuneFields.displayName;
       }
 
       // Auto-derive packageId from displayName

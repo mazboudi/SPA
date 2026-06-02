@@ -410,6 +410,47 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+// ── GET /api/projects/check — check if a project path already exists in GitLab ──
+app.get('/api/projects/check', async (req, res) => {
+  try {
+    const { path } = req.query;
+    if (!path) return res.status(400).json({ error: 'path is required' });
+
+    console.log(`\n🔍 Checking if GitLab project exists: ${path}`);
+    try {
+      const project = await gitlab('GET', `/projects/${encPath(path)}`);
+      
+      // Fetch tags/versions for enriched metadata
+      let tags = [];
+      try {
+        const tagData = await gitlab('GET', `/projects/${project.id}/repository/tags?per_page=20&order_by=version`);
+        tags = tagData.map(t => ({ name: t.name, message: t.message || '' }));
+      } catch { /* no tags */ }
+
+      return res.json({
+        exists: true,
+        project: {
+          id: project.id,
+          name: project.name,
+          path: project.path,
+          path_with_namespace: project.path_with_namespace,
+          web_url: project.web_url,
+          default_branch: project.default_branch || 'main',
+          tags
+        }
+      });
+    } catch (err) {
+      if (err.status === 404) {
+        return res.json({ exists: false });
+      }
+      throw err;
+    }
+  } catch (err) {
+    console.error('❌ Project check failed:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 // ── GET /api/projects/:id/files — fetch config files for editing ────────────
 app.get('/api/projects/:id/files', async (req, res) => {
   try {

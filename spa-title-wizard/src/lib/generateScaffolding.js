@@ -208,7 +208,7 @@ ${v3Flag}`;
 
     // Intune app.json
     files['windows/intune/app.json'] = JSON.stringify({
-      displayName: s.displayName,
+      displayName: s.intuneAppName || `${s.publisher || ''} ${s.displayName || ''} ${s.version || ''}`.trim().replace(/\s+/g, ' '),
       description: s.appDescription || 'TODO: Add application description.',
       publisher: s.publisher,
       appVersion: s.version,

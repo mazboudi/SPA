@@ -345,14 +345,19 @@ export default function IntuneConfigStep({ state, updateField }) {
         {/* ==========================================
             TAB: APP INFORMATION
             ========================================== */}
-        {activeTab === 'info' && (
-          <div className="animate-in">
-            <div className="config-section">
-              <h3 className="section-title">App Metadata</h3>
-              <div className="form-grid">
-                <FormField label="Description" id="appDescription">
-                  <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
-                </FormField>
+        {activeTab === 'info' && (() => {
+          const defaultIntuneAppName = `${state.publisher || ''} ${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+          return (
+            <div className="animate-in">
+              <div className="config-section">
+                <h3 className="section-title">App Metadata</h3>
+                <div className="form-grid">
+                  <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to Publisher + App Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
+                    <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Fiserv Google Chrome 134.0'}`} value={state.intuneAppName || ''} onChange={e => updateField('intuneAppName', e.target.value)} />
+                  </FormField>
+                  <FormField label="Description" id="appDescription">
+                    <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
+                  </FormField>
                 <FormField label="Publisher" id="publisher">
                   <input id="publisher" type="text" placeholder="e.g. Microsoft, Adobe" value={state.publisher || ''} onChange={e => updateField('publisher', e.target.value)} />
                 </FormField>
@@ -403,7 +408,8 @@ export default function IntuneConfigStep({ state, updateField }) {
               </div>
             </div>
           </div>
-        )}
+        );
+      })()}
 
         {/* ==========================================
             TAB: PROGRAM
@@ -812,9 +818,12 @@ export default function IntuneConfigStep({ state, updateField }) {
 function IntuneMetaSummary({ state }) {
   const [expanded, setExpanded] = useState(true);
 
+  const defaultIntuneAppName = `${state.publisher || ''} ${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+  const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
+
   // Build metadata rows — show all Intune-relevant fields with their current values
   const metaRows = [
-    { label: 'Display Name', value: state.displayName },
+    { label: 'Display Name', value: intuneAppNameValue },
     { label: 'Publisher', value: state.publisher },
     { label: 'Version', value: state.version },
     { label: 'Description', value: state.appDescription, truncate: true },

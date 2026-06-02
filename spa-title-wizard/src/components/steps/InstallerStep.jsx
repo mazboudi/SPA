@@ -40,7 +40,16 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageId: pkg, version }),
       });
-      const data = await res.json();
+      
+      let data = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text.substring(0, 100) || `Server error ${res.status}`);
+      }
+
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setWingetResult(data);
     } catch (err) {
@@ -159,7 +168,16 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: p }),
       });
-      const meta = await res.json();
+      
+      let meta = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        meta = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text.substring(0, 100) || `Server error ${res.status}`);
+      }
+
       if (!res.ok) throw new Error(meta.error || `Server error ${res.status}`);
       applyMsiMeta(meta);
     } catch (err) {

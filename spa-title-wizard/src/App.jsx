@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import useWizardState from './hooks/useWizardState';
 import WizardStepper from './components/WizardStepper';
 import BasicInfoStep from './components/steps/BasicInfoStep';
-import PlatformStep from './components/steps/PlatformStep';
 import PsadtLifecycleStep from './components/steps/PsadtLifecycleStep';
 import InstallerStep from './components/steps/InstallerStep';
 import IntuneConfigStep from './components/steps/IntuneConfigStep';
@@ -102,6 +101,30 @@ export default function App() {
     setShowModeSelector(false);
   };
 
+  // ── Load an existing project directly from Basic Info warning ──────
+  const handleLoadExistingProject = async (projectPath) => {
+    try {
+      // 1. Resolve project by its full namespace path
+      const checkRes = await fetch(`/api/projects/check?path=${encodeURIComponent(projectPath)}`);
+      if (!checkRes.ok) throw new Error(`Server returned ${checkRes.status}`);
+      const checkData = await checkRes.json();
+      if (!checkData.exists) throw new Error('Project no longer exists in GitLab.');
+
+      const project = checkData.project;
+
+      // 2. Fetch the project's config files from main branch
+      const filesRes = await fetch(`/api/projects/${project.id}/files`);
+      if (!filesRes.ok) throw new Error(`HTTP ${filesRes.status} trying to read files.`);
+      const filesData = await filesRes.json();
+
+      // 3. Hydrate edit state and transition seamlessly
+      const enrichedMeta = { ...filesData.projectMeta, tags: project.tags || [] };
+      wizard.importProjectForEdit(filesData.files, enrichedMeta);
+    } catch (err) {
+      alert(`Failed to transition to existing project: ${err.message}`);
+    }
+  };
+
   const handleStartOver = () => {
     wizard.reset();
     setShowModeSelector(true);
@@ -137,9 +160,7 @@ export default function App() {
   const renderStep = () => {
     switch (currentStepId) {
       case 'basic':
-        return <BasicInfoStep state={wizard.state} updateField={wizard.updateField} CATEGORIES={wizard.CATEGORIES} />;
-      case 'platform':
-        return <PlatformStep state={wizard.state} updateField={wizard.updateField} />;
+        return <BasicInfoStep state={wizard.state} updateField={wizard.updateField} CATEGORIES={wizard.CATEGORIES} onLoadExistingProject={handleLoadExistingProject} />;
       case 'psadt':
         return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':

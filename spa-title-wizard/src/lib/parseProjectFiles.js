@@ -97,6 +97,7 @@ export function parseProjectFiles(files) {
   if (files['windows/intune/app.json']) {
     try {
       const intuneApp = JSON.parse(files['windows/intune/app.json']);
+      state.intuneAppName = intuneApp.displayName || '';
       state.appDescription = intuneApp.description || '';
       state.appOwner = intuneApp.owner || 'EUC Packaging';
       state.appDeveloper = intuneApp.developer || '';
