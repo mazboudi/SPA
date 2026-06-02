@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
@@ -69,7 +69,28 @@ const REG_HIVES = [
 
 export default function IntuneConfigStep({ state, updateField }) {
   const [activeTab, setActiveTab] = useState('info');
+  const [intuneApps, setIntuneApps] = useState([]);
   const scriptFileRef = useRef(null);
+
+  // Fetch Intune Catalog once to check for duplicate app names
+  useEffect(() => {
+    let active = true;
+    const fetchCatalog = async () => {
+      try {
+        const res = await fetch('/api/intune/apps');
+        if (res.ok) {
+          const data = await res.json();
+          if (active && data.apps) {
+            setIntuneApps(data.apps);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch Intune catalog for duplicate name check:', e);
+      }
+    };
+    fetchCatalog();
+    return () => { active = false; };
+  }, []);
 
   const errors = useMemo(() => {
     const e = {};
@@ -347,6 +368,8 @@ export default function IntuneConfigStep({ state, updateField }) {
             ========================================== */}
         {activeTab === 'info' && (() => {
           const defaultIntuneAppName = `${state.publisher || ''} ${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+          const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
+          const isDuplicate = intuneAppNameValue && intuneApps.length > 0 && intuneApps.some(app => (app.displayName || '').trim().toLowerCase() === intuneAppNameValue.trim().toLowerCase());
           return (
             <div className="animate-in">
               <div className="config-section">
@@ -354,6 +377,25 @@ export default function IntuneConfigStep({ state, updateField }) {
                 <div className="form-grid">
                   <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to Publisher + App Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
                     <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Fiserv Google Chrome 134.0'}`} value={state.intuneAppName || ''} onChange={e => updateField('intuneAppName', e.target.value)} />
+                    {isDuplicate && (
+                      <div className="duplicate-warning animate-in" style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        background: 'rgba(235, 94, 40, 0.12)',
+                        border: '1px solid rgba(235, 94, 40, 0.35)',
+                        color: '#f97316',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '1rem' }}>⚠️</span>
+                        <span>
+                          <strong>Duplicate Name Warning:</strong> An application named <strong>"{intuneAppNameValue}"</strong> already exists in the Intune App Catalog.
+                        </span>
+                      </div>
+                    )}
                   </FormField>
                   <FormField label="Description" id="appDescription">
                     <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
