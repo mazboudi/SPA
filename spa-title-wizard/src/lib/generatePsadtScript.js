@@ -65,6 +65,17 @@ export default function generatePsadtScript(s, clean = false) {
     return hash.toString(36);
   }
 
+  function normalizeForHash(str) {
+    if (!str) return '';
+    return str
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .join('\n');
+  }
+
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
   function convertToActionLines(actions) {
     const lines = [];
@@ -274,7 +285,7 @@ export default function generatePsadtScript(s, clean = false) {
           actionLines.forEach(l => lines.push(l));
         } else {
           const actionCode = actionLines.join('\n');
-          const hash = simpleHash(actionCode);
+          const hash = simpleHash(normalizeForHash(actionCode));
           const actionData = encodeURIComponent(JSON.stringify(action));
           lines.push(`        # <SPA:Action Data="${actionData}" Hash="${hash}">`);
           actionLines.forEach(l => lines.push(l));
@@ -342,7 +353,7 @@ export default function generatePsadtScript(s, clean = false) {
       if (isClean) {
         standardVars.push(codeLine);
       } else {
-        const hash = simpleHash(codeLine);
+        const hash = simpleHash(normalizeForHash(codeLine));
         const actionData = encodeURIComponent(JSON.stringify(action));
         standardVars.push(`    # <SPA:Action Data="${actionData}" Hash="${hash}">`);
         standardVars.push(codeLine);

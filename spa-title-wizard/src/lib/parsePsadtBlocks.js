@@ -16,6 +16,17 @@ function simpleHash(str) {
   return hash.toString(36);
 }
 
+function normalizeForHash(str) {
+  if (!str) return '';
+  return str
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
 function dedentLines(blockLines) {
   return blockLines.map(line => {
     const match = line.match(/^(\s{0,8})(.*)$/);
@@ -81,7 +92,7 @@ export default function parsePsadtBlocks(content) {
         try {
           const actionObj = JSON.parse(decodeURIComponent(rawData));
           const codeString = blockLines.join('\n');
-          const actualHash = simpleHash(codeString);
+          const actualHash = simpleHash(normalizeForHash(codeString));
 
           if (actualHash !== expectedHash) {
             // User modified variables manually! Convert to custom_variable with raw changes
@@ -273,7 +284,7 @@ export default function parsePsadtBlocks(content) {
         try {
           const actionObj = JSON.parse(decodeURIComponent(rawData));
           const codeString = blockLines.join('\n');
-          const actualHash = simpleHash(codeString);
+          const actualHash = simpleHash(normalizeForHash(codeString));
 
           if (actualHash !== expectedHash) {
             // Manual edit detected! Convert to raw_ps block to lock visual forms
