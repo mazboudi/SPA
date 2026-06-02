@@ -361,7 +361,9 @@ export default function generatePsadtScript(s, clean = false) {
     const builderLines = convertToActionLines(builderActions);
 
     const customLines = [];
-    customLines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
+    if (!isClean) {
+      customLines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
+    }
     if (customCodeActions.length > 0) {
       customCodeActions.forEach(a => {
         if (a.script) {
@@ -370,10 +372,12 @@ export default function generatePsadtScript(s, clean = false) {
           });
         }
       });
-    } else {
+    } else if (!isClean) {
       customLines.push(`        # TODO: ${guideDesc}`);
     }
-    customLines.push('        # </SPA:CustomCode>');
+    if (!isClean) {
+      customLines.push('        # </SPA:CustomCode>');
+    }
 
     return [...builderLines, ...customLines].join('\n');
   }

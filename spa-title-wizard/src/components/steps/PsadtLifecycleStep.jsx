@@ -689,29 +689,29 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     <span style={{ fontSize: '0.7rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
                       ✨ Pristine Code
                     </span>
-                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0 }}>
+                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0, cursor: 'pointer' }}>
                       <input
                         type="checkbox"
                         checked={!!state.pristineScripts}
                         onChange={(e) => updateField('pristineScripts', e.target.checked)}
-                        style={{ opacity: 0, width: 0, height: 0 }}
+                        style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, zIndex: 2, cursor: 'pointer', margin: 0 }}
                       />
-                      <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: state.pristineScripts ? '#3b82f6' : '#4b5563', transition: '.4s', borderRadius: '18px' }}>
+                      <span className="slider round" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: state.pristineScripts ? '#3b82f6' : '#4b5563', transition: '.4s', borderRadius: '18px', zIndex: 1 }}>
                         <span style={{ position: 'absolute', content: '""', height: '12px', width: '12px', left: state.pristineScripts ? '16px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
                       </span>
                     </label>
                   </div>
 
-                  {/* Manual Refresh / Sync Button (only visible in customized mode) */}
-                  {state.isCustomized && (
+                  {/* Manual Refresh / Sync Button (visible in all modes once packageId is set) */}
+                  {state.packageId && (
                     <button
                       type="button"
                       className="btn btn-sm btn-secondary"
                       onClick={handleManualRefresh}
-                      title="Read latest customized script from disk"
+                      title="Read latest script from disk"
                       style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                      {copiedText === 'synced' ? '✓ Synced' : '🔄 Sync'}
+                      {copiedText === 'synced' ? '✓ Synced' : '🔄 Sync from Disk'}
                     </button>
                   )}
 
