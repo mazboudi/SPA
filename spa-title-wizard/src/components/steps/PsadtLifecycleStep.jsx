@@ -301,18 +301,16 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     setActivePhase(phaseKey + '_' + Date.now());
   };
 
-  // Generate compiled script or load customized script
+  // Generate compiled script
   const compiledScript = useMemo(() => {
     return generatePsadtScript(state);
   }, [state]);
 
-  const activeScript = useMemo(() => {
-    return state.isCustomized ? (state.customScriptContent || compiledScript) : compiledScript;
-  }, [state.isCustomized, state.customScriptContent, compiledScript]);
+  const activeScript = compiledScript;
 
-  // Seamless background file sync when Customized in VS Code
+  // Seamless background file sync whenever browser is refocused
   useEffect(() => {
-    if (!state.isCustomized || !state.packageId) return;
+    if (!state.packageId) return;
 
     const fetchLatestFromDisk = async () => {
       try {
@@ -321,8 +319,16 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.content && data.content !== state.customScriptContent) {
-            updateField('customScriptContent', data.content);
+          if (data.content) {
+            // Form-Synchronized mode: reverse-parse block comments to update visual actions!
+            const parsed = parsePsadtBlocks(data.content);
+            const currentLifecycleStr = JSON.stringify(state.lifecycle);
+            const nextLifecycleStr = JSON.stringify(parsed.lifecycle);
+            if (currentLifecycleStr !== nextLifecycleStr) {
+              updateFields({
+                lifecycle: parsed.lifecycle
+              });
+            }
           }
         }
       } catch (e) {
@@ -335,44 +341,14 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
     // Auto-fetch whenever the browser window is refocused!
     const handleWindowFocus = () => {
-      if (activeTab === 'compare') {
-        fetchLatestFromDisk();
-      }
+      fetchLatestFromDisk();
     };
 
     window.addEventListener('focus', handleWindowFocus);
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [state.isCustomized, state.packageId, activeTab, state.customScriptContent]);
-
-  // Manual trigger to force re-reading the customized script from disk
-  const handleManualRefresh = async () => {
-    if (!state.packageId) return;
-    try {
-      const scriptName = 'Invoke-AppDeployToolkit.ps1';
-      const relPath = `windows/src/${scriptName}`;
-      const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.content) {
-          if (!state.isCustomized) {
-            // Form-Synchronized mode: reverse-parse the block comments to update visual actions!
-            const parsed = parsePsadtBlocks(data.content);
-            updateFields({
-              customScriptContent: '',
-              lifecycle: parsed.lifecycle
-            });
-          } else {
-            updateField('customScriptContent', data.content);
-          }
-          copyToClipboard('', 'synced'); // trigger ✓ Synced indicator
-        }
-      }
-    } catch (e) {
-      console.warn('Manual sync failed:', e);
-    }
-  };
+  }, [state.packageId, JSON.stringify(state.lifecycle)]);
 
   const handleOpenInVsCode = async (overrideContent = null) => {
     if (!state.packageId) {
@@ -390,7 +366,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         body: JSON.stringify({
           packageId: state.packageId,
           relativePath: relPath,
-          content: overrideContent || state.customScriptContent || compiledScript
+          content: overrideContent || compiledScript
         })
       });
       const data = await res.json();
@@ -406,31 +382,6 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       alert(`Error opening VS Code: ${e.message}`);
     } finally {
       setVsCodeOpening(false);
-    }
-  };
-
-  const handleToggleCustomize = () => {
-    if (!state.isCustomized) {
-      const ok = window.confirm(
-        "Decouple script from visual builder?\n\nThis will write the fully converted Invoke-AppDeployToolkit script to disk and open it in local VS Code. Future manual edits must be done directly in VS Code."
-      );
-      if (ok) {
-        updateFields({
-          isCustomized: true,
-          customScriptContent: compiledScript
-        });
-        handleOpenInVsCode(compiledScript);
-      }
-    } else {
-      const ok = window.confirm(
-        "Reset to Form-Synchronized Mode?\n\nThis will discard ALL manual changes you made to the PowerShell script and link it back to the wizard forms. This action cannot be undone."
-      );
-      if (ok) {
-        updateFields({
-          isCustomized: false,
-          customScriptContent: ''
-        });
-      }
     }
   };
 
@@ -636,8 +587,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 
                 {/* Unified Toolbar containing VS Code Actions, Badges, Layout Selector, and Pristine Code Toggle */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span className={`badge ${state.isCustomized ? 'badge--custom' : 'badge--sync'}`} style={{ padding: '4px 10px', height: 'fit-content' }}>
-                    {state.isCustomized ? '🔓 Customized in VS Code' : '🔒 Form-Synchronized'}
+                  <span className="badge badge--sync" style={{ padding: '4px 10px', height: 'fit-content' }}>
+                    🔒 Form-Synchronized
                   </span>
                   
                   {/* Layout Selector (only visible if there is a legacy script) */}
@@ -724,40 +675,21 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   </div>
 
                   {/* Manual Refresh / Sync Button (visible in all modes once packageId is set) */}
-                  {state.packageId && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={handleManualRefresh}
-                      title="Read latest script from disk"
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      {copiedText === 'synced' ? '✓ Synced' : '🔄 Sync from Disk'}
-                    </button>
-                  )}
-
-                  {/* Customize in VS Code Button */}
-                  <button 
-                    type="button"
-                    className={`btn btn-sm ${state.isCustomized ? 'btn-secondary' : 'btn-primary'}`} 
-                    onClick={handleToggleCustomize}
-                  >
-                    {state.isCustomized ? '🔒 Lock Sync (Reset)' : '✏️ Customize in VS Code'}
-                  </button>
-
                   {/* Open in VS Code Button (visible in all modes once packageId is set) */}
                   {state.packageId && (
                     <button
                       type="button"
-                      className="btn btn-sm btn-secondary"
+                      className="btn btn-sm btn-primary"
                       onClick={() => handleOpenInVsCode()}
                       disabled={vsCodeOpening}
-                      title="Open this file in local VS Code"
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title="Open this file in local VS Code to edit custom blocks"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
                       {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
                     </button>
                   )}
+
+
                 </div>
               </div>
               

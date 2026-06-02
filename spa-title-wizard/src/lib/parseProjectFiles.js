@@ -7,6 +7,8 @@
  * @param {Object} files — { [relativePath]: fileContent }
  * @returns {Object} wizardState — partial state to merge into INITIAL_STATE
  */
+import parsePsadtBlocks from './parsePsadtBlocks.js';
+
 export function parseProjectFiles(files) {
   const state = {};
   const warnings = [];
@@ -198,9 +200,15 @@ export function parseProjectFiles(files) {
       ? 'windows/src/Invoke-AppDeployToolkit.ps1' 
       : (files['windows/src/Deploy-Application.ps1'] ? 'windows/src/Deploy-Application.ps1' : null);
     if (ps1Path && files[ps1Path]) {
-      // Manually customized project (no lifecycle.yaml, but script is present)
-      state.isCustomized = true;
-      state.customScriptContent = files[ps1Path];
+      // Parse block comments to recover visual actions and custom blocks
+      try {
+        const parsed = parsePsadtBlocks(files[ps1Path]);
+        if (parsed.lifecycle && parsed.lifecycle.phases) {
+          state._lifecyclePhases = parsed.lifecycle.phases;
+        }
+      } catch (e) {
+        warnings.push(`Failed to parse script blocks from Invoke-AppDeployToolkit.ps1: ${e.message}`);
+      }
     }
   }
 

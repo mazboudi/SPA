@@ -76,33 +76,18 @@ export default function parsePsadtBlocks(content) {
     }
     if (insideSession) {
       // Check for wrapped variables
-      const actionMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"\s+Hash="([^"]+)">/);
+      const actionMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"(?:\s+Hash="[^"]+")?>/);
       if (actionMatch) {
         const rawData = actionMatch[1];
-        const expectedHash = actionMatch[2];
 
         // Gather block lines
-        const blockLines = [];
         let j = i + 1;
         while (j < lines.length && !/#\s*<\/SPA:Action>/.test(lines[j])) {
-          blockLines.push(lines[j]);
           j++;
         }
 
         try {
           const actionObj = JSON.parse(decodeURIComponent(rawData));
-          const codeString = blockLines.join('\n');
-          const actualHash = simpleHash(normalizeForHash(codeString));
-
-          if (actualHash !== expectedHash) {
-            // User modified variables manually! Convert to custom_variable with raw changes
-            const match = codeString.match(/^\s*([A-Za-z0-9_]+)\s*=\s*'([^']*)'/);
-            if (match) {
-              actionObj.name = match[1];
-              actionObj.value = match[2];
-            }
-            actionObj.isManuallyEdited = true;
-          }
           result.lifecycle.phases.variableDeclaration.actions.push(actionObj);
         } catch (e) {
           console.error('Failed to parse wrapped variable', e);
@@ -260,44 +245,25 @@ export default function parsePsadtBlocks(content) {
         currentRawBuffer = [];
       }
     };
-
     for (let i = 0; i < lns.length; i++) {
       const line = lns[i];
-      const actionMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"\s+Hash="([^"]+)">/);
+      const actionMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"(?:\s+Hash="[^"]+")?>/);
       const customCodeMatch = line.match(/#\s*<SPA:CustomCode(?:\s+Phase="([^"]+)")?(?:\s+Guide="([^"]+)")?>/);
-
       if (actionMatch) {
         // Flush any preceding raw code before parsing the visual card
         flushRawBuffer();
 
         const rawData = actionMatch[1];
-        const expectedHash = actionMatch[2];
 
         // Read child lines until closing marker
-        const blockLines = [];
         let j = i + 1;
         while (j < lns.length && !/#\s*<\/SPA:Action>/.test(lns[j])) {
-          blockLines.push(lns[j]);
           j++;
         }
 
         try {
           const actionObj = JSON.parse(decodeURIComponent(rawData));
-          const codeString = blockLines.join('\n');
-          const actualHash = simpleHash(normalizeForHash(codeString));
-
-          if (actualHash !== expectedHash) {
-            // Manual edit detected! Convert to raw_ps block to lock visual forms
-            actions.push({
-              type: 'raw_ps',
-              enabled: true,
-              script: blockLines.map(l => l.trim()).join('\n'),
-              note: `Manually modified ${actionObj.type} block`,
-              isManuallyEdited: true
-            });
-          } else {
-            actions.push(actionObj);
-          }
+          actions.push(actionObj);
         } catch (e) {
           console.error(`Failed to parse block action in phase ${phaseKey}`, e);
         }

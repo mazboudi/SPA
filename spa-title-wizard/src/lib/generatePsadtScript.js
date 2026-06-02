@@ -284,10 +284,8 @@ export default function generatePsadtScript(s, clean = false) {
         if (isClean) {
           actionLines.forEach(l => lines.push(l));
         } else {
-          const actionCode = actionLines.join('\n');
-          const hash = simpleHash(normalizeForHash(actionCode));
           const actionData = encodeURIComponent(JSON.stringify(action));
-          lines.push(`        # <SPA:Action Data="${actionData}" Hash="${hash}">`);
+          lines.push(`        # <SPA:Action Data="${actionData}">`);
           actionLines.forEach(l => lines.push(l));
           lines.push(`        # </SPA:Action>`);
         }
@@ -353,9 +351,8 @@ export default function generatePsadtScript(s, clean = false) {
       if (isClean) {
         standardVars.push(codeLine);
       } else {
-        const hash = simpleHash(normalizeForHash(codeLine));
         const actionData = encodeURIComponent(JSON.stringify(action));
-        standardVars.push(`    # <SPA:Action Data="${actionData}" Hash="${hash}">`);
+        standardVars.push(`    # <SPA:Action Data="${actionData}">`);
         standardVars.push(codeLine);
         standardVars.push(`    # </SPA:Action>`);
       }
@@ -372,9 +369,7 @@ export default function generatePsadtScript(s, clean = false) {
     const builderLines = convertToActionLines(builderActions);
 
     const customLines = [];
-    if (!isClean) {
-      customLines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
-    }
+    customLines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
     if (customCodeActions.length > 0) {
       customCodeActions.forEach(a => {
         if (a.script) {
@@ -383,12 +378,10 @@ export default function generatePsadtScript(s, clean = false) {
           });
         }
       });
-    } else if (!isClean) {
+    } else {
       customLines.push(`        # TODO: ${guideDesc}`);
     }
-    if (!isClean) {
-      customLines.push('        # </SPA:CustomCode>');
-    }
+    customLines.push('        # </SPA:CustomCode>');
 
     return [...builderLines, ...customLines].join('\n');
   }

@@ -357,10 +357,8 @@ if (Test-Path $appPath) {
         files['windows/src/Invoke-AppDeployToolkit.ps1'] = refactorScript;
       }
     } else {
-      // Form-Sync or Customized mode: ALWAYS generate and commit the .ps1 script
-      const psadtScript = s.isCustomized
-        ? (s.customScriptContent || generatePsadtScript(s))
-        : generatePsadtScript(s);
+      // Form-Sync: ALWAYS generate and commit the .ps1 script
+      const psadtScript = generatePsadtScript(s);
 
       files['windows/src/Invoke-AppDeployToolkit.ps1'] = psadtScript;
 
