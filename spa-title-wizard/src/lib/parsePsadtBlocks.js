@@ -246,6 +246,7 @@ export default function parsePsadtBlocks(content) {
     for (let i = 0; i < lns.length; i++) {
       const line = lns[i];
       const actionMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"\s+Hash="([^"]+)">/);
+      const customCodeMatch = line.match(/#\s*<SPA:CustomCode(?:\s+Phase="([^"]+)")?(?:\s+Guide="([^"]+)")?>/);
 
       if (actionMatch) {
         // Flush any preceding raw code before parsing the visual card
@@ -281,6 +282,35 @@ export default function parsePsadtBlocks(content) {
           }
         } catch (e) {
           console.error(`Failed to parse block action in phase ${phaseKey}`, e);
+        }
+        i = j; // skip forward
+      } else if (customCodeMatch) {
+        // Flush any preceding raw code before parsing the custom code block
+        flushRawBuffer();
+
+        // Read child lines until closing marker
+        const blockLines = [];
+        let j = i + 1;
+        while (j < lns.length && !/#\s*<\/SPA:CustomCode>/.test(lns[j])) {
+          blockLines.push(lns[j]);
+          j++;
+        }
+
+        const cleanCode = blockLines.map(l => l.trimRight()).join('\n').trim();
+        const hasExecutable = blockLines.some(l => {
+          const t = l.trim();
+          return t && !t.startsWith('#') && !t.startsWith('<#');
+        });
+
+        if (hasExecutable) {
+          actions.push({
+            type: 'raw_ps',
+            enabled: true,
+            script: cleanCode,
+            note: `Packager Custom Code (${phaseKey})`,
+            isManuallyEdited: true,
+            isCustomCodeBlock: true
+          });
         }
         i = j; // skip forward
       } else {

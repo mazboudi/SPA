@@ -353,46 +353,54 @@ export default function generatePsadtScript(s, clean = false) {
 
   // ── 3. Build block strings per phase ─────────────────────────────────────
   
-  // Helper to wrap a phase block with a beautiful custom code guide comment block
-  function wrapWithGuide(actionsList, phaseName, guideDesc) {
-    const lines = [];
-    lines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
-    if (actionsList && actionsList.length > 0) {
-      actionsList.forEach(l => lines.push(l));
+  // Helper to compile standard visual actions, followed by a separate CustomCode block
+  function compilePhaseBlock(actions, phaseName, guideDesc) {
+    const builderActions = (actions || []).filter(a => !a.isCustomCodeBlock);
+    const customCodeActions = (actions || []).filter(a => a.isCustomCodeBlock);
+
+    const builderLines = convertToActionLines(builderActions);
+
+    const customLines = [];
+    customLines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
+    if (customCodeActions.length > 0) {
+      customCodeActions.forEach(a => {
+        if (a.script) {
+          a.script.split(/\r?\n/).forEach(l => {
+            customLines.push(`        ${l.trimRight()}`);
+          });
+        }
+      });
     } else {
-      lines.push(`        # TODO: ${guideDesc}`);
+      customLines.push(`        # TODO: ${guideDesc}`);
     }
-    lines.push('        # </SPA:CustomCode>');
-    return lines.join('\n');
+    customLines.push('        # </SPA:CustomCode>');
+
+    return [...builderLines, ...customLines].join('\n');
   }
 
   // Install phases
   const preInstallWelcome = convertToCloseWelcomeBlock(phases.preInstall?.actions, 'PreInstall');
-  const preInstallActionsList = convertToActionLines((phases.preInstall?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress'));
+  const preInstallActionsList = (phases.preInstall?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress');
   const preInstallBlock = [
     ...preInstallWelcome,
-    wrapWithGuide(preInstallActionsList, 'Pre-Install', 'Enter custom pre-installation script code here (e.g. show welcome prompt, stop processes, check requirements)')
+    compilePhaseBlock(preInstallActionsList, 'Pre-Install', 'Enter custom pre-installation script code here (e.g. show welcome prompt, stop processes, check requirements)')
   ].filter(Boolean).join('\n');
 
-  const installActionsList = convertToActionLines(phases.install?.actions || []);
-  const installBlock = wrapWithGuide(installActionsList, 'Install', 'Enter custom installation script code here (e.g. run MSI/EXE installer, perform file copy)');
+  const installBlock = compilePhaseBlock(phases.install?.actions, 'Install', 'Enter custom installation script code here (e.g. run MSI/EXE installer, perform file copy)');
 
-  const postInstallActionsList = convertToActionLines(phases.postInstall?.actions || []);
-  const postInstallBlock = wrapWithGuide(postInstallActionsList, 'Post-Install', 'Enter custom post-installation script code here (e.g. apply registry keys, set environment variables, cleanup temporary files)');
+  const postInstallBlock = compilePhaseBlock(phases.postInstall?.actions, 'Post-Install', 'Enter custom post-installation script code here (e.g. apply registry keys, set environment variables, cleanup temporary files)');
 
   // Uninstall phases
   const preUninstallWelcome = convertToCloseWelcomeBlock(phases.preUninstall?.actions, 'PreUninstall');
-  const preUninstallActionsList = convertToActionLines((phases.preUninstall?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress'));
+  const preUninstallActionsList = (phases.preUninstall?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress');
   const preUninstallBlock = [
     ...preUninstallWelcome,
-    wrapWithGuide(preUninstallActionsList, 'Pre-Uninstall', 'Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)')
+    compilePhaseBlock(preUninstallActionsList, 'Pre-Uninstall', 'Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)')
   ].filter(Boolean).join('\n');
 
-  const uninstallActionsList = convertToActionLines(phases.uninstall?.actions || []);
-  const uninstallBlock = wrapWithGuide(uninstallActionsList, 'Uninstall', 'Enter custom uninstallation script code here (e.g. run MSI/EXE uninstall commands)');
+  const uninstallBlock = compilePhaseBlock(phases.uninstall?.actions, 'Uninstall', 'Enter custom uninstallation script code here (e.g. run MSI/EXE uninstall commands)');
 
-  const postUninstallActionsList = convertToActionLines(phases.postUninstall?.actions || []);
-  const postUninstallBlock = wrapWithGuide(postUninstallActionsList, 'Post-Uninstall', 'Enter custom post-uninstallation script code here (e.g. delete config folders, remove registry keys)');
+  const postUninstallBlock = compilePhaseBlock(phases.postUninstall?.actions, 'Post-Uninstall', 'Enter custom post-uninstallation script code here (e.g. delete config folders, remove registry keys)');
 
   // Repair phases
   let preRepairBlock, repairBlock, postRepairBlock;
@@ -402,17 +410,15 @@ export default function generatePsadtScript(s, clean = false) {
     postRepairBlock = postInstallBlock;
   } else {
     const preRepairWelcome = convertToCloseWelcomeBlock(phases.preRepair?.actions, 'PreRepair');
-    const preRepairActionsList = convertToActionLines((phases.preRepair?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress'));
+    const preRepairActionsList = (phases.preRepair?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress');
     preRepairBlock = [
       ...preRepairWelcome,
-      wrapWithGuide(preRepairActionsList, 'Pre-Repair', 'Enter custom pre-repair script code here (e.g. close processes, check corrupt states)')
+      compilePhaseBlock(preRepairActionsList, 'Pre-Repair', 'Enter custom pre-repair script code here (e.g. close processes, check corrupt states)')
     ].filter(Boolean).join('\n');
 
-    const repairActionsList = convertToActionLines(phases.repair?.actions || []);
-    repairBlock = wrapWithGuide(repairActionsList, 'Repair', 'Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)');
+    const repairBlock = compilePhaseBlock(phases.repair?.actions, 'Repair', 'Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)');
 
-    const postRepairActionsList = convertToActionLines(phases.postRepair?.actions || []);
-    postRepairBlock = wrapWithGuide(postRepairActionsList, 'Post-Repair', 'Enter custom post-repair script code here (e.g. verify repair, log completion)');
+    const postRepairBlock = compilePhaseBlock(phases.postRepair?.actions, 'Post-Repair', 'Enter custom post-repair script code here (e.g. verify repair, log completion)');
   }
 
   // ── 4. Assemble standard PSADT template ──────────────────────────────────
