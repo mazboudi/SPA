@@ -356,7 +356,16 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       if (res.ok) {
         const data = await res.json();
         if (data.content) {
-          updateField('customScriptContent', data.content);
+          if (!state.isCustomized) {
+            // Form-Synchronized mode: reverse-parse the block comments to update visual actions!
+            const parsed = parsePsadtBlocks(data.content);
+            updateFields({
+              customScriptContent: '',
+              lifecycle: parsed.lifecycle
+            });
+          } else {
+            updateField('customScriptContent', data.content);
+          }
           copyToClipboard('', 'synced'); // trigger ✓ Synced indicator
         }
       }
