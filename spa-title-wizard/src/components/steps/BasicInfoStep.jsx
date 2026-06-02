@@ -7,7 +7,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
   const [existingProject, setExistingProject] = useState(null);
 
   useEffect(() => {
-    if (state.wizardMode === 'edit' || !state.packageId || !state.gitLabGroup) {
+    if (!state.packageId || !state.gitLabGroup) {
       setExistingProject(null);
       return;
     }
@@ -99,7 +99,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
       </div>
 
       {/* Duplicate Project Warning Alert */}
-      {existingProject && (
+      {existingProject && (state.wizardMode !== 'edit' || existingProject.path_with_namespace !== state._editProjectPath) && (
         <div className="duplicate-alert animate-in">
           <div className="duplicate-alert__header">
             <span className="duplicate-alert__icon">⚠️</span>
