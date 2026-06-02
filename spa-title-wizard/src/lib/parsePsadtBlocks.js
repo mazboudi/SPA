@@ -16,6 +16,13 @@ function simpleHash(str) {
   return hash.toString(36);
 }
 
+function dedentLines(blockLines) {
+  return blockLines.map(line => {
+    const match = line.match(/^(\s{0,8})(.*)$/);
+    return match ? match[2] : line;
+  });
+}
+
 /**
  * Extracts all actions from a script block.
  * @param {string} content The full script content
@@ -296,13 +303,13 @@ export default function parsePsadtBlocks(content) {
           j++;
         }
 
-        const cleanCode = blockLines.map(l => l.trimRight()).join('\n').trim();
-        const hasExecutable = blockLines.some(l => {
+        const cleanCode = dedentLines(blockLines).map(l => l.trimRight()).join('\n').trim();
+        const hasCustomContent = blockLines.some(l => {
           const t = l.trim();
-          return t && !t.startsWith('#') && !t.startsWith('<#');
+          return t && !t.startsWith('# TODO:');
         });
 
-        if (hasExecutable) {
+        if (hasCustomContent) {
           actions.push({
             type: 'raw_ps',
             enabled: true,

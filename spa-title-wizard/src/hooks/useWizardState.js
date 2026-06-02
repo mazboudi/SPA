@@ -137,7 +137,7 @@ const INITIAL_STATE = {
   // PSADT Deploy Mode
   deployMode: 'Silent',            // 'Silent' | 'NonInteractive' | 'Interactive'
   allowRebootPassThru: false,
-  pristineScripts: true,           // true = clean script without SPA comments, false = annotated script
+  pristineScripts: false,          // true = clean script without SPA comments, false = annotated script
 
   // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
   installerSourceDir: '',            // e.g. 'C:\\files\\7-zip'

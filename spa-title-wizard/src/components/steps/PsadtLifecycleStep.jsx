@@ -686,20 +686,41 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
                   {/* Pristine Code Toggle */}
                   <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)', userSelect: 'none' }}>
                       ✨ Pristine Code
                     </span>
-                    <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '32px', height: '18px', margin: 0, cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={!!state.pristineScripts}
-                        onChange={(e) => updateField('pristineScripts', e.target.checked)}
-                        style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, zIndex: 2, cursor: 'pointer', margin: 0 }}
-                      />
-                      <span className="slider round" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: state.pristineScripts ? '#3b82f6' : '#4b5563', transition: '.4s', borderRadius: '18px', zIndex: 1 }}>
-                        <span style={{ position: 'absolute', content: '""', height: '12px', width: '12px', left: state.pristineScripts ? '16px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
-                      </span>
-                    </label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={!!state.pristineScripts}
+                      onClick={() => updateField('pristineScripts', !state.pristineScripts)}
+                      style={{
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: '32px',
+                        height: '18px',
+                        margin: 0,
+                        cursor: 'pointer',
+                        background: state.pristineScripts ? '#3b82f6' : '#4b5563',
+                        border: 'none',
+                        borderRadius: '18px',
+                        transition: 'background-color 0.3s ease',
+                        outline: 'none',
+                        padding: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        height: '12px',
+                        width: '12px',
+                        left: state.pristineScripts ? '16px' : '4px',
+                        bottom: '3px',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s ease',
+                        borderRadius: '50%',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                      }}></span>
+                    </button>
                   </div>
 
                   {/* Manual Refresh / Sync Button (visible in all modes once packageId is set) */}
@@ -724,8 +745,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     {state.isCustomized ? '🔒 Lock Sync (Reset)' : '✏️ Customize in VS Code'}
                   </button>
 
-                  {/* Open in VS Code Button (customized mode only) */}
-                  {state.isCustomized && (
+                  {/* Open in VS Code Button (visible in all modes once packageId is set) */}
+                  {state.packageId && (
                     <button
                       type="button"
                       className="btn btn-sm btn-secondary"
