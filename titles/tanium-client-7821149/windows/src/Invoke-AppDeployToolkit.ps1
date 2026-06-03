@@ -179,6 +179,7 @@ function Uninstall-ADTDeployment
         # </SPA:Action>
         # <SPA:CustomCode Phase="Pre-Uninstall" Guide="Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)">
         # TODO: Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)
+        Write-Host "TODO: Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)" -ForegroundColor Yellow
         # </SPA:CustomCode>
 
     ##================================================

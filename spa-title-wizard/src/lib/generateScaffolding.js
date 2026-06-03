@@ -13,9 +13,7 @@ export default function generateScaffolding(s, forPublish = false) {
   const winEnabled = isWin ? 'true' : 'false';
   const macEnabled = isMac ? 'true' : 'false';
 
-  const isV3Passthrough = s.wizardMode === 'refactor' && !s.refactorConvert && (s.psadtVersion === 'v3' || s._psadtResult?.psadtVersion === 'v3');
-  const v3Version = s._psadtResult?.psadtScriptVersion || '3.9.3';
-  const winFrameworkVersion = isV3Passthrough ? v3Version : '4.1.0';
+  const winFrameworkVersion = '4.1.0';
 
   // ── app.json ────────────────────────────────────────────────────────────
   files['app.json'] = JSON.stringify({
@@ -171,12 +169,9 @@ detection:
       psadtFlags.push('-AllowRebootPassThru');
     }
     const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    const bootstrapperExe = isV3Passthrough ? 'Deploy-Application.exe' : 'Invoke-AppDeployToolkit.exe';
+    const bootstrapperExe = 'Invoke-AppDeployToolkit.exe';
     const installCmd = `${bootstrapperExe}${installSuffix}`;
     const uninstallCmd = `${bootstrapperExe} -DeploymentType Uninstall${installSuffix}`;
-    // Add v3_conversion flag only if we are in passthrough mode AND NOT using the legacy template natively.
-    // Since we now use the native template if isV3Passthrough is true, we don't need or want the auto-conversion flag.
-    const v3Flag = '';
 
     files['windows/package.yaml'] = `# ${s.displayName} ${s.version} — Windows package definition
 package_id: ${s.packageId}
@@ -193,7 +188,7 @@ uninstall_command: '${uninstallCmd}'
 ${detectionBlock}
 
 ${optLines.join('\n')}
-${v3Flag}`;
+`;
 
 
     // Compute applicable architectures from new checkbox model
@@ -343,30 +338,14 @@ if (Test-Path $appPath) {
       }, null, 2);
     }
 
-    // ── windows/src/Invoke-AppDeployToolkit.ps1 OR committed .ps1 ─────────
+    // ── windows/src/Invoke-AppDeployToolkit.ps1 ──────────────────────────
     const refactorScript = s._psadtResult?.scriptContent || s._scriptContent;
-    const isPassthrough = s.wizardMode === 'refactor' && !s.refactorConvert;
+    const psadtScript = generatePsadtScript(s);
+    files['windows/src/Invoke-AppDeployToolkit.ps1'] = psadtScript;
 
-    if (isPassthrough && refactorScript) {
-      // Refactor PASSTHROUGH: commit the original .ps1 directly (no lifecycle.yaml)
-      const isV3 = s._psadtResult?.psadtVersion === 'v3' || s.psadtVersion === 'v3';
-      if (isV3) {
-        // v3 scripts go as Deploy-Application.ps1 — pipeline converts to v4
-        files['windows/src/Deploy-Application.ps1'] = refactorScript;
-      } else {
-        files['windows/src/Invoke-AppDeployToolkit.ps1'] = refactorScript;
-      }
-    } else {
-      // Form-Sync: ALWAYS generate and commit the .ps1 script
-      const psadtScript = generatePsadtScript(s);
-      const scriptName = 'Invoke-AppDeployToolkit.ps1';
-
-      files[`windows/src/${scriptName}`] = psadtScript;
-
-      // Archive original script for reference (refactor-convert only)
-      if (s.wizardMode === 'refactor' && s.refactorConvert && refactorScript) {
-        files['windows/src/_original_script.ps1.bak'] = refactorScript;
-      }
+    // Archive original script for reference (refactor mode only)
+    if (s.wizardMode === 'refactor' && refactorScript) {
+      files['windows/src/_original_script.ps1.bak'] = refactorScript;
     }
   }
 

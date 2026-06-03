@@ -313,8 +313,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     lifecycleRef.current = state.lifecycle;
   }, [state.lifecycle]);
 
-  const isV3Passthrough = state.wizardMode === 'refactor' && !state.refactorConvert && (state.psadtVersion === 'v3' || state._psadtResult?.psadtVersion === 'v3');
-  const scriptName = isV3Passthrough ? (state.psadtFileName || 'Deploy-Application.ps1') : 'Invoke-AppDeployToolkit.ps1';
+  // Output script filename is always the v4 standard name (v3 scripts are always converted)
+  const resolvedScriptName = 'Invoke-AppDeployToolkit.ps1';
 
   // Seamless background file sync whenever browser is refocused
   useEffect(() => {
@@ -322,8 +322,11 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
     const fetchLatestFromDisk = async () => {
       try {
-        const relPath = `windows/src/${scriptName}`;
-        const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}&t=${Date.now()}`);
+        const relPath = `windows/src/${resolvedScriptName}`;
+        const res = await fetch(
+          `/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}&t=${Date.now()}`,
+          { cache: 'no-store' }
+        );
         if (res.ok) {
           const data = await res.json();
           if (data.content) {
@@ -332,6 +335,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
             const currentLifecycleStr = JSON.stringify(lifecycleRef.current);
             const nextLifecycleStr = JSON.stringify(parsed.lifecycle);
             if (currentLifecycleStr !== nextLifecycleStr) {
+              console.log('🔄 Sync: VS Code changes detected — updating lifecycle actions');
               updateFields({
                 lifecycle: parsed.lifecycle
               });
@@ -339,7 +343,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
           }
         }
       } catch (e) {
-        console.warn('Background sync failed:', e);
+        // Silent fail — file may not exist yet (user hasn't opened VS Code)
       }
     };
 
@@ -355,7 +359,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [state.packageId, scriptName]);
+  }, [state.packageId]);
 
   const handleOpenInVsCode = async (overrideContent = null) => {
     if (!state.packageId) {
@@ -364,7 +368,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
     setVsCodeOpening(true);
     try {
-      const relPath = `windows/src/${scriptName}`;
+      // Always write to the correct output filename (v4 standard name for converted scripts)
+      const relPath = `windows/src/${resolvedScriptName}`;
       
       const res = await fetch('/api/open-vscode', {
         method: 'POST',

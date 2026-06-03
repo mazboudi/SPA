@@ -686,10 +686,10 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Missing packageId or relativePath' });
     }
 
-    // Resolve absolute path under the SPA titles directory
-    const workspaceRoot = join(__dirname, '..', '..');
-    const absoluteDir = join(workspaceRoot, 'titles', packageId, dirname(relativePath));
-    const absolutePath = join(workspaceRoot, 'titles', packageId, relativePath);
+    // Resolve absolute path under OS temp directory (no git workspace dependency)
+    const scratchRoot = join(tmpdir(), 'spa-workbench', 'titles');
+    const absoluteDir = join(scratchRoot, packageId, dirname(relativePath));
+    const absolutePath = join(scratchRoot, packageId, relativePath);
 
     // Write content locally
     if (content) {
@@ -741,8 +741,9 @@ app.get('/api/read-local-file', (req, res) => {
       return res.status(400).json({ error: 'Missing packageId or relativePath' });
     }
 
-    const workspaceRoot = join(__dirname, '..', '..');
-    const absolutePath = join(workspaceRoot, 'titles', packageId, relativePath);
+    // Read from OS temp directory (matches where /api/open-vscode writes)
+    const scratchRoot = join(tmpdir(), 'spa-workbench', 'titles');
+    const absolutePath = join(scratchRoot, packageId, relativePath);
 
     if (!existsSync(absolutePath)) {
       return res.status(404).json({ error: `Local file not found at ${absolutePath}` });
