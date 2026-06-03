@@ -6,26 +6,6 @@
  * CRC hashes to detect manual edits, and wraps any legacy/custom code into raw PowerShell blocks.
  */
 
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return hash.toString(36);
-}
-
-function normalizeForHash(str) {
-  if (!str) return '';
-  return str
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .join('\n');
-}
 
 function dedentLines(blockLines) {
   return blockLines.map(line => {
@@ -71,7 +51,6 @@ export default function parsePsadtBlocks(content) {
       continue;
     }
     if (insideSession && /^\s*}\s*$/.test(line)) {
-      insideSession = false;
       break;
     }
     if (insideSession) {
@@ -93,24 +72,61 @@ export default function parsePsadtBlocks(content) {
           console.error('Failed to parse wrapped variable', e);
         }
         i = j; // skip forward
+      } else {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          // Check for standard assignments like AppVendor = 'value'
+          const kvMatch = trimmed.match(/^(\w+)\s*=\s*['"](.*?)['"]/);
+          if (kvMatch) {
+            const key = kvMatch[1];
+            const value = kvMatch[2];
+            const interestingKeys = [
+              'AppVendor', 'AppName', 'AppVersion', 'AppArch', 'AppLang',
+              'AppRevision', 'AppScriptVersion', 'AppScriptDate', 'AppScriptAuthor',
+              'InstallName', 'InstallTitle'
+            ];
+            if (interestingKeys.includes(key)) {
+              const varName = `$adtSession.${key}`;
+              const exists = result.lifecycle.phases.variableDeclaration.actions.some(a => a.name === varName);
+              if (!exists) {
+                result.lifecycle.phases.variableDeclaration.actions.push({
+                  type: 'custom_variable',
+                  desc: `$adtSession.${key} = '${value}'`,
+                  name: `$adtSession.${key}`,
+                  value: value,
+                  enabled: true,
+                  raw: trimmed
+                });
+              }
+            }
+          } else {
+            // Check for exit codes / processes arrays
+            const arrMatch = trimmed.match(/^(\w+)\s*=\s*@\((.*?)\)/);
+            if (arrMatch) {
+              const key = arrMatch[1];
+              const innerVal = arrMatch[2].trim();
+              const arrValues = innerVal ? innerVal.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean) : [];
+              const arrayKeys = ['AppSuccessExitCodes', 'AppRebootExitCodes', 'AppProcessesToClose'];
+              if (arrayKeys.includes(key) && arrValues.length > 0) {
+                const varName = `$adtSession.${key}`;
+                const exists = result.lifecycle.phases.variableDeclaration.actions.some(a => a.name === varName);
+                if (!exists) {
+                  result.lifecycle.phases.variableDeclaration.actions.push({
+                    type: 'custom_variable',
+                    desc: `$adtSession.${key} = @(${arrValues.join(', ')})`,
+                    name: `$adtSession.${key}`,
+                    value: arrValues.join(', '),
+                    enabled: true,
+                    raw: trimmed
+                  });
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
-
-  // 2. Parse phases from standard deployment functions
-  const phaseBounds = {
-    preInstall: { start: /function\s+Install-ADTDeployment/, end: /##\s*MARK:\s*Install/ },
-    install: { start: /##\s*MARK:\s*Install/, end: /##\s*MARK:\s*Post-Install/ },
-    postInstall: { start: /##\s*MARK:\s*Post-Install/, end: /^\s*}\s*$/ },
-
-    preUninstall: { start: /function\s+Uninstall-ADTDeployment/, end: /##\s*MARK:\s*Uninstall/ },
-    uninstall: { start: /##\s*MARK:\s*Uninstall/, end: /##\s*MARK:\s*Post-Uninstall/ },
-    postUninstall: { start: /##\s*MARK:\s*Post-Uninstall/, end: /^\s*}\s*$/ },
-
-    preRepair: { start: /function\s+Repair-ADTDeployment/, end: /##\s*MARK:\s*Repair/ },
-    repair: { start: /##\s*MARK:\s*Repair/, end: /##\s*MARK:\s*Post-Repair/ },
-    postRepair: { start: /##\s*MARK:\s*Post-Repair/, end: /^\s*}\s*$/ },
-  };
 
   const phaseLines = {
     preInstall: [],

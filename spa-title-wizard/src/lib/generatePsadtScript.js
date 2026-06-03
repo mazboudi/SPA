@@ -55,26 +55,7 @@ export default function generatePsadtScript(s, clean = false) {
     return lines;
   }
 
-  function simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash |= 0;
-    }
-    return hash.toString(36);
-  }
 
-  function normalizeForHash(str) {
-    if (!str) return '';
-    return str
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean)
-      .join('\n');
-  }
 
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
   function convertToActionLines(actions) {
@@ -307,11 +288,20 @@ export default function generatePsadtScript(s, clean = false) {
   // Extract parsed v3/v4 custom variables from the variableDeclaration phase
   const varActions = phases.variableDeclaration?.actions || [];
 
+  // Helper to clean variable names by stripping $ and optional adtSession. prefix
+  function getCleanVarName(name) {
+    let clean = (name || '').replace(/^\$/, '');
+    if (clean.toLowerCase().startsWith('adtsession.')) {
+      clean = clean.slice(11);
+    }
+    return clean;
+  }
+
   // Helper to find a parsed variable value case-insensitively
   function getVarVal(name, fallback) {
     const act = varActions.find(a => {
-      const cleanName = (a.name || '').replace(/^\$/, '').toLowerCase();
-      return cleanName === name.toLowerCase();
+      const cleanName = getCleanVarName(a.name);
+      return cleanName.toLowerCase() === name.toLowerCase();
     });
     return act ? act.value : fallback;
   }
@@ -336,13 +326,16 @@ export default function generatePsadtScript(s, clean = false) {
   const standardVars = [];
   const standardKeys = [
     'appvendor', 'appname', 'appversion', 'apparch', 'applang',
-    'apprevision', 'appscriptversion', 'appscriptdate', 'appscriptauthor',
-    'installname', 'installtitle'
+    'apprevision', 'appsuccessexitcodes', 'apprebootexitcodes',
+    'appprocessestoclose', 'appscriptversion', 'appscriptdate',
+    'appscriptauthor', 'requireadmin', 'installname', 'installtitle',
+    'deployappscriptfriendlyname', 'deployappscriptparameters',
+    'deployappscriptversion'
   ];
 
   varActions.forEach(action => {
     if (action.enabled === false) return;
-    const cleanName = (action.name || '').replace(/^\$/, '');
+    const cleanName = getCleanVarName(action.name);
     if (cleanName) {
       // If it is one of the standard official variables, omit it from custom variables list to avoid duplicates
       if (standardKeys.includes(cleanName.toLowerCase())) return;
@@ -424,9 +417,9 @@ export default function generatePsadtScript(s, clean = false) {
       compilePhaseBlock(preRepairActionsList, 'Pre-Repair', 'Enter custom pre-repair script code here (e.g. close processes, check corrupt states)')
     ].filter(Boolean).join('\n');
 
-    const repairBlock = compilePhaseBlock(phases.repair?.actions, 'Repair', 'Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)');
+    repairBlock = compilePhaseBlock(phases.repair?.actions, 'Repair', 'Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)');
 
-    const postRepairBlock = compilePhaseBlock(phases.postRepair?.actions, 'Post-Repair', 'Enter custom post-repair script code here (e.g. verify repair, log completion)');
+    postRepairBlock = compilePhaseBlock(phases.postRepair?.actions, 'Post-Repair', 'Enter custom post-repair script code here (e.g. verify repair, log completion)');
   }
 
   // ── 4. Assemble standard PSADT template ──────────────────────────────────
