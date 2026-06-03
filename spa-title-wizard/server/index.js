@@ -696,8 +696,15 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
       if (!existsSync(absoluteDir)) {
         mkdirSync(absoluteDir, { recursive: true });
       }
-      writeFileSync(absolutePath, content, 'utf8');
-      console.log(`💾 Saved local file: ${absolutePath}`);
+      // PowerShell on Windows requires UTF-8 with BOM for proper parsing.
+      // Also normalize line endings to CRLF for Windows compatibility.
+      const isPowerShell = relativePath.endsWith('.ps1');
+      const BOM = '\uFEFF';
+      const fileContent = isPowerShell
+        ? BOM + content.replace(/\r?\n/g, '\r\n')
+        : content;
+      writeFileSync(absolutePath, fileContent, 'utf8');
+      console.log(`💾 Saved local file: ${absolutePath}${isPowerShell ? ' (UTF-8 BOM + CRLF)' : ''}`);
     } else if (!existsSync(absolutePath)) {
       if (!existsSync(absoluteDir)) {
         mkdirSync(absoluteDir, { recursive: true });
@@ -749,7 +756,9 @@ app.get('/api/read-local-file', (req, res) => {
       return res.status(404).json({ error: `Local file not found at ${absolutePath}` });
     }
 
-    const content = readFileSync(absolutePath, 'utf8');
+    let content = readFileSync(absolutePath, 'utf8');
+    // Strip UTF-8 BOM and normalize CRLF→LF for browser consumption
+    content = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
     res.json({ content });
   } catch (err) {
     console.error('❌ Local file read failed:', err.message);
