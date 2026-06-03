@@ -80,17 +80,21 @@ function Install-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
 
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Show-ADTInstallationProgress%20-StatusMessage%20'Installation%20in%20Progress...'%20-WindowLocation%20'TopCenter'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22)%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22%20-ArgumentList%20'%2FS'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If(Test-Path%20-Path%20%5C%22%24envProgramFiles%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20%5C%22%24envProgramFiles%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22%20-ArgumentList%20'%2FS'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-Sleep%20-Seconds%2010%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
         # Raw PowerShell: Legacy or custom script block
-        Show-ADTInstallationProgress -StatusMessage 'Installation in Progress...' -WindowLocation 'TopCenter'
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe"){
-            Start-ADTProcess -FilePath "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
-            }
-        # Raw PowerShell: Control flow block preserved as-is
-        If(Test-Path -Path "$envProgramFiles\Tanium\Tanium Client\uninst.exe") {
-            Start-ADTProcess -FilePath "$envProgramFiles\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
-            }
-        Start-Sleep -Seconds 10
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: Legacy or custom script block
+                        Show-ADTInstallationProgress -StatusMessage 'Installation in Progress...' -WindowLocation 'TopCenter'
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe"){
+                            Start-ADTProcess -FilePath "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
+                            }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If(Test-Path -Path "$envProgramFiles\Tanium\Tanium Client\uninst.exe") {
+                            Start-ADTProcess -FilePath "$envProgramFiles\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
+                            }
+                        Start-Sleep -Seconds 10
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Pre-Install" Guide="Enter custom pre-installation script code here (e.g. show welcome prompt, stop processes, check requirements)">
         # TODO: Enter custom pre-installation script code here (e.g. show welcome prompt, stop processes, check requirements)
         # </SPA:CustomCode>
@@ -100,21 +104,25 @@ function Install-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = $adtSession.DeploymentType
 
-        # Raw PowerShell: Control flow block preserved as-is
-        if ($adtSession.UseDefaultMsi)
-            {
-                $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-                if ($adtSession.DefaultMstFile)
-                {
-                    $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
-                }
-                Start-ADTMsiProcess @ExecuteDefaultMSISplat
-                if ($adtSession.DefaultMspFiles)
-                {
-                    $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
-                }
-            }
-        Start-ADTProcess -FilePath '$($adtSession.DirFiles)\SetupClient.exe' -ArgumentList '/S' -ErrorAction Stop
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.UseDefaultMsi)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24ExecuteDefaultMSISplat%20%3D%20%40%7B%20Action%20%3D%20%24adtSession.DeploymentType%3B%20FilePath%20%3D%20%24adtSession.DefaultMsiFile%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.DefaultMstFile)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24ExecuteDefaultMSISplat.Add('Transform'%2C%20%24adtSession.DefaultMstFile)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTMsiProcess%20%40ExecuteDefaultMSISplat%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.DefaultMspFiles)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24adtSession.DefaultMspFiles%20%7C%20Start-ADTMsiProcess%20-Action%20Patch%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20'%24(%24adtSession.DirFiles)%5C%5CSetupClient.exe'%20-ArgumentList%20'%2FS'%20-ErrorAction%20Stop%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
+        # Raw PowerShell: Legacy or custom script block
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: Control flow block preserved as-is
+                        if ($adtSession.UseDefaultMsi)
+                            {
+                                $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
+                                if ($adtSession.DefaultMstFile)
+                                {
+                                    $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
+                                }
+                                Start-ADTMsiProcess @ExecuteDefaultMSISplat
+                                if ($adtSession.DefaultMspFiles)
+                                {
+                                    $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
+                                }
+                            }
+                        Start-ADTProcess -FilePath '$($adtSession.DirFiles)\SetupClient.exe' -ArgumentList '/S' -ErrorAction Stop
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Install" Guide="Enter custom installation script code here (e.g. run MSI/EXE installer, perform file copy)">
         # TODO: Enter custom installation script code here (e.g. run MSI/EXE installer, perform file copy)
         # </SPA:CustomCode>
@@ -124,29 +132,28 @@ function Install-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
 
-        # Raw PowerShell: PowerShell script block
-            ##================================================
-        
-            ## <Perform Post-Installation tasks here>
-        
-            #Update Uninstall Key
-        
-             $InstallDate = Get-Date -Format 'yyyyMMdd'
-             $InstallSource = Get-Location
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
-             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallDate" -Value $InstallDate -Type String
-             }
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
-             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallSource" -Value $InstallSource -Type String
-             }
-        Start-Sleep -Seconds 10
-        # Raw PowerShell: Control flow block preserved as-is
-        if (!$adtSession.UseDefaultMsi)
-            {
-                Show-ADTInstallationPrompt -Message "$($adtSession.InstallTitle) is installed successfully from your machine." -ButtonRightText 'OK' -Icon Information -NoWait
-            }
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20PowerShell%20script%20block%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23Update%20Uninstall%20Key%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24InstallDate%20%3D%20Get-Date%20-Format%20'yyyyMMdd'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24InstallSource%20%3D%20Get-Location%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Set-ADTRegistryKey%20-Key%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22%20-Name%20%5C%22InstallDate%5C%22%20-Value%20%24InstallDate%20-Type%20String%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Set-ADTRegistryKey%20-Key%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22%20-Name%20%5C%22InstallSource%5C%22%20-Value%20%24InstallSource%20-Type%20String%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-Sleep%20-Seconds%2010%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(!%24adtSession.UseDefaultMsi)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Show-ADTInstallationPrompt%20-Message%20%5C%22%24(%24adtSession.InstallTitle)%20is%20installed%20successfully%20from%20your%20machine.%5C%22%20-ButtonRightText%20'OK'%20-Icon%20Information%20-NoWait%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
+        # Raw PowerShell: Legacy or custom script block
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: PowerShell script block
+                            #Update Uninstall Key
+                             $InstallDate = Get-Date -Format 'yyyyMMdd'
+                             $InstallSource = Get-Location
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
+                             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallDate" -Value $InstallDate -Type String
+                             }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
+                             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallSource" -Value $InstallSource -Type String
+                             }
+                        Start-Sleep -Seconds 10
+                        # Raw PowerShell: Control flow block preserved as-is
+                        if (!$adtSession.UseDefaultMsi)
+                            {
+                                Show-ADTInstallationPrompt -Message "$($adtSession.InstallTitle) is installed successfully from your machine." -ButtonRightText 'OK' -Icon Information -NoWait
+                            }
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Post-Install" Guide="Enter custom post-installation script code here (e.g. apply registry keys, set environment variables, cleanup temporary files)">
         # TODO: Enter custom post-installation script code here (e.g. apply registry keys, set environment variables, cleanup temporary files)
         # </SPA:CustomCode>
@@ -164,8 +171,12 @@ function Uninstall-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
 
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Show-ADTInstallationProgress%20-StatusMessage%20'Uninstall%20in%20Progress...'%20-WindowLocation%20'TopCenter'%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
         # Raw PowerShell: Legacy or custom script block
-        Show-ADTInstallationProgress -StatusMessage 'Uninstall in Progress...' -WindowLocation 'TopCenter'
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: Legacy or custom script block
+                        Show-ADTInstallationProgress -StatusMessage 'Uninstall in Progress...' -WindowLocation 'TopCenter'
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Pre-Uninstall" Guide="Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)">
         # TODO: Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)
         # </SPA:CustomCode>
@@ -175,29 +186,33 @@ function Uninstall-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = $adtSession.DeploymentType
 
-        # Raw PowerShell: Control flow block preserved as-is
-        if ($adtSession.UseDefaultMsi)
-            {
-                $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-                if ($adtSession.DefaultMstFile)
-                {
-                    $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
-                }
-                Start-ADTMsiProcess @ExecuteDefaultMSISplat
-            }
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe"){
-            Start-ADTProcess -FilePath "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
-            }
-        # Raw PowerShell: Control flow block preserved as-is
-        If(Test-Path -Path "$envProgramFiles\Tanium\Tanium Client\uninst.exe") {
-            Start-ADTProcess -FilePath "$envProgramFiles\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
-            }
-        # Raw PowerShell: Control flow block preserved as-is
-        If(Test-Path -path "$envProgramFilesx86\Tanium\Tanium End User Notification Tools"){
-            Remove-ADTFolder -Path "$envProgramFilesx86\Tanium\Tanium End User Notification Tools"
-            }
-        Start-Sleep -Seconds 10
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.UseDefaultMsi)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24ExecuteDefaultMSISplat%20%3D%20%40%7B%20Action%20%3D%20%24adtSession.DeploymentType%3B%20FilePath%20%3D%20%24adtSession.DefaultMsiFile%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.DefaultMstFile)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24ExecuteDefaultMSISplat.Add('Transform'%2C%20%24adtSession.DefaultMstFile)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTMsiProcess%20%40ExecuteDefaultMSISplat%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22)%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22%20-ArgumentList%20'%2FS'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If(Test-Path%20-Path%20%5C%22%24envProgramFiles%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20%5C%22%24envProgramFiles%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22%20-ArgumentList%20'%2FS'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If(Test-Path%20-path%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20End%20User%20Notification%20Tools%5C%22)%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Remove-ADTFolder%20-Path%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20End%20User%20Notification%20Tools%5C%22%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-Sleep%20-Seconds%2010%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
+        # Raw PowerShell: Legacy or custom script block
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: Control flow block preserved as-is
+                        if ($adtSession.UseDefaultMsi)
+                            {
+                                $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
+                                if ($adtSession.DefaultMstFile)
+                                {
+                                    $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
+                                }
+                                Start-ADTMsiProcess @ExecuteDefaultMSISplat
+                            }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe"){
+                            Start-ADTProcess -FilePath "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
+                            }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If(Test-Path -Path "$envProgramFiles\Tanium\Tanium Client\uninst.exe") {
+                            Start-ADTProcess -FilePath "$envProgramFiles\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
+                            }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If(Test-Path -path "$envProgramFilesx86\Tanium\Tanium End User Notification Tools"){
+                            Remove-ADTFolder -Path "$envProgramFilesx86\Tanium\Tanium End User Notification Tools"
+                            }
+                        Start-Sleep -Seconds 10
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Uninstall" Guide="Enter custom uninstallation script code here (e.g. run MSI/EXE uninstall commands)">
         # TODO: Enter custom uninstallation script code here (e.g. run MSI/EXE uninstall commands)
         # </SPA:CustomCode>
@@ -224,17 +239,21 @@ function Repair-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
 
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Show-ADTInstallationProgress%20-StatusMessage%20'Installation%20in%20Progress...'%20-WindowLocation%20'TopCenter'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22)%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20%5C%22%24envProgramFilesx86%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22%20-ArgumentList%20'%2FS'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If(Test-Path%20-Path%20%5C%22%24envProgramFiles%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20%5C%22%24envProgramFiles%5C%5CTanium%5C%5CTanium%20Client%5C%5Cuninst.exe%5C%22%20-ArgumentList%20'%2FS'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-Sleep%20-Seconds%2010%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
         # Raw PowerShell: Legacy or custom script block
-        Show-ADTInstallationProgress -StatusMessage 'Installation in Progress...' -WindowLocation 'TopCenter'
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe"){
-            Start-ADTProcess -FilePath "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
-            }
-        # Raw PowerShell: Control flow block preserved as-is
-        If(Test-Path -Path "$envProgramFiles\Tanium\Tanium Client\uninst.exe") {
-            Start-ADTProcess -FilePath "$envProgramFiles\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
-            }
-        Start-Sleep -Seconds 10
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: Legacy or custom script block
+                        Show-ADTInstallationProgress -StatusMessage 'Installation in Progress...' -WindowLocation 'TopCenter'
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe"){
+                            Start-ADTProcess -FilePath "$envProgramFilesx86\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
+                            }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If(Test-Path -Path "$envProgramFiles\Tanium\Tanium Client\uninst.exe") {
+                            Start-ADTProcess -FilePath "$envProgramFiles\Tanium\Tanium Client\uninst.exe" -ArgumentList '/S'
+                            }
+                        Start-Sleep -Seconds 10
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Pre-Repair" Guide="Enter custom pre-repair script code here (e.g. close processes, check corrupt states)">
         # TODO: Enter custom pre-repair script code here (e.g. close processes, check corrupt states)
         # </SPA:CustomCode>
@@ -244,21 +263,25 @@ function Repair-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = $adtSession.DeploymentType
 
-        # Raw PowerShell: Control flow block preserved as-is
-        if ($adtSession.UseDefaultMsi)
-            {
-                $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-                if ($adtSession.DefaultMstFile)
-                {
-                    $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
-                }
-                Start-ADTMsiProcess @ExecuteDefaultMSISplat
-                if ($adtSession.DefaultMspFiles)
-                {
-                    $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
-                }
-            }
-        Start-ADTProcess -FilePath '$($adtSession.DirFiles)\SetupClient.exe' -ArgumentList '/S' -ErrorAction Stop
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.UseDefaultMsi)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24ExecuteDefaultMSISplat%20%3D%20%40%7B%20Action%20%3D%20%24adtSession.DeploymentType%3B%20FilePath%20%3D%20%24adtSession.DefaultMsiFile%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.DefaultMstFile)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24ExecuteDefaultMSISplat.Add('Transform'%2C%20%24adtSession.DefaultMstFile)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTMsiProcess%20%40ExecuteDefaultMSISplat%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(%24adtSession.DefaultMspFiles)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24adtSession.DefaultMspFiles%20%7C%20Start-ADTMsiProcess%20-Action%20Patch%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-ADTProcess%20-FilePath%20'%24(%24adtSession.DirFiles)%5C%5CSetupClient.exe'%20-ArgumentList%20'%2FS'%20-ErrorAction%20Stop%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
+        # Raw PowerShell: Legacy or custom script block
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: Control flow block preserved as-is
+                        if ($adtSession.UseDefaultMsi)
+                            {
+                                $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
+                                if ($adtSession.DefaultMstFile)
+                                {
+                                    $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
+                                }
+                                Start-ADTMsiProcess @ExecuteDefaultMSISplat
+                                if ($adtSession.DefaultMspFiles)
+                                {
+                                    $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
+                                }
+                            }
+                        Start-ADTProcess -FilePath '$($adtSession.DirFiles)\SetupClient.exe' -ArgumentList '/S' -ErrorAction Stop
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Repair" Guide="Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)">
         # TODO: Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)
         # </SPA:CustomCode>
@@ -268,29 +291,28 @@ function Repair-ADTDeployment
     ##================================================
     $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
 
-        # Raw PowerShell: PowerShell script block
-            ##================================================
-        
-            ## <Perform Post-Installation tasks here>
-        
-            #Update Uninstall Key
-        
-             $InstallDate = Get-Date -Format 'yyyyMMdd'
-             $InstallSource = Get-Location
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
-             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallDate" -Value $InstallDate -Type String
-             }
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
-             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallSource" -Value $InstallSource -Type String
-             }
-        Start-Sleep -Seconds 10
-        # Raw PowerShell: Control flow block preserved as-is
-        if (!$adtSession.UseDefaultMsi)
-            {
-                Show-ADTInstallationPrompt -Message "$($adtSession.InstallTitle) is installed successfully from your machine." -ButtonRightText 'OK' -Icon Information -NoWait
-            }
+        # <SPA:Action Data="%7B%22type%22%3A%22raw_ps%22%2C%22enabled%22%3Atrue%2C%22script%22%3A%22%23%20Raw%20PowerShell%3A%20Legacy%20or%20custom%20script%20block%5Cn%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20PowerShell%20script%20block%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23Update%20Uninstall%20Key%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24InstallDate%20%3D%20Get-Date%20-Format%20'yyyyMMdd'%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%24InstallSource%20%3D%20Get-Location%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Set-ADTRegistryKey%20-Key%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22%20-Name%20%5C%22InstallDate%5C%22%20-Value%20%24InstallDate%20-Type%20String%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20If%20(Test-Path%20-Path%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Set-ADTRegistryKey%20-Key%20%5C%22HKLM%3A%5C%5CSOFTWARE%5C%5CWOW6432Node%5C%5CMicrosoft%5C%5CWindows%5C%5CCurrentVersion%5C%5CUninstall%5C%5CTanium%20Client%5C%22%20-Name%20%5C%22InstallSource%5C%22%20-Value%20%24InstallSource%20-Type%20String%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Start-Sleep%20-Seconds%2010%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%23%20Raw%20PowerShell%3A%20Control%20flow%20block%20preserved%20as-is%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(!%24adtSession.UseDefaultMsi)%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20Show-ADTInstallationPrompt%20-Message%20%5C%22%24(%24adtSession.InstallTitle)%20is%20installed%20successfully%20from%20your%20machine.%5C%22%20-ButtonRightText%20'OK'%20-Icon%20Information%20-NoWait%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%22%2C%22note%22%3A%22Legacy%20or%20custom%20script%20block%22%2C%22isManuallyEdited%22%3Atrue%7D">
+        # Raw PowerShell: Legacy or custom script block
+        # Raw PowerShell: Legacy or custom script block
+                # Raw PowerShell: PowerShell script block
+                            #Update Uninstall Key
+                             $InstallDate = Get-Date -Format 'yyyyMMdd'
+                             $InstallSource = Get-Location
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
+                             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallDate" -Value $InstallDate -Type String
+                             }
+                        # Raw PowerShell: Control flow block preserved as-is
+                        If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client") {
+                             Set-ADTRegistryKey -Key "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Tanium Client" -Name "InstallSource" -Value $InstallSource -Type String
+                             }
+                        Start-Sleep -Seconds 10
+                        # Raw PowerShell: Control flow block preserved as-is
+                        if (!$adtSession.UseDefaultMsi)
+                            {
+                                Show-ADTInstallationPrompt -Message "$($adtSession.InstallTitle) is installed successfully from your machine." -ButtonRightText 'OK' -Icon Information -NoWait
+                            }
+        # </SPA:Action>
         # <SPA:CustomCode Phase="Post-Repair" Guide="Enter custom post-repair script code here (e.g. verify repair, log completion)">
         # TODO: Enter custom post-repair script code here (e.g. verify repair, log completion)
         # </SPA:CustomCode>

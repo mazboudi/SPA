@@ -613,6 +613,10 @@ export default function useWizardState() {
           snapshot.lifecycle = parsedPsadt.lifecycle;
         }
 
+        if (ps1Path) {
+          snapshot.psadtFileName = ps1Path.split('/').pop();
+        }
+
         setState(prev => ({
           ...prev,
           ...snapshot,
@@ -640,6 +644,9 @@ export default function useWizardState() {
     setState(prev => {
       const next = { ...prev, ...parsed };
       next.wizardMode = 'edit';
+      if (ps1Path) {
+        next.psadtFileName = ps1Path.split('/').pop();
+      }
       next._editProjectId = projectMeta.id;
       next._editProjectPath = projectMeta.path_with_namespace;
       next._editProjectUrl = projectMeta.web_url;

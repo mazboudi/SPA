@@ -23,6 +23,15 @@ export default function App() {
   const [psadtResult, setPsadtResult] = useState(null);
   const refactorInputRef = useRef(null);
 
+  const [workbenchWidth, setWorkbenchWidth] = useState(() => {
+    return localStorage.getItem('spa-workbench-width') || 'standard';
+  });
+
+  const handleWidthChange = (width) => {
+    setWorkbenchWidth(width);
+    localStorage.setItem('spa-workbench-width', width);
+  };
+
 
   // ServiceNow queue
   const [showIntunePicker, setShowIntunePicker] = useState(false);
@@ -326,24 +335,57 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className={`app app--width-${workbenchWidth}`}>
       {/* Header */}
       <header className="app-header">
         <div className="app-header__brand">
           <span className="app-header__logo">📦</span>
           <div>
             <h1 className="app-header__title">SPA Packaging Workbench</h1>
+            <h2 className="visually-hidden">SPA Title Scaffolding Workbench</h2>
             <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
           </div>
         </div>
-      </header>
 
-      {/* Flow: Mode Selector → Refactor Flow → Wizard */}
-      {!showModeSelector && !showRefactorFlow && (
-        <button className="btn btn-ghost" onClick={handleStartOver} style={{ position: 'absolute', top: '24px', right: '24px' }}>
-          ↻ Start Over
-        </button>
-      )}
+        <div className="app-header__actions">
+          {/* Sizing Controller */}
+          <div className="width-controller" title="Adjust workbench width">
+            <button
+              type="button"
+              className={`width-btn ${workbenchWidth === 'standard' ? 'width-btn--active' : ''}`}
+              onClick={() => handleWidthChange('standard')}
+              title="Standard Width (1100px)"
+            >
+              <span className="width-btn__icon">🔲</span>
+              <span className="width-btn__text">Standard</span>
+            </button>
+            <button
+              type="button"
+              className={`width-btn ${workbenchWidth === 'wide' ? 'width-btn--active' : ''}`}
+              onClick={() => handleWidthChange('wide')}
+              title="Wide Width (1500px)"
+            >
+              <span className="width-btn__icon">↔️</span>
+              <span className="width-btn__text">Wide</span>
+            </button>
+            <button
+              type="button"
+              className={`width-btn ${workbenchWidth === 'full' ? 'width-btn--active' : ''}`}
+              onClick={() => handleWidthChange('full')}
+              title="Full Screen Width"
+            >
+              <span className="width-btn__icon">🖥️</span>
+              <span className="width-btn__text">Full</span>
+            </button>
+          </div>
+
+          {!showModeSelector && !showRefactorFlow && (
+            <button className="btn btn-ghost btn-sm" onClick={handleStartOver} style={{ padding: '8px 16px' }}>
+              ↻ Start Over
+            </button>
+          )}
+        </div>
+      </header>
       {showRefactorFlow ? (
         renderRefactorFlow()
       ) : showModeSelector ? (
@@ -456,12 +498,21 @@ export default function App() {
 
       <style>{`
         .app {
-          max-width: 1100px;
           margin: 0 auto;
           padding: var(--space-lg) var(--space-xl);
           min-height: 100vh;
           display: flex;
           flex-direction: column;
+          transition: max-width var(--transition-slow);
+        }
+        .app--width-standard {
+          max-width: 1100px;
+        }
+        .app--width-wide {
+          max-width: 1500px;
+        }
+        .app--width-full {
+          max-width: 95%;
         }
         .app-header {
           display: flex;
@@ -469,6 +520,52 @@ export default function App() {
           justify-content: space-between;
           padding: var(--space-lg) 0;
           margin-bottom: var(--space-sm);
+          gap: var(--space-md);
+        }
+        .app-header__actions {
+          display: flex;
+          align-items: center;
+          gap: var(--space-md);
+        }
+
+        /* ── Width Controller ── */
+        .width-controller {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          background: rgba(25, 32, 60, 0.6);
+          padding: 3px;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md, 8px);
+          backdrop-filter: var(--glass-blur);
+          -webkit-backdrop-filter: var(--glass-blur);
+        }
+        .width-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          padding: 6px 12px;
+          font-family: inherit;
+          font-size: 0.78rem;
+          font-weight: 600;
+          border-radius: var(--radius-sm, 6px);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .width-btn:hover {
+          color: var(--text-primary);
+          background: var(--bg-hover);
+        }
+        .width-btn--active {
+          color: var(--text-accent, #7c8aff);
+          background: rgba(99, 140, 255, 0.12);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .width-btn__icon {
+          font-size: 0.85rem;
         }
         .app-header__brand {
           display: flex;

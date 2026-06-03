@@ -691,7 +691,7 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
     const absoluteDir = join(workspaceRoot, 'titles', packageId, dirname(relativePath));
     const absolutePath = join(workspaceRoot, 'titles', packageId, relativePath);
 
-    // Write content locally if provided (or create a skeleton if it doesn't exist)
+    // Write content locally
     if (content) {
       if (!existsSync(absoluteDir)) {
         mkdirSync(absoluteDir, { recursive: true });
@@ -703,12 +703,17 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
         mkdirSync(absoluteDir, { recursive: true });
       }
       writeFileSync(absolutePath, '# Customized script template\n', 'utf8');
+      console.log(`💾 Saved default local file: ${absolutePath}`);
     }
 
     console.log(`💻 Opening in VS Code: ${absolutePath}`);
 
-    // Fallback deep link for browser
-    const vsCodeUrl = `vscode://file${absolutePath}`;
+    // Fallback deep link for browser (cross-platform format)
+    let uriPath = absolutePath.replace(/\\/g, '/');
+    if (!uriPath.startsWith('/')) {
+      uriPath = '/' + uriPath;
+    }
+    const vsCodeUrl = `vscode://file${uriPath}`;
 
     // Execute local 'code' command in background
     exec(`code "${absolutePath}"`, (err) => {
@@ -729,6 +734,8 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
  */
 app.get('/api/read-local-file', (req, res) => {
   try {
+    // Prevent browser caching of local files (critical for VS Code sync)
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     const { packageId, relativePath } = req.query || {};
     if (!packageId || !relativePath) {
       return res.status(400).json({ error: 'Missing packageId or relativePath' });

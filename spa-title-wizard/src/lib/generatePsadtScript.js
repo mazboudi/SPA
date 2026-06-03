@@ -340,7 +340,7 @@ export default function generatePsadtScript(s, clean = false) {
       // If it is one of the standard official variables, omit it from custom variables list to avoid duplicates
       if (standardKeys.includes(cleanName.toLowerCase())) return;
 
-      const codeLine = `    ${cleanName} = '${action.value || ''}'`;
+       const codeLine = `    '${cleanName}' = '${action.value || ''}'`;
       if (isClean) {
         standardVars.push(codeLine);
       } else {
