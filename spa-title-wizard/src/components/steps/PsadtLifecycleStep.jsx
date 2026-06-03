@@ -313,13 +313,15 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     lifecycleRef.current = state.lifecycle;
   }, [state.lifecycle]);
 
+  const isV3Passthrough = state.wizardMode === 'refactor' && !state.refactorConvert && (state.psadtVersion === 'v3' || state._psadtResult?.psadtVersion === 'v3');
+  const scriptName = isV3Passthrough ? (state.psadtFileName || 'Deploy-Application.ps1') : 'Invoke-AppDeployToolkit.ps1';
+
   // Seamless background file sync whenever browser is refocused
   useEffect(() => {
     if (!state.packageId) return;
 
     const fetchLatestFromDisk = async () => {
       try {
-        const scriptName = state.psadtFileName || 'Invoke-AppDeployToolkit.ps1';
         const relPath = `windows/src/${scriptName}`;
         const res = await fetch(`/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}&t=${Date.now()}`);
         if (res.ok) {
@@ -353,7 +355,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [state.packageId, state.psadtFileName]);
+  }, [state.packageId, scriptName]);
 
   const handleOpenInVsCode = async (overrideContent = null) => {
     if (!state.packageId) {
@@ -362,7 +364,6 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
     setVsCodeOpening(true);
     try {
-      const scriptName = state.psadtFileName || 'Invoke-AppDeployToolkit.ps1';
       const relPath = `windows/src/${scriptName}`;
       
       const res = await fetch('/api/open-vscode', {

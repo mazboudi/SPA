@@ -359,7 +359,7 @@ if (Test-Path $appPath) {
     } else {
       // Form-Sync: ALWAYS generate and commit the .ps1 script
       const psadtScript = generatePsadtScript(s);
-      const scriptName = s.psadtFileName || 'Invoke-AppDeployToolkit.ps1';
+      const scriptName = 'Invoke-AppDeployToolkit.ps1';
 
       files[`windows/src/${scriptName}`] = psadtScript;
 
