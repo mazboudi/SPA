@@ -69,7 +69,8 @@ export default function generatePsadtScript(s, clean = false) {
       switch (action.type) {
         case 'msi_install': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args} -ErrorAction Stop`);
+          const transform = action.transform ? ` -Transform '${action.transform}'` : '';
+          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args}${transform} -ErrorAction Stop`);
           break;
         }
         case 'exe_install': {
@@ -218,11 +219,11 @@ export default function generatePsadtScript(s, clean = false) {
         case 'block_app_execution': {
           const header = action.textHeader ? ` -TextHeader '${action.textHeader}'` : '';
           const message = action.textMessage ? ` -TextMessage '${action.textMessage}'` : '';
-          actionLines.push(`        Block-AppExecution -ProcessName '${action.processName}'${header}${message}`);
+          actionLines.push(`        Block-ADTAppExecution -ProcessName '${action.processName}'${header}${message}`);
           break;
         }
         case 'unblock_app_execution': {
-          actionLines.push(`        Unblock-AppExecution -ProcessName '${action.processName}'`);
+          actionLines.push(`        Unblock-ADTAppExecution -ProcessName '${action.processName}'`);
           break;
         }
         case 'copy_file_to_user_profiles': {

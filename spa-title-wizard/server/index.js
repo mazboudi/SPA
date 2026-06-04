@@ -842,7 +842,7 @@ app.patch('/api/queue/:id', (req, res) => {
  */
 app.post('/api/open-vscode', express.json(), (req, res) => {
   try {
-    const { packageId, relativePath, content } = req.body || {};
+    const { packageId, relativePath, content, writeOnly } = req.body || {};
     if (!packageId || !relativePath) {
       return res.status(400).json({ error: 'Missing packageId or relativePath' });
     }
@@ -872,6 +872,11 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
       }
       writeFileSync(absolutePath, '# Customized script template\n', 'utf8');
       console.log(`💾 Saved default local file: ${absolutePath}`);
+    }
+
+    // writeOnly mode: just save the file without opening VS Code
+    if (writeOnly) {
+      return res.json({ success: true, method: 'write-only' });
     }
 
     console.log(`💻 Opening in VS Code: ${absolutePath}`);

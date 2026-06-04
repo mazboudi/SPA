@@ -16,6 +16,13 @@
     "default": "/QN /norestart"
   },
   {
+    "cmdlet": "msi_install",
+    "parameter": "transform",
+    "label": "Transform File",
+    "type": "text",
+    "placeholder": "transform.mst"
+  },
+  {
     "cmdlet": "msi_uninstall",
     "parameter": "appName",
     "label": "App Name",

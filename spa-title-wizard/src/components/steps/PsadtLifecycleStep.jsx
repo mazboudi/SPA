@@ -316,6 +316,35 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   // Output script filename is always the v4 standard name (v3 scripts are always converted)
   const resolvedScriptName = 'Invoke-AppDeployToolkit.ps1';
 
+  // ── Proactive scaffold flush: write generated script to disk on mount ──
+  // When a script is imported (refactor/convert) or loaded (edit), immediately
+  // sync the compiled script to the temp scaffold. This prevents stale on-disk
+  // files from overwriting freshly-imported conversion actions during background sync.
+  const scaffoldFlushedRef = useRef(false);
+  useEffect(() => {
+    if (scaffoldFlushedRef.current) return;
+    if (!state.packageId || !compiledScript) return;
+    if (state.wizardMode !== 'refactor' && state.wizardMode !== 'edit') return;
+
+    scaffoldFlushedRef.current = true;
+    const relPath = `windows/src/${resolvedScriptName}`;
+    fetch('/api/open-vscode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        packageId: state.packageId,
+        relativePath: relPath,
+        content: compiledScript,
+        writeOnly: true // Don't open VS Code, just write the file
+      })
+    }).then(() => {
+      console.log('📁 Scaffold flush: wrote compiled script to disk for', state.packageId);
+    }).catch(e => {
+      console.warn('⚠️ Scaffold flush failed (non-critical):', e.message);
+    });
+  }, [state.packageId, state.wizardMode, compiledScript]);
+
+
   // Seamless background file sync whenever browser is refocused
   useEffect(() => {
     if (!state.packageId || !state.vsCodeOpened) return;
@@ -517,6 +546,29 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 </div>
 
                 {/* Diff Preview removed */}
+              </div>
+            )}
+
+            {/* 4.0→4.1 Upgrade Guidance Warnings */}
+            {isRefactor && psadtResult?.warnings?.length > 0 && (
+              <div className="config-section" style={{ marginBottom: 0 }}>
+                <div style={{
+                  fontSize: '0.78rem',
+                  background: 'rgba(245, 158, 11, 0.06)',
+                  border: '1px solid rgba(245, 158, 11, 0.15)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span>🔄</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>Conversion Notes</strong>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    {psadtResult.warnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
 

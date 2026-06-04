@@ -70,6 +70,20 @@ export async function parsePsadtFile(file, mode = 'new') {
       : extractAllPhasesV3(text);
     if (version === 'v3') {
       warnings.push('v3 script detected — actions have been extracted and converted to v4 action types. The pipeline will generate the v4 .ps1 from lifecycle.yaml.');
+    } else if (version === 'v4') {
+      // Detect 4.0 vs 4.1 sub-version for upgrade warnings
+      const has41Markers = /AppProcessesToClose\s*=/i.test(text) || /RequireAdmin\s*=\s*\$true/i.test(text);
+      const scriptVer = extractScriptVersion(text, 'v4');
+      const is40 = !has41Markers || (scriptVer && /^4\.0/.test(scriptVer));
+      if (is40) {
+        warnings.push('v4.0 script detected — converting to v4.1 structure. Key 4.1 changes: DeployMode defaults to "Auto", AppProcessesToClose and RequireAdmin are now set in $adtSession.');
+        if (!/AppProcessesToClose\s*=/i.test(text)) {
+          warnings.push('AppProcessesToClose was not found in $adtSession — the wizard will populate it from Show-ADTInstallationWelcome -CloseApps if present.');
+        }
+        if (!/RequireAdmin\s*=\s*\$true/i.test(text)) {
+          warnings.push('RequireAdmin was not found in $adtSession — the wizard will add RequireAdmin = $true to the generated script (standard for system-context deployments).');
+        }
+      }
     }
   } else {
     // New title mode: full phase parsing for lifecycle editor
