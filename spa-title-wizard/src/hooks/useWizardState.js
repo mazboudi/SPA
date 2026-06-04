@@ -10,6 +10,7 @@ const INITIAL_STATE = {
   psadtFileName: '',        // original uploaded filename
   parsedPhases: {},          // per-phase action arrays from parser
   refactorConvert: false,    // true = convert to lifecycle.yaml, false = passthrough
+  vsCodeOpened: false,       // true once VS Code is opened in this session to start file sync
 
   // Edit mode tracking
   _editProjectId: null,       // GitLab project ID when editing
@@ -520,6 +521,7 @@ export default function useWizardState() {
 
       next.wizardMode = 'refactor';
       next.refactorConvert = true;
+      next.vsCodeOpened = false;
       next.psadtVersion = parsedResult.psadtVersion || '';
       next.psadtScriptVersion = parsedResult.psadtScriptVersion || '';
       next.psadtFileName = parsedResult.fileName || '';
@@ -586,6 +588,7 @@ export default function useWizardState() {
       const next = { ...prev };
       next._intuneExportImported = true;
       next.wizardMode = 'refactor';
+      next.vsCodeOpened = false;
 
       // Merge each field — skip if PSADT already populated it
       for (const [key, value] of Object.entries(intuneFields)) {
@@ -654,6 +657,7 @@ export default function useWizardState() {
           _editProjectUrl: projectMeta.web_url,
           _editLoadedRef: projectMeta.loadedRef || projectMeta.default_branch || 'main',
           _editProjectTags: projectMeta.tags || [],
+          vsCodeOpened: false,
         }));
         setCurrentStep(0);
         console.log('✅ Loaded project from state snapshot with parsed PSADT blocks');
@@ -672,6 +676,7 @@ export default function useWizardState() {
     setState(prev => {
       const next = { ...prev, ...parsed };
       next.wizardMode = 'edit';
+      next.vsCodeOpened = false;
       if (ps1Path) {
         next.psadtFileName = ps1Path.split('/').pop();
       }

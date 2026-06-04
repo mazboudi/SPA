@@ -318,7 +318,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   // Seamless background file sync whenever browser is refocused
   useEffect(() => {
-    if (!state.packageId) return;
+    if (!state.packageId || !state.vsCodeOpened) return;
 
     const fetchLatestFromDisk = async () => {
       try {
@@ -359,7 +359,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [state.packageId]);
+  }, [state.packageId, state.vsCodeOpened]);
 
   const handleOpenInVsCode = async (overrideContent = null) => {
     if (!state.packageId) {
@@ -386,6 +386,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       }
       const data = await res.json();
       if (data.success) {
+        updateField('vsCodeOpened', true);
         if (data.method === 'protocol' && data.url) {
           window.location.href = data.url;
         }
