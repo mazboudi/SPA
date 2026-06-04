@@ -572,8 +572,8 @@ function extractMsiInstallV4(block) {
       const fullPath = m[1];
       const fileName = fullPath.replace(/.*[\\\/]/, '');
       // Extract -ArgumentList if present
-      const argMatch = trimmed.match(/-ArgumentList\s+['"](.*?)['"]/i);
-      return { file: fileName, args: argMatch ? argMatch[1] : '' };
+      const argVal = extractPsParamValue(trimmed, 'ArgumentList');
+      return { file: fileName, args: argVal || '' };
     }
   }
   return null;
@@ -594,8 +594,8 @@ function extractExeInstallV4(block) {
         .replace(/\$\([^)]+\)[\\\/]?/g, '')
         .replace(/\$\w+[\\\/]/g, '')
         .replace(/.*[\\\/]/, '');
-      const argMatch = trimmed.match(/-ArgumentList\s+['"](.*?)['"]/i);
-      return { file: fileName, args: argMatch ? argMatch[1] : '', fullPath };
+      const argVal = extractPsParamValue(trimmed, 'ArgumentList');
+      return { file: fileName, args: argVal || '', fullPath };
     }
   }
   return null;
@@ -696,12 +696,19 @@ function capitalizeFirst(str) {
  * Extract a PowerShell parameter value from a command line.
  * Handles both quoted strings ('val' / "val") and bare variable
  * expressions ($var, $($obj.Prop)\path, etc.).
+ *
+ * Quote matching is aware of outer vs inner quotes:
+ * -Param 'value with "inner" quotes' → correctly captures full value
  */
 function extractPsParamValue(line, paramName) {
-  // Try quoted first: -ParamName 'value' or -ParamName "value"
-  const quotedRe = new RegExp(`-${paramName}\\s+['"]([^'"]+)['"]`, 'i');
-  const qm = line.match(quotedRe);
-  if (qm) return qm[1];
+  // Try single-quoted first: -ParamName 'value' (may contain " inside)
+  const singleRe = new RegExp(`-${paramName}\\s+'([^']*)'`, 'i');
+  const sq = line.match(singleRe);
+  if (sq) return sq[1];
+  // Try double-quoted: -ParamName "value" (may contain ' inside)
+  const doubleRe = new RegExp(`-${paramName}\\s+"([^"]*)"`, 'i');
+  const dq = line.match(doubleRe);
+  if (dq) return dq[1];
   // Try unquoted variable: -ParamName $varName or -ParamName $($expr)\path
   const unquotedRe = new RegExp(`-${paramName}\\s+(\\$(?:\\([^)]+\\)|[\\w.]+)(?:[\\\\/][^\\s'",;|}]+)*)`, 'i');
   const um = line.match(unquotedRe);
@@ -924,10 +931,10 @@ function extractBlockActions(block) {
     if (msiMatch) {
       flushCustomBuffer();
       const action = msiMatch[1];
-      const pathMatch = t.match(/-Path\s+['"]([^'"]+)['"]/i);
-      const paramsMatch = t.match(/-Parameters\s+['"]([^'"]+)['"]/i);
-      const path = pathMatch ? pathMatch[1].replace(/.*[\\]/, '').replace(/^\$\w+\\/, '') : '';
-      actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action}: ${path || 'default'}`, file: path, args: paramsMatch?.[1] || '', raw: t });
+      const path = extractPsParamValue(t, 'Path') || '';
+      const params = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList') || '';
+      const cleanPath = path ? path.replace(/.*[\\]/, '').replace(/^\$\w+\\/, '') : '';
+      actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action}: ${cleanPath || 'default'}`, file: path, args: params, raw: t });
       matched = true;
     }
 
@@ -937,9 +944,12 @@ function extractBlockActions(block) {
       if (adtMsiMatch) {
         flushCustomBuffer();
         const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
-        const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
+        const argVal = extractPsParamValue(t, 'ArgumentList');
+        const transformVal = extractPsParamValue(t, 'Transforms?');
         const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
-        actions.push({ type: `msi_${(actionMatch?.[1] || 'install').toLowerCase()}`, desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argMatch?.[1] || '', raw: t });
+        const actionObj = { type: `msi_${(actionMatch?.[1] || 'install').toLowerCase()}`, desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argVal || '', raw: t };
+        if (transformVal) actionObj.transform = transformVal;
+        actions.push(actionObj);
         matched = true;
       }
     }
@@ -950,9 +960,9 @@ function extractBlockActions(block) {
       if (adtMsiPcMatch) {
         flushCustomBuffer();
         const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
-        const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
+        const argVal = extractPsParamValue(t, 'ArgumentList');
         const action = actionMatch?.[1] || 'uninstall';
-        actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action} by ProductCode: ${adtMsiPcMatch[1]}`, productCode: adtMsiPcMatch[1], args: argMatch?.[1] || '', raw: t });
+        actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action} by ProductCode: ${adtMsiPcMatch[1]}`, productCode: adtMsiPcMatch[1], args: argVal || '', raw: t });
         matched = true;
       }
     }
@@ -982,8 +992,8 @@ function extractBlockActions(block) {
       const procMatch = t.match(/(?:Execute-Process|Start-ADTProcess(?:AsUser)?)\s+.*-(?:Path|FilePath)\s+['"]([^'"]+)['"]/i);
       if (procMatch) {
         flushCustomBuffer();
-        const paramMatch = t.match(/-(?:Parameters|ArgumentList)\s+['"]([^'"]+)['"]/i);
-        actions.push({ type: 'execute_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramMatch?.[1] || '', raw: t });
+        const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
+        actions.push({ type: 'execute_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramVal || '', raw: t });
         matched = true;
       }
     }
@@ -993,8 +1003,8 @@ function extractBlockActions(block) {
       const startProcMatch = t.match(/Start-Process\s+.*-FilePath\s+['"]?([^\s'"}{]+)/i);
       if (startProcMatch) {
         flushCustomBuffer();
-        const spArgMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
-        actions.push({ type: 'execute_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgMatch?.[1] || '', raw: t });
+        const spArgVal = extractPsParamValue(t, 'ArgumentList');
+        actions.push({ type: 'execute_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgVal || '', raw: t });
         matched = true;
       }
     }

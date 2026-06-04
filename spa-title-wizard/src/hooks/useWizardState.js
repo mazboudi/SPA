@@ -632,6 +632,14 @@ export default function useWizardState() {
       parsedPsadt = parsePsadtBlocks(files[ps1Path]);
     }
 
+    // Clean up stale scaffold files from prior sessions
+    const editPackageId = projectMeta?.path?.replace(/\//g, '-') || '';
+    if (editPackageId) {
+      fetch(`/api/scaffold/${encodeURIComponent(editPackageId)}`, { method: 'DELETE' })
+        .then(() => console.log('🧹 Edit-mode scaffold cleanup for:', editPackageId))
+        .catch(() => {});
+    }
+
     // ── Fast path: state snapshot exists → direct hydration ────────────
     if (files['spa-wizard-state.json']) {
       try {

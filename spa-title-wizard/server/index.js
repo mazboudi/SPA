@@ -837,6 +837,31 @@ app.patch('/api/queue/:id', (req, res) => {
 
 // ── VS Code Integration — local filesystem round-trip ───────────────────────
 
+/**
+ * DELETE /api/scaffold/:packageId — Removes the entire temp scaffold directory for a package.
+ * Called before each PSADT import to ensure no stale files interfere with fresh conversions.
+ */
+app.delete('/api/scaffold/:packageId', (req, res) => {
+  try {
+    const { packageId } = req.params;
+    if (!packageId) {
+      return res.status(400).json({ error: 'Missing packageId' });
+    }
+    const scratchRoot = join(tmpdir(), 'spa-workbench', 'titles');
+    const scaffoldDir = join(scratchRoot, packageId);
+    if (existsSync(scaffoldDir)) {
+      const { rmSync } = require('fs');
+      rmSync(scaffoldDir, { recursive: true, force: true });
+      console.log(`🧹 Cleaned up scaffold directory: ${scaffoldDir}`);
+      return res.json({ success: true, cleaned: true });
+    }
+    res.json({ success: true, cleaned: false, message: 'No scaffold directory found' });
+  } catch (err) {
+    console.error('❌ Scaffold cleanup failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /** 
  * POST /api/open-vscode — Writes content to local file and opens in local VS Code
  */

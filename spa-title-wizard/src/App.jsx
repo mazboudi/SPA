@@ -85,6 +85,21 @@ export default function App() {
       const wizardFields = toWizardState(fullParsed);
       setPsadtResult(fullParsed);
 
+      // Clean up stale scaffold files from prior sessions with the same packageId.
+      // This prevents the background sync from loading old files instead of the
+      // freshly-converted script.
+      const derivedPackageId = wizardFields.displayName
+        ? wizardFields.displayName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase()
+        : (wizard.state.packageId || '');
+      if (derivedPackageId) {
+        try {
+          await fetch(`/api/scaffold/${encodeURIComponent(derivedPackageId)}`, { method: 'DELETE' });
+          console.log('🧹 Pre-import scaffold cleanup for:', derivedPackageId);
+        } catch (e) {
+          console.warn('⚠️ Scaffold cleanup failed (non-critical):', e.message);
+        }
+      }
+
       // Title mismatch check (warn user but proceed to import directly)
       const intuneDisplayName = wizard.state.displayName;
       const psadtDisplayName = fullParsed.fields?.displayName || '';

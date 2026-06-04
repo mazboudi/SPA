@@ -89,8 +89,14 @@ export default function generatePsadtScript(s, clean = false) {
           break;
         }
         case 'msi_uninstall': {
-          const args = action.args ? ` -ArgumentList '${action.appName}'` : '';
-          actionLines.push(`        Uninstall-ADTApplication -Name '${action.appName}' -ApplicationType 'MSI'${args} -ErrorAction Stop`);
+          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
+          if (action.productCode) {
+            // Uninstall by ProductCode GUID — use Start-ADTMsiProcess directly
+            actionLines.push(`        Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '${action.productCode}'${args}`);
+          } else {
+            // Uninstall by application name — use Uninstall-ADTApplication
+            actionLines.push(`        Uninstall-ADTApplication -Name '${action.appName || 'Unknown'}'${args} -ErrorAction Stop`);
+          }
           break;
         }
         case 'msi_uninstall_batch': {
