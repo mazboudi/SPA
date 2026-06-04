@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import useWizardState from './hooks/useWizardState';
 import WizardStepper from './components/WizardStepper';
 import BasicInfoStep from './components/steps/BasicInfoStep';
@@ -15,6 +15,24 @@ import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from '
 
 export default function App() {
   const wizard = useWizardState();
+
+  // Fetch default GitLab Group configuration from backend on mount
+  useEffect(() => {
+    fetch('/api/health')
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (data.gitLabGroup) {
+          wizard.updateField('gitLabGroup', data.gitLabGroup);
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to load default GitLab group from server:', err);
+      });
+  }, []);
+
   const currentStepId = wizard.steps[wizard.currentStep]?.id;
   const [showModeSelector, setShowModeSelector] = useState(true);
   const [showRefactorFlow, setShowRefactorFlow] = useState(false);

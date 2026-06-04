@@ -380,6 +380,10 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
           content: overrideContent || compiledScript
         })
       });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server returned status ${res.status}: ${text.slice(0, 100)}`);
+      }
       const data = await res.json();
       if (data.success) {
         if (data.method === 'protocol' && data.url) {

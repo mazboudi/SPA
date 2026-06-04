@@ -31,6 +31,7 @@ app.use(express.json({ limit: '10mb' }));
 const GITLAB_URL = process.env.GITLAB_URL || 'https://gitlab.onefiserv.net';
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || '';
 const PORT = Number(process.env.PORT) || 3001;
+const GITLAB_DEFAULT_GROUP = process.env.GITLAB_DEFAULT_GROUP || 'euc/software-package-automation';
 
 // Azure / Microsoft Graph (Intune)
 const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '';
@@ -358,11 +359,137 @@ const EDITABLE_FILES = [
   'macos/detection/receipt-check.sh',
 ];
 
+// ── Mock GitLab Helpers for Offline Development ──────────────────────────
+function getMockProjects() {
+  return {
+    projects: [
+      {
+        id: 101,
+        name: 'Google Chrome',
+        path: 'google-chrome',
+        path_with_namespace: 'euc/software-package-automation/software-titles/google-chrome',
+        description: 'Google Chrome Enterprise installer package',
+        web_url: 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/google-chrome',
+        updated_at: new Date().toISOString(),
+        default_branch: 'main',
+        tags: [{ name: 'v120.0.6099.109', message: 'Release v120.0.6099.109' }, { name: 'v119.0.6045.105', message: 'Release v119.0.6045.105' }]
+      },
+      {
+        id: 102,
+        name: '7-Zip',
+        path: '7-zip',
+        path_with_namespace: 'euc/software-package-automation/software-titles/7-zip',
+        description: '7-Zip file archiver utility',
+        web_url: 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/7-zip',
+        updated_at: new Date().toISOString(),
+        default_branch: 'main',
+        tags: [{ name: 'v23.01', message: 'Release v23.01' }]
+      },
+      {
+        id: 103,
+        name: 'Notepad++',
+        path: 'notepad-plus-plus',
+        path_with_namespace: 'euc/software-package-automation/software-titles/notepad-plus-plus',
+        description: 'Notepad++ text and source code editor',
+        web_url: 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/notepad-plus-plus',
+        updated_at: new Date().toISOString(),
+        default_branch: 'main',
+        tags: []
+      }
+    ],
+    count: 3
+  };
+}
+
+function getMockProjectFiles(projectId) {
+  let projectMeta = {};
+  let stateSnapshot = {};
+  
+  if (projectId === '101' || projectId === 101) {
+    projectMeta = {
+      id: 101,
+      name: 'Google Chrome',
+      path: 'google-chrome',
+      path_with_namespace: 'euc/software-package-automation/software-titles/google-chrome',
+      web_url: 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/google-chrome',
+      default_branch: 'main',
+      loadedRef: 'main'
+    };
+    stateSnapshot = {
+      displayName: 'Google Chrome',
+      packageId: 'google-chrome',
+      publisher: 'Google LLC',
+      version: '120.0.6099.109',
+      category: 'browsers',
+      platform: 'windows',
+      installerType: 'msi',
+      msiProductCode: '{A98B7C6D-E5F4-3A2B-1C0D-9E8F7A6B5C4D}',
+      msiProductVersion: '120.0.6099.109'
+    };
+  } else if (projectId === '102' || projectId === 102) {
+    projectMeta = {
+      id: 102,
+      name: '7-Zip',
+      path: '7-zip',
+      path_with_namespace: 'euc/software-package-automation/software-titles/7-zip',
+      web_url: 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/7-zip',
+      default_branch: 'main',
+      loadedRef: 'main'
+    };
+    stateSnapshot = {
+      displayName: '7-Zip',
+      packageId: '7-zip',
+      publisher: 'Igor Pavlov',
+      version: '23.01',
+      category: 'utilities',
+      platform: 'windows',
+      installerType: 'msi',
+      msiProductCode: '{23010000-0000-0000-0000-000000000000}',
+      msiProductVersion: '23.01'
+    };
+  } else {
+    projectMeta = {
+      id: 103,
+      name: 'Notepad++',
+      path: 'notepad-plus-plus',
+      path_with_namespace: 'euc/software-package-automation/software-titles/notepad-plus-plus',
+      web_url: 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/notepad-plus-plus',
+      default_branch: 'main',
+      loadedRef: 'main'
+    };
+    stateSnapshot = {
+      displayName: 'Notepad++',
+      packageId: 'notepad-plus-plus',
+      publisher: 'Don Ho',
+      version: '8.6',
+      category: 'developer-tools',
+      platform: 'windows',
+      installerType: 'exe',
+      exeSourceFilename: 'npp.8.6.Installer.x64.exe',
+      exeInstallArgs: '/S'
+    };
+  }
+
+  return {
+    files: {
+      'spa-wizard-state.json': JSON.stringify(stateSnapshot, null, 2),
+      'app.json': JSON.stringify({ name: projectMeta.name, package_id: projectMeta.path }, null, 2)
+    },
+    projectMeta
+  };
+}
+
 // ── GET /api/projects — list all title projects ─────────────────────────────
 app.get('/api/projects', async (req, res) => {
   try {
     const groupPath = req.query.group || 'euc/software-package-automation/software-titles';
     console.log(`\n📂 Listing projects under: ${groupPath}`);
+
+    // Offline / Mock fallback if token is not set
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty') {
+      console.log('  ⚠️ Using MOCK projects because GITLAB_TOKEN is not configured');
+      return res.json(getMockProjects());
+    }
 
     // Resolve group ID from path
     const groupData = await gitlab('GET', `/groups/${encPath(groupPath)}?with_projects=false`);
@@ -406,6 +533,11 @@ app.get('/api/projects', async (req, res) => {
     res.json({ projects, count: projects.length });
   } catch (err) {
     console.error('❌ Project listing failed:', err.message);
+    // Graceful fallback to mock data on network errors/unreachable GitLab host
+    if (err.status === 502 || err.message.includes('Cannot reach GitLab') || err.message.includes('fetch failed')) {
+      console.log('  ⚠️ Unreachable GitLab. Falling back to mock projects.');
+      return res.json(getMockProjects());
+    }
     res.status(err.status || 500).json({ message: err.message });
   }
 });
@@ -417,6 +549,18 @@ app.get('/api/projects/check', async (req, res) => {
     if (!path) return res.status(400).json({ error: 'path is required' });
 
     console.log(`\n🔍 Checking if GitLab project exists: ${path}`);
+
+    // Offline / Mock fallback if token is not set
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty') {
+      console.log('  ⚠️ Using MOCK check because GITLAB_TOKEN is not configured');
+      const slug = path.split('/').pop();
+      const mockProj = getMockProjects().projects.find(p => p.path === slug);
+      if (mockProj) {
+        return res.json({ exists: true, project: mockProj });
+      }
+      return res.json({ exists: false });
+    }
+
     try {
       const project = await gitlab('GET', `/projects/${encPath(path)}`);
       
@@ -443,6 +587,16 @@ app.get('/api/projects/check', async (req, res) => {
       if (err.status === 404) {
         return res.json({ exists: false });
       }
+      // Graceful fallback to mock check on network errors/unreachable GitLab host
+      if (err.status === 502 || err.message.includes('Cannot reach GitLab') || err.message.includes('fetch failed')) {
+        console.log('  ⚠️ Unreachable GitLab for project check. Returning mock check.');
+        const slug = path.split('/').pop();
+        const mockProj = getMockProjects().projects.find(p => p.path === slug);
+        if (mockProj) {
+          return res.json({ exists: true, project: mockProj });
+        }
+        return res.json({ exists: false });
+      }
       throw err;
     }
   } catch (err) {
@@ -456,6 +610,13 @@ app.get('/api/projects/:id/files', async (req, res) => {
   try {
     const projectId = req.params.id;
     console.log(`\n📄 Fetching config files for project ${projectId}`);
+
+    // Offline / Mock fallback if token is not set or using mock ID
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty' || ['101', '102', '103'].includes(projectId.toString())) {
+      console.log(`  ⚠️ Using MOCK files for project ${projectId}`);
+      const mockResult = getMockProjectFiles(projectId);
+      return res.json(mockResult);
+    }
 
     // Get project metadata
     const project = await gitlab('GET', `/projects/${projectId}`);
@@ -772,6 +933,7 @@ app.get('/api/health', (req, res) => {
     gitlab: GITLAB_URL,
     hasToken: !!GITLAB_TOKEN,
     intune: graphConfigured,
+    gitLabGroup: GITLAB_DEFAULT_GROUP,
   });
 });
 

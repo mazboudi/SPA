@@ -25,6 +25,8 @@ const INITIAL_STATE = {
   version: '',
   category: '',
   gitLabGroup: 'euc/software-package-automation',
+  existingProject: null,
+  duplicateAcknowledge: false,
 
   // Step 2: Platform
   platform: '', // 'windows' | 'macos' | 'both'
@@ -176,6 +178,18 @@ function toKebabCase(str) {
     .replace(/^-|-$/g, '');
 }
 
+const SLUG_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+export function validatePackageId(slug) {
+  if (!slug) return 'Package ID is required';
+  if (slug.length < 2 || slug.length > 100) {
+    return 'Package ID must be between 2 and 100 characters';
+  }
+  if (!SLUG_RE.test(slug)) {
+    return 'Package ID must be lowercase alphanumeric with hyphens (no leading/trailing hyphens)';
+  }
+  return null;
+}
+
 /** Synchronizes visual action cards whenever the installerType changes (e.g. MSI <-> EXE) */
 function syncInstallerActions(next, prevInstallerType) {
   if (next.installerType === prevInstallerType) return next;
@@ -245,6 +259,13 @@ export default function useWizardState() {
       // Auto-derive packageId from displayName
       if (field === 'displayName') {
         next.packageId = toKebabCase(value);
+        next.existingProject = null;
+        next.duplicateAcknowledge = false;
+      }
+
+      if (field === 'packageId' || field === 'gitLabGroup') {
+        next.existingProject = null;
+        next.duplicateAcknowledge = false;
       }
 
       // Auto-derive jamfCategory from category
@@ -380,8 +401,15 @@ export default function useWizardState() {
     if (!step) return false;
 
     switch (step.id) {
-      case 'basic':
-        return !!(state.displayName.trim() && state.version.trim() && state.category && state.platform);
+      case 'basic': {
+        const hasRequired = !!(state.displayName.trim() && state.version.trim() && state.category && state.platform);
+        if (!hasRequired) return false;
+        if (validatePackageId(state.packageId) !== null) return false;
+        if (state.existingProject && state.wizardMode !== 'edit' && !state.duplicateAcknowledge) {
+          return false;
+        }
+        return true;
+      }
       case 'psadt':
         return true;
       case 'installer':
