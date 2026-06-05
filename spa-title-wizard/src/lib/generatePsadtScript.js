@@ -305,8 +305,10 @@ export default function generatePsadtScript(s, clean = false) {
   }
 
   // Helper to find a parsed variable value case-insensitively
+  // Skips readOnly/systemManaged actions since those are PS expressions hardcoded in the template
   function getVarVal(name, fallback) {
     const act = varActions.find(a => {
+      if (a.readOnly || a.systemManaged) return false;
       const cleanName = getCleanVarName(a.name);
       return cleanName.toLowerCase() === name.toLowerCase();
     });
@@ -347,7 +349,7 @@ export default function generatePsadtScript(s, clean = false) {
       // If it is one of the standard official variables, omit it from custom variables list to avoid duplicates
       if (standardKeys.includes(cleanName.toLowerCase())) return;
 
-       const codeLine = `    '${cleanName}' = '${action.value || ''}'`;
+       const codeLine = `    ${cleanName} = '${action.value || ''}'`;
       if (isClean) {
         standardVars.push(codeLine);
       } else {

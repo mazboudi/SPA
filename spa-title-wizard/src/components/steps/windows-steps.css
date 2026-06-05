@@ -96,6 +96,16 @@
 .action-card--locked .action-card__header { background: rgba(245, 158, 11, 0.08); }
 .action-card__badge-locked { font-size: 0.62rem; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
 
+/* Collapsible card tree controls */
+.action-card__chevron { font-size: 1.1rem; color: var(--text-muted); width: 18px; flex-shrink: 0; user-select: none; }
+.action-card__preview { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono, monospace); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; opacity: 0.7; margin-left: 4px; }
+.action-card__header:hover { background: rgba(255, 255, 255, 0.03); }
+
+/* Read-only system-managed variable cards */
+.action-card--readonly { border-left: 3px solid #6b7280; opacity: 0.65; pointer-events: none; }
+.action-card--readonly .action-card__header { background: rgba(107, 114, 128, 0.06); }
+.action-card__badge-readonly { font-size: 0.62rem; font-weight: 700; background: rgba(107, 114, 128, 0.15); color: #9ca3af; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+
 /* ── Refactor Mode ── */
 .refactor-banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid; }
 .refactor-banner--v3 { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.2); }

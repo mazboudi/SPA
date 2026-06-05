@@ -4,8 +4,12 @@
  *
  * Scans each deployment phase block, extracts `# <SPA:Action>` comment wrappers, computes
  * CRC hashes to detect manual edits, and wraps any legacy/custom code into raw PowerShell blocks.
+ *
+ * Variable extraction is delegated to the shared extractVarDeclarationsV4() function
+ * in parsePsadt.js — the single source of truth for $adtSession variable parsing.
  */
 
+import { extractVarDeclarationsV4 } from './parsePsadt.js';
 
 function dedentLines(blockLines) {
   return blockLines.map(line => {
@@ -42,7 +46,12 @@ export default function parsePsadtBlocks(content) {
 
   const lines = content.split(/\r?\n/);
 
-  // 1. Parse standard custom variables from $adtSession Hashtable declaration
+  // ── 1. Parse $adtSession variables ─────────────────────────────────────
+  // Standard + array + system-managed vars via the shared single source of truth
+  const standardVars = extractVarDeclarationsV4(content);
+
+  // Additionally scan for SPA:Action-wrapped custom vars (only present in generated scripts)
+  const wrappedVars = [];
   let insideSession = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -54,79 +63,30 @@ export default function parsePsadtBlocks(content) {
       break;
     }
     if (insideSession) {
-      // Check for wrapped variables
       const actionMatch = line.match(/#\s*<SPA:Action\s+Data="([^"]+)"(?:\s+Hash="[^"]+")?>/);
       if (actionMatch) {
         const rawData = actionMatch[1];
-
-        // Gather block lines
         let j = i + 1;
         while (j < lines.length && !/#\s*<\/SPA:Action>/.test(lines[j])) {
           j++;
         }
-
         try {
           const actionObj = JSON.parse(decodeURIComponent(rawData));
-          result.lifecycle.phases.variableDeclaration.actions.push(actionObj);
+          wrappedVars.push(actionObj);
         } catch (e) {
           console.error('Failed to parse wrapped variable', e);
         }
-        i = j; // skip forward
-      } else {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#')) {
-          // Check for standard assignments like AppVendor = 'value'
-          const kvMatch = trimmed.match(/^(\w+)\s*=\s*['"](.*?)['"]/);
-          if (kvMatch) {
-            const key = kvMatch[1];
-            const value = kvMatch[2];
-            const interestingKeys = [
-              'AppVendor', 'AppName', 'AppVersion', 'AppArch', 'AppLang',
-              'AppRevision', 'AppScriptVersion', 'AppScriptDate', 'AppScriptAuthor',
-              'InstallName', 'InstallTitle'
-            ];
-            if (interestingKeys.includes(key)) {
-              const varName = `$adtSession.${key}`;
-              const exists = result.lifecycle.phases.variableDeclaration.actions.some(a => a.name === varName);
-              if (!exists) {
-                result.lifecycle.phases.variableDeclaration.actions.push({
-                  type: 'custom_variable',
-                  desc: `$adtSession.${key} = '${value}'`,
-                  name: `$adtSession.${key}`,
-                  value: value,
-                  enabled: true,
-                  raw: trimmed
-                });
-              }
-            }
-          } else {
-            // Check for exit codes / processes arrays
-            const arrMatch = trimmed.match(/^(\w+)\s*=\s*@\((.*?)\)/);
-            if (arrMatch) {
-              const key = arrMatch[1];
-              const innerVal = arrMatch[2].trim();
-              const arrValues = innerVal ? innerVal.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean) : [];
-              const arrayKeys = ['AppSuccessExitCodes', 'AppRebootExitCodes', 'AppProcessesToClose'];
-              if (arrayKeys.includes(key) && arrValues.length > 0) {
-                const varName = `$adtSession.${key}`;
-                const exists = result.lifecycle.phases.variableDeclaration.actions.some(a => a.name === varName);
-                if (!exists) {
-                  result.lifecycle.phases.variableDeclaration.actions.push({
-                    type: 'custom_variable',
-                    desc: `$adtSession.${key} = @(${arrValues.join(', ')})`,
-                    name: `$adtSession.${key}`,
-                    value: arrValues.join(', '),
-                    enabled: true,
-                    raw: trimmed
-                  });
-                }
-              }
-            }
-          }
-        }
+        i = j;
       }
     }
   }
+
+  // Merge: SPA:Action-wrapped vars take precedence (they carry user edits from VS Code)
+  const wrappedNames = new Set(wrappedVars.map(a => a.name));
+  result.lifecycle.phases.variableDeclaration.actions = [
+    ...standardVars.filter(a => !wrappedNames.has(a.name)),
+    ...wrappedVars,
+  ];
 
   const phaseLines = {
     preInstall: [],

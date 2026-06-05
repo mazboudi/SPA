@@ -1311,14 +1311,14 @@ function extractVarDeclarations(text) {
  * Extract app variable declarations from a v4 $adtSession = @{ ... } hashtable.
  * Captures AppVendor, AppName, AppVersion, AppArch, AppScriptVersion, etc.
  */
-function extractVarDeclarationsV4(text) {
+export function extractVarDeclarationsV4(text) {
   const sessionBlock = extractAdtSession(text);
   if (!sessionBlock) return [];
 
   const actions = [];
   const lines = sessionBlock.split('\n');
 
-  // Keys we want to extract as meaningful variables
+  // Keys we want to extract as meaningful (editable) variables
   const interestingKeys = [
     'AppVendor', 'AppName', 'AppVersion', 'AppArch', 'AppLang',
     'AppRevision', 'AppScriptVersion', 'AppScriptDate', 'AppScriptAuthor',
@@ -1364,6 +1364,37 @@ function extractVarDeclarationsV4(text) {
         raw: `${key} = @(${arrValues.join(', ')})`,
       });
     }
+  }
+
+  // ── System-managed keys: ALWAYS present as readOnly ──────────────────────
+  // These are hardcoded in the generated template, so they always exist in the
+  // output script. We try to extract actual values via regex, but fall back to
+  // defaults if the original script's formatting doesn't match. This ensures
+  // consistent results regardless of input script formatting.
+  const systemManagedKeys = [
+    { key: 'RequireAdmin',                pattern: /^\s*RequireAdmin\s*=\s*(.+)/im,                defaultValue: '$true' },
+    { key: 'DeployAppScriptFriendlyName', pattern: /^\s*DeployAppScriptFriendlyName\s*=\s*(.+)/im, defaultValue: '$MyInvocation.MyCommand.Name' },
+    { key: 'DeployAppScriptParameters',   pattern: /^\s*DeployAppScriptParameters\s*=\s*(.+)/im,   defaultValue: '$PSBoundParameters' },
+    { key: 'DeployAppScriptVersion',      pattern: /^\s*DeployAppScriptVersion\s*=\s*(.+)/im,      defaultValue: "'4.1.0'" },
+  ];
+
+  for (const { key, pattern, defaultValue } of systemManagedKeys) {
+    const varName = `$adtSession.${key}`;
+    // Skip if already extracted by the interestingKeys or arrayKeys loop
+    if (actions.some(a => a.name === varName)) continue;
+
+    const m = sessionBlock ? sessionBlock.match(pattern) : null;
+    const rawValue = m ? m[1].trim() : defaultValue;
+    actions.push({
+      type: 'custom_variable',
+      desc: `$adtSession.${key} = ${rawValue}`,
+      name: varName,
+      value: rawValue,
+      enabled: true,
+      readOnly: true,
+      systemManaged: true,
+      raw: `${key} = ${rawValue}`,
+    });
   }
 
   return actions;

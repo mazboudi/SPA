@@ -22,20 +22,24 @@ import './windows-steps.css';
  * Shows the full PowerShell block in a resizable monospace editor with a warning badge.
  */
 function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
+  const [expanded, setExpanded] = useState(false);
   const isLocked = !!action.isManuallyEdited;
   const isCardDisabled = !action.enabled;
+  const preview = (action.note || action.script || '').split('\n')[0].substring(0, 60);
 
   return (
     <div className={`action-card action-card--raw-ps ${isLocked ? 'action-card--locked' : ''} ${isCardDisabled ? 'action-card--disabled' : ''}`}>
-      <div className="action-card__header">
+      <div className="action-card__header" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+        <span className="action-card__chevron">{expanded ? '▾' : '▸'}</span>
         <span className="action-card__icon">🔷</span>
         <span className="action-card__label">Raw PowerShell Block</span>
+        {!expanded && preview && <span className="action-card__preview">{preview}</span>}
         {isLocked ? (
-          <span className="action-card__badge-locked" title="Manually modified in code mode. Form inputs are locked to preserve edits.">🔒 Manually Edited (Locked)</span>
+          <span className="action-card__badge-locked" title="Manually modified in code mode. Form inputs are locked to preserve edits.">🔒 Locked</span>
         ) : (
-          <span className="action-card__badge-warn" title="This block could not be fully parsed — verify before publishing">⚠ Needs Review</span>
+          <span className="action-card__badge-warn" title="This block could not be fully parsed — verify before publishing">⚠ Review</span>
         )}
-        <div className="action-card__controls">
+        <div className="action-card__controls" onClick={e => e.stopPropagation()}>
           <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
           <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
           <button 
@@ -44,44 +48,47 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove 
             onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })} 
             title={action.enabled ? 'Disable (Exclude from Script)' : 'Enable (Include in Script)'}
           >
-            {action.enabled ? '🟢 Enabled' : '🔴 Disabled'}
+            {action.enabled ? '🟢' : '🔴'}
           </button>
           <button className="action-btn action-btn--del" onClick={() => onRemove(phaseKey, index)} title="Remove">✕</button>
         </div>
       </div>
-      <div className="action-card__fields">
-        {isCardDisabled && (
-          <div className="action-card__disabled-msg">
-            ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
+      {expanded && (
+        <div className="action-card__fields">
+          {isCardDisabled && (
+            <div className="action-card__disabled-msg">
+              ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
+            </div>
+          )}
+          <div className="action-field">
+            <label className="action-field__label">Note</label>
+            <input type="text" placeholder="Brief description of what this block does"
+              value={action.note || ''}
+              disabled={isLocked || isCardDisabled}
+              readOnly={isLocked || isCardDisabled}
+              onChange={e => onUpdate(phaseKey, index, { note: e.target.value })} />
           </div>
-        )}
-        <div className="action-field">
-          <label className="action-field__label">Note</label>
-          <input type="text" placeholder="Brief description of what this block does"
-            value={action.note || ''}
-            disabled={isLocked || isCardDisabled}
-            readOnly={isLocked || isCardDisabled}
-            onChange={e => onUpdate(phaseKey, index, { note: e.target.value })} />
+          <div className="action-field">
+            <label className="action-field__label">PowerShell Script</label>
+            <textarea
+              rows={Math.max(4, (action.script || '').split('\n').length + 1)}
+              value={action.script || ''}
+              disabled={isLocked || isCardDisabled}
+              readOnly={isLocked || isCardDisabled}
+              onChange={e => onUpdate(phaseKey, index, { script: e.target.value })}
+              style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.78rem', lineHeight: 1.5, background: (isLocked || isCardDisabled) ? 'rgba(255,255,255,0.01)' : undefined }}
+              placeholder="# Raw PowerShell block"
+            />
+          </div>
         </div>
-        <div className="action-field">
-          <label className="action-field__label">PowerShell Script</label>
-          <textarea
-            rows={Math.max(4, (action.script || '').split('\n').length + 1)}
-            value={action.script || ''}
-            disabled={isLocked || isCardDisabled}
-            readOnly={isLocked || isCardDisabled}
-            onChange={e => onUpdate(phaseKey, index, { script: e.target.value })}
-            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.78rem', lineHeight: 1.5, background: (isLocked || isCardDisabled) ? 'rgba(255,255,255,0.01)' : undefined }}
-            placeholder="# Raw PowerShell block"
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
 /** Inline action card — editable, deletable, reorderable */
 function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
+  const [expanded, setExpanded] = useState(false);
   const def = ACTION_TYPE_MAP[action.type];
   const icon = def?.icon || '▪️';
   const label = def?.label || action.type;
@@ -93,15 +100,34 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
       onUpdate={onUpdate} onRemove={onRemove} onMove={onMove} />;
   }
 
+  // Read-only system-managed variable — render as locked non-editable card
+  if (action.readOnly || action.systemManaged) {
+    return <ReadOnlyVarCard action={action} index={index} />;
+  }
+
   const isCardDisabled = !action.enabled;
+
+  // Build a brief preview string from the first non-empty field value
+  let preview = '';
+  if (def?.fields) {
+    for (const f of def.fields) {
+      const v = action[f.key];
+      if (v && typeof v === 'string' && v.trim()) {
+        preview = v.trim().substring(0, 60);
+        break;
+      }
+    }
+  }
 
   return (
     <div className={`action-card ${isCardDisabled ? 'action-card--disabled' : ''} ${isCustom ? 'action-card--custom' : ''}`}>
-      <div className="action-card__header">
+      <div className="action-card__header" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+        <span className="action-card__chevron">{expanded ? '▾' : '▸'}</span>
         <span className="action-card__icon">{icon}</span>
         <span className="action-card__label">{label}</span>
+        {!expanded && preview && <span className="action-card__preview">{preview}</span>}
         {isCustom && <span className="action-card__badge-warn" title="Could not be auto-mapped to a known action type">⚠ Manual Review</span>}
-        <div className="action-card__controls">
+        <div className="action-card__controls" onClick={e => e.stopPropagation()}>
           <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
           <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
           <button 
@@ -110,45 +136,64 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
             onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })} 
             title={action.enabled ? 'Disable (Exclude from Script)' : 'Enable (Include in Script)'}
           >
-            {action.enabled ? '🟢 Enabled' : '🔴 Disabled'}
+            {action.enabled ? '🟢' : '🔴'}
           </button>
           <button className="action-btn action-btn--del" onClick={() => onRemove(phaseKey, index)} title="Remove">✕</button>
         </div>
       </div>
-      {def?.fields?.length > 0 && (
-        <div className="action-card__fields">
-          {isCardDisabled && (
-            <div className="action-card__disabled-msg">
-              ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
+      {expanded && (
+        <>
+          {def?.fields?.length > 0 && (
+            <div className="action-card__fields">
+              {isCardDisabled && (
+                <div className="action-card__disabled-msg">
+                  ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
+                </div>
+              )}
+              {def.fields.map(f => (
+                <div key={f.key} className="action-field">
+                  <label className="action-field__label">{f.label}</label>
+                  {f.type === 'boolean' ? (
+                    <input type="checkbox" checked={!!action[f.key]} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.checked })} />
+                  ) : f.type === 'number' ? (
+                    <input type="number" value={action[f.key] ?? f.default ?? 0} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: parseInt(e.target.value) || 0 })} />
+                  ) : f.type === 'guids' ? (
+                    <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
+                  ) : f.type === 'textarea' ? (
+                    <textarea rows="4" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
+                  ) : (
+                    <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} />
+                  )}
+                </div>
+              ))}
             </div>
           )}
-          {def.fields.map(f => (
-            <div key={f.key} className="action-field">
-              <label className="action-field__label">{f.label}</label>
-              {f.type === 'boolean' ? (
-                <input type="checkbox" checked={!!action[f.key]} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.checked })} />
-              ) : f.type === 'number' ? (
-                <input type="number" value={action[f.key] ?? f.default ?? 0} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: parseInt(e.target.value) || 0 })} />
-              ) : f.type === 'guids' ? (
-                <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
-              ) : f.type === 'textarea' ? (
-                <textarea rows="4" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
-              ) : (
-                <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} />
-              )}
+          {action.raw && (
+            <div className="action-card__raw" title="Original PowerShell command">
+              <code>{action.raw}</code>
             </div>
-          ))}
-        </div>
-      )}
-      {action.raw && (
-        <div className="action-card__raw" title="Original PowerShell command">
-          <code>{action.raw}</code>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
+/** Dedicated card for system-managed read-only variable actions.
+ * Shows the variable name & value in a compact, non-editable row.
+ */
+function ReadOnlyVarCard({ action, index }) {
+  return (
+    <div className="action-card action-card--readonly">
+      <div className="action-card__header">
+        <span className="action-card__icon">🔒</span>
+        <span className="action-card__label">System Variable</span>
+        <span className="action-card__preview">{action.name?.replace('$adtSession.', '') || ''} = {action.value || ''}</span>
+        <span className="action-card__badge-readonly" title="This variable is auto-managed by the PSADT framework. It cannot be edited or removed.">🔒 System</span>
+      </div>
+    </div>
+  );
+}
 
 /** Add action picker — dropdown grouped by category */
 function AddActionPicker({ phaseKey, onAdd }) {
@@ -209,12 +254,28 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       enabled: true,
     }));
 
+    // System-managed variables — shown as read-only so packagers know they exist
+    const systemVarActions = [
+      { name: '$adtSession.RequireAdmin',                value: '$true',                          desc: 'Require admin privileges' },
+      { name: '$adtSession.DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name',   desc: 'Script friendly name (auto-set)' },
+      { name: '$adtSession.DeployAppScriptParameters',   value: '$PSBoundParameters',             desc: 'Bound parameters (auto-set)' },
+      { name: '$adtSession.DeployAppScriptVersion',      value: '4.1.0',                          desc: 'Framework version (auto-set)' },
+    ].map(v => ({
+      type: 'custom_variable',
+      desc: `${v.name} = ${v.value}`,
+      name: v.name,
+      value: v.value,
+      enabled: true,
+      readOnly: true,
+      systemManaged: true,
+    }));
+
     // Single state update — populate the variableDeclaration phase
     updateField('lifecycle', {
       ...lc,
       phases: {
         ...lc.phases,
-        variableDeclaration: { actions: stdVarActions },
+        variableDeclaration: { actions: [...stdVarActions, ...systemVarActions] },
       },
     });
   }, []); // run once on mount
