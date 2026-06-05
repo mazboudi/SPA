@@ -21,7 +21,9 @@
  * @returns {Promise<Object>} - { psadtVersion, fields, parsedPhases?, scriptContent?, warnings }
  */
 export async function parsePsadtFile(file, mode = 'new') {
-  const text = await file.text();
+  let text = await file.text();
+  // Strip UTF-8/UTF-16 BOM and normalize Windows CRLF → LF
+  text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const warnings = [];
 
   // Detect version
@@ -1302,6 +1304,28 @@ function extractVarDeclarations(text) {
         raw: t,
       });
     }
+  }
+
+  // ── System-managed vars: V3 scripts don't have $adtSession, but after
+  // conversion to V4 the generated template always includes these.
+  // Inject them unconditionally so the builder shows them from the start.
+  const systemManagedDefaults = [
+    { key: 'RequireAdmin',                value: '$true' },
+    { key: 'DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name' },
+    { key: 'DeployAppScriptParameters',   value: '$PSBoundParameters' },
+    { key: 'DeployAppScriptVersion',      value: "'4.1.0'" },
+  ];
+  for (const { key, value } of systemManagedDefaults) {
+    actions.push({
+      type: 'custom_variable',
+      desc: `$adtSession.${key} = ${value}`,
+      name: `$adtSession.${key}`,
+      value,
+      enabled: true,
+      readOnly: true,
+      systemManaged: true,
+      raw: `${key} = ${value}`,
+    });
   }
 
   return actions;

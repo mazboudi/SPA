@@ -44,7 +44,10 @@ export default function parsePsadtBlocks(content) {
 
   if (!content) return result;
 
-  const lines = content.split(/\r?\n/);
+  // Normalize encoding: strip BOM, normalize CRLF → LF
+  content = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const lines = content.split('\n');
 
   // ── 1. Parse $adtSession variables ─────────────────────────────────────
   // Standard + array + system-managed vars via the shared single source of truth
