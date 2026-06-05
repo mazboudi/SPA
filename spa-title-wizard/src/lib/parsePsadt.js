@@ -1391,33 +1391,30 @@ export function extractVarDeclarationsV4(text) {
   }
 
   // ── System-managed keys: ALWAYS present as readOnly ──────────────────────
-  // These are hardcoded in the generated template, so they always exist in the
-  // output script. We try to extract actual values via regex, but fall back to
-  // defaults if the original script's formatting doesn't match. This ensures
-  // consistent results regardless of input script formatting.
+  // These are hardcoded in the generated template with canonical values.
+  // We always use the defaults — the original script's values are irrelevant
+  // since the generator overwrites them. This prevents stale values (e.g.,
+  // '4.0.6' from an old script) from appearing in the builder.
   const systemManagedKeys = [
-    { key: 'RequireAdmin',                pattern: /^\s*RequireAdmin\s*=\s*(.+)/im,                defaultValue: '$true' },
-    { key: 'DeployAppScriptFriendlyName', pattern: /^\s*DeployAppScriptFriendlyName\s*=\s*(.+)/im, defaultValue: '$MyInvocation.MyCommand.Name' },
-    { key: 'DeployAppScriptParameters',   pattern: /^\s*DeployAppScriptParameters\s*=\s*(.+)/im,   defaultValue: '$PSBoundParameters' },
-    { key: 'DeployAppScriptVersion',      pattern: /^\s*DeployAppScriptVersion\s*=\s*(.+)/im,      defaultValue: "'4.1.0'" },
+    { key: 'RequireAdmin',                value: '$true' },
+    { key: 'DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name' },
+    { key: 'DeployAppScriptParameters',   value: '$PSBoundParameters' },
+    { key: 'DeployAppScriptVersion',      value: "'4.1.0'" },
   ];
 
-  for (const { key, pattern, defaultValue } of systemManagedKeys) {
+  for (const { key, value } of systemManagedKeys) {
     const varName = `$adtSession.${key}`;
     // Skip if already extracted by the interestingKeys or arrayKeys loop
     if (actions.some(a => a.name === varName)) continue;
-
-    const m = sessionBlock ? sessionBlock.match(pattern) : null;
-    const rawValue = m ? m[1].trim() : defaultValue;
     actions.push({
       type: 'custom_variable',
-      desc: `$adtSession.${key} = ${rawValue}`,
+      desc: `$adtSession.${key} = ${value}`,
       name: varName,
-      value: rawValue,
+      value,
       enabled: true,
       readOnly: true,
       systemManaged: true,
-      raw: `${key} = ${rawValue}`,
+      raw: `${key} = ${value}`,
     });
   }
 
