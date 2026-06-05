@@ -42,13 +42,6 @@
     "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
   },
   {
-    "name": "stop_process",
-    "label": "Stop / Close Apps",
-    "icon": "🛑",
-    "category": "Process",
-    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
-  },
-  {
     "name": "file_copy",
     "label": "Copy File / Folder",
     "icon": "📋",
@@ -110,20 +103,6 @@
     "icon": "🌍",
     "category": "Environment",
     "supportedPhases": ["postUninstall"]
-  },
-  {
-    "name": "show_welcome",
-    "label": "Show Welcome Dialog",
-    "icon": "👋",
-    "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
-  },
-  {
-    "name": "show_progress",
-    "label": "Show Progress Dialog",
-    "icon": "⏳",
-    "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "install", "preUninstall", "uninstall", "preRepair", "repair"]
   },
   {
     "name": "show_completion",
@@ -229,6 +208,56 @@
     "icon": "📝",
     "category": "System",
     "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "restart_prompt",
+    "label": "Prompt for Restart",
+    "icon": "🔄",
+    "category": "UI Prompts",
+    "supportedPhases": ["postInstall", "postRepair"]
+  },
+  {
+    "name": "active_setup",
+    "label": "Active Setup (Per-User Config)",
+    "icon": "👤",
+    "category": "System",
+    "supportedPhases": ["postInstall", "postRepair"]
+  },
+  {
+    "name": "all_users_registry",
+    "label": "Apply Registry to All User Hives",
+    "icon": "👥",
+    "category": "Registry",
+    "supportedPhases": ["postInstall", "postRepair", "postUninstall"]
+  },
+  {
+    "name": "add_edge_extension",
+    "label": "Deploy Edge Extension",
+    "icon": "🌐",
+    "category": "System",
+    "supportedPhases": ["postInstall"]
+  },
+  {
+    "name": "remove_edge_extension",
+    "label": "Remove Edge Extension",
+    "icon": "🌐",
+    "category": "System",
+    "supportedPhases": ["postUninstall"]
+  },
+  {
+    "name": "register_dll",
+    "label": "Register / Unregister DLL",
+    "icon": "🔧",
+    "category": "System",
+    "supportedPhases": ["postInstall", "postUninstall"]
+  },
+  {
+    "name": "install_ms_updates",
+    "label": "Install Windows Updates (.msu)",
+    "icon": "🔄",
+    "category": "Installer",
+    "supportedPhases": ["install", "postInstall"]
   }
 ]
+
 

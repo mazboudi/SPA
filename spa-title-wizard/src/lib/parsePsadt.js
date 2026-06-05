@@ -9,6 +9,8 @@
  *       deployAppScriptVersion = [version]'3.x.x'
  *   v4: $adtSession = @{ ... } hashtable, Install-ADTDeployment function,
  *       Start-ADTMsiProcess, DeployAppScriptVersion = '4.x.x'
+ *
+ * Command reference sourced from: src/config/psadt-commands.json
  */
 
 /**
@@ -1105,12 +1107,24 @@ function extractBlockActions(block) {
       }
     }
 
-    // SetEnvironmentVariable
+    // SetEnvironmentVariable (raw .NET) or Set-ADTEnvironmentVariable
     if (!matched) {
       const envMatch = t.match(/SetEnvironmentVariable\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/i);
-      if (envMatch) {
+      const adtEnvMatch = !envMatch ? t.match(/Set-ADTEnvironmentVariable\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]([^'"]+)['"]/i) : null;
+      const em = envMatch || adtEnvMatch;
+      if (em) {
         flushCustomBuffer();
-        actions.push({ type: 'env_variable', desc: `Env: ${envMatch[1]} = ${envMatch[2]}`, name: envMatch[1], value: envMatch[2], raw: t });
+        actions.push({ type: 'env_variable', desc: `Env: ${em[1]} = ${em[2]}`, name: em[1], value: em[2], raw: t });
+        matched = true;
+      }
+    }
+
+    // Remove-ADTEnvironmentVariable
+    if (!matched) {
+      const removeEnvMatch = t.match(/Remove-ADTEnvironmentVariable\s+.*-Name\s+['"]([^'"]+)['"]/i);
+      if (removeEnvMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'remove_env_variable', desc: `Remove env: ${removeEnvMatch[1]}`, name: removeEnvMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1179,6 +1193,141 @@ function extractBlockActions(block) {
       }
     }
 
+    // Copy-ADTFile
+    if (!matched) {
+      const copyADTMatch = t.match(/Copy-ADTFile\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
+      if (copyADTMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'file_copy', desc: `Copy: ${copyADTMatch[1]}`, source: copyADTMatch[1], dest: copyADTMatch[2], raw: t });
+        matched = true;
+      }
+    }
+
+    // Copy-ADTFileToUserProfiles
+    if (!matched) {
+      const copyUserMatch = t.match(/Copy-ADTFileToUserProfiles\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
+      if (copyUserMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'copy_file_to_user_profiles', desc: `Copy to profiles: ${copyUserMatch[1]}`, source: copyUserMatch[1], destination: copyUserMatch[2], raw: t });
+        matched = true;
+      }
+    }
+
+    // New-ADTShortcut
+    if (!matched) {
+      const shortcutMatch = t.match(/New-ADTShortcut\s+.*-Path\s+['"]([^'"]+)['"]\s+.*-TargetPath\s+['"]([^'"]+)['"]/i);
+      if (shortcutMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'new_shortcut', desc: `Shortcut: ${shortcutMatch[1]}`, shortcutPath: shortcutMatch[1], targetPath: shortcutMatch[2], raw: t });
+        matched = true;
+      }
+    }
+
+    // Get-ADTApplication
+    if (!matched) {
+      const getAppMatch = t.match(/\$([\w]+)\s*=\s*Get-ADTApplication\s+.*-Name\s+['"]([^'"]+)['"]/i);
+      if (getAppMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'get_installed_application', desc: `Query: ${getAppMatch[2]}`, varName: getAppMatch[1], name: getAppMatch[2], raw: t });
+        matched = true;
+      }
+    }
+
+    // Show-ADTInstallationRestartPrompt
+    if (!matched && /Show-(?:ADT)?InstallationRestartPrompt\b/i.test(t)) {
+      flushCustomBuffer();
+      const countdownMatch = t.match(/-CountdownSeconds\s+(\d+)/i);
+      actions.push({ type: 'restart_prompt', desc: 'Restart prompt', countdownSeconds: countdownMatch ? parseInt(countdownMatch[1]) : 600, raw: t });
+      matched = true;
+    }
+
+    // Set-ADTActiveSetup
+    if (!matched) {
+      const activeSetupMatch = t.match(/Set-ADTActiveSetup\s+.*-StubExePath\s+['"]([^'"]+)['"]/i);
+      if (activeSetupMatch) {
+        flushCustomBuffer();
+        const keyMatch = t.match(/-Key\s+['"]([^'"]+)['"]/i);
+        actions.push({ type: 'active_setup', desc: `Active Setup: ${activeSetupMatch[1]}`, stubExePath: activeSetupMatch[1], key: keyMatch?.[1] || '', raw: t });
+        matched = true;
+      }
+    }
+
+    // Add-ADTEdgeExtension
+    if (!matched) {
+      const addEdgeMatch = t.match(/Add-ADTEdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
+      if (addEdgeMatch) {
+        flushCustomBuffer();
+        const modeMatch = t.match(/-InstallationMode\s+['"]([^'"]+)['"]/i);
+        actions.push({ type: 'add_edge_extension', desc: `Edge ext: ${addEdgeMatch[1]}`, extensionId: addEdgeMatch[1], installationMode: modeMatch?.[1] || 'force_installed', raw: t });
+        matched = true;
+      }
+    }
+
+    // Remove-ADTEdgeExtension
+    if (!matched) {
+      const removeEdgeMatch = t.match(/Remove-ADTEdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
+      if (removeEdgeMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'remove_edge_extension', desc: `Remove Edge ext: ${removeEdgeMatch[1]}`, extensionId: removeEdgeMatch[1], raw: t });
+        matched = true;
+      }
+    }
+
+    // Register-ADTDll / Unregister-ADTDll
+    if (!matched) {
+      const regDllMatch = t.match(/(Register|Unregister)-ADTDll\s+.*-FilePath\s+['"]([^'"]+)['"]/i);
+      if (regDllMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'register_dll', desc: `${regDllMatch[1]} DLL: ${regDllMatch[2]}`, filePath: regDllMatch[2], action: regDllMatch[1], raw: t });
+        matched = true;
+      }
+    }
+
+    // Install-ADTMSUpdates
+    if (!matched && /Install-ADTMSUpdates\b/i.test(t)) {
+      flushCustomBuffer();
+      const dirMatch = t.match(/-Directory\s+['"]([^'"]+)['"]/i);
+      actions.push({ type: 'install_ms_updates', desc: 'Install MS Updates', directory: dirMatch?.[1] || '', raw: t });
+      matched = true;
+    }
+
+    // Start-ADTServiceAndDependencies / Stop-ADTServiceAndDependencies / Set-ADTServiceStartMode
+    if (!matched) {
+      const startSvcMatch = t.match(/Start-ADTServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
+      if (startSvcMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'set_service_state', desc: `Start service: ${startSvcMatch[1]}`, name: startSvcMatch[1], mode: 'start', raw: t });
+        matched = true;
+      }
+    }
+    if (!matched) {
+      const stopSvcMatch = t.match(/Stop-ADTServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
+      if (stopSvcMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'set_service_state', desc: `Stop service: ${stopSvcMatch[1]}`, name: stopSvcMatch[1], mode: 'stop', raw: t });
+        matched = true;
+      }
+    }
+    if (!matched) {
+      const setStartModeMatch = t.match(/Set-ADTServiceStartMode\s+.*-Name\s+['"]([^'"]+)['"].*-StartMode\s+['"]([^'"]+)['"]/i);
+      if (setStartModeMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'set_service_state', desc: `Service ${setStartModeMatch[1]} → ${setStartModeMatch[2]}`, name: setStartModeMatch[1], mode: setStartModeMatch[2], startMode: setStartModeMatch[2], raw: t });
+        matched = true;
+      }
+    }
+
+    // Write-ADTLogEntry
+    if (!matched) {
+      const logMatch = t.match(/Write-ADTLogEntry\s+.*-Message\s+['"]([^'"]+)['"]/i);
+      if (logMatch) {
+        flushCustomBuffer();
+        const sevMatch = t.match(/-Severity\s+(\d)/i);
+        actions.push({ type: 'write_log_entry', desc: `Log: ${logMatch[1]}`, message: logMatch[1], severity: sevMatch ? parseInt(sevMatch[1]) : 1, raw: t });
+        matched = true;
+      }
+    }
+
     // ── Unmatched line — buffer or skip ────────────────────────────────
     if (!matched) {
       // Boilerplate skips to ignore clean skeleton noise
@@ -1193,7 +1342,6 @@ function extractBlockActions(block) {
       if (/^\$ExecuteDefaultMSISplat\.Add\b/i.test(t)) continue;
       if (/^\$adtSession\.InstallPhase\s*=/i.test(t)) continue;
       if (/^\$installPhase\s*=/i.test(t)) continue;
-      if (/^Show-(?:ADT)?InstallationRestartPrompt\b/i.test(t)) continue;
       if (/^Write-(?:Host|Output|Verbose|Warning|Debug)\b/i.test(t)) continue;
 
       // Skip standalone braces if customBuffer is empty
@@ -1306,14 +1454,22 @@ function extractVarDeclarations(text) {
     }
   }
 
+  // ── RequireAdmin: editable — V3 scripts don't have it, default to $true ──
+  actions.push({
+    type: 'custom_variable',
+    desc: '$adtSession.RequireAdmin = $true',
+    name: '$adtSession.RequireAdmin',
+    value: '$true',
+    enabled: true,
+    raw: 'RequireAdmin = $true',
+  });
+
   // ── System-managed vars: V3 scripts don't have $adtSession, but after
   // conversion to V4 the generated template always includes these.
-  // Inject them unconditionally so the builder shows them from the start.
   const systemManagedDefaults = [
-    { key: 'RequireAdmin',                value: '$true' },
     { key: 'DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name' },
     { key: 'DeployAppScriptParameters',   value: '$PSBoundParameters' },
-    { key: 'DeployAppScriptVersion',      value: "'4.1.0'" },
+    { key: 'DeployAppScriptVersion',      value: "'4.1.8'" },
   ];
   for (const { key, value } of systemManagedDefaults) {
     actions.push({
@@ -1390,16 +1546,28 @@ export function extractVarDeclarationsV4(text) {
     }
   }
 
+  // ── RequireAdmin: editable boolean variable ─────────────────────────────
+  // This is a per-package setting that packagers may override to $false.
+  // It's a boolean (not a quoted string) so it doesn't match the interestingKeys regex.
+  const requireAdminMatch = sessionBlock.match(/^\s*RequireAdmin\s*=\s*(\$\w+)/im);
+  const requireAdminValue = requireAdminMatch ? requireAdminMatch[1].trim() : '$true';
+  actions.push({
+    type: 'custom_variable',
+    desc: `$adtSession.RequireAdmin = ${requireAdminValue}`,
+    name: '$adtSession.RequireAdmin',
+    value: requireAdminValue,
+    enabled: true,
+    raw: `RequireAdmin = ${requireAdminValue}`,
+  });
+
   // ── System-managed keys: ALWAYS present as readOnly ──────────────────────
   // These are hardcoded in the generated template with canonical values.
   // We always use the defaults — the original script's values are irrelevant
-  // since the generator overwrites them. This prevents stale values (e.g.,
-  // '4.0.6' from an old script) from appearing in the builder.
+  // since the generator overwrites them.
   const systemManagedKeys = [
-    { key: 'RequireAdmin',                value: '$true' },
     { key: 'DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name' },
     { key: 'DeployAppScriptParameters',   value: '$PSBoundParameters' },
-    { key: 'DeployAppScriptVersion',      value: "'4.1.0'" },
+    { key: 'DeployAppScriptVersion',      value: "'4.1.8'" },
   ];
 
   for (const { key, value } of systemManagedKeys) {

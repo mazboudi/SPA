@@ -1,0 +1,1107 @@
+{
+    "psadtVersion": "4.1.x",
+    "notes": [
+        "PowerShell common parameters are omitted.",
+        "Some internal/helper functions may expose additional framework parameters depending on the exact 4.1.x build.",
+        "For an exact export from your installed PSADT module, use Get-Command against the PSAppDeployToolkit module."
+    ],
+    "launchers": {
+        "Invoke-AppDeployToolkit.ps1": {
+            "parameters": {
+                "DeploymentType": [
+                    "Install",
+                    "Uninstall",
+                    "Repair"
+                ],
+                "DeployMode": [
+                    "Interactive",
+                    "Silent",
+                    "NonInteractive"
+                ],
+                "SuppressRebootPassThru": "switch",
+                "TerminalServerMode": "switch",
+                "DisableLogging": "switch"
+            }
+        },
+        "Invoke-AppDeployToolkit.exe": {
+            "parameters": {
+                "DeploymentType": [
+                    "Install",
+                    "Uninstall",
+                    "Repair"
+                ],
+                "DeployMode": [
+                    "Interactive",
+                    "Silent",
+                    "NonInteractive"
+                ],
+                "SuppressRebootPassThru": "switch",
+                "TerminalServerMode": "switch",
+                "DisableLogging": "switch",
+                "Debug": "switch",
+                "32": "switch",
+                "Core": "switch",
+                "File": "string",
+                "CustomScriptFile": "*.ps1"
+            }
+        }
+    },
+    "commands": {
+        "Add-ADTEdgeExtension": {
+            "parameters": {
+                "ExtensionID": "string",
+                "UpdateUrl": "string",
+                "InstallationMode": [
+                    "blocked",
+                    "allowed",
+                    "removed",
+                    "force_installed",
+                    "normal_installed"
+                ],
+                "MinimumVersionRequired": "string"
+            }
+        },
+        "Add-ADTModuleCallback": {
+            "parameters": {
+                "HookPoint": "string",
+                "Callback": "scriptblock"
+            }
+        },
+        "Block-ADTAppExecution": {
+            "parameters": {
+                "Processes": "string[]",
+                "WindowLocation": "string"
+            }
+        },
+        "Clear-ADTModuleCallback": {
+            "parameters": {}
+        },
+        "Close-ADTInstallationProgress": {
+            "parameters": {}
+        },
+        "Close-ADTSession": {
+            "parameters": {
+                "ExitCode": "int",
+                "Force": "switch"
+            }
+        },
+        "Complete-ADTFunction": {
+            "parameters": {
+                "Cmdlet": "object"
+            }
+        },
+        "Convert-ADTRegistryPath": {
+            "parameters": {
+                "Key": "string",
+                "SID": "string",
+                "DisableFunctionLogging": "switch"
+            }
+        },
+        "Convert-ADTValueType": {
+            "parameters": {
+                "Value": "object",
+                "Type": "string"
+            }
+        },
+        "Convert-ADTValuesFromRemainingArguments": {
+            "parameters": {
+                "RemainingArguments": "object[]"
+            }
+        },
+        "ConvertTo-ADTNTAccountOrSID": {
+            "parameters": {
+                "AccountName": "string",
+                "SID": "string"
+            }
+        },
+        "Copy-ADTContentToCache": {
+            "parameters": {
+                "Path": "string",
+                "Destination": "string",
+                "Recurse": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Copy-ADTFile": {
+            "parameters": {
+                "Path": "string[]",
+                "Destination": "string",
+                "Recurse": "switch",
+                "Flatten": "switch",
+                "ContinueOnError": "bool",
+                "FileCopyMode": "string",
+                "RobocopyParams": "string",
+                "RobocopyAdditionalParams": "string"
+            }
+        },
+        "Copy-ADTFileToUserProfiles": {
+            "parameters": {
+                "Path": "string",
+                "Destination": "string",
+                "UserProfiles": "object[]",
+                "Recurse": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Disable-ADTTerminalServerInstallMode": {
+            "parameters": {}
+        },
+        "Dismount-ADTWimFile": {
+            "parameters": {
+                "Path": "string",
+                "Save": "switch",
+                "Discard": "switch"
+            }
+        },
+        "Enable-ADTTerminalServerInstallMode": {
+            "parameters": {}
+        },
+        "Export-ADTEnvironmentTableToSessionState": {
+            "parameters": {
+                "SessionState": "SessionState"
+            }
+        },
+        "Get-ADTApplication": {
+            "parameters": {
+                "Name": "string",
+                "ProductCode": "string",
+                "ApplicationType": "string",
+                "ApplicationName": "string",
+                "Publisher": "string",
+                "IncludeUpdatesAndHotfixes": "switch",
+                "WildCard": "switch",
+                "RegEx": "switch",
+                "Exact": "switch",
+                "Architecture": "string",
+                "UserSid": "string"
+            }
+        },
+        "Get-ADTBoundParametersAndDefaultValues": {
+            "parameters": {
+                "Invocation": "InvocationInfo",
+                "BoundParameters": "hashtable"
+            }
+        },
+        "Get-ADTCommandTable": {
+            "parameters": {}
+        },
+        "Get-ADTConfig": {
+            "parameters": {}
+        },
+        "Get-ADTDeferHistory": {
+            "parameters": {
+                "AppName": "string",
+                "AppVersion": "string"
+            }
+        },
+        "Get-ADTEnvironment": {
+            "parameters": {}
+        },
+        "Get-ADTEnvironmentTable": {
+            "parameters": {}
+        },
+        "Get-ADTEnvironmentVariable": {
+            "parameters": {
+                "Name": "string",
+                "Target": [
+                    "Process",
+                    "User",
+                    "Machine"
+                ],
+                "SID": "string"
+            }
+        },
+        "Get-ADTExecutableInfo": {
+            "parameters": {
+                "Path": "string"
+            }
+        },
+        "Get-ADTFileVersion": {
+            "parameters": {
+                "FilePath": "string",
+                "ProductVersion": "switch"
+            }
+        },
+        "Get-ADTFreeDiskSpace": {
+            "parameters": {
+                "Drive": "string"
+            }
+        },
+        "Get-ADTIniSection": {
+            "parameters": {
+                "FilePath": "string",
+                "Section": "string"
+            }
+        },
+        "Get-ADTIniValue": {
+            "parameters": {
+                "FilePath": "string",
+                "Section": "string",
+                "Key": "string"
+            }
+        },
+        "Get-ADTLoggedOnUser": {
+            "parameters": {}
+        },
+        "Get-ADTModuleCallback": {
+            "parameters": {
+                "HookPoint": "string"
+            }
+        },
+        "Get-ADTMsiExitCodeMessage": {
+            "parameters": {
+                "MsiExitCode": "int"
+            }
+        },
+        "Get-ADTMsiTableProperty": {
+            "parameters": {
+                "Path": "string",
+                "Table": "string",
+                "Property": "string"
+            }
+        },
+        "Get-ADTObjectProperty": {
+            "parameters": {
+                "InputObject": "object",
+                "Property": "string"
+            }
+        },
+        "Get-ADTOperatingSystemInfo": {
+            "parameters": {}
+        },
+        "Get-ADTPEFileArchitecture": {
+            "parameters": {
+                "FilePath": "string"
+            }
+        },
+        "Get-ADTPendingReboot": {
+            "parameters": {}
+        },
+        "Get-ADTPowerShellProcessPath": {
+            "parameters": {
+                "Architecture": [
+                    "x86",
+                    "x64"
+                ],
+                "Core": "switch"
+            }
+        },
+        "Get-ADTPresentationSettingsEnabledUsers": {
+            "parameters": {}
+        },
+        "Get-ADTRegistryKey": {
+            "parameters": {
+                "Key": "string",
+                "Name": "string",
+                "SID": "string",
+                "ReturnEmptyKeyIfExists": "switch",
+                "DoNotExpandEnvironmentNames": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Get-ADTRunningProcesses": {
+            "parameters": {
+                "ProcessObjects": "object[]",
+                "ProcessNames": "string[]",
+                "DisableLogging": "switch"
+            }
+        },
+        "Get-ADTServiceStartMode": {
+            "parameters": {
+                "Name": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Get-ADTSession": {
+            "parameters": {}
+        },
+        "Get-ADTShortcut": {
+            "parameters": {
+                "Path": "string"
+            }
+        },
+        "Get-ADTStringTable": {
+            "parameters": {}
+        },
+        "Get-ADTUniversalDate": {
+            "parameters": {
+                "DateTime": "datetime"
+            }
+        },
+        "Get-ADTUserNotificationState": {
+            "parameters": {}
+        },
+        "Get-ADTUserProfiles": {
+            "parameters": {
+                "ExcludeDefaultUser": "switch",
+                "ExcludeSystemProfiles": "switch",
+                "ExcludeServiceProfiles": "switch"
+            }
+        },
+        "Get-ADTWindowTitle": {
+            "parameters": {
+                "WindowTitle": "string"
+            }
+        },
+        "Initialize-ADTFunction": {
+            "parameters": {
+                "Cmdlet": "object"
+            }
+        },
+        "Initialize-ADTModule": {
+            "parameters": {}
+        },
+        "Install-ADTMSUpdates": {
+            "parameters": {
+                "Directory": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Install-ADTSCCMSoftwareUpdates": {
+            "parameters": {
+                "ContinueOnError": "bool"
+            }
+        },
+        "Invoke-ADTAllUsersRegistryAction": {
+            "parameters": {
+                "ScriptBlock": "scriptblock",
+                "UserProfiles": "object[]",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Invoke-ADTCommandWithRetries": {
+            "parameters": {
+                "Command": "scriptblock",
+                "Retries": "int",
+                "IntervalSeconds": "int",
+                "SuccessCondition": "scriptblock"
+            }
+        },
+        "Invoke-ADTFunctionErrorHandler": {
+            "parameters": {
+                "Cmdlet": "object",
+                "ErrorRecord": "ErrorRecord",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Invoke-ADTObjectMethod": {
+            "parameters": {
+                "InputObject": "object",
+                "MethodName": "string",
+                "ArgumentList": "object[]"
+            }
+        },
+        "Invoke-ADTRegSvr32": {
+            "parameters": {
+                "FilePath": "string",
+                "Action": [
+                    "Register",
+                    "Unregister"
+                ],
+                "ContinueOnError": "bool"
+            }
+        },
+        "Invoke-ADTSCCMTask": {
+            "parameters": {
+                "ScheduleId": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Mount-ADTWimFile": {
+            "parameters": {
+                "ImagePath": "string",
+                "Path": "string",
+                "Index": "int"
+            }
+        },
+        "New-ADTErrorRecord": {
+            "parameters": {
+                "Exception": "Exception",
+                "ErrorId": "string",
+                "ErrorCategory": "string",
+                "TargetObject": "object"
+            }
+        },
+        "New-ADTFolder": {
+            "parameters": {
+                "Path": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "New-ADTMsiTransform": {
+            "parameters": {
+                "Path": "string",
+                "TransformPath": "string",
+                "ApplyTransformPath": "string"
+            }
+        },
+        "New-ADTShortcut": {
+            "parameters": {
+                "Path": "string",
+                "TargetPath": "string",
+                "Arguments": "string",
+                "IconLocation": "string",
+                "IconIndex": "int",
+                "Description": "string",
+                "WorkingDirectory": "string",
+                "WindowStyle": "string",
+                "RunAsAdmin": "switch",
+                "Hotkey": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "New-ADTTemplate": {
+            "parameters": {
+                "Destination": "string",
+                "Force": "switch"
+            }
+        },
+        "New-ADTValidateScriptErrorRecord": {
+            "parameters": {
+                "ParameterName": "string",
+                "ProvidedValue": "object",
+                "Message": "string"
+            }
+        },
+        "New-ADTZipFile": {
+            "parameters": {
+                "Path": "string",
+                "DestinationArchiveFilePath": "string",
+                "RemoveSourceAfterArchiving": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Open-ADTSession": {
+            "parameters": {
+                "SessionState": "SessionState",
+                "DeploymentType": [
+                    "Install",
+                    "Uninstall",
+                    "Repair"
+                ],
+                "DeployMode": [
+                    "Interactive",
+                    "Silent",
+                    "NonInteractive"
+                ],
+                "AppVendor": "string",
+                "AppName": "string",
+                "AppVersion": "string",
+                "AppArch": "string",
+                "AppLang": "string",
+                "AppRevision": "string",
+                "AppSuccessExitCodes": "int[]",
+                "AppRebootExitCodes": "int[]",
+                "AppProcessesToClose": "string[]",
+                "InstallName": "string",
+                "InstallTitle": "string",
+                "ScriptDirectory": "string",
+                "DirFiles": "string",
+                "DirSupportFiles": "string",
+                "DefaultMsiFile": "string",
+                "DefaultMstFile": "string",
+                "DefaultMspFiles": "string[]",
+                "DisableLogging": "switch"
+            }
+        },
+        "Out-ADTPowerShellEncodedCommand": {
+            "parameters": {
+                "Command": "string",
+                "ScriptBlock": "scriptblock"
+            }
+        },
+        "Register-ADTDll": {
+            "parameters": {
+                "FilePath": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Remove-ADTContentFromCache": {
+            "parameters": {
+                "Path": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Remove-ADTEdgeExtension": {
+            "parameters": {
+                "ExtensionID": "string"
+            }
+        },
+        "Remove-ADTEnvironmentVariable": {
+            "parameters": {
+                "Name": "string",
+                "Target": [
+                    "Process",
+                    "User",
+                    "Machine"
+                ],
+                "SID": "string"
+            }
+        },
+        "Remove-ADTFile": {
+            "parameters": {
+                "Path": "string[]",
+                "LiteralPath": "string[]",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Remove-ADTFileFromUserProfiles": {
+            "parameters": {
+                "Path": "string",
+                "UserProfiles": "object[]",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Remove-ADTFolder": {
+            "parameters": {
+                "Path": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Remove-ADTHashtableNullOrEmptyValues": {
+            "parameters": {
+                "Hashtable": "hashtable"
+            }
+        },
+        "Remove-ADTIniSection": {
+            "parameters": {
+                "FilePath": "string",
+                "Section": "string"
+            }
+        },
+        "Remove-ADTIniValue": {
+            "parameters": {
+                "FilePath": "string",
+                "Section": "string",
+                "Key": "string"
+            }
+        },
+        "Remove-ADTInvalidFileNameChars": {
+            "parameters": {
+                "Name": "string"
+            }
+        },
+        "Remove-ADTModuleCallback": {
+            "parameters": {
+                "HookPoint": "string",
+                "Callback": "scriptblock"
+            }
+        },
+        "Remove-ADTRegistryKey": {
+            "parameters": {
+                "Key": "string",
+                "Name": "string",
+                "SID": "string",
+                "Recurse": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Reset-ADTDeferHistory": {
+            "parameters": {
+                "AppName": "string",
+                "AppVersion": "string"
+            }
+        },
+        "Resolve-ADTErrorRecord": {
+            "parameters": {
+                "ErrorRecord": "ErrorRecord"
+            }
+        },
+        "Send-ADTKeys": {
+            "parameters": {
+                "WindowTitle": "string",
+                "Keys": "string",
+                "WaitSeconds": "int"
+            }
+        },
+        "Set-ADTActiveSetup": {
+            "parameters": {
+                "StubExePath": "string",
+                "Arguments": "string",
+                "Description": "string",
+                "Key": "string",
+                "Version": "string",
+                "Locale": "string",
+                "DisableActiveSetup": "switch",
+                "PurgeActiveSetupKey": "switch",
+                "ExecuteForCurrentUser": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Set-ADTDeferHistory": {
+            "parameters": {
+                "AppName": "string",
+                "AppVersion": "string",
+                "DeferTimesRemaining": "int",
+                "DeferDeadline": "datetime"
+            }
+        },
+        "Set-ADTEnvironmentVariable": {
+            "parameters": {
+                "Name": "string",
+                "Value": "string",
+                "Target": [
+                    "Process",
+                    "User",
+                    "Machine"
+                ],
+                "SID": "string"
+            }
+        },
+        "Set-ADTIniSection": {
+            "parameters": {
+                "FilePath": "string",
+                "Section": "string",
+                "Value": "hashtable"
+            }
+        },
+        "Set-ADTIniValue": {
+            "parameters": {
+                "FilePath": "string",
+                "Section": "string",
+                "Key": "string",
+                "Value": "string"
+            }
+        },
+        "Set-ADTItemPermission": {
+            "parameters": {
+                "Path": "string",
+                "User": "string",
+                "Permission": "string",
+                "Inheritance": "string",
+                "Propagation": "string",
+                "AccessControlType": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Set-ADTMsiProperty": {
+            "parameters": {
+                "Path": "string",
+                "Property": "string",
+                "Value": "string"
+            }
+        },
+        "Set-ADTPowerShellCulture": {
+            "parameters": {
+                "Culture": "string",
+                "UICulture": "string"
+            }
+        },
+        "Set-ADTRegistryKey": {
+            "parameters": {
+                "Key": "string",
+                "Name": "string",
+                "Value": "object",
+                "Type": [
+                    "String",
+                    "ExpandString",
+                    "Binary",
+                    "DWord",
+                    "MultiString",
+                    "QWord"
+                ],
+                "SID": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Set-ADTServiceStartMode": {
+            "parameters": {
+                "Name": "string",
+                "StartMode": [
+                    "Automatic",
+                    "Manual",
+                    "Disabled"
+                ],
+                "ContinueOnError": "bool"
+            }
+        },
+        "Set-ADTShortcut": {
+            "parameters": {
+                "Path": "string",
+                "TargetPath": "string",
+                "Arguments": "string",
+                "IconLocation": "string",
+                "IconIndex": "int",
+                "Description": "string",
+                "WorkingDirectory": "string",
+                "WindowStyle": "string",
+                "RunAsAdmin": "switch",
+                "Hotkey": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Show-ADTBalloonTip": {
+            "parameters": {
+                "BalloonTipText": "string",
+                "BalloonTipTitle": "string",
+                "BalloonTipIcon": [
+                    "None",
+                    "Info",
+                    "Warning",
+                    "Error"
+                ],
+                "BalloonTipTime": "int"
+            }
+        },
+        "Show-ADTDialogBox": {
+            "parameters": {
+                "Title": "string",
+                "Text": "string",
+                "Buttons": "string",
+                "DefaultButton": "string",
+                "Icon": "string",
+                "Timeout": "int",
+                "TopMost": "switch"
+            }
+        },
+        "Show-ADTHelpConsole": {
+            "parameters": {}
+        },
+        "Show-ADTInstallationProgress": {
+            "parameters": {
+                "StatusMessage": "string",
+                "WindowLocation": "string",
+                "TopMost": "switch",
+                "NoMinimizeWindows": "switch",
+                "NotTopMost": "switch",
+                "ProgressPercentage": "int"
+            }
+        },
+        "Show-ADTInstallationPrompt": {
+            "parameters": {
+                "Title": "string",
+                "Message": "string",
+                "MessageAlignment": "string",
+                "ButtonRightText": "string",
+                "ButtonLeftText": "string",
+                "ButtonMiddleText": "string",
+                "Icon": "string",
+                "NoWait": "switch",
+                "PersistPrompt": "switch",
+                "MinimizeWindows": "switch",
+                "Timeout": "int",
+                "ExitOnTimeout": "switch",
+                "TopMost": "switch"
+            }
+        },
+        "Show-ADTInstallationRestartPrompt": {
+            "parameters": {
+                "CountdownSeconds": "int",
+                "CountdownNoHideSeconds": "int",
+                "NoSilentRestart": "switch",
+                "NoCountdown": "switch",
+                "SilentCountdownSeconds": "int",
+                "TopMost": "switch"
+            }
+        },
+        "Show-ADTInstallationWelcome": {
+            "parameters": {
+                "CloseProcesses": "string[]",
+                "Silent": "switch",
+                "CloseProcessesCountdown": "int",
+                "ForceCloseProcessesCountdown": "int",
+                "PromptToSave": "switch",
+                "PersistPrompt": "switch",
+                "AllowDefer": "switch",
+                "DeferTimes": "int",
+                "DeferDays": "int",
+                "DeferDeadline": "datetime",
+                "CheckDiskSpace": "switch",
+                "RequiredDiskSpace": "int",
+                "MinimizeWindows": "switch",
+                "TopMost": "switch",
+                "ForceCountdown": "int",
+                "CustomText": "switch",
+                "BlockExecution": "switch",
+                "AllowMove": "switch"
+            }
+        },
+        "Start-ADTMsiProcess": {
+            "parameters": {
+                "Action": [
+                    "Install",
+                    "Uninstall",
+                    "Patch",
+                    "Repair",
+                    "ActiveSetup"
+                ],
+                "FilePath": "string",
+                "ProductCode": "string",
+                "InstalledApplication": "object",
+                "ArgumentList": "string[]",
+                "AdditionalArgumentList": "string[]",
+                "Transforms": "string",
+                "Patch": "string",
+                "LogName": "string",
+                "LoggingOptions": "string",
+                "PrivateProperties": "string",
+                "SecureRepairPolicy": "switch",
+                "PassThru": "switch",
+                "SkipMSIAlreadyInstalledCheck": "switch",
+                "IncludeUpdatesAndHotfixes": "switch",
+                "SuccessExitCodes": "int[]",
+                "RebootExitCodes": "int[]",
+                "IgnoreExitCodes": "int[]",
+                "ContinueOnError": "bool",
+                "NoWait": "switch",
+                "Timeout": "int"
+            }
+        },
+        "Start-ADTMsiProcessAsUser": {
+            "parameters": {
+                "Action": [
+                    "Install",
+                    "Uninstall",
+                    "Patch",
+                    "Repair",
+                    "ActiveSetup"
+                ],
+                "FilePath": "string",
+                "ProductCode": "string",
+                "InstalledApplication": "object",
+                "ArgumentList": "string[]",
+                "AdditionalArgumentList": "string[]",
+                "Transforms": "string",
+                "Patch": "string",
+                "LogName": "string",
+                "LoggingOptions": "string",
+                "PrivateProperties": "string",
+                "SecureRepairPolicy": "switch",
+                "PassThru": "switch",
+                "SkipMSIAlreadyInstalledCheck": "switch",
+                "IncludeUpdatesAndHotfixes": "switch",
+                "SuccessExitCodes": "int[]",
+                "RebootExitCodes": "int[]",
+                "IgnoreExitCodes": "int[]",
+                "ContinueOnError": "bool",
+                "NoWait": "switch",
+                "Timeout": "int"
+            }
+        },
+        "Start-ADTMspProcess": {
+            "parameters": {
+                "FilePath": "string",
+                "Action": [
+                    "Install",
+                    "Uninstall"
+                ],
+                "ArgumentList": "string[]",
+                "AdditionalArgumentList": "string[]",
+                "LogName": "string",
+                "LoggingOptions": "string",
+                "PassThru": "switch",
+                "SuccessExitCodes": "int[]",
+                "RebootExitCodes": "int[]",
+                "IgnoreExitCodes": "int[]",
+                "ContinueOnError": "bool",
+                "NoWait": "switch",
+                "Timeout": "int"
+            }
+        },
+        "Start-ADTMspProcessAsUser": {
+            "parameters": {
+                "FilePath": "string",
+                "Action": [
+                    "Install",
+                    "Uninstall"
+                ],
+                "ArgumentList": "string[]",
+                "AdditionalArgumentList": "string[]",
+                "LogName": "string",
+                "LoggingOptions": "string",
+                "PassThru": "switch",
+                "SuccessExitCodes": "int[]",
+                "RebootExitCodes": "int[]",
+                "IgnoreExitCodes": "int[]",
+                "ContinueOnError": "bool",
+                "NoWait": "switch",
+                "Timeout": "int"
+            }
+        },
+        "Start-ADTProcess": {
+            "parameters": {
+                "FilePath": "string",
+                "ArgumentList": "string[]",
+                "SecureArgumentList": "string[]",
+                "WorkingDirectory": "string",
+                "WindowStyle": [
+                    "Normal",
+                    "Hidden",
+                    "Maximized",
+                    "Minimized"
+                ],
+                "CreateNoWindow": "switch",
+                "UseShellExecute": "switch",
+                "Verb": "string",
+                "Wait": "switch",
+                "NoWait": "switch",
+                "PassThru": "switch",
+                "SuccessExitCodes": "int[]",
+                "RebootExitCodes": "int[]",
+                "IgnoreExitCodes": "int[]",
+                "ContinueOnError": "bool",
+                "WaitForMsiExec": "switch",
+                "MsiExecWaitTime": "timespan",
+                "Timeout": "int",
+                "KillChildProcessesWithParent": "switch",
+                "ExpandEnvironmentVariables": "switch",
+                "StreamEncoding": "string",
+                "UseUnelevatedToken": "switch"
+            }
+        },
+        "Start-ADTProcessAsUser": {
+            "parameters": {
+                "FilePath": "string",
+                "ArgumentList": "string[]",
+                "SecureArgumentList": "string[]",
+                "WorkingDirectory": "string",
+                "WindowStyle": [
+                    "Normal",
+                    "Hidden",
+                    "Maximized",
+                    "Minimized"
+                ],
+                "CreateNoWindow": "switch",
+                "UseShellExecute": "switch",
+                "Verb": "string",
+                "Wait": "switch",
+                "NoWait": "switch",
+                "PassThru": "switch",
+                "SuccessExitCodes": "int[]",
+                "RebootExitCodes": "int[]",
+                "IgnoreExitCodes": "int[]",
+                "ContinueOnError": "bool",
+                "WaitForMsiExec": "switch",
+                "MsiExecWaitTime": "timespan",
+                "Timeout": "int",
+                "KillChildProcessesWithParent": "switch",
+                "ExpandEnvironmentVariables": "switch",
+                "StreamEncoding": "string",
+                "UseUnelevatedToken": "switch"
+            }
+        },
+        "Start-ADTServiceAndDependencies": {
+            "parameters": {
+                "Name": "string",
+                "SkipServiceExistsTest": "switch",
+                "PendingStatusWait": "int",
+                "PassThru": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Stop-ADTServiceAndDependencies": {
+            "parameters": {
+                "Name": "string",
+                "SkipServiceExistsTest": "switch",
+                "PendingStatusWait": "int",
+                "PassThru": "switch",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Test-ADTBattery": {
+            "parameters": {}
+        },
+        "Test-ADTCallerIsAdmin": {
+            "parameters": {}
+        },
+        "Test-ADTEspActive": {
+            "parameters": {}
+        },
+        "Test-ADTMSUpdates": {
+            "parameters": {
+                "Directory": "string"
+            }
+        },
+        "Test-ADTMicrophoneInUse": {
+            "parameters": {}
+        },
+        "Test-ADTModuleInitialized": {
+            "parameters": {}
+        },
+        "Test-ADTMutexAvailability": {
+            "parameters": {
+                "MutexName": "string",
+                "MutexWaitTime": "int"
+            }
+        },
+        "Test-ADTNetworkConnection": {
+            "parameters": {
+                "ComputerName": "string",
+                "PersistPrompt": "switch"
+            }
+        },
+        "Test-ADTOobeCompleted": {
+            "parameters": {}
+        },
+        "Test-ADTPowerPoint": {
+            "parameters": {}
+        },
+        "Test-ADTRegistryValue": {
+            "parameters": {
+                "Key": "string",
+                "Name": "string",
+                "SID": "string"
+            }
+        },
+        "Test-ADTServiceExists": {
+            "parameters": {
+                "Name": "string"
+            }
+        },
+        "Test-ADTSessionActive": {
+            "parameters": {}
+        },
+        "Test-ADTUserIsBusy": {
+            "parameters": {}
+        },
+        "Unblock-ADTAppExecution": {
+            "parameters": {}
+        },
+        "Uninstall-ADTApplication": {
+            "parameters": {
+                "Name": "string",
+                "ProductCode": "string",
+                "ApplicationType": "string",
+                "ApplicationName": "string",
+                "Publisher": "string",
+                "IncludeUpdatesAndHotfixes": "switch",
+                "WildCard": "switch",
+                "RegEx": "switch",
+                "Exact": "switch",
+                "Architecture": "string",
+                "AdditionalArgumentList": "string[]",
+                "ArgumentList": "string[]",
+                "FilterScript": "scriptblock",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Unregister-ADTDll": {
+            "parameters": {
+                "FilePath": "string",
+                "ContinueOnError": "bool"
+            }
+        },
+        "Update-ADTDesktop": {
+            "parameters": {}
+        },
+        "Update-ADTEnvironmentPsProvider": {
+            "parameters": {}
+        },
+        "Update-ADTGroupPolicy": {
+            "parameters": {
+                "ContinueOnError": "bool"
+            }
+        },
+        "Write-ADTLogEntry": {
+            "parameters": {
+                "Message": "string",
+                "Severity": "int",
+                "Source": "string",
+                "ScriptSection": "string",
+                "LogType": "string",
+                "DebugMessage": "switch",
+                "PassThru": "switch"
+            }
+        }
+    }
+}

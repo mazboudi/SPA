@@ -12,47 +12,44 @@ export default function generatePsadtScript(s, clean = false) {
   const displayName = s.displayName || 'TODO-DISPLAY-NAME';
   const publisher = s.publisher || 'Fiserv';
   const version = s.version || '1.0.0';
-  const frameworkVersion = '4.1.0';
+  const frameworkVersion = '4.1.8';
   const today = new Date().toISOString().split('T')[0];
 
-  // ── Helper: Compile Welcome/Progress block ─────────────────────────────
-  function convertToCloseWelcomeBlock(actions, phaseName) {
-    const lines = [];
-    const closeAction = (actions || []).find(a => a.type === 'stop_process' || a.type === 'show_welcome');
-    const welcomeAction = (actions || []).find(a => a.type === 'show_welcome');
-    const progressAction = (actions || []).find(a => a.type === 'show_progress');
+  // ── Standard PSADT 4.1 template boilerplate (framework code, not user-editable) ──
+  // These blocks are always present in the official template and are not exposed in the builder.
+  // Action types show_welcome, show_progress, stop_process are framework-level, not user actions.
+  const frameworkActionTypes = new Set(['show_welcome', 'show_progress', 'stop_process']);
 
-    let welcomeParams = [];
-    if (welcomeAction) {
-      if (welcomeAction.closeApps) {
-        welcomeParams.push(`-CloseApps '${welcomeAction.closeApps}'`);
-        welcomeParams.push('-CloseAppsCountdown 60');
-        welcomeParams.push('-ForceCloseAppsCountdown 180');
-      }
-      if (welcomeAction.checkDiskSpace) {
-        welcomeParams.push('-CheckDiskSpace');
-      }
-      if (welcomeAction.deferTimes) {
-        welcomeParams.push(`-AllowDefer -DeferTimes ${welcomeAction.deferTimes}`);
-        welcomeParams.push('-PersistPrompt');
-      }
-    } else if (closeAction && closeAction.type === 'stop_process' && closeAction.closeApps) {
-      // Fallback for simple stop_process action
-      welcomeParams.push(`-CloseApps '${closeAction.closeApps}'`);
-      welcomeParams.push('-CloseAppsCountdown 60');
-      welcomeParams.push('-ForceCloseAppsCountdown 180');
-    }
+  // Fingerprints that identify standard template boilerplate inside raw_ps action scripts.
+  // When the parser reads a 4.1.x source, it creates raw_ps actions from these blocks.
+  // Since the generator now injects them as hardcoded boilerplate, we must filter them
+  // out of user actions to prevent duplication.
+  const BOILERPLATE_FINGERPRINTS = [
+    // Pre-Install welcome splatting
+    /\$saiwParams\s*=\s*@\{/,
+    /Show-ADTInstallationWelcome\s+@saiwParams/,
+    // Standalone progress message (not inside user script context)
+    /^\s*Show-ADTInstallationProgress\s*$/m,
+    // Countdown welcome for uninstall/repair
+    /\$adtSession\.AppProcessesToClose\.Count\s+-gt\s+0[\s\S]*Show-ADTInstallationWelcome\s+-CloseProcesses/,
+    // Zero-Config MSI handler
+    /\$adtSession\.UseDefaultMsi[\s\S]*\$ExecuteDefaultMSISplat/,
+    /\$ExecuteDefaultMSISplat\s*=\s*@\{/,
+    // Post-install prompt (standard template text)
+    /Show-ADTInstallationPrompt\s+-Message\s+'You can customize text to appear/,
+  ];
 
-    if (welcomeParams.length > 0) {
-      lines.push(`        Show-ADTInstallationWelcome ${welcomeParams.join(' ')}`);
-    }
-
-    if (progressAction) {
-      const msg = phaseName.toLowerCase().includes('uninstall') ? 'Uninstall in Progress...' : 'Installation in Progress...';
-      lines.push(`        Show-ADTInstallationProgress -StatusMessage '${msg}' -WindowLocation 'TopCenter'`);
-    }
-
-    return lines;
+  /**
+   * Returns true if a raw_ps action’s script content matches standard template
+   * boilerplate that the generator already injects. These must NOT be emitted
+   * as user actions, otherwise the boilerplate appears twice in the output.
+   */
+  function isBoilerplateBlock(action) {
+    if (action.type !== 'raw_ps' || !action.script) return false;
+    const s = action.script.trim();
+    // Short standalone lines that are pure boilerplate
+    if (/^\s*(##=+\s*$|##\s*(MARK|Show Welcome|Show Progress|Handle Zero|Display a message|If there are processes))/im.test(s)) return true;
+    return BOILERPLATE_FINGERPRINTS.some(rx => rx.test(s));
   }
 
 
@@ -69,33 +66,47 @@ export default function generatePsadtScript(s, clean = false) {
       switch (action.type) {
         case 'msi_install': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const transform = action.transform ? ` -Transform '${action.transform}'` : '';
-          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args}${transform} -ErrorAction Stop`);
+          const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
+          const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+          const logName = action.logName ? ` -LogName '${action.logName}'` : '';
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args}${transform}${addlArgs}${logName}${successCodes}${rebootCodes}`);
           break;
         }
         case 'exe_install': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          actionLines.push(`        Start-ADTProcess -FilePath '$dirFiles\\${action.file}'${args} -ErrorAction Stop`);
+          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
+          const nw = action.noWait ? ' -NoWait' : '';
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const ignoreCodes = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
+          actionLines.push(`        Start-ADTProcess -FilePath '$dirFiles\\${action.file}'${args}${ws}${nw}${successCodes}${ignoreCodes}`);
           break;
         }
         case 'execute_process': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          actionLines.push(`        Start-ADTProcess -FilePath '${action.file}'${args} -ErrorAction Stop`);
+          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
+          const nw = action.noWait ? ' -NoWait' : '';
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const ignoreCodes = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
+          actionLines.push(`        Start-ADTProcess -FilePath '${action.file}'${args}${ws}${nw}${successCodes}${ignoreCodes}`);
           break;
         }
         case 'exe_uninstall': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          actionLines.push(`        Start-ADTProcess -FilePath '${action.file}'${args} -ErrorAction Stop`);
+          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
+          const nw = action.noWait ? ' -NoWait' : '';
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const ignoreCodes = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
+          actionLines.push(`        Start-ADTProcess -FilePath '${action.file}'${args}${ws}${nw}${successCodes}${ignoreCodes}`);
           break;
         }
         case 'msi_uninstall': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
           if (action.productCode) {
-            // Uninstall by ProductCode GUID — use Start-ADTMsiProcess directly
             actionLines.push(`        Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '${action.productCode}'${args}`);
           } else {
-            // Uninstall by application name — use Uninstall-ADTApplication
-            actionLines.push(`        Uninstall-ADTApplication -Name '${action.appName || 'Unknown'}'${args} -ErrorAction Stop`);
+            actionLines.push(`        Uninstall-ADTApplication -Name '${action.appName || 'Unknown'}'${args}`);
           }
           break;
         }
@@ -109,78 +120,57 @@ export default function generatePsadtScript(s, clean = false) {
           }
           break;
         }
-        case 'stop_process': {
-          actionLines.push(`        Stop-Process -Name '${action.closeApps}' -Force -ErrorAction SilentlyContinue`);
-          break;
-        }
         case 'file_copy': {
-          actionLines.push(`        $sourceFolder = "$dirFiles\\${action.source}"`);
-          actionLines.push(`        $destinationFolder = '${action.dest}'`);
-          actionLines.push(`        if (Test-Path -Path $destinationFolder -PathType Container) {`);
-          actionLines.push(`            Copy-Item -Path $sourceFolder -Destination $destinationFolder -Recurse -Force`);
-          actionLines.push(`        } else {`);
-          actionLines.push(`            Copy-Item -Path $sourceFolder -Destination $destinationFolder -Recurse`);
-          actionLines.push(`        }`);
+          const recurse = action.recurse !== false ? ' -Recurse' : '';
+          const flatten = action.flatten ? ' -Flatten' : '';
+          const mode = action.fileCopyMode ? ` -FileCopyMode '${action.fileCopyMode}'` : '';
+          actionLines.push(`        Copy-ADTFile -Path "$dirFiles\\${action.source}" -Destination '${action.dest}'${recurse}${flatten}${mode}`);
           break;
         }
         case 'file_remove': {
-          actionLines.push(`        $folderPath = '${action.path}'`);
-          actionLines.push(`        if (Test-Path -Path $folderPath) {`);
-          actionLines.push(`            Remove-Item -Path $folderPath -Force -Recurse`);
-          actionLines.push(`        }`);
+          actionLines.push(`        Remove-ADTFile -Path '${action.path}' -ErrorAction SilentlyContinue`);
           break;
         }
         case 'create_folder': {
-          actionLines.push(`        $folderPath = '${action.path}'`);
-          actionLines.push(`        if (!(Test-Path -Path $folderPath)) {`);
-          actionLines.push(`            New-Item -ItemType Directory -Path $folderPath -Force | Out-Null`);
-          actionLines.push(`        }`);
+          actionLines.push(`        New-ADTFolder -Path '${action.path}'`);
           break;
         }
         case 'registry_marker': {
           const regKey = `HKLM:\\SOFTWARE\\Fiserv\\InstalledApps\\${packageId}`;
           actionLines.push('        # Write Fiserv registry detection marker');
-          actionLines.push(`        Set-ADTRegistryKey -LiteralPath '${regKey}' \``);
-          actionLines.push(`            -Name 'Version' -Type 'String' -Value '${version}'`);
-          actionLines.push(`        Set-ADTRegistryKey -LiteralPath '${regKey}' \``);
-          actionLines.push(`            -Name 'Publisher' -Type 'String' -Value '${publisher}'`);
-          actionLines.push(`        Set-ADTRegistryKey -LiteralPath '${regKey}' \``);
-          actionLines.push(`            -Name 'DisplayName' -Type 'String' -Value '${displayName}'`);
-          actionLines.push(`        Set-ADTRegistryKey -LiteralPath '${regKey}' \``);
-          actionLines.push(`            -Name 'InstallDate' -Type 'String' -Value (Get-Date -Format 'yyyy-MM-dd')`);
+          actionLines.push(`        Set-ADTRegistryKey -Key '${regKey}' -Name 'Version' -Type 'String' -Value '${version}'`);
+          actionLines.push(`        Set-ADTRegistryKey -Key '${regKey}' -Name 'Publisher' -Type 'String' -Value '${publisher}'`);
+          actionLines.push(`        Set-ADTRegistryKey -Key '${regKey}' -Name 'DisplayName' -Type 'String' -Value '${displayName}'`);
+          actionLines.push(`        Set-ADTRegistryKey -Key '${regKey}' -Name 'InstallDate' -Type 'String' -Value (Get-Date -Format 'yyyy-MM-dd')`);
           break;
         }
         case 'remove_registry_marker': {
           const regKey = `HKLM:\\SOFTWARE\\Fiserv\\InstalledApps\\${packageId}`;
           actionLines.push('        # Remove Fiserv registry detection marker');
-          actionLines.push(`        Remove-ADTRegistryKey -LiteralPath '${regKey}' -ErrorAction SilentlyContinue`);
+          actionLines.push(`        Remove-ADTRegistryKey -Key '${regKey}' -ErrorAction SilentlyContinue`);
           break;
         }
         case 'registry_set': {
-          actionLines.push(`        Set-ADTRegistryKey -LiteralPath '${action.key}' -Name '${action.name}' -Type 'String' -Value '${action.value}'`);
+          const regType = action.regType ? ` -Type '${action.regType}'` : " -Type 'String'";
+          const sid = action.sid ? ` -SID '${action.sid}'` : '';
+          actionLines.push(`        Set-ADTRegistryKey -Key '${action.key}' -Name '${action.name}'${regType} -Value '${action.value}'${sid}`);
           break;
         }
         case 'registry_remove': {
-          actionLines.push(`        Remove-ADTRegistryKey -LiteralPath '${action.key}' -Name '${action.name}'`);
+          const name = action.name ? ` -Name '${action.name}'` : '';
+          actionLines.push(`        Remove-ADTRegistryKey -Key '${action.key}'${name}`);
           break;
         }
         case 'env_variable': {
-          actionLines.push(`        # Set environment variable: ${action.name}`);
-          actionLines.push(`        $currentValue = [Environment]::GetEnvironmentVariable('${action.name}', 'Machine')`);
-          actionLines.push(`        $newValue = '${action.value}' + ';' + $currentValue`);
-          actionLines.push(`        [Environment]::SetEnvironmentVariable('${action.name}', $newValue, 'Machine')`);
+          actionLines.push(`        Set-ADTEnvironmentVariable -Name '${action.name}' -Value '${action.value}' -Target 'Machine'`);
           break;
         }
         case 'remove_env_variable': {
-          actionLines.push(`        # Remove from environment variable: ${action.name}`);
-          actionLines.push(`        $currentValue = [Environment]::GetEnvironmentVariable('${action.name}', 'Machine')`);
-          actionLines.push(`        $newValue = ($currentValue -split ';' | Where-Object { $_ -ne '${action.value}' }) -join ';'`);
-          actionLines.push(`        [Environment]::SetEnvironmentVariable('${action.name}', $newValue, 'Machine')`);
+          actionLines.push(`        Remove-ADTEnvironmentVariable -Name '${action.name}' -Target 'Machine'`);
           break;
         }
         case 'show_completion': {
-          actionLines.push(`        Show-ADTInstallationPrompt -Message 'The install has completed.' \``);
-          actionLines.push("            -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5");
+          actionLines.push(`        Show-ADTInstallationPrompt -Message 'The install has completed.' -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
           break;
         }
         case 'sleep': {
@@ -215,36 +205,40 @@ export default function generatePsadtScript(s, clean = false) {
         case 'execute_process_as_user': {
           const isMsi = (action.file || '').toLowerCase().endsWith('.msi');
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
+          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
+          const nw = action.noWait ? ' -NoWait' : '';
           if (isMsi) {
-            actionLines.push(`        Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args} -ErrorAction Stop`);
+            actionLines.push(`        Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args}`);
           } else {
-            actionLines.push(`        Start-ADTProcessAsUser -FilePath '$dirFiles\\${action.file}'${args} -ErrorAction Stop`);
+            actionLines.push(`        Start-ADTProcessAsUser -FilePath '$dirFiles\\${action.file}'${args}${ws}${nw}`);
           }
           break;
         }
         case 'block_app_execution': {
-          const header = action.textHeader ? ` -TextHeader '${action.textHeader}'` : '';
-          const message = action.textMessage ? ` -TextMessage '${action.textMessage}'` : '';
-          actionLines.push(`        Block-ADTAppExecution -ProcessName '${action.processName}'${header}${message}`);
+          actionLines.push(`        Block-ADTAppExecution -ProcessName '${action.processName}'`);
           break;
         }
         case 'unblock_app_execution': {
-          actionLines.push(`        Unblock-ADTAppExecution -ProcessName '${action.processName}'`);
+          actionLines.push('        Unblock-ADTAppExecution');
           break;
         }
         case 'copy_file_to_user_profiles': {
-          actionLines.push(`        Copy-FileToUserProfiles -FilePath "$dirFiles\\${action.source}" -DestinationFolderPath '${action.destination}'`);
+          actionLines.push(`        Copy-ADTFileToUserProfiles -Path "$dirFiles\\${action.source}" -Destination '${action.destination}'`);
           break;
         }
         case 'new_shortcut': {
           const args = action.arguments ? ` -Arguments '${action.arguments}'` : '';
           const icon = action.iconLocation ? ` -IconLocation '${action.iconLocation}'` : '';
           const desc = action.description ? ` -Description '${action.description}'` : '';
-          actionLines.push(`        New-Shortcut -ShortcutPath '${action.shortcutPath}' -TargetPath '${action.targetPath}'${args}${icon}${desc}`);
+          const workDir = action.workingDirectory ? ` -WorkingDirectory '${action.workingDirectory}'` : '';
+          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
+          const admin = action.runAsAdmin ? ' -RunAsAdmin' : '';
+          const hotkey = action.hotkey ? ` -Hotkey '${action.hotkey}'` : '';
+          actionLines.push(`        New-ADTShortcut -Path '${action.shortcutPath}' -TargetPath '${action.targetPath}'${args}${icon}${desc}${workDir}${ws}${admin}${hotkey}`);
           break;
         }
         case 'show_balloon_tip': {
-          actionLines.push(`        Show-ADTBalloonTip -BalloonText '${action.balloonText}' -BalloonTitle '${action.balloonTitle}' -BalloonIcon '${action.balloonIcon || 'Info'}'`);
+          actionLines.push(`        Show-ADTBalloonTip -BalloonTipText '${action.balloonText}' -BalloonTipTitle '${action.balloonTitle}' -BalloonTipIcon '${action.balloonIcon || 'Info'}'`);
           break;
         }
         case 'show_dialog_box': {
@@ -253,15 +247,79 @@ export default function generatePsadtScript(s, clean = false) {
         }
         case 'get_installed_application': {
           const cleanVar = (action.varName || '').replace(/^\$/, '');
-          actionLines.push(`        $${cleanVar} = Get-InstalledApplication -Name '${action.name}'`);
+          const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
+          const pub = action.publisher ? ` -Publisher '${action.publisher}'` : '';
+          const exact = action.exact ? ' -Exact' : '';
+          const arch = action.architecture ? ` -Architecture '${action.architecture}'` : '';
+          actionLines.push(`        $${cleanVar} = Get-ADTApplication -Name '${action.name}'${pc}${pub}${exact}${arch}`);
           break;
         }
         case 'set_service_state': {
-          actionLines.push(`        Set-ADTServiceState -Name '${action.name}' -State '${action.state}'`);
+          const mode = (action.mode || action.state || 'stop').toLowerCase();
+          if (mode === 'start') {
+            actionLines.push(`        Start-ADTServiceAndDependencies -Name '${action.name}'`);
+          } else if (mode === 'stop') {
+            actionLines.push(`        Stop-ADTServiceAndDependencies -Name '${action.name}'`);
+          } else {
+            // Startup type: Automatic, Manual, Disabled
+            actionLines.push(`        Set-ADTServiceStartMode -Name '${action.name}' -StartMode '${action.startMode || mode}'`);
+          }
           break;
         }
         case 'write_log_entry': {
           actionLines.push(`        Write-ADTLogEntry -Message '${action.message}' -Severity ${action.severity || 1}`);
+          break;
+        }
+        // ── Phase 3: New action types ──────────────────────────────────────
+        case 'restart_prompt': {
+          const countdown = action.countdownSeconds ? ` -CountdownSeconds ${action.countdownSeconds}` : ' -CountdownSeconds 600';
+          const noHide = action.countdownNoHideSeconds ? ` -CountdownNoHideSeconds ${action.countdownNoHideSeconds}` : '';
+          const noSilent = action.noSilentRestart ? ' -NoSilentRestart' : '';
+          actionLines.push(`        Show-ADTInstallationRestartPrompt${countdown}${noHide}${noSilent}`);
+          break;
+        }
+        case 'active_setup': {
+          const setupArgs = action.arguments ? ` -Arguments '${action.arguments}'` : '';
+          const setupDesc = action.description ? ` -Description '${action.description}'` : '';
+          const setupVer = action.version ? ` -Version '${action.version}'` : '';
+          actionLines.push(`        Set-ADTActiveSetup -StubExePath '${action.stubExePath}'${setupArgs}${setupDesc}${setupVer} -Key '${action.key || packageId}'`);
+          break;
+        }
+        case 'all_users_registry': {
+          actionLines.push(`        Invoke-ADTAllUsersRegistryAction -ScriptBlock {`);
+          if (action.code) {
+            action.code.split('\n').forEach(line => {
+              actionLines.push(`            ${line.trimRight()}`);
+            });
+          } else {
+            actionLines.push('            # Per-user registry actions here');
+          }
+          actionLines.push('        }');
+          break;
+        }
+        case 'add_edge_extension': {
+          const installMode = action.installationMode ? ` -InstallationMode '${action.installationMode}'` : " -InstallationMode 'force_installed'";
+          const updateUrl = action.updateUrl ? ` -UpdateUrl '${action.updateUrl}'` : '';
+          const minVer = action.minimumVersionRequired ? ` -MinimumVersionRequired '${action.minimumVersionRequired}'` : '';
+          actionLines.push(`        Add-ADTEdgeExtension -ExtensionID '${action.extensionId}'${installMode}${updateUrl}${minVer}`);
+          break;
+        }
+        case 'remove_edge_extension': {
+          actionLines.push(`        Remove-ADTEdgeExtension -ExtensionID '${action.extensionId}'`);
+          break;
+        }
+        case 'register_dll': {
+          const regAction = action.action === 'Unregister' ? 'Unregister' : 'Register';
+          if (regAction === 'Register') {
+            actionLines.push(`        Register-ADTDll -FilePath '${action.filePath}'`);
+          } else {
+            actionLines.push(`        Unregister-ADTDll -FilePath '${action.filePath}'`);
+          }
+          break;
+        }
+        case 'install_ms_updates': {
+          const dir = action.directory ? ` -Directory '${action.directory}'` : '';
+          actionLines.push(`        Install-ADTMSUpdates${dir}`);
           break;
         }
         default:
@@ -283,15 +341,6 @@ export default function generatePsadtScript(s, clean = false) {
     return lines;
   }
 
-  // ── 1. Variables section ($adtSession CloseApps) ─────────────────────────
-  let closeAppsList = '@()';
-  const preInstallActions = phases.preInstall?.actions || [];
-  const welcomeAction = preInstallActions.find(a => a.type === 'show_welcome' || a.type === 'stop_process');
-  if (welcomeAction && welcomeAction.closeApps) {
-    const list = welcomeAction.closeApps.split(',').map(app => `'${app.trim()}'`).join(', ');
-    closeAppsList = `@(${list})`;
-  }
-
   // Extract parsed v3/v4 custom variables from the variableDeclaration phase
   const varActions = phases.variableDeclaration?.actions || [];
 
@@ -305,14 +354,30 @@ export default function generatePsadtScript(s, clean = false) {
   }
 
   // Helper to find a parsed variable value case-insensitively
-  // Skips readOnly/systemManaged actions since those are PS expressions hardcoded in the template
+  // Skips systemManaged actions (PS expressions hardcoded in the template)
+  // but allows readOnly-only vars like RequireAdmin which packagers can edit
   function getVarVal(name, fallback) {
     const act = varActions.find(a => {
-      if (a.readOnly || a.systemManaged) return false;
+      if (a.systemManaged) return false;
       const cleanName = getCleanVarName(a.name);
       return cleanName.toLowerCase() === name.toLowerCase();
     });
     return act ? act.value : fallback;
+  }
+
+  // ── 1. Variables section ─────────────────────────────────────────────────
+  // AppProcessesToClose comes from the variable declaration, not from action cards
+  const closeAppsVar = varActions.find(a => getCleanVarName(a.name).toLowerCase() === 'appprocessestoclose');
+  let closeAppsList = '@()';
+  if (closeAppsVar && closeAppsVar.value) {
+    const rawVal = closeAppsVar.value.trim();
+    // If already in @(...) format, use as-is; otherwise wrap
+    if (rawVal.startsWith('@(')) {
+      closeAppsList = rawVal;
+    } else {
+      const items = rawVal.split(',').map(s => `'${s.trim()}'`).filter(s => s !== "''").join(', ');
+      closeAppsList = items ? `@(${items})` : '@()';
+    }
   }
 
   // Map onto PascalCase official PSADT v4 standard keys
@@ -388,29 +453,105 @@ export default function generatePsadtScript(s, clean = false) {
     return [...builderLines, ...customLines].join('\n');
   }
 
+  // Helper: filter out framework-level actions and boilerplate raw_ps blocks
+  function userActions(phaseKey) {
+    return (phases[phaseKey]?.actions || []).filter(a => {
+      if (frameworkActionTypes.has(a.type)) return false;
+      if (isBoilerplateBlock(a)) return false;
+      return true;
+    });
+  }
+
+  // ── Standard boilerplate: Pre-Install Welcome (splatting pattern) ────────
+  const STD_PREINSTALL_WELCOME = `    ## Show Welcome Message, close processes if specified, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt.
+    $saiwParams = @{
+        AllowDefer = $true
+        DeferTimes = 3
+        CheckDiskSpace = $true
+        PersistPrompt = $true
+    }
+    if ($adtSession.AppProcessesToClose.Count -gt 0)
+    {
+        $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
+    }
+    Show-ADTInstallationWelcome @saiwParams
+
+    ## Show Progress Message (with the default message).
+    Show-ADTInstallationProgress`;
+
+  // ── Standard boilerplate: Pre-Uninstall/Pre-Repair countdown welcome ────
+  const STD_COUNTDOWN_WELCOME = `    ## If there are processes to close, show Welcome Message with a 60 second countdown before automatically closing.
+    if ($adtSession.AppProcessesToClose.Count -gt 0)
+    {
+        Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CloseProcessesCountdown 60
+    }
+
+    ## Show Progress Message (with the default message).
+    Show-ADTInstallationProgress`;
+
+  // ── Standard boilerplate: Zero-Config MSI handler (Install) ─────────────
+  const STD_ZEROCONFIG_MSI_INSTALL = `    ## Handle Zero-Config MSI installations.
+    if ($adtSession.UseDefaultMsi)
+    {
+        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
+        if ($adtSession.DefaultMstFile)
+        {
+            $ExecuteDefaultMSISplat.Add('Transforms', $adtSession.DefaultMstFile)
+        }
+        Start-ADTMsiProcess @ExecuteDefaultMSISplat
+        if ($adtSession.DefaultMspFiles)
+        {
+            $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
+        }
+    }`;
+
+  // ── Standard boilerplate: Zero-Config MSI handler (Uninstall/Repair) ────
+  const STD_ZEROCONFIG_MSI_OTHER = `    ## Handle Zero-Config MSI uninstallations.
+    if ($adtSession.UseDefaultMsi)
+    {
+        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
+        if ($adtSession.DefaultMstFile)
+        {
+            $ExecuteDefaultMSISplat.Add('Transforms', $adtSession.DefaultMstFile)
+        }
+        Start-ADTMsiProcess @ExecuteDefaultMSISplat
+    }`;
+
+  // ── Standard boilerplate: Post-Install prompt ───────────────────────────
+  const STD_POSTINSTALL_PROMPT = `    ## Display a message at the end of the install.
+    if (!$adtSession.UseDefaultMsi)
+    {
+        Show-ADTInstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -NoWait
+    }`;
+
   // Install phases
-  const preInstallWelcome = convertToCloseWelcomeBlock(phases.preInstall?.actions, 'PreInstall');
-  const preInstallActionsList = (phases.preInstall?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress');
   const preInstallBlock = [
-    ...preInstallWelcome,
-    compilePhaseBlock(preInstallActionsList, 'Pre-Install', 'Enter custom pre-installation script code here (e.g. show welcome prompt, stop processes, check requirements)')
-  ].filter(Boolean).join('\n');
+    STD_PREINSTALL_WELCOME,
+    compilePhaseBlock(userActions('preInstall'), 'Pre-Install', 'Perform Pre-Installation tasks here')
+  ].join('\n\n');
 
-  const installBlock = compilePhaseBlock(phases.install?.actions, 'Install', 'Enter custom installation script code here (e.g. run MSI/EXE installer, perform file copy)');
+  const installBlock = [
+    STD_ZEROCONFIG_MSI_INSTALL,
+    compilePhaseBlock(userActions('install'), 'Install', 'Perform Installation tasks here')
+  ].join('\n\n');
 
-  const postInstallBlock = compilePhaseBlock(phases.postInstall?.actions, 'Post-Install', 'Enter custom post-installation script code here (e.g. apply registry keys, set environment variables, cleanup temporary files)');
+  const postInstallBlock = [
+    compilePhaseBlock(userActions('postInstall'), 'Post-Install', 'Perform Post-Installation tasks here'),
+    STD_POSTINSTALL_PROMPT,
+  ].join('\n\n');
 
   // Uninstall phases
-  const preUninstallWelcome = convertToCloseWelcomeBlock(phases.preUninstall?.actions, 'PreUninstall');
-  const preUninstallActionsList = (phases.preUninstall?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress');
   const preUninstallBlock = [
-    ...preUninstallWelcome,
-    compilePhaseBlock(preUninstallActionsList, 'Pre-Uninstall', 'Enter custom pre-uninstallation script code here (e.g. show welcome prompt, close processes before uninstalling)')
-  ].filter(Boolean).join('\n');
+    STD_COUNTDOWN_WELCOME,
+    compilePhaseBlock(userActions('preUninstall'), 'Pre-Uninstall', 'Perform Pre-Uninstallation tasks here')
+  ].join('\n\n');
 
-  const uninstallBlock = compilePhaseBlock(phases.uninstall?.actions, 'Uninstall', 'Enter custom uninstallation script code here (e.g. run MSI/EXE uninstall commands)');
+  const uninstallBlock = [
+    STD_ZEROCONFIG_MSI_OTHER,
+    compilePhaseBlock(userActions('uninstall'), 'Uninstall', 'Perform Uninstallation tasks here')
+  ].join('\n\n');
 
-  const postUninstallBlock = compilePhaseBlock(phases.postUninstall?.actions, 'Post-Uninstall', 'Enter custom post-uninstallation script code here (e.g. delete config folders, remove registry keys)');
+  const postUninstallBlock = compilePhaseBlock(userActions('postUninstall'), 'Post-Uninstall', 'Perform Post-Uninstallation tasks here');
 
   // Repair phases
   let preRepairBlock, repairBlock, postRepairBlock;
@@ -419,16 +560,17 @@ export default function generatePsadtScript(s, clean = false) {
     repairBlock = installBlock;
     postRepairBlock = postInstallBlock;
   } else {
-    const preRepairWelcome = convertToCloseWelcomeBlock(phases.preRepair?.actions, 'PreRepair');
-    const preRepairActionsList = (phases.preRepair?.actions || []).filter(a => a.type !== 'show_welcome' && a.type !== 'stop_process' && a.type !== 'show_progress');
     preRepairBlock = [
-      ...preRepairWelcome,
-      compilePhaseBlock(preRepairActionsList, 'Pre-Repair', 'Enter custom pre-repair script code here (e.g. close processes, check corrupt states)')
-    ].filter(Boolean).join('\n');
+      STD_COUNTDOWN_WELCOME,
+      compilePhaseBlock(userActions('preRepair'), 'Pre-Repair', 'Perform Pre-Repair tasks here')
+    ].join('\n\n');
 
-    repairBlock = compilePhaseBlock(phases.repair?.actions, 'Repair', 'Enter custom repair script code here (e.g. run repair commands, re-copy pristine files)');
+    repairBlock = [
+      STD_ZEROCONFIG_MSI_OTHER,
+      compilePhaseBlock(userActions('repair'), 'Repair', 'Perform Repair tasks here')
+    ].join('\n\n');
 
-    postRepairBlock = compilePhaseBlock(phases.postRepair?.actions, 'Post-Repair', 'Enter custom post-repair script code here (e.g. verify repair, log completion)');
+    postRepairBlock = compilePhaseBlock(userActions('postRepair'), 'Post-Repair', 'Perform Post-Repair tasks here');
   }
 
   // ── 4. Assemble standard PSADT template ──────────────────────────────────
@@ -486,7 +628,7 @@ $adtSession = @{
     AppScriptVersion       = '${appScriptVersion}'
     AppScriptDate          = '${appScriptDate}'
     AppScriptAuthor        = '${appScriptAuthor}'
-    RequireAdmin           = $true
+    RequireAdmin           = ${getVarVal('requireAdmin', '$true')}
 
     InstallName            = '${installName}'
     InstallTitle           = '${installTitle}'

@@ -18,9 +18,37 @@
   {
     "cmdlet": "msi_install",
     "parameter": "transform",
-    "label": "Transform File",
+    "label": "Transform File (.mst)",
     "type": "text",
     "placeholder": "transform.mst"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "additionalArgs",
+    "label": "Additional Arguments",
+    "type": "text",
+    "placeholder": "PROPERTY=Value"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "logName",
+    "label": "Custom Log Name",
+    "type": "text",
+    "placeholder": "MyApp_Install"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes (comma-separated)",
+    "type": "text",
+    "placeholder": "0,1641,3010"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes (comma-separated)",
+    "type": "text",
+    "placeholder": "1641,3010"
   },
   {
     "cmdlet": "msi_uninstall",
@@ -67,6 +95,34 @@
     "default": "/S"
   },
   {
+    "cmdlet": "exe_install",
+    "parameter": "windowStyle",
+    "label": "Window Style",
+    "type": "select",
+    "options": ["Hidden", "Normal", "Maximized", "Minimized"]
+  },
+  {
+    "cmdlet": "exe_install",
+    "parameter": "noWait",
+    "label": "Don't Wait for Exit",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "exe_install",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes",
+    "type": "text",
+    "placeholder": "0,3010"
+  },
+  {
+    "cmdlet": "exe_install",
+    "parameter": "ignoreExitCodes",
+    "label": "Ignore Exit Codes",
+    "type": "text",
+    "placeholder": "1"
+  },
+  {
     "cmdlet": "exe_uninstall",
     "parameter": "file",
     "label": "Uninstaller Path",
@@ -83,6 +139,20 @@
     "default": "/S"
   },
   {
+    "cmdlet": "exe_uninstall",
+    "parameter": "windowStyle",
+    "label": "Window Style",
+    "type": "select",
+    "options": ["Hidden", "Normal", "Maximized", "Minimized"]
+  },
+  {
+    "cmdlet": "exe_uninstall",
+    "parameter": "noWait",
+    "label": "Don't Wait for Exit",
+    "type": "boolean",
+    "default": false
+  },
+  {
     "cmdlet": "execute_process",
     "parameter": "file",
     "label": "File Path",
@@ -95,15 +165,35 @@
     "parameter": "args",
     "label": "Arguments",
     "type": "text",
-    "placeholder": "-ExecutionPolicy Bypass -File script.ps1"
+    "required": true
   },
   {
-    "cmdlet": "stop_process",
-    "parameter": "closeApps",
-    "label": "Process Names (comma-separated)",
+    "cmdlet": "execute_process",
+    "parameter": "windowStyle",
+    "label": "Window Style",
+    "type": "select",
+    "options": ["Hidden", "Normal", "Maximized", "Minimized"]
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "noWait",
+    "label": "Don't Wait for Exit",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes",
     "type": "text",
-    "placeholder": "chrome,firefox",
-    "required": true
+    "placeholder": "0,3010"
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "ignoreExitCodes",
+    "label": "Ignore Exit Codes",
+    "type": "text",
+    "placeholder": "1"
   },
   {
     "cmdlet": "file_copy",
@@ -118,6 +208,27 @@
     "label": "Destination Path",
     "type": "text",
     "required": true
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "recurse",
+    "label": "Recurse (Include Subdirectories)",
+    "type": "boolean",
+    "default": true
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "flatten",
+    "label": "Flatten Directory Structure",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "fileCopyMode",
+    "label": "Copy Engine",
+    "type": "select",
+    "options": ["Native", "Robocopy"]
   },
   {
     "cmdlet": "file_remove",
@@ -156,6 +267,20 @@
     "required": true
   },
   {
+    "cmdlet": "registry_set",
+    "parameter": "regType",
+    "label": "Value Type",
+    "type": "select",
+    "options": ["String", "ExpandString", "Binary", "DWord", "MultiString", "QWord"]
+  },
+  {
+    "cmdlet": "registry_set",
+    "parameter": "sid",
+    "label": "User SID (optional)",
+    "type": "text",
+    "placeholder": "S-1-5-..."
+  },
+  {
     "cmdlet": "registry_remove",
     "parameter": "key",
     "label": "Registry Key Path",
@@ -190,26 +315,6 @@
     "label": "Variable Name",
     "type": "text",
     "required": true
-  },
-  {
-    "cmdlet": "show_welcome",
-    "parameter": "closeApps",
-    "label": "Close Apps",
-    "type": "text"
-  },
-  {
-    "cmdlet": "show_welcome",
-    "parameter": "deferTimes",
-    "label": "Defer Times",
-    "type": "number",
-    "default": 0
-  },
-  {
-    "cmdlet": "show_welcome",
-    "parameter": "checkDiskSpace",
-    "label": "Check Disk Space",
-    "type": "boolean",
-    "default": false
   },
   {
     "cmdlet": "custom_variable",
@@ -444,11 +549,18 @@
   },
   {
     "cmdlet": "set_service_state",
-    "parameter": "state",
-    "label": "Desired State (Running/Stopped/Disabled/Automatic)",
-    "type": "text",
-    "placeholder": "Stopped",
+    "parameter": "mode",
+    "label": "Action",
+    "type": "select",
+    "options": ["start", "stop", "Automatic", "Manual", "Disabled"],
     "required": true
+  },
+  {
+    "cmdlet": "set_service_state",
+    "parameter": "startMode",
+    "label": "Startup Type (when setting startup mode)",
+    "type": "select",
+    "options": ["Automatic", "Manual", "Disabled"]
   },
   {
     "cmdlet": "write_log_entry",
@@ -465,6 +577,147 @@
     "type": "number",
     "default": 1,
     "required": true
+  },
+  {
+    "cmdlet": "get_installed_application",
+    "parameter": "productCode",
+    "label": "Product Code (GUID)",
+    "type": "text",
+    "placeholder": "{GUID}"
+  },
+  {
+    "cmdlet": "get_installed_application",
+    "parameter": "publisher",
+    "label": "Publisher Filter",
+    "type": "text",
+    "placeholder": "Microsoft"
+  },
+  {
+    "cmdlet": "get_installed_application",
+    "parameter": "exact",
+    "label": "Exact Name Match",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "get_installed_application",
+    "parameter": "architecture",
+    "label": "Architecture",
+    "type": "select",
+    "options": ["x86", "x64"]
+  },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "countdownSeconds",
+    "label": "Countdown (seconds)",
+    "type": "number",
+    "default": 600
+  },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "countdownNoHideSeconds",
+    "label": "Countdown No-Hide (seconds)",
+    "type": "number"
+  },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "noSilentRestart",
+    "label": "No Silent Restart",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "active_setup",
+    "parameter": "stubExePath",
+    "label": "Executable Path",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\App\\configure.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "active_setup",
+    "parameter": "arguments",
+    "label": "Arguments",
+    "type": "text"
+  },
+  {
+    "cmdlet": "active_setup",
+    "parameter": "description",
+    "label": "Description",
+    "type": "text",
+    "placeholder": "Per-user configuration for MyApp"
+  },
+  {
+    "cmdlet": "active_setup",
+    "parameter": "version",
+    "label": "Version",
+    "type": "text",
+    "placeholder": "1.0"
+  },
+  {
+    "cmdlet": "active_setup",
+    "parameter": "key",
+    "label": "Active Setup Key",
+    "type": "text",
+    "placeholder": "MyApp_Setup"
+  },
+  {
+    "cmdlet": "all_users_registry",
+    "parameter": "code",
+    "label": "Script Block (runs per user hive)",
+    "type": "textarea",
+    "placeholder": "Set-ADTRegistryKey -Key 'HKCU:\\Software\\MyApp' -Name 'Setting' -Value '1'",
+    "required": true
+  },
+  {
+    "cmdlet": "add_edge_extension",
+    "parameter": "extensionId",
+    "label": "Extension ID",
+    "type": "text",
+    "placeholder": "abcdefghijklmnopqrstuvwxyz1234",
+    "required": true
+  },
+  {
+    "cmdlet": "add_edge_extension",
+    "parameter": "installationMode",
+    "label": "Installation Mode",
+    "type": "select",
+    "options": ["force_installed", "normal_installed", "allowed", "blocked", "removed"]
+  },
+  {
+    "cmdlet": "add_edge_extension",
+    "parameter": "updateUrl",
+    "label": "Update URL",
+    "type": "text",
+    "placeholder": "https://edge.microsoft.com/extensionwebstorebase/v1/crx"
+  },
+  {
+    "cmdlet": "remove_edge_extension",
+    "parameter": "extensionId",
+    "label": "Extension ID",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "register_dll",
+    "parameter": "filePath",
+    "label": "DLL File Path",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\App\\mylib.dll",
+    "required": true
+  },
+  {
+    "cmdlet": "register_dll",
+    "parameter": "action",
+    "label": "Action",
+    "type": "select",
+    "options": ["Register", "Unregister"]
+  },
+  {
+    "cmdlet": "install_ms_updates",
+    "parameter": "directory",
+    "label": "Updates Directory",
+    "type": "text",
+    "placeholder": "$dirFiles"
   }
 ]
-
