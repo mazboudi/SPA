@@ -377,10 +377,12 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   // Output script filename is always the v4 standard name (v3 scripts are always converted)
   const resolvedScriptName = 'Invoke-AppDeployToolkit.ps1';
 
-  // ── Proactive scaffold flush: write generated script to disk on mount ──
-  // When a script is imported (refactor/convert) or loaded (edit), immediately
-  // sync the compiled script to the temp scaffold. This prevents stale on-disk
-  // files from overwriting freshly-imported conversion actions during background sync.
+  // ── Normalize & flush: single source of truth for builder state ──────
+  // When a script is imported (refactor/convert) or loaded (edit), the initial
+  // parse extracts values from the ORIGINAL script. We immediately normalize
+  // the builder state by generating the canonical V4.1 output and parsing it
+  // back — so the builder always displays the converted script, never the raw
+  // original. This is the same path VS Code sync uses, unifying both entry points.
   const scaffoldFlushedRef = useRef(false);
   useEffect(() => {
     if (scaffoldFlushedRef.current) return;
@@ -388,6 +390,19 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     if (state.wizardMode !== 'refactor' && state.wizardMode !== 'edit') return;
 
     scaffoldFlushedRef.current = true;
+
+    // ── Normalize lifecycle through the generated output ──
+    // Parse the compiled (generated) script back into lifecycle actions.
+    // This replaces the raw-parsed original values with canonical V4.1 values.
+    const normalized = parsePsadtBlocks(compiledScript);
+    const currentStr = JSON.stringify(lifecycleRef.current);
+    const normalizedStr = JSON.stringify(normalized.lifecycle);
+    if (currentStr !== normalizedStr) {
+      console.log('🔄 Normalize: replacing raw-parsed lifecycle with generated V4.1 output');
+      updateFields({ lifecycle: normalized.lifecycle });
+    }
+
+    // ── Write to disk for VS Code ──
     const relPath = `windows/src/${resolvedScriptName}`;
     fetch('/api/open-vscode', {
       method: 'POST',
