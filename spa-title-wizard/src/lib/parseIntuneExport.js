@@ -71,6 +71,20 @@ export function parseIntuneExport(exportData) {
     }
   }
 
+  // ── Deploy Mode from install command line ──────────────────────────────
+  const installCmd = app.installCommandLine || '';
+  if (installCmd) {
+    const modeMatch = installCmd.match(/-DeployMode\s+(\w+)/i);
+    if (modeMatch) {
+      // Capitalize first letter to match option values (Silent, NonInteractive, Interactive, Auto)
+      const raw = modeMatch[1];
+      fields.deployMode = raw.charAt(0).toUpperCase() + raw.slice(1);
+    }
+    if (installCmd.includes('-AllowRebootPassThru')) {
+      fields.allowRebootPassThru = true;
+    }
+  }
+
   // ── Detection Rules ───────────────────────────────────────────────────
   const rawRules = app.detectionRules || [];
   if (rawRules.length > 0) {

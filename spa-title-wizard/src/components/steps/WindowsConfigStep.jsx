@@ -371,9 +371,6 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
       <div className="config-section">
         <h3 className="section-title">Behavior</h3>
         <div className="form-grid">
-          <FormField label="Close Apps Before Install" id="closeApps" hint="Comma-separated process names">
-            <input id="closeApps" type="text" placeholder="chrome,msedge" value={state.closeApps} onChange={e => updateField('closeApps', e.target.value)} />
-          </FormField>
           <SelectField label="Restart Behavior" id="restartBehavior" value={state.restartBehavior} onChange={v => updateField('restartBehavior', v)}
             options={[
               { value: 'suppress', label: 'Suppress' },

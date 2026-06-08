@@ -1454,6 +1454,20 @@ function extractVarDeclarations(text) {
     }
   }
 
+  // ── AppProcessesToClose: editable — extract from Show-InstallationWelcome -CloseApps ──
+  // V3 scripts don't have $adtSession.AppProcessesToClose; we promote -CloseApps
+  // from the pre-install phase into the variable declaration for the v4 conversion.
+  const preInstallBlock = extractV3Phase(text, 'Pre-Installation');
+  const v3CloseApps = preInstallBlock ? extractCloseAppsV3(preInstallBlock) : null;
+  actions.push({
+    type: 'custom_variable',
+    desc: `$adtSession.AppProcessesToClose = @(${v3CloseApps || ''})`,
+    name: '$adtSession.AppProcessesToClose',
+    value: v3CloseApps || '',
+    enabled: true,
+    raw: `AppProcessesToClose = @(${v3CloseApps || ''})`,
+  });
+
   // ── RequireAdmin: editable — V3 scripts don't have it, default to $true ──
   actions.push({
     type: 'custom_variable',
@@ -1529,7 +1543,6 @@ export function extractVarDeclarationsV4(text) {
   const arrayKeys = [
     { key: 'AppSuccessExitCodes', desc: 'Success exit codes' },
     { key: 'AppRebootExitCodes', desc: 'Reboot exit codes' },
-    { key: 'AppProcessesToClose', desc: 'Processes to close' },
   ];
 
   for (const { key, desc } of arrayKeys) {
@@ -1545,6 +1558,18 @@ export function extractVarDeclarationsV4(text) {
       });
     }
   }
+
+  // AppProcessesToClose — always include, even when empty, so it is
+  // always visible and editable in the builder's variable section.
+  const closeProcs = extractArrayValue(sessionBlock, 'AppProcessesToClose');
+  actions.push({
+    type: 'custom_variable',
+    desc: `$adtSession.AppProcessesToClose = @(${closeProcs.length > 0 ? closeProcs.join(', ') : ''})`,
+    name: '$adtSession.AppProcessesToClose',
+    value: closeProcs.length > 0 ? closeProcs.join(', ') : '',
+    enabled: true,
+    raw: `AppProcessesToClose = @(${closeProcs.length > 0 ? closeProcs.join(', ') : ''})`,
+  });
 
   // ── RequireAdmin: editable boolean variable ─────────────────────────────
   // This is a per-package setting that packagers may override to $false.

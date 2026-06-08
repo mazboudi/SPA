@@ -148,7 +148,6 @@ detection:
 
     // Optional YAML lines
     const optLines = [];
-    if (s.closeApps) optLines.push(`close_apps: '${s.closeApps}'`);
     optLines.push(`restart_behavior: ${s.restartBehavior}`);
     optLines.push('install_experience: system');
     if (s.msiProductCode && s.installerType === 'msi') {

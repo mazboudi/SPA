@@ -55,7 +55,6 @@ export function parseProjectFiles(files) {
     }
     if (pkg.max_install_time) state.maxInstallTime = parseInt(pkg.max_install_time) || 60;
     if (pkg.restart_behavior) state.restartBehavior = pkg.restart_behavior;
-    if (pkg.close_apps) state.closeApps = pkg.close_apps;
 
     // Parse install_command for deploy mode flags
     if (pkg.install_command) {

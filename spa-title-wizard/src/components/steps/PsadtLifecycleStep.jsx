@@ -243,6 +243,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       { name: '$appArch',          value: '' },
       { name: '$appLang',          value: 'EN' },
       { name: '$appRevision',      value: '01' },
+      { name: '$adtSession.AppProcessesToClose', value: '' },
       { name: '$appScriptVersion', value: '1.0.0' },
       { name: '$appScriptDate',    value: today },
       { name: '$appScriptAuthor',  value: state.appOwner || 'EUC Packaging' },
@@ -576,9 +577,6 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   onChange={v => updateField('installContext', v)}
                   options={windowsOptions.installContexts}
                 />
-                <FormField label="Close Apps Before Install" id="closeApps" hint="Comma-separated process names (e.g., chrome,msedge)">
-                  <input id="closeApps" type="text" placeholder="chrome,msedge" value={state.closeApps || ''} onChange={e => updateField('closeApps', e.target.value)} />
-                </FormField>
                 <FormField label="Max Install Time (minutes)" id="maxInstallTime">
                   <input id="maxInstallTime" type="number" min="1" value={state.maxInstallTime} onChange={e => updateField('maxInstallTime', parseInt(e.target.value) || 60)} />
                 </FormField>
