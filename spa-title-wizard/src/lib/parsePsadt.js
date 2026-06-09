@@ -881,6 +881,71 @@ function extractBlockActions(block) {
     }
   };
 
+  // ── Step 1.5: Pre-process $saiwParams splatting patterns ──────────────
+  // The $saiwParams block spans multiple lines (hashtable + conditional +
+  // Show-ADTInstallationWelcome @saiwParams) and would otherwise fragment
+  // into 3 separate actions. Detect it and inject a structured show_welcome
+  // action directly, then remove those lines from further processing.
+  const joinedBlock = lines.join('\n');
+
+  // Pattern A: Full splatting ($saiwParams = @{ ... } + conditional + @saiwParams)
+  const saiwRx = /\$saiwParams\s*=\s*@\{([^}]*)\}[\s\S]*?Show-ADTInstallationWelcome\s+@saiwParams/;
+  const saiwMatch = joinedBlock.match(saiwRx);
+  if (saiwMatch) {
+    const hashtableBody = saiwMatch[1];
+    const parseBool = (key) => new RegExp(`${key}\\s*=\\s*\\$true`, 'i').test(hashtableBody);
+    const parseNum = (key) => { const m = hashtableBody.match(new RegExp(`${key}\\s*=\\s*(\\d+)`, 'i')); return m ? parseInt(m[1]) : 0; };
+    const parseStr = (key) => { const m = hashtableBody.match(new RegExp(`${key}\\s*=\\s*'([^']*)'`, 'i')); return m ? m[1] : ''; };
+
+    actions.push({
+      type: 'show_welcome',
+      enabled: true,
+      allowDefer: parseBool('AllowDefer'),
+      deferTimes: parseNum('DeferTimes') || 3,
+      deferDays: parseNum('DeferDays'),
+      deferDeadline: parseStr('DeferDeadline'),
+      checkDiskSpace: parseBool('CheckDiskSpace'),
+      persistPrompt: parseBool('PersistPrompt'),
+      closeProcessesCountdown: parseNum('CloseProcessesCountdown'),
+      forceCloseProcessesCountdown: parseNum('ForceCloseProcessesCountdown'),
+      blockExecution: parseBool('BlockExecution'),
+    });
+    // Remove the matched region from lines so it won't be re-parsed
+    const matchStart = joinedBlock.indexOf(saiwMatch[0]);
+    const matchEnd = matchStart + saiwMatch[0].length;
+    const before = joinedBlock.substring(0, matchStart);
+    const after = joinedBlock.substring(matchEnd);
+    lines.length = 0;
+    lines.push(...(before + after).split('\n'));
+  }
+
+  // Pattern B: Countdown welcome (pre-uninstall/pre-repair)
+  // if ($adtSession.AppProcessesToClose.Count -gt 0) { Show-ADTInstallationWelcome -CloseProcesses ... -CloseProcessesCountdown 60 }
+  const countdownRx = /if\s*\(\$adtSession\.AppProcessesToClose\.Count\s+-gt\s+0\)\s*\{[\s\S]*?Show-ADTInstallationWelcome\s+-CloseProcesses\s+\$adtSession\.AppProcessesToClose\s+-CloseProcessesCountdown\s+(\d+)[\s\S]*?\}/;
+  const countdownJoined = lines.join('\n');
+  const countdownMatch = countdownJoined.match(countdownRx);
+  if (countdownMatch) {
+    actions.push({
+      type: 'show_welcome',
+      enabled: true,
+      allowDefer: false,
+      deferTimes: 0,
+      deferDays: 0,
+      deferDeadline: '',
+      checkDiskSpace: false,
+      persistPrompt: false,
+      closeProcessesCountdown: parseInt(countdownMatch[1]) || 60,
+      forceCloseProcessesCountdown: 0,
+      blockExecution: false,
+    });
+    const matchStart = countdownJoined.indexOf(countdownMatch[0]);
+    const matchEnd = matchStart + countdownMatch[0].length;
+    const before = countdownJoined.substring(0, matchStart);
+    const after = countdownJoined.substring(matchEnd);
+    lines.length = 0;
+    lines.push(...(before + after).split('\n'));
+  }
+
   // ── Step 2: Index-based loop ──────────────────────────────────────────
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
@@ -1129,13 +1194,29 @@ function extractBlockActions(block) {
       }
     }
 
-    // Show-InstallationWelcome / Show-ADTInstallationWelcome
+    // Show-InstallationWelcome / Show-ADTInstallationWelcome (inline params, not splatting)
     if (!matched) {
       const welcomeMatch = t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
-      if (welcomeMatch) {
+      if (welcomeMatch && !/@saiwParams/.test(t)) {
         flushCustomBuffer();
-        const closeMatch = welcomeMatch[1].match(/-Close(?:Apps|Processes)\s+['"]?([^'"\s-]+)/i);
-        actions.push({ type: 'show_welcome', desc: `Welcome dialog${closeMatch ? ` (close: ${closeMatch[1]})` : ''}`, closeApps: closeMatch?.[1] || '', raw: t });
+        const params = welcomeMatch[1];
+        const hasParam = (name) => new RegExp(`-${name}\\b`, 'i').test(params);
+        const getNumParam = (name) => { const m = params.match(new RegExp(`-${name}\\s+(\\d+)`, 'i')); return m ? parseInt(m[1]) : 0; };
+
+        actions.push({
+          type: 'show_welcome',
+          enabled: true,
+          allowDefer: hasParam('AllowDefer'),
+          deferTimes: getNumParam('DeferTimes') || (hasParam('AllowDefer') ? 3 : 0),
+          deferDays: getNumParam('DeferDays'),
+          deferDeadline: '',
+          checkDiskSpace: hasParam('CheckDiskSpace'),
+          persistPrompt: hasParam('PersistPrompt'),
+          closeProcessesCountdown: getNumParam('CloseProcessesCountdown'),
+          forceCloseProcessesCountdown: getNumParam('ForceCloseProcessesCountdown') || getNumParam('ForceCountdown'),
+          blockExecution: hasParam('BlockExecution'),
+          raw: t,
+        });
         matched = true;
       }
     }
@@ -1143,7 +1224,14 @@ function extractBlockActions(block) {
     // Show-InstallationProgress / Show-ADTInstallationProgress
     if (!matched && /Show-(?:ADT)?InstallationProgress/i.test(t)) {
       flushCustomBuffer();
-      actions.push({ type: 'show_progress', desc: 'Show progress dialog', raw: t });
+      const msgMatch = t.match(/-(?:StatusMessage|Message)\s+['"]([^'"]+)['"]/i);
+      actions.push({
+        type: 'show_progress',
+        enabled: true,
+        statusMessage: msgMatch ? msgMatch[1] : '',
+        topMost: !/-NotTopMost/i.test(t),
+        raw: t,
+      });
       matched = true;
     }
 
@@ -1157,6 +1245,91 @@ function extractBlockActions(block) {
       }
     }
 
+    // Stop-Process / Get-Process ... | Stop-Process
+    if (!matched) {
+      const stopProcMatch = t.match(/(?:Get-Process\s.*\|\s*)?Stop-Process\s+.*-(?:Name|Id)\s+['"]*([\w]+)['"]*/i) ||
+                            t.match(/Stop-Process\s+-Name\s+['"]*([\w]+)['"]*/i) ||
+                            t.match(/Get-Process\s+['"]*([\w]+)['"]*/i);
+      if (stopProcMatch) {
+        flushCustomBuffer();
+        const procName = stopProcMatch[1] || 'process';
+        actions.push({ type: 'stop_process', enabled: true, processName: procName, force: /-Force/i.test(t), raw: t });
+        matched = true;
+      }
+    }
+
+    // Set-ADTIniValue / Set-IniValue
+    if (!matched) {
+      const iniSetMatch = t.match(/Set-(?:ADT)?IniValue\b/i);
+      if (iniSetMatch) {
+        flushCustomBuffer();
+        const fp = extractPsParamValue(t, 'FilePath') || '';
+        const sec = extractPsParamValue(t, 'Section') || '';
+        const key = extractPsParamValue(t, 'Key') || '';
+        const val = extractPsParamValue(t, 'Value') || '';
+        actions.push({ type: 'ini_set', enabled: true, filePath: fp, section: sec, key, value: val, raw: t });
+        matched = true;
+      }
+    }
+
+    // Remove-ADTIniValue / Remove-IniValue
+    if (!matched) {
+      const iniRemoveMatch = t.match(/Remove-(?:ADT)?IniValue\b/i);
+      if (iniRemoveMatch) {
+        flushCustomBuffer();
+        const fp = extractPsParamValue(t, 'FilePath') || '';
+        const sec = extractPsParamValue(t, 'Section') || '';
+        const key = extractPsParamValue(t, 'Key') || '';
+        actions.push({ type: 'ini_remove', enabled: true, filePath: fp, section: sec, key, raw: t });
+        matched = true;
+      }
+    }
+
+    // Close-ADTInstallationProgress / Close-InstallationProgress
+    if (!matched && /Close-(?:ADT)?InstallationProgress/i.test(t)) {
+      flushCustomBuffer();
+      actions.push({ type: 'close_progress', enabled: true, raw: t });
+      matched = true;
+    }
+
+    // Remove-ADTFileFromUserProfiles
+    if (!matched) {
+      const removeProfileMatch = t.match(/Remove-ADTFileFromUserProfiles\s+.*-Path\s+['"]([^'"]+)['"]/i);
+      if (removeProfileMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'remove_file_from_profiles', enabled: true, path: removeProfileMatch[1], raw: t });
+        matched = true;
+      }
+    }
+
+    // Start-ADTMsiProcess -Action Patch
+    if (!matched) {
+      const msiPatchMatch = t.match(/Start-ADTMsiProcess\b.*-Action\s+['"]?Patch['"]?/i);
+      if (msiPatchMatch) {
+        flushCustomBuffer();
+        const fpMatch = t.match(/-FilePath\s+['"]([^'"]+)['"]/i);
+        const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
+        const fname = fpMatch ? fpMatch[1].replace(/.*[\\]/, '') : '';
+        actions.push({ type: 'msi_patch', enabled: true, file: fname, args: argMatch?.[1] || '', raw: t });
+        matched = true;
+      }
+    }
+
+    // Set-ADTItemPermission
+    if (!matched) {
+      const permMatch = t.match(/Set-ADTItemPermission\b/i);
+      if (permMatch) {
+        flushCustomBuffer();
+        const path = extractPsParamValue(t, 'Path') || '';
+        const user = extractPsParamValue(t, 'User') || '';
+        const perm = extractPsParamValue(t, 'Permission') || '';
+        const inherit = extractPsParamValue(t, 'Inheritance') || '';
+        const prop = extractPsParamValue(t, 'Propagation') || '';
+        const acType = extractPsParamValue(t, 'AccessControlType') || 'Allow';
+        actions.push({ type: 'set_permission', enabled: true, path, user, permission: perm, inheritance: inherit, propagation: prop, accessControlType: acType, raw: t });
+        matched = true;
+      }
+    }
     // ForEach-Object with Execute-MSI (multi-GUID uninstall pattern)
     if (!matched) {
       const foreachMsi = t.match(/\|?\s*ForEach-Object\s*\{\s*Execute-MSI\s+-Action\s+['"]?(\w+)['"]?/i);

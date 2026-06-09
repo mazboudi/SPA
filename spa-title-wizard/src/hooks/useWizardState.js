@@ -573,13 +573,6 @@ export default function useWizardState() {
         next.platform = 'windows';
       }
 
-      // Refactor default: if neither the PSADT script nor the Intune import
-      // specified a DeployMode, default to 'Auto' (PSADT 4.1 framework default).
-      // This differs from new titles which default to 'Silent'.
-      if (next.deployMode === INITIAL_STATE.deployMode && !wizardFields.deployMode) {
-        next.deployMode = 'Auto';
-      }
-
       return next;
     });
     setCurrentStep(0);

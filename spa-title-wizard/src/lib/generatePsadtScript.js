@@ -17,21 +17,14 @@ export default function generatePsadtScript(s, clean = false) {
 
   // ── Standard PSADT 4.1 template boilerplate (framework code, not user-editable) ──
   // These blocks are always present in the official template and are not exposed in the builder.
-  // Action types show_welcome, show_progress, stop_process are framework-level, not user actions.
-  const frameworkActionTypes = new Set(['show_welcome', 'show_progress', 'stop_process']);
+  // stop_process is a framework-level marker, not a user action.
+  const frameworkActionTypes = new Set(['stop_process']);
 
   // Fingerprints that identify standard template boilerplate inside raw_ps action scripts.
   // When the parser reads a 4.1.x source, it creates raw_ps actions from these blocks.
   // Since the generator now injects them as hardcoded boilerplate, we must filter them
   // out of user actions to prevent duplication.
   const BOILERPLATE_FINGERPRINTS = [
-    // Pre-Install welcome splatting
-    /\$saiwParams\s*=\s*@\{/,
-    /Show-ADTInstallationWelcome\s+@saiwParams/,
-    // Standalone progress message (not inside user script context)
-    /^\s*Show-ADTInstallationProgress\s*$/m,
-    // Countdown welcome for uninstall/repair
-    /\$adtSession\.AppProcessesToClose\.Count\s+-gt\s+0[\s\S]*Show-ADTInstallationWelcome\s+-CloseProcesses/,
     // Zero-Config MSI handler
     /\$adtSession\.UseDefaultMsi[\s\S]*\$ExecuteDefaultMSISplat/,
     /\$ExecuteDefaultMSISplat\s*=\s*@\{/,
@@ -40,7 +33,7 @@ export default function generatePsadtScript(s, clean = false) {
   ];
 
   /**
-   * Returns true if a raw_ps action’s script content matches standard template
+   * Returns true if a raw_ps action's script content matches standard template
    * boilerplate that the generator already injects. These must NOT be emitted
    * as user actions, otherwise the boilerplate appears twice in the output.
    */
@@ -51,7 +44,6 @@ export default function generatePsadtScript(s, clean = false) {
     if (/^\s*(##=+\s*$|##\s*(MARK|Show Welcome|Show Progress|Handle Zero|Display a message|If there are processes))/im.test(s)) return true;
     return BOILERPLATE_FINGERPRINTS.some(rx => rx.test(s));
   }
-
 
 
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
@@ -171,6 +163,50 @@ export default function generatePsadtScript(s, clean = false) {
         }
         case 'show_completion': {
           actionLines.push(`        Show-ADTInstallationPrompt -Message 'The install has completed.' -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
+          break;
+        }
+        case 'show_welcome': {
+          // Build the $saiwParams splatting hashtable dynamically
+          const swParams = [];
+          if (action.allowDefer) {
+            swParams.push('            AllowDefer = $true');
+            if (action.deferTimes && action.deferTimes > 0) swParams.push(`            DeferTimes = ${action.deferTimes}`);
+            if (action.deferDays && action.deferDays > 0) swParams.push(`            DeferDays = ${action.deferDays}`);
+            if (action.deferDeadline) swParams.push(`            DeferDeadline = '${action.deferDeadline}'`);
+          }
+          if (action.checkDiskSpace) swParams.push('            CheckDiskSpace = $true');
+          if (action.persistPrompt) swParams.push('            PersistPrompt = $true');
+          if (action.closeProcessesCountdown && action.closeProcessesCountdown > 0) {
+            swParams.push(`            CloseProcessesCountdown = ${action.closeProcessesCountdown}`);
+          }
+          if (action.forceCloseProcessesCountdown && action.forceCloseProcessesCountdown > 0) {
+            swParams.push(`            ForceCloseProcessesCountdown = ${action.forceCloseProcessesCountdown}`);
+          }
+          if (action.blockExecution) swParams.push('            BlockExecution = $true');
+
+          // Build a descriptive comment
+          const commentParts = [];
+          if (action.allowDefer) commentParts.push(`allow up to ${action.deferTimes || 3} deferrals`);
+          if (action.checkDiskSpace) commentParts.push('verify disk space');
+          if (action.persistPrompt) commentParts.push('persist the prompt');
+          const commentSuffix = commentParts.length > 0 ? `, ${commentParts.join(', ')}` : '';
+
+          actionLines.push(`        ## Show Welcome Message, close processes if specified${commentSuffix}.`);
+          actionLines.push('        $saiwParams = @{');
+          swParams.forEach(p => actionLines.push(p));
+          actionLines.push('        }');
+          actionLines.push('        if ($adtSession.AppProcessesToClose.Count -gt 0)');
+          actionLines.push('        {');
+          actionLines.push("            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)");
+          actionLines.push('        }');
+          actionLines.push('        Show-ADTInstallationWelcome @saiwParams');
+          break;
+        }
+        case 'show_progress': {
+          const msg = action.statusMessage ? ` -StatusMessage '${action.statusMessage}'` : '';
+          const notTop = (action.topMost === false) ? ' -NotTopMost' : '';
+          actionLines.push(`        ## Show Progress Message${action.statusMessage ? '' : ' (with the default message)'}.`);
+          actionLines.push(`        Show-ADTInstallationProgress${msg}${notTop}`);
           break;
         }
         case 'sleep': {
@@ -322,6 +358,42 @@ export default function generatePsadtScript(s, clean = false) {
           actionLines.push(`        Install-ADTMSUpdates${dir}`);
           break;
         }
+        case 'stop_process': {
+          const names = (action.processName || '').split(',').map(n => n.trim()).filter(Boolean);
+          const force = action.force !== false ? ' -Force' : '';
+          names.forEach(name => {
+            actionLines.push(`        Stop-Process -Name '${name}'${force} -ErrorAction SilentlyContinue`);
+          });
+          break;
+        }
+        case 'ini_set': {
+          actionLines.push(`        Set-ADTIniValue -FilePath '${action.filePath}' -Section '${action.section}' -Key '${action.key}' -Value '${action.value}'`);
+          break;
+        }
+        case 'ini_remove': {
+          actionLines.push(`        Remove-ADTIniValue -FilePath '${action.filePath}' -Section '${action.section}' -Key '${action.key}'`);
+          break;
+        }
+        case 'close_progress': {
+          actionLines.push('        Close-ADTInstallationProgress');
+          break;
+        }
+        case 'remove_file_from_profiles': {
+          actionLines.push(`        Remove-ADTFileFromUserProfiles -Path '${action.path}'`);
+          break;
+        }
+        case 'msi_patch': {
+          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
+          actionLines.push(`        Start-ADTMsiProcess -Action 'Patch' -FilePath '$dirFiles\\${action.file}'${args}`);
+          break;
+        }
+        case 'set_permission': {
+          const inherit = action.inheritance ? ` -Inheritance '${action.inheritance}'` : '';
+          const prop = action.propagation ? ` -Propagation '${action.propagation}'` : '';
+          const acType = action.accessControlType ? ` -AccessControlType '${action.accessControlType}'` : " -AccessControlType 'Allow'";
+          actionLines.push(`        Set-ADTItemPermission -Path '${action.path}' -User '${action.user}' -Permission '${action.permission}'${inherit}${prop}${acType}`);
+          break;
+        }
         default:
           break;
       }
@@ -462,33 +534,6 @@ export default function generatePsadtScript(s, clean = false) {
     });
   }
 
-  // ── Standard boilerplate: Pre-Install Welcome (splatting pattern) ────────
-  const STD_PREINSTALL_WELCOME = `    ## Show Welcome Message, close processes if specified, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt.
-    $saiwParams = @{
-        AllowDefer = $true
-        DeferTimes = 3
-        CheckDiskSpace = $true
-        PersistPrompt = $true
-    }
-    if ($adtSession.AppProcessesToClose.Count -gt 0)
-    {
-        $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
-    }
-    Show-ADTInstallationWelcome @saiwParams
-
-    ## Show Progress Message (with the default message).
-    Show-ADTInstallationProgress`;
-
-  // ── Standard boilerplate: Pre-Uninstall/Pre-Repair countdown welcome ────
-  const STD_COUNTDOWN_WELCOME = `    ## If there are processes to close, show Welcome Message with a 60 second countdown before automatically closing.
-    if ($adtSession.AppProcessesToClose.Count -gt 0)
-    {
-        Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CloseProcessesCountdown 60
-    }
-
-    ## Show Progress Message (with the default message).
-    Show-ADTInstallationProgress`;
-
   // ── Standard boilerplate: Zero-Config MSI handler (Install) ─────────────
   const STD_ZEROCONFIG_MSI_INSTALL = `    ## Handle Zero-Config MSI installations.
     if ($adtSession.UseDefaultMsi)
@@ -517,34 +562,18 @@ export default function generatePsadtScript(s, clean = false) {
         Start-ADTMsiProcess @ExecuteDefaultMSISplat
     }`;
 
-  // ── Standard boilerplate: Post-Install prompt ───────────────────────────
-  const STD_POSTINSTALL_PROMPT = `    ## Display a message at the end of the install.
-    if (!$adtSession.UseDefaultMsi)
-    {
-        Show-ADTInstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -NoWait
-    }`;
-
-  // Install phases
-  const preInstallBlock = [
-    STD_PREINSTALL_WELCOME,
-    compilePhaseBlock(userActions('preInstall'), 'Pre-Install', 'Perform Pre-Installation tasks here')
-  ].join('\n\n');
+  // Install phases — show_welcome and show_progress now come from user action cards
+  const preInstallBlock = compilePhaseBlock(userActions('preInstall'), 'Pre-Install', 'Perform Pre-Installation tasks here');
 
   const installBlock = [
     STD_ZEROCONFIG_MSI_INSTALL,
     compilePhaseBlock(userActions('install'), 'Install', 'Perform Installation tasks here')
   ].join('\n\n');
 
-  const postInstallBlock = [
-    compilePhaseBlock(userActions('postInstall'), 'Post-Install', 'Perform Post-Installation tasks here'),
-    STD_POSTINSTALL_PROMPT,
-  ].join('\n\n');
+  const postInstallBlock = compilePhaseBlock(userActions('postInstall'), 'Post-Install', 'Perform Post-Installation tasks here');
 
   // Uninstall phases
-  const preUninstallBlock = [
-    STD_COUNTDOWN_WELCOME,
-    compilePhaseBlock(userActions('preUninstall'), 'Pre-Uninstall', 'Perform Pre-Uninstallation tasks here')
-  ].join('\n\n');
+  const preUninstallBlock = compilePhaseBlock(userActions('preUninstall'), 'Pre-Uninstall', 'Perform Pre-Uninstallation tasks here');
 
   const uninstallBlock = [
     STD_ZEROCONFIG_MSI_OTHER,
@@ -560,10 +589,7 @@ export default function generatePsadtScript(s, clean = false) {
     repairBlock = installBlock;
     postRepairBlock = postInstallBlock;
   } else {
-    preRepairBlock = [
-      STD_COUNTDOWN_WELCOME,
-      compilePhaseBlock(userActions('preRepair'), 'Pre-Repair', 'Perform Pre-Repair tasks here')
-    ].join('\n\n');
+    preRepairBlock = compilePhaseBlock(userActions('preRepair'), 'Pre-Repair', 'Perform Pre-Repair tasks here');
 
     repairBlock = [
       STD_ZEROCONFIG_MSI_OTHER,

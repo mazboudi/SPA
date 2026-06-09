@@ -281,6 +281,42 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     });
   }, []); // run once on mount
 
+  // ── Auto-seed show_welcome + show_progress cards for new titles ──
+  useEffect(() => {
+    const isEdit = state.wizardMode === 'edit';
+    if (isRefactor || isEdit) return; // refactored/edited titles already have actions
+
+    const phases = lc.phases || {};
+    // Only seed if preInstall is empty (hasn't been seeded yet)
+    if ((phases.preInstall?.actions || []).length > 0) return;
+
+    const defaultWelcome = {
+      type: 'show_welcome', enabled: true,
+      allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
+      checkDiskSpace: true, persistPrompt: true,
+      closeProcessesCountdown: 0, forceCloseProcessesCountdown: 0,
+      blockExecution: false,
+    };
+    const countdownWelcome = {
+      type: 'show_welcome', enabled: true,
+      allowDefer: false, deferTimes: 0, deferDays: 0, deferDeadline: '',
+      checkDiskSpace: false, persistPrompt: false,
+      closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
+      blockExecution: false,
+    };
+    const defaultProgress = { type: 'show_progress', enabled: true, statusMessage: '', topMost: true };
+
+    updateField('lifecycle', {
+      ...lc,
+      phases: {
+        ...phases,
+        preInstall:   { actions: [defaultWelcome, defaultProgress, ...(phases.preInstall?.actions || [])] },
+        preUninstall: { actions: [countdownWelcome, defaultProgress, ...(phases.preUninstall?.actions || [])] },
+        preRepair:    { actions: [countdownWelcome, defaultProgress, ...(phases.preRepair?.actions || [])] },
+      },
+    });
+  }, []); // run once on mount
+
   // Compute compatibility report for converted v3 scripts
   const compatReport = useMemo(() => {
     const origScript = state._scriptContent || psadtResult?.scriptContent;

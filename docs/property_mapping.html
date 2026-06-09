@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPA Workbench — Property Mapping Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #4a4a68;
+    --text-muted: #8888a4;
+    --border: #e2e2ef;
+    --accent: #4f46e5;
+    --accent-light: #eef2ff;
+    --header-bg: #1e1b4b;
+    --header-text: #ffffff;
+    --code-bg: #f5f5fa;
+    --code-text: #d63384;
+    --note-bg: #eff6ff;
+    --note-border: #3b82f6;
+    --important-bg: #fef3f2;
+    --important-border: #ef4444;
+    --cell-alt: #fafafe;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 9pt;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    padding: 40px;
+  }
+
+  @page {
+    size: landscape;
+    margin: 0.5in;
+  }
+
+  @media print {
+    body { padding: 0; font-size: 7.5pt; }
+    .page-break { page-break-before: always; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+  }
+
+  h1 {
+    font-size: 22pt;
+    font-weight: 700;
+    color: var(--header-bg);
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  h1 + p {
+    font-size: 10pt;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+
+  h2 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 28px 0 10px 0;
+    padding-bottom: 4px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  h3 {
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--text);
+    margin: 16px 0 6px 0;
+  }
+
+  p {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 9pt;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 16px 0;
+    font-size: 7.5pt;
+  }
+
+  thead th {
+    background: var(--header-bg);
+    color: var(--header-text);
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 8px;
+    white-space: nowrap;
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  tbody td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tbody tr:nth-child(even) td {
+    background: var(--cell-alt);
+  }
+
+  tbody tr:hover td {
+    background: var(--accent-light);
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 7pt;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  td:first-child code {
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .note, .important {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 8pt;
+    line-height: 1.5;
+    border-left: 4px solid;
+  }
+
+  .note {
+    background: var(--note-bg);
+    border-color: var(--note-border);
+  }
+
+  .important {
+    background: var(--important-bg);
+    border-color: var(--important-border);
+  }
+
+  .note strong, .important strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 8.5pt;
+  }
+
+  .legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .legend-grid table {
+    margin: 4px 0;
+  }
+
+  hr {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  tr.group-sep td {
+    border-top: 2px solid var(--accent);
+  }
+
+  .flow-diagram {
+    text-align: center;
+    margin: 16px 0;
+    padding: 16px;
+    background: #fafafe;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .flow-diagram pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8pt;
+    line-height: 1.6;
+    text-align: left;
+    display: inline-block;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 6.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-readonly {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .footer {
+    margin-top: 30px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 7pt;
+    color: var(--text-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>SPA Workbench — Property Mapping Reference</h1>
+<p>How properties from <strong>Intune Export JSON</strong> and <strong>PSADT Scripts (v3/v4)</strong> hydrate the wizard builder, and where each property is consumed in generated outputs.</p>
+
+<h2>Legend</h2>
+<table style="max-width: 700px;">
+  <thead><tr><th>Abbreviation</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><strong>IE</strong></td><td>Intune Export JSON — <code>parseIntuneExport.js</code></td></tr>
+    <tr><td><strong>V3</strong></td><td>PSADT v3 script — <code>Deploy-Application.ps1</code> (<code>parsePsadt.js → parseV3</code>)</td></tr>
+    <tr><td><strong>V4</strong></td><td>PSADT v4 script — <code>Invoke-AppDeployToolkit.ps1</code> (<code>parsePsadt.js → parseV4</code>)</td></tr>
+    <tr><td><strong>PF</strong></td><td>Project files import — <code>parseProjectFiles.js</code> (Edit Existing mode)</td></tr>
+    <tr><td><strong>→ PS1</strong></td><td>Generated PSADT script — <code>generatePsadtScript.js</code></td></tr>
+    <tr><td><strong>→ YAML</strong></td><td>Scaffolded <code>package.yaml</code> — <code>generateScaffolding.js</code></td></tr>
+    <tr><td><strong>→ Intune</strong></td><td>Scaffolded <code>intune/app.json</code></td></tr>
+    <tr><td><strong>→ CI</strong></td><td>Scaffolded <code>.gitlab-ci.yml</code></td></tr>
+  </tbody>
+</table>
+
+<h2>1. Basic Info / App Metadata</h2>
+<table>
+  <thead>
+    <tr><th>Wizard State</th><th>Source: IE</th><th>Source: V3</th><th>Source: V4</th><th>Source: PF</th><th>→ PS1</th><th>→ YAML</th><th>→ Intune</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>displayName</code></td><td><code>app.displayName</code></td><td><code>$appName</code></td><td><code>$adtSession.AppName</code></td><td><code>app.json → title</code></td><td><code>$adtSession.AppName</code></td><td><code>display_name</code></td><td><code>displayName</code></td><td>IE protected if PSADT set</td></tr>
+    <tr><td><code>publisher</code></td><td><code>app.publisher</code></td><td><code>$appVendor</code></td><td><code>$adtSession.AppVendor</code></td><td><code>app.json → publisher</code></td><td><code>$adtSession.AppVendor</code></td><td>—</td><td><code>publisher</code></td><td></td></tr>
+    <tr><td><code>version</code></td><td><code>app.displayVersion</code></td><td><code>$appVersion</code></td><td><code>$adtSession.AppVersion</code></td><td><code>app.json → version</code></td><td><code>$adtSession.AppVersion</code></td><td><code>version</code></td><td><code>appVersion</code></td><td></td></tr>
+    <tr><td><code>packageId</code></td><td>—</td><td>Auto from <code>displayName</code></td><td>Auto-derived</td><td><code>app.json → package_id</code></td><td>Script comment</td><td><code>package_id</code></td><td>—</td><td><code>toKebabCase()</code></td></tr>
+    <tr><td><code>appDescription</code></td><td><code>app.description</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>description</code></td><td></td></tr>
+    <tr><td><code>informationUrl</code></td><td><code>app.informationUrl</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>informationUrl</code></td><td></td></tr>
+    <tr><td><code>privacyUrl</code></td><td><code>app.privacyInformationUrl</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>privacyInformationUrl</code></td><td></td></tr>
+    <tr><td><code>appOwner</code></td><td><code>app.owner</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>owner</code></td><td>Default: <code>EUC Packaging</code></td></tr>
+    <tr><td><code>appDeveloper</code></td><td><code>app.developer</code></td><td>—</td><td>Auto from MSI</td><td>—</td><td>—</td><td>—</td><td><code>developer</code></td><td></td></tr>
+    <tr><td><code>appNotes</code></td><td><code>app.notes</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>notes</code></td><td></td></tr>
+    <tr><td><code>isFeatured</code></td><td><code>app.isFeatured</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>isFeatured</code></td><td></td></tr>
+    <tr><td><code>category</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>Manual UI selection</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>2. Installer &amp; Source</h2>
+<table>
+  <thead>
+    <tr><th>Wizard State</th><th>Source: IE</th><th>Source: V3</th><th>Source: V4</th><th>Source: PF</th><th>→ PS1</th><th>→ YAML</th><th>→ Intune</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>installerType</code></td><td>—</td><td><code>Execute-MSI</code> → msi<br><code>Execute-Process</code> → exe</td><td><code>Start-ADTMsiProcess</code> → msi<br><code>Start-ADTProcess</code> → exe</td><td><code>package.yaml → installer_type</code></td><td>Action cards</td><td><code>installer_type</code></td><td>—</td><td></td></tr>
+    <tr><td><code>msiFileName</code></td><td>—</td><td><code>Execute-MSI -Path</code></td><td><code>Start-ADTMsiProcess -FilePath</code></td><td>—</td><td><code>Start-ADTMsiProcess -FilePath</code></td><td><code>source_filename</code></td><td>—</td><td></td></tr>
+    <tr><td><code>msiProductCode</code></td><td>—</td><td><code>Execute-MSI -Path '{GUID}'</code></td><td>—</td><td><code>msi_information.product_code</code></td><td>—</td><td><code>msi_information.product_code</code></td><td>—</td><td></td></tr>
+    <tr><td><code>msiProductVersion</code></td><td>—</td><td>—</td><td>—</td><td><code>msi_information.product_version</code></td><td>—</td><td><code>msi_information.product_version</code></td><td>—</td><td>Auto-fill from .msi upload</td></tr>
+    <tr><td><code>msiProductName</code></td><td>—</td><td>—</td><td>—</td><td><code>msi_information.product_name</code></td><td>—</td><td><code>msi_information.product_name</code></td><td>—</td><td></td></tr>
+    <tr><td><code>msiUpgradeCode</code></td><td>—</td><td>—</td><td>—</td><td><code>msi_information.upgrade_code</code></td><td>—</td><td><code>msi_information.upgrade_code</code></td><td>—</td><td></td></tr>
+    <tr><td><code>msiManufacturer</code></td><td>—</td><td>—</td><td>—</td><td><code>msi_information.manufacturer</code></td><td>—</td><td><code>msi_information.manufacturer</code></td><td>—</td><td>Auto-fills appDeveloper</td></tr>
+    <tr><td><code>exeSourceFilename</code></td><td>—</td><td><code>Execute-Process -Path</code></td><td><code>Start-ADTProcess -FilePath</code></td><td>—</td><td><code>Start-ADTProcess -FilePath</code></td><td><code>source_filename</code></td><td>—</td><td></td></tr>
+    <tr><td><code>exeInstallArgs</code></td><td>—</td><td><code>Execute-Process -Parameters</code></td><td><code>Start-ADTProcess -ArgumentList</code></td><td>—</td><td><code>Start-ADTProcess -ArgumentList</code></td><td>—</td><td>—</td><td></td></tr>
+    <tr><td><code>exeUninstallPath</code></td><td>—</td><td>—</td><td><code>Start-ADTProcess -FilePath</code> (uninstall)</td><td>—</td><td><code>Start-ADTProcess -FilePath</code></td><td>—</td><td>—</td><td></td></tr>
+    <tr><td><code>exeUninstallArgs</code></td><td>—</td><td>—</td><td><code>Start-ADTProcess -ArgumentList</code> (uninstall)</td><td>—</td><td><code>Start-ADTProcess -ArgumentList</code></td><td>—</td><td>—</td><td></td></tr>
+    <tr><td><code>installerSourceDir</code></td><td>—</td><td>—</td><td>—</td><td><code>package.yaml → source_filename</code> (split)</td><td>—</td><td><code>WINDOWS_INSTALLER_SOURCE</code></td><td>—</td><td>Runner staging path</td></tr>
+    <tr><td><code>installerSourceFile</code></td><td>—</td><td>—</td><td>—</td><td><code>package.yaml → source_filename</code> (split)</td><td>—</td><td><code>WINDOWS_INSTALLER_SOURCE</code></td><td>—</td><td></td></tr>
+  </tbody>
+</table>
+
+<h2>3. Detection</h2>
+<table>
+  <thead>
+    <tr><th>Wizard State</th><th>Source: IE</th><th>Source: V3</th><th>Source: V4</th><th>Source: PF</th><th>→ PS1</th><th>→ YAML</th><th>→ Intune</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>detectionMode</code></td><td><code>detectionRules[].@odata.type</code></td><td>Post-install registry marker</td><td>Post-install registry marker</td><td><code>package.yaml → detection_method</code></td><td>—</td><td><code>detection_method</code></td><td>—</td></tr>
+    <tr><td><code>detectionRules[]</code></td><td><code>app.detectionRules[]</code></td><td>—</td><td>—</td><td><code>package.yaml → detection_rules</code></td><td>—</td><td><code>detection_rules</code></td><td>—</td></tr>
+    <tr><td><code>regKeyPath</code></td><td>Registry rule <code>.keyPath</code></td><td><code>Set-RegistryKey -Key</code></td><td><code>Set-ADTRegistryKey -Key</code></td><td>—</td><td>—</td><td>In <code>detection_rules</code></td><td>—</td></tr>
+    <tr><td><code>regValue</code></td><td>Registry rule <code>.detectionValue</code></td><td>Version from registry write</td><td>Version value</td><td>—</td><td>—</td><td>In <code>detection_rules</code></td><td>—</td></tr>
+    <tr><td><code>scriptRunAs32Bit</code></td><td>—</td><td>—</td><td>—</td><td><code>detection-config.json</code></td><td>—</td><td>—</td><td>—</td></tr>
+    <tr><td><code>scriptContent</code></td><td>— (not in exports)</td><td>—</td><td>—</td><td><code>detect.ps1</code></td><td>—</td><td><code>detect.ps1</code></td><td>—</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>4. Deploy Behavior</h2>
+<table>
+  <thead>
+    <tr><th>Wizard State</th><th>Source: IE</th><th>Source: V3</th><th>Source: V4</th><th>Source: PF</th><th>→ PS1</th><th>→ YAML</th><th>→ Intune</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>deployMode</code></td><td><code>installCommandLine → -DeployMode X</code></td><td><s>Ignored</s> (v3 hardcodes Interactive)</td><td>—</td><td><code>install_command → -DeployMode X</code></td><td>Param block <code>$DeployMode</code></td><td><code>install_command</code> flag</td><td><code>installCommandLine</code></td><td>Default: <strong>Silent</strong>. Refactor carries IE value. PSADT 4.1 auto-defaults to Auto when flag omitted.</td></tr>
+    <tr><td><code>installContext</code></td><td><code>installExperience.runAsAccount</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>install_experience</code></td><td><code>installContext</code></td><td>Default: <code>system</code></td></tr>
+    <tr><td><code>allowRebootPassThru</code></td><td><code>installCommandLine → -AllowRebootPassThru</code></td><td><code>$AllowRebootPassThru = '$true'</code></td><td>—</td><td><code>install_command</code> flag</td><td>—</td><td><code>install_command</code> flag</td><td><code>installCommandLine</code></td><td></td></tr>
+    <tr><td><code>restartBehavior</code></td><td><code>installExperience.deviceRestartBehavior</code></td><td>—</td><td>—</td><td><code>package.yaml → restart_behavior</code></td><td>—</td><td><code>restart_behavior</code></td><td><code>restartBehavior</code></td><td></td></tr>
+    <tr><td><code>maxInstallTime</code></td><td><code>installExperience.maxRunTimeInMinutes</code></td><td>—</td><td>—</td><td><code>package.yaml → max_install_time</code></td><td>—</td><td><code>max_install_time</code></td><td>—</td><td>Default: <code>60</code></td></tr>
+    <tr><td><code>allowAvailableUninstall</code></td><td><code>app.allowAvailableUninstall</code></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><code>allowAvailableUninstall</code></td><td></td></tr>
+  </tbody>
+</table>
+
+<h2>5. Lifecycle Variables (Builder's Variable Section)</h2>
+<p>Stored in <code>lifecycle.phases.variableDeclaration.actions[]</code> — rendered as variable cards in the Visual Action Builder.</p>
+<table>
+  <thead>
+    <tr><th>Variable Name</th><th>Source: V3</th><th>Source: V4</th><th>→ PS1 <code>$adtSession</code></th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>$appVendor</code></td><td><code>[string]$appVendor = 'X'</code></td><td><code>AppVendor = 'X'</code></td><td><code>AppVendor = 'X'</code></td><td></td></tr>
+    <tr><td><code>$appName</code></td><td><code>[string]$appName = 'X'</code></td><td><code>AppName = 'X'</code></td><td><code>AppName = 'X'</code></td><td></td></tr>
+    <tr><td><code>$appVersion</code></td><td><code>[string]$appVersion = 'X'</code></td><td><code>AppVersion = 'X'</code></td><td><code>AppVersion = 'X'</code></td><td></td></tr>
+    <tr><td><code>$appArch</code></td><td><code>[string]$appArch = 'X'</code></td><td><code>AppArch = 'X'</code></td><td><code>AppArch = 'X'</code></td><td></td></tr>
+    <tr><td><code>$appLang</code></td><td><code>[string]$appLang = 'EN'</code></td><td><code>AppLang = 'EN'</code></td><td><code>AppLang = 'EN'</code></td><td></td></tr>
+    <tr><td><code>$appRevision</code></td><td><code>[string]$appRevision = '01'</code></td><td><code>AppRevision = '01'</code></td><td><code>AppRevision = '01'</code></td><td></td></tr>
+    <tr><td><code>$adtSession.AppProcessesToClose</code></td><td><code>Show-InstallationWelcome -CloseApps</code> (promoted)</td><td><code>AppProcessesToClose = @('X')</code></td><td><code>AppProcessesToClose = @('X')</code></td><td><strong>Always shown</strong> even when empty</td></tr>
+    <tr><td><code>$appScriptVersion</code></td><td><code>[string]$appScriptVersion = 'X'</code></td><td><code>AppScriptVersion = 'X'</code></td><td><code>AppScriptVersion = 'X'</code></td><td></td></tr>
+    <tr><td><code>$appScriptDate</code></td><td><code>[string]$appScriptDate = 'X'</code></td><td>From hashtable</td><td><code>AppScriptDate = 'X'</code></td><td></td></tr>
+    <tr><td><code>$appScriptAuthor</code></td><td><code>[string]$appScriptAuthor = 'X'</code></td><td>From hashtable</td><td><code>AppScriptAuthor = 'X'</code></td><td></td></tr>
+    <tr><td><code>$adtSession.RequireAdmin</code></td><td>Default <code>$true</code></td><td><code>RequireAdmin = $true</code></td><td><code>RequireAdmin = $true</code></td><td></td></tr>
+    <tr><td><code>$adtSession.AppSuccessExitCodes</code></td><td>—</td><td><code>AppSuccessExitCodes = @(0)</code></td><td><code>AppSuccessExitCodes = @(0)</code></td><td>Only if non-empty</td></tr>
+    <tr><td><code>$adtSession.AppRebootExitCodes</code></td><td>—</td><td><code>AppRebootExitCodes = @(1641, 3010)</code></td><td><code>AppRebootExitCodes = @(1641, 3010)</code></td><td>Only if non-empty</td></tr>
+    <tr><td>System: <code>DeployAppScriptFriendlyName</code></td><td>—</td><td>—</td><td><code>$MyInvocation.MyCommand.Name</code></td><td><span class="badge badge-readonly">🔒 Read-only</span></td></tr>
+    <tr><td>System: <code>DeployAppScriptParameters</code></td><td>—</td><td>—</td><td><code>$PSBoundParameters</code></td><td><span class="badge badge-readonly">🔒 Read-only</span></td></tr>
+    <tr><td>System: <code>DeployAppScriptVersion</code></td><td>—</td><td>—</td><td><code>'4.1.8'</code></td><td><span class="badge badge-readonly">🔒 Read-only</span></td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>6. Lifecycle Phase Actions (Visual Action Builder)</h2>
+<p>Phase actions are extracted by <code>extractBlockActions()</code>, stored in <code>lifecycle.phases.&lt;phaseKey&gt;.actions[]</code>.</p>
+<table>
+  <thead>
+    <tr><th>Phase</th><th>Source: V3</th><th>Source: V4</th><th>→ PS1 Function</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>variableDeclaration</code></td><td><code>extractVarDeclarations()</code></td><td><code>extractVarDeclarationsV4()</code></td><td><code>$adtSession = @{ ... }</code></td></tr>
+    <tr><td><code>preInstall</code></td><td><code>'Pre-Installation'</code> block</td><td><code>MARK: Pre-Install</code></td><td><code>Install-ADTDeployment</code></td></tr>
+    <tr><td><code>install</code></td><td><code>'Installation'</code> block</td><td><code>MARK: Install</code></td><td><code>Install-ADTDeployment</code></td></tr>
+    <tr><td><code>postInstall</code></td><td><code>'Post-Installation'</code> block</td><td><code>MARK: Post-Install</code></td><td><code>Install-ADTDeployment</code></td></tr>
+    <tr><td><code>preUninstall</code></td><td><code>'Pre-Uninstallation'</code> block</td><td><code>MARK: Pre-Uninstall</code></td><td><code>Uninstall-ADTDeployment</code></td></tr>
+    <tr><td><code>uninstall</code></td><td><code>'Uninstallation'</code> block</td><td><code>MARK: Uninstall</code></td><td><code>Uninstall-ADTDeployment</code></td></tr>
+    <tr><td><code>postUninstall</code></td><td><code>'Post-Uninstallation'</code> block</td><td><code>MARK: Post-Uninstall</code></td><td><code>Uninstall-ADTDeployment</code></td></tr>
+    <tr><td><code>preRepair</code></td><td><code>'Pre-Repair'</code> block</td><td><code>MARK: Pre-Repair</code></td><td><code>Repair-ADTDeployment</code></td></tr>
+    <tr><td><code>repair</code></td><td><code>'Repair'</code> block</td><td><code>MARK: Repair</code></td><td><code>Repair-ADTDeployment</code></td></tr>
+    <tr><td><code>postRepair</code></td><td><code>'Post-Repair'</code> block</td><td><code>MARK: Post-Repair</code></td><td><code>Repair-ADTDeployment</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Builder Action Card Registry (37 cards)</h3>
+<p>Each action card type maps to a PSADT 4.1 cmdlet and generates the corresponding PowerShell in the output script. Parser matchers extract these from source scripts during refactoring.</p>
+<table>
+  <thead>
+    <tr><th>Icon</th><th>Card Name</th><th>Internal Type</th><th>PSADT Cmdlet / Output</th><th>Category</th><th>Phases</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>📦</td><td>MSI Install</td><td><code>msi_install</code></td><td><code>Start-ADTMsiProcess -Action Install</code></td><td>Installer</td><td>Install, Repair</td></tr>
+    <tr><td>🗑️</td><td>MSI Uninstall</td><td><code>msi_uninstall</code></td><td><code>Start-ADTMsiProcess -Action Uninstall</code></td><td>Installer</td><td>Uninstall, Pre-Install, Pre-Repair</td></tr>
+    <tr><td>🗑️</td><td>Batch MSI Uninstall</td><td><code>msi_uninstall_batch</code></td><td><code>Uninstall-ADTApplication</code> (per GUID)</td><td>Installer</td><td>Pre-Install, Pre-Repair, Uninstall</td></tr>
+    <tr><td>🩹</td><td>MSI Patch (.msp)</td><td><code>msi_patch</code></td><td><code>Start-ADTMsiProcess -Action Patch</code></td><td>Installer</td><td>Install, Repair, Post-Install</td></tr>
+    <tr><td>⚙️</td><td>EXE Install</td><td><code>exe_install</code></td><td><code>Start-ADTProcess</code></td><td>Installer</td><td>Install, Repair</td></tr>
+    <tr><td>🗑️</td><td>EXE Uninstall</td><td><code>exe_uninstall</code></td><td><code>Start-ADTProcess</code></td><td>Installer</td><td>Uninstall, Pre-Install</td></tr>
+    <tr><td>🔄</td><td>Install Windows Updates</td><td><code>install_ms_updates</code></td><td><code>Install-ADTMSUpdates</code></td><td>Installer</td><td>Install, Post-Install</td></tr>
+    <tr class="group-sep"><td>▶️</td><td>Run Process / Script</td><td><code>execute_process</code></td><td><code>Start-ADTProcess</code></td><td>Process</td><td>All phases</td></tr>
+    <tr><td>👤</td><td>Run as Logged-On User</td><td><code>execute_process_as_user</code></td><td><code>Start-ADTProcessAsUser</code></td><td>Process</td><td>All (except Vars)</td></tr>
+    <tr><td>⛔</td><td>Stop / Kill Process</td><td><code>stop_process</code></td><td><code>Stop-Process -Name ... -Force</code></td><td>Process</td><td>Pre-Install, Pre-Uninstall, Pre-Repair, Install, Uninstall, Repair</td></tr>
+    <tr><td>🛡️</td><td>Block Conflicting Apps</td><td><code>block_app_execution</code></td><td><code>Block-ADTAppExecution</code></td><td>Process</td><td>Pre-Install, Pre-Uninstall, Pre-Repair</td></tr>
+    <tr><td>🔓</td><td>Unblock Applications</td><td><code>unblock_app_execution</code></td><td><code>Unblock-ADTAppExecution</code></td><td>Process</td><td>Post-Install, Post-Uninstall, Post-Repair</td></tr>
+    <tr class="group-sep"><td>📋</td><td>Copy File / Folder</td><td><code>file_copy</code></td><td><code>Copy-ADTFile</code></td><td>File Ops</td><td>Pre-Install, Install, Post-Install, Repair, Post-Repair</td></tr>
+    <tr><td>🧹</td><td>Delete File / Folder</td><td><code>file_remove</code></td><td><code>Remove-ADTFile</code></td><td>File Ops</td><td>Pre-Install, Post-Install, Post-Uninstall, Post-Repair</td></tr>
+    <tr><td>📁</td><td>Create Folder</td><td><code>create_folder</code></td><td><code>New-ADTFolder</code></td><td>File Ops</td><td>Pre-Install, Install, Post-Install</td></tr>
+    <tr><td>👥</td><td>Copy to User Profiles</td><td><code>copy_file_to_user_profiles</code></td><td><code>Copy-ADTFileToUserProfiles</code></td><td>File Ops</td><td>Pre-Install, Install, Post-Install, Pre-Repair, Repair, Post-Repair</td></tr>
+    <tr><td>👥</td><td>Remove from User Profiles</td><td><code>remove_file_from_profiles</code></td><td><code>Remove-ADTFileFromUserProfiles</code></td><td>File Ops</td><td>Post-Uninstall, Pre-Uninstall, Post-Install</td></tr>
+    <tr><td>🔗</td><td>Create Shortcut</td><td><code>new_shortcut</code></td><td><code>New-ADTShortcut</code></td><td>File Ops</td><td>Install, Post-Install, Repair, Post-Repair</td></tr>
+    <tr><td>📄</td><td>Set INI Value</td><td><code>ini_set</code></td><td><code>Set-ADTIniValue</code></td><td>File Ops</td><td>Post-Install, Install, Post-Repair, Repair</td></tr>
+    <tr><td>📄</td><td>Remove INI Value</td><td><code>ini_remove</code></td><td><code>Remove-ADTIniValue</code></td><td>File Ops</td><td>Post-Uninstall, Pre-Uninstall, Post-Install</td></tr>
+    <tr><td>🔐</td><td>Set Permissions (ACL)</td><td><code>set_permission</code></td><td><code>Set-ADTItemPermission</code></td><td>File Ops</td><td>Post-Install, Install, Post-Repair, Repair</td></tr>
+    <tr class="group-sep"><td>🔑</td><td>Set Registry Value</td><td><code>registry_set</code></td><td><code>Set-ADTRegistryKey</code></td><td>Registry</td><td>Post-Install, Post-Repair, Pre-Install, Install</td></tr>
+    <tr><td>🔑</td><td>Remove Registry Key</td><td><code>registry_remove</code></td><td><code>Remove-ADTRegistryKey</code></td><td>Registry</td><td>Post-Uninstall, Post-Install, Pre-Install</td></tr>
+    <tr><td>🏷️</td><td>Write Fiserv Marker</td><td><code>registry_marker</code></td><td><code>Set-ADTRegistryKey</code> (Fiserv pattern)</td><td>Registry</td><td>Post-Install, Post-Repair</td></tr>
+    <tr><td>🏷️</td><td>Remove Fiserv Marker</td><td><code>remove_registry_marker</code></td><td><code>Remove-ADTRegistryKey</code> (Fiserv pattern)</td><td>Registry</td><td>Post-Uninstall</td></tr>
+    <tr><td>👥</td><td>All User Hives Registry</td><td><code>all_users_registry</code></td><td><code>Invoke-ADTAllUsersRegistryAction</code></td><td>Registry</td><td>Post-Install, Post-Repair, Post-Uninstall</td></tr>
+    <tr class="group-sep"><td>👋</td><td>Show Installation Welcome</td><td><code>show_welcome</code></td><td><code>Show-ADTInstallationWelcome</code> (via $saiwParams splatting)</td><td>UI Prompts</td><td>Pre-Install, Pre-Uninstall, Pre-Repair</td></tr>
+    <tr><td>⏳</td><td>Show Installation Progress</td><td><code>show_progress</code></td><td><code>Show-ADTInstallationProgress</code></td><td>UI Prompts</td><td>Pre-Install, Pre-Uninstall, Pre-Repair, Install, Uninstall, Repair</td></tr>
+    <tr><td>❎</td><td>Close Progress Dialog</td><td><code>close_progress</code></td><td><code>Close-ADTInstallationProgress</code></td><td>UI Prompts</td><td>All (except Vars)</td></tr>
+    <tr><td>🎉</td><td>Show Completion Message</td><td><code>show_completion</code></td><td><code>Show-ADTInstallationPrompt</code></td><td>UI Prompts</td><td>Post-Install, Post-Repair</td></tr>
+    <tr><td>🔄</td><td>Prompt for Restart</td><td><code>restart_prompt</code></td><td><code>Show-ADTInstallationRestartPrompt</code></td><td>UI Prompts</td><td>Post-Install, Post-Repair</td></tr>
+    <tr><td>💬</td><td>Balloon Notification</td><td><code>show_balloon_tip</code></td><td><code>Show-ADTBalloonTip</code></td><td>UI Prompts</td><td>All (except Vars)</td></tr>
+    <tr><td>🔲</td><td>Show Dialog Box</td><td><code>show_dialog_box</code></td><td><code>Show-ADTDialogBox</code></td><td>UI Prompts</td><td>All (except Vars)</td></tr>
+    <tr class="group-sep"><td>🌍</td><td>Set Environment Variable</td><td><code>env_variable</code></td><td><code>Set-ADTEnvironmentVariable</code></td><td>Environment</td><td>Post-Install, Pre-Install, Post-Repair</td></tr>
+    <tr><td>🌍</td><td>Remove Environment Variable</td><td><code>remove_env_variable</code></td><td><code>Remove-ADTEnvironmentVariable</code></td><td>Environment</td><td>Post-Uninstall</td></tr>
+    <tr class="group-sep"><td>🔍</td><td>Query Installed App</td><td><code>get_installed_application</code></td><td><code>Get-ADTApplication</code></td><td>System</td><td>Vars, Pre-Install, Pre-Uninstall, Pre-Repair</td></tr>
+    <tr><td>⚙️</td><td>Set Service State</td><td><code>set_service_state</code></td><td><code>Start/Stop-ADTServiceAndDependencies</code></td><td>System</td><td>All (except Vars)</td></tr>
+    <tr><td>👤</td><td>Active Setup</td><td><code>active_setup</code></td><td><code>Set-ADTActiveSetup</code></td><td>System</td><td>Post-Install, Post-Repair</td></tr>
+    <tr><td>🌐</td><td>Deploy Edge Extension</td><td><code>add_edge_extension</code></td><td><code>Add-ADTEdgeExtension</code></td><td>System</td><td>Post-Install</td></tr>
+    <tr><td>🌐</td><td>Remove Edge Extension</td><td><code>remove_edge_extension</code></td><td><code>Remove-ADTEdgeExtension</code></td><td>System</td><td>Post-Uninstall</td></tr>
+    <tr><td>🔧</td><td>Register / Unregister DLL</td><td><code>register_dll</code></td><td><code>Register-ADTDll / Unregister-ADTDll</code></td><td>System</td><td>Post-Install, Post-Uninstall</td></tr>
+    <tr><td>📝</td><td>Write Log Entry</td><td><code>write_log_entry</code></td><td><code>Write-ADTLogEntry</code></td><td>System</td><td>All phases</td></tr>
+    <tr class="group-sep"><td>📝</td><td>Custom Variable</td><td><code>custom_variable</code></td><td>Variable assignment</td><td>Variables</td><td>variableDeclaration</td></tr>
+    <tr><td>⏱️</td><td>Wait / Delay</td><td><code>sleep</code></td><td><code>Start-Sleep</code></td><td>Misc</td><td>All phases</td></tr>
+    <tr><td>📜</td><td>Custom PowerShell</td><td><code>custom_script</code></td><td>Inline PowerShell</td><td>Custom</td><td>All phases</td></tr>
+    <tr><td>🔷</td><td>Raw PowerShell Block</td><td><code>raw_ps</code></td><td>Preserved verbatim (refactor)</td><td>Custom</td><td>All phases</td></tr>
+  </tbody>
+</table>
+
+<h2>7. Intune Metadata &amp; Assignments</h2>
+<table>
+  <thead>
+    <tr><th>Wizard State</th><th>Source: IE</th><th>Source: PF</th><th>→ Intune <code>app.json</code></th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>intuneAppName</code></td><td><code>app.displayName</code></td><td><code>intune/app.json → displayName</code></td><td><code>displayName</code></td><td>Auto: <code>{publisher} {name} {ver}</code></td></tr>
+    <tr><td><code>returnCodes[]</code></td><td><code>app.returnCodes[]</code></td><td>—</td><td><code>returnCodes</code></td><td>Array of <code>{ code, type }</code></td></tr>
+    <tr><td><code>assignments[]</code></td><td><code>exportData.assignments[]</code></td><td><code>intune/assignments.json</code></td><td><code>assignments.json</code></td><td>Intent, groupId, filter</td></tr>
+    <tr><td><code>logoDataUrl</code></td><td><code>app.largeIcon.value</code> (base64)</td><td>—</td><td><code>logo.{ext}</code></td><td>Embedded as data URL</td></tr>
+    <tr><td><code>logoFile</code></td><td><code>{ name: 'intune-logo.png' }</code></td><td>—</td><td><code>logo.{ext}</code></td><td>Minimal file object</td></tr>
+  </tbody>
+</table>
+
+<h2>8. Requirements</h2>
+<table>
+  <thead>
+    <tr><th>Wizard State</th><th>Source: IE</th><th>Source: PF</th><th>→ Intune <code>requirements.json</code></th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>minWinRelease</code></td><td><code>app.minimumSupportedWindowsRelease</code></td><td><code>requirements.json</code></td><td><code>minimumSupportedWindowsRelease</code></td><td>Default: <code>Windows11_22H2</code></td></tr>
+    <tr><td><code>archCheckEnabled</code></td><td>Derived from <code>applicableArchitectures</code></td><td><code>requirements.json</code></td><td>—</td><td><code>false</code> = all archs</td></tr>
+    <tr><td><code>archX86</code></td><td><code>applicableArchitectures</code> includes x86</td><td><code>requirements.json</code></td><td><code>applicableArchitectures</code></td><td></td></tr>
+    <tr><td><code>archX64</code></td><td><code>applicableArchitectures</code> includes x64</td><td><code>requirements.json</code></td><td><code>applicableArchitectures</code></td><td></td></tr>
+    <tr><td><code>archArm64</code></td><td><code>applicableArchitectures</code> includes arm64</td><td><code>requirements.json</code></td><td><code>applicableArchitectures</code></td><td></td></tr>
+    <tr><td><code>minDiskSpaceMB</code></td><td><code>app.minimumFreeDiskSpaceInMB</code></td><td><code>requirements.json</code></td><td><code>minimumFreeDiskSpaceInMB</code></td><td></td></tr>
+    <tr><td><code>minMemoryMB</code></td><td><code>app.minimumMemoryInMB</code></td><td><code>requirements.json</code></td><td><code>minimumMemoryInMB</code></td><td></td></tr>
+    <tr><td><code>minLogicalProcessors</code></td><td><code>app.minimumNumberOfProcessors</code></td><td><code>requirements.json</code></td><td><code>minimumNumberOfProcessors</code></td><td></td></tr>
+    <tr><td><code>minCpuSpeedMHz</code></td><td><code>app.minimumCpuSpeedInMHz</code></td><td><code>requirements.json</code></td><td><code>minimumCpuSpeedInMHz</code></td><td></td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>9. Data Flow Diagram</h2>
+<div class="flow-diagram">
+<pre>
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   DATA FLOW OVERVIEW                                     │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐    ┌──────────────────┐
+  │  Intune Export   │    │   PSADT v3 Script    │    │   PSADT v4 Script    │    │  Project Files   │
+  │     (.json)      │    │ Deploy-Application   │    │ Invoke-AppDeploy...  │    │  (Edit Existing) │
+  └────────┬─────────┘    └────────┬──────────────┘    └────────┬──────────────┘    └────────┬─────────┘
+           │                       │                             │                           │
+           ▼                       ▼                             ▼                           ▼
+  ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐    ┌──────────────────┐
+  │ parseIntuneExport│    │ parsePsadt→parseV3  │    │ parsePsadt→parseV4  │    │ parseProjectFiles│
+  └────────┬─────────┘    └────────┬──────────────┘    └────────┬──────────────┘    └────────┬─────────┘
+           │                       │                             │                           │
+           ▼                       ▼                             ▼                           ▼
+  ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐    ┌──────────────────┐
+  │importIntuneExport│    │   importPsadtState  │    │   importPsadtState  │    │importProjectEdit │
+  └────────┬─────────┘    └────────┬──────────────┘    └────────┬──────────────┘    └────────┬─────────┘
+           │                       │                             │                           │
+           └───────────────────────┼─────────────────────────────┼───────────────────────────┘
+                                   │                             │
+                                   ▼                             ▼
+                          ┌────────────────────────────────────────────┐
+                          │            useWizardState()                │
+                          │        INITIAL_STATE + merged fields       │
+                          └─────────────────┬──────────────────────────┘
+                                            │
+                     ┌──────────────────────┼───────────────────────┐
+                     │                      │                       │
+                     ▼                      ▼                       ▼
+           ┌──────────────────┐  ┌──────────────────┐  ┌────────────────────┐
+           │ generatePsadtScript│  │generateScaffolding│  │spa-wizard-state.json│
+           │   → .ps1 script   │  │  → YAML, CI, JSON │  │   (round-trip)     │
+           └──────────────────┘  └──────────────────┘  └────────────────────┘
+</pre>
+</div>
+
+<h2>10. Priority &amp; Override Rules</h2>
+<p>When multiple sources provide the same field, the following precedence applies:</p>
+<table style="max-width: 800px;">
+  <thead><tr><th>Priority</th><th>Source</th><th>Context</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1 (highest)</strong></td><td>Intune Export</td><td>For <code>displayName</code>, <code>publisher</code>, <code>version</code>, <code>appDescription</code> — IE wins if <code>_intuneExportImported</code> flag is set AND field was already populated</td></tr>
+    <tr><td><strong>2</strong></td><td>PSADT Script</td><td>For <code>displayName</code>, <code>publisher</code>, <code>version</code> — script values populate first via <code>importPsadtState()</code></td></tr>
+    <tr><td><strong>3</strong></td><td>Project Files</td><td>Edit Existing mode — <code>spa-wizard-state.json</code> snapshot takes highest priority (lossless round-trip), falling back to individual file parsing</td></tr>
+    <tr><td><strong>4 (lowest)</strong></td><td>INITIAL_STATE</td><td>Wizard defaults (e.g., <code>deployMode: 'Silent'</code>, <code>restartBehavior: 'basedOnReturnCode'</code>)</td></tr>
+  </tbody>
+</table>
+
+<div class="important">
+  <strong>⚠️ IMPORTANT</strong>
+  <code>deployMode</code> defaults to <strong>Silent</strong> across all modes (new and refactored). For refactored titles, if the Intune export contains <code>-DeployMode X</code> in the install command line, that value is carried over. PSADT 4.1 automatically defaults to <code>Auto</code> at runtime when the flag is omitted from the command line, so there is no need to explicitly set it.
+</div>
+
+<div class="note">
+  <strong>ℹ️ NOTE</strong>
+  <code>AppProcessesToClose</code> is <strong>always</strong> shown in the builder's variable section, even when empty. It is the single source of truth — there is no separate "Close Apps" field in the Deploy Behavior tab.
+</div>
+
+<div class="footer">
+  SPA Workbench — Property Mapping Reference &bull; Generated by SPA Title Wizard &bull; Last updated: June 2026
+</div>
+
+</body>
+</html>

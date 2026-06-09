@@ -105,6 +105,20 @@
     "supportedPhases": ["postUninstall"]
   },
   {
+    "name": "show_welcome",
+    "label": "Show Installation Welcome",
+    "icon": "👋",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
+  },
+  {
+    "name": "show_progress",
+    "label": "Show Installation Progress",
+    "icon": "⏳",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "preUninstall", "preRepair", "install", "uninstall", "repair"]
+  },
+  {
     "name": "show_completion",
     "label": "Show Completion Message",
     "icon": "🎉",
@@ -257,6 +271,55 @@
     "icon": "🔄",
     "category": "Installer",
     "supportedPhases": ["install", "postInstall"]
+  },
+  {
+    "name": "stop_process",
+    "label": "Stop / Kill Process",
+    "icon": "⛔",
+    "category": "Process",
+    "supportedPhases": ["preInstall", "preUninstall", "preRepair", "install", "uninstall", "repair"]
+  },
+  {
+    "name": "ini_set",
+    "label": "Set INI File Value",
+    "icon": "📄",
+    "category": "File Operations",
+    "supportedPhases": ["postInstall", "install", "postRepair", "repair"]
+  },
+  {
+    "name": "ini_remove",
+    "label": "Remove INI File Value",
+    "icon": "📄",
+    "category": "File Operations",
+    "supportedPhases": ["postUninstall", "preUninstall", "postInstall"]
+  },
+  {
+    "name": "close_progress",
+    "label": "Close Progress Dialog",
+    "icon": "❎",
+    "category": "UI Prompts",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+  },
+  {
+    "name": "remove_file_from_profiles",
+    "label": "Remove File from User Profiles",
+    "icon": "👥",
+    "category": "File Operations",
+    "supportedPhases": ["postUninstall", "preUninstall", "postInstall"]
+  },
+  {
+    "name": "msi_patch",
+    "label": "MSI Patch (.msp)",
+    "icon": "🩹",
+    "category": "Installer",
+    "supportedPhases": ["install", "repair", "postInstall"]
+  },
+  {
+    "name": "set_permission",
+    "label": "Set File / Folder Permissions",
+    "icon": "🔐",
+    "category": "File Operations",
+    "supportedPhases": ["postInstall", "install", "postRepair", "repair"]
   }
 ]
 

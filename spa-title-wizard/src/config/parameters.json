@@ -340,6 +340,83 @@
     "required": true
   },
   {
+    "cmdlet": "show_welcome",
+    "parameter": "allowDefer",
+    "label": "Allow Deferral",
+    "type": "boolean",
+    "default": true
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "deferTimes",
+    "label": "Max Deferrals",
+    "type": "number",
+    "default": 3
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "deferDays",
+    "label": "Max Defer Days (overrides count)",
+    "type": "number",
+    "default": 0
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "deferDeadline",
+    "label": "Deferral Deadline (mm/dd/yyyy)",
+    "type": "text",
+    "placeholder": "12/31/2026"
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "checkDiskSpace",
+    "label": "Check Disk Space",
+    "type": "boolean",
+    "default": true
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "persistPrompt",
+    "label": "Persist Prompt",
+    "type": "boolean",
+    "default": true
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "closeProcessesCountdown",
+    "label": "Close Processes Countdown (seconds)",
+    "type": "number",
+    "default": 0
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "forceCloseProcessesCountdown",
+    "label": "Force Close Countdown (seconds)",
+    "type": "number",
+    "default": 0
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "blockExecution",
+    "label": "Block Process Re-launch During Install",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "show_progress",
+    "parameter": "statusMessage",
+    "label": "Status Message (blank = default)",
+    "type": "text",
+    "placeholder": "Installation in progress. Please wait..."
+  },
+  {
+    "cmdlet": "show_progress",
+    "parameter": "topMost",
+    "label": "Always On Top",
+    "type": "boolean",
+    "default": true
+  },
+  {
     "cmdlet": "custom_script",
     "parameter": "code",
     "label": "PowerShell Code",
@@ -719,5 +796,148 @@
     "label": "Updates Directory",
     "type": "text",
     "placeholder": "$dirFiles"
+  },
+  {
+    "cmdlet": "stop_process",
+    "parameter": "processName",
+    "label": "Process Name(s) (comma-separated, no extension)",
+    "type": "text",
+    "placeholder": "chrome, firefox",
+    "required": true
+  },
+  {
+    "cmdlet": "stop_process",
+    "parameter": "force",
+    "label": "Force Kill",
+    "type": "boolean",
+    "default": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "filePath",
+    "label": "INI File Path",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\App\\config.ini",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "section",
+    "label": "Section Name",
+    "type": "text",
+    "placeholder": "Settings",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "key",
+    "label": "Key Name",
+    "type": "text",
+    "placeholder": "Language",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "value",
+    "label": "Value",
+    "type": "text",
+    "placeholder": "EN",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_remove",
+    "parameter": "filePath",
+    "label": "INI File Path",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\App\\config.ini",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_remove",
+    "parameter": "section",
+    "label": "Section Name",
+    "type": "text",
+    "placeholder": "Settings",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_remove",
+    "parameter": "key",
+    "label": "Key Name",
+    "type": "text",
+    "placeholder": "Language",
+    "required": true
+  },
+  {
+    "cmdlet": "remove_file_from_profiles",
+    "parameter": "path",
+    "label": "Path (relative to user profile)",
+    "type": "text",
+    "placeholder": "AppData\\Local\\MyApp\\cache",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_patch",
+    "parameter": "file",
+    "label": "Patch File (.msp)",
+    "type": "text",
+    "placeholder": "patch.msp",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_patch",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/QN /norestart",
+    "default": "/QN /norestart"
+  },
+  {
+    "cmdlet": "set_permission",
+    "parameter": "path",
+    "label": "File / Folder Path",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\MyApp",
+    "required": true
+  },
+  {
+    "cmdlet": "set_permission",
+    "parameter": "user",
+    "label": "User / Group",
+    "type": "text",
+    "placeholder": "BUILTIN\\Users",
+    "required": true
+  },
+  {
+    "cmdlet": "set_permission",
+    "parameter": "permission",
+    "label": "Permission",
+    "type": "text",
+    "placeholder": "FullControl, Modify, ReadAndExecute, Read, Write",
+    "required": true
+  },
+  {
+    "cmdlet": "set_permission",
+    "parameter": "inheritance",
+    "label": "Inheritance",
+    "type": "text",
+    "placeholder": "ContainerInherit, ObjectInherit",
+    "default": "ContainerInherit, ObjectInherit"
+  },
+  {
+    "cmdlet": "set_permission",
+    "parameter": "propagation",
+    "label": "Propagation",
+    "type": "text",
+    "placeholder": "None",
+    "default": "None"
+  },
+  {
+    "cmdlet": "set_permission",
+    "parameter": "accessControlType",
+    "label": "Access Control Type",
+    "type": "text",
+    "placeholder": "Allow",
+    "default": "Allow"
   }
 ]
