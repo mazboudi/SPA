@@ -18,7 +18,7 @@ export default function generatePsadtScript(s, clean = false) {
   // ── Standard PSADT 4.1 template boilerplate (framework code, not user-editable) ──
   // These blocks are always present in the official template and are not exposed in the builder.
   // stop_process is a framework-level marker, not a user action.
-  const frameworkActionTypes = new Set(['stop_process']);
+  const frameworkActionTypes = new Set([]);
 
   // Fingerprints that identify standard template boilerplate inside raw_ps action scripts.
   // When the parser reads a 4.1.x source, it creates raw_ps actions from these blocks.

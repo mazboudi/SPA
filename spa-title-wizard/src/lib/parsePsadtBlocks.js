@@ -162,7 +162,7 @@ export default function parsePsadtBlocks(content) {
         continue;
       }
       if (!currentPhase.startsWith('post') && /##\s*MARK:\s*Post-/.test(line)) {
-        const type = currentPhase.includes('install') ? 'install' : currentPhase.includes('uninstall') ? 'uninstall' : 'repair';
+        const type = currentPhase.includes('uninstall') ? 'uninstall' : currentPhase.includes('install') ? 'install' : 'repair';
         currentPhase = 'post' + type.charAt(0).toUpperCase() + type.slice(1);
         bracesCount = tempBraces;
         continue;
@@ -212,13 +212,17 @@ export default function parsePsadtBlocks(content) {
           });
 
           if (hasExecutableCode) {
-            actions.push({
-              type: 'raw_ps',
-              enabled: true,
-              script: cleanRaw,
-              note: 'Legacy or custom script block',
-              isManuallyEdited: true
-            });
+            // Skip standard Zero-Config MSI boilerplate injected by the generator
+            const isZeroConfigBoilerplate = /\$adtSession\.UseDefaultMsi[\s\S]*\$ExecuteDefaultMSISplat/.test(cleanRaw);
+            if (!isZeroConfigBoilerplate) {
+              actions.push({
+                type: 'raw_ps',
+                enabled: true,
+                script: cleanRaw,
+                note: 'Legacy or custom script block',
+                isManuallyEdited: true
+              });
+            }
           }
         }
         currentRawBuffer = [];
