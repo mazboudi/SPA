@@ -207,11 +207,23 @@ app.post('/api/publish', async (req, res) => {
 
       // Create (or move) version tag — delete first if it already exists
       let tagUrl = null;
+      const tagEncoded = encodeURIComponent(tagName);
       try {
-        await gitlab('DELETE', `/projects/${existing.id}/repository/tags/${encPath(tagName)}`);
-        console.log(`  🗑️  Deleted existing tag: ${tagName}`);
+        // Unprotect the tag first (GitLab may protect v* tags by default)
+        const unprotectUrl = `${API}/projects/${existing.id}/protected_tags/${tagEncoded}`;
+        await fetch(unprotectUrl, { method: 'DELETE', headers: { ...headers } }).catch(() => {});
+
+        // Delete the existing tag (raw fetch — DELETE returns 204 with no body)
+        const delUrl = `${API}/projects/${existing.id}/repository/tags/${tagEncoded}`;
+        const delRes = await fetch(delUrl, { method: 'DELETE', headers: { ...headers } });
+        if (delRes.ok || delRes.status === 204) {
+          console.log(`  🗑️  Deleted existing tag: ${tagName}`);
+        } else if (delRes.status !== 404) {
+          const errBody = await delRes.text().catch(() => '');
+          console.warn(`  ⚠️  Tag delete returned ${delRes.status}: ${errBody}`);
+        }
       } catch {
-        // Tag didn't exist — that's fine, we'll create it fresh
+        // Tag didn't exist or delete failed — proceed to create
       }
       try {
         await gitlab('POST', `/projects/${existing.id}/repository/tags`, {
