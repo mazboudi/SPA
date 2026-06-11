@@ -205,10 +205,16 @@ app.post('/api/publish', async (req, res) => {
       });
       console.log(`  💾 Committed ${actions.length} files to ${defaultBranch}`);
 
-      // Create version tag
+      // Create (or move) version tag — delete first if it already exists
       let tagUrl = null;
       try {
-        const tag = await gitlab('POST', `/projects/${existing.id}/repository/tags`, {
+        await gitlab('DELETE', `/projects/${existing.id}/repository/tags/${encPath(tagName)}`);
+        console.log(`  🗑️  Deleted existing tag: ${tagName}`);
+      } catch {
+        // Tag didn't exist — that's fine, we'll create it fresh
+      }
+      try {
+        await gitlab('POST', `/projects/${existing.id}/repository/tags`, {
           tag_name: tagName,
           ref: defaultBranch,
           message: `Release ${tagName} — ${displayName || packageId}\n\nPublished via SPA Packaging Workbench`,
@@ -216,7 +222,7 @@ app.post('/api/publish', async (req, res) => {
         tagUrl = `${existing.web_url}/-/tags/${tagName}`;
         console.log(`  🏷️  Tag created: ${tagName}`);
       } catch (tagErr) {
-        console.warn(`  ⚠️  Tag creation failed (may already exist): ${tagErr.message}`);
+        console.warn(`  ⚠️  Tag creation failed: ${tagErr.message}`);
       }
 
       // Optionally trigger pipeline via API
@@ -244,7 +250,7 @@ app.post('/api/publish', async (req, res) => {
         tagUrl,
         pipelineUrl,
         pipelineAction: pipelineAction || 'none',
-        webIdeUrl: `${existing.web_url}/-/ide/project/${existing.path_with_namespace}/edit/${defaultBranch}`,
+
         vsCodeUrl: `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${existing.path_with_namespace}.git`)}`,
       });
 
@@ -316,7 +322,7 @@ app.post('/api/publish', async (req, res) => {
         tagUrl,
         pipelineUrl,
         pipelineAction: pipelineAction || 'none',
-        webIdeUrl: `${project.web_url}/-/ide/project/${project.path_with_namespace}/edit/main`,
+
         vsCodeUrl: `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${project.path_with_namespace}.git`)}`,
       });
     }

@@ -180,7 +180,7 @@ export default function ReviewStep({ state, updateField }) {
             <div className="publish-result__links">
               <a href={publishResult.projectUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🔗 Open Project</a>
               {publishResult.tagUrl && <a href={publishResult.tagUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🏷️ View Tag</a>}
-              <a href={publishResult.webIdeUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🌐 GitLab Web IDE</a>
+
               <a href={publishResult.vsCodeUrl} className="btn btn-secondary btn-sm">🖥️ Open in VS Code</a>
             </div>
           </div>
