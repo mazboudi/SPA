@@ -1,0 +1,195 @@
+##=============================================================================
+## test-federated-auth — Validate Azure Workload Identity Federation
+##
+## Prerequisites:
+##   1. Azure App Registration "Gitlab_CI_CD" with Federated Credential configured
+##   2. CI/CD Variables set at group or project level:
+##      - AZURE_TENANT_ID  (not protected, not masked)
+##      - AZURE_CLIENT_ID  (not protected, not masked)
+##   3. No AZURE_CLIENT_SECRET needed — that's the whole point!
+##
+## The pipeline uses GitLab's OIDC id_token to authenticate.
+##=============================================================================
+
+stages:
+  - test
+
+variables:
+  GIT_DEPTH: "1"
+
+## ---------------------------------------------------------------------------
+## Test 1: Verify the OIDC token is available and inspect its claims
+## ---------------------------------------------------------------------------
+inspect_oidc_token:
+  stage: test
+  tags: [Windows]
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.onefiserv.net
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+
+      Write-Host "═══════════════════════════════════════════════════════"
+      Write-Host "  Step 1: Inspect OIDC Token Claims"
+      Write-Host "═══════════════════════════════════════════════════════"
+
+      # The token is a JWT — decode the payload (middle part)
+      $token = $env:GITLAB_OIDC_TOKEN
+      if (-not $token) {
+        Write-Error "GITLAB_OIDC_TOKEN is empty. Check that id_tokens is configured."
+        exit 1
+      }
+
+      Write-Host "✅ OIDC token is present (length: $($token.Length) chars)"
+
+      # Decode JWT payload (base64url → JSON)
+      $parts = $token.Split('.')
+      if ($parts.Count -lt 2) {
+        Write-Error "Token does not appear to be a valid JWT"
+        exit 1
+      }
+
+      $payload = $parts[1]
+      # Fix base64url padding
+      switch ($payload.Length % 4) {
+        2 { $payload += '==' }
+        3 { $payload += '=' }
+      }
+      $payload = $payload.Replace('-', '+').Replace('_', '/')
+      $decoded = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($payload))
+      $claims = $decoded | ConvertFrom-Json
+
+      Write-Host ""
+      Write-Host "JWT Claims:"
+      Write-Host "  iss (issuer):          $($claims.iss)"
+      Write-Host "  sub (subject):         $($claims.sub)"
+      Write-Host "  aud (audience):        $($claims.aud)"
+      Write-Host "  project_path:          $($claims.project_path)"
+      Write-Host "  namespace_path:        $($claims.namespace_path)"
+      Write-Host "  ref:                   $($claims.ref)"
+      Write-Host "  ref_type:              $($claims.ref_type)"
+      Write-Host "  pipeline_id:           $($claims.pipeline_id)"
+      Write-Host "  exp (expires):         $(([DateTimeOffset]::FromUnixTimeSeconds($claims.exp)).ToString('u'))"
+      Write-Host ""
+      Write-Host "These claims must match your Azure Federated Credential config."
+      Write-Host "═══════════════════════════════════════════════════════"
+
+## ---------------------------------------------------------------------------
+## Test 2: Exchange the OIDC token for an Azure AD access token
+## ---------------------------------------------------------------------------
+exchange_for_graph_token:
+  stage: test
+  tags: [Windows]
+  needs: []
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.onefiserv.net
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+
+      Write-Host "═══════════════════════════════════════════════════════"
+      Write-Host "  Step 2: Exchange OIDC Token for Graph API Token"
+      Write-Host "═══════════════════════════════════════════════════════"
+
+      $token = $env:GITLAB_OIDC_TOKEN
+      if (-not $token) {
+        Write-Error "GITLAB_OIDC_TOKEN is empty."
+        exit 1
+      }
+
+      $tenantId = $env:AZURE_TENANT_ID
+      $clientId = $env:AZURE_CLIENT_ID
+
+      if (-not $tenantId -or -not $clientId) {
+        Write-Error "AZURE_TENANT_ID and AZURE_CLIENT_ID must be set as CI variables."
+        exit 1
+      }
+
+      Write-Host "Tenant ID:  $tenantId"
+      Write-Host "Client ID:  $clientId"
+      Write-Host ""
+
+      # Exchange: federated token → Azure AD access token
+      $tokenUrl = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
+      $body = @{
+        grant_type            = 'client_credentials'
+        client_id             = $clientId
+        client_assertion_type = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+        client_assertion      = $token
+        scope                 = 'https://graph.microsoft.com/.default'
+      }
+
+      Write-Host "Requesting token from: $tokenUrl"
+      Write-Host "Grant type: client_credentials (with federated assertion)"
+      Write-Host ""
+
+      try {
+        $response = Invoke-RestMethod -Method Post -Uri $tokenUrl -Body $body -ContentType 'application/x-www-form-urlencoded'
+        Write-Host "✅ Token exchange SUCCEEDED!"
+        Write-Host "  Token type:  $($response.token_type)"
+        Write-Host "  Expires in:  $($response.expires_in) seconds"
+        Write-Host "  Token start: $($response.access_token.Substring(0, 20))..."
+        Write-Host ""
+
+        # Save for the next step (Graph API call)
+        # Using a file instead of dotenv to keep it simple
+        $response.access_token | Out-File -FilePath "graph_token.txt" -NoNewline
+        Write-Host "Token saved to graph_token.txt for Graph API test."
+
+      } catch {
+        Write-Host "❌ Token exchange FAILED!"
+        Write-Host ""
+        Write-Host "Error: $($_.Exception.Message)"
+        if ($_.ErrorDetails.Message) {
+          Write-Host "Details: $($_.ErrorDetails.Message)"
+        }
+        Write-Host ""
+        Write-Host "Common causes:"
+        Write-Host "  1. Federated credential issuer doesn't match GitLab instance URL"
+        Write-Host "  2. Subject/audience mismatch — compare JWT claims above with Azure config"
+        Write-Host "  3. App registration doesn't have the required API permissions"
+        exit 1
+      }
+
+      Write-Host "═══════════════════════════════════════════════════════"
+      Write-Host ""
+
+      # ── Step 3: Test Graph API call ────────────────────────────────
+      Write-Host "═══════════════════════════════════════════════════════"
+      Write-Host "  Step 3: Test Graph API Call"
+      Write-Host "═══════════════════════════════════════════════════════"
+
+      $graphToken = $response.access_token
+      $headers = @{ Authorization = "Bearer $graphToken" }
+
+      # Simple call: list Win32 apps (first 5)
+      $graphUrl = 'https://graph.microsoft.com/beta/deviceAppManagement/mobileApps?$filter=isof(''microsoft.graph.win32LobApp'')&$top=5&$select=id,displayName'
+
+      try {
+        $apps = Invoke-RestMethod -Method Get -Uri $graphUrl -Headers $headers
+        $count = ($apps.value | Measure-Object).Count
+
+        Write-Host "✅ Graph API call SUCCEEDED!"
+        Write-Host "  Retrieved $count Win32 app(s):"
+        foreach ($app in $apps.value) {
+          Write-Host "    - $($app.displayName) ($($app.id))"
+        }
+      } catch {
+        Write-Host "❌ Graph API call FAILED!"
+        Write-Host "Error: $($_.Exception.Message)"
+        if ($_.ErrorDetails.Message) {
+          Write-Host "Details: $($_.ErrorDetails.Message)"
+        }
+        Write-Host ""
+        Write-Host "The token exchange worked but the API call failed."
+        Write-Host "Check that the app registration has these API permissions:"
+        Write-Host "  - DeviceManagementApps.ReadWrite.All (Application)"
+        exit 1
+      }
+
+      Write-Host ""
+      Write-Host "═══════════════════════════════════════════════════════"
+      Write-Host "  ✅ ALL TESTS PASSED — Federated auth is working!"
+      Write-Host "═══════════════════════════════════════════════════════"
