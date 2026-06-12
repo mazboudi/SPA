@@ -627,6 +627,8 @@ export default function useWizardState() {
   const importProjectForEdit = useCallback((files, projectMeta) => {
     console.group('📋 importProjectForEdit — diagnostic trace');
     console.log('File keys received:', Object.keys(files));
+    console.log('PS1 file keys:', Object.keys(files).filter(k => /\.ps1$/i.test(k)));
+    console.log('windows/ keys:', Object.keys(files).filter(k => k.startsWith('windows')));
 
     let parsedPsadt = null;
     const ps1Path = files['windows/src/Invoke-AppDeployToolkit.ps1'] ? 'windows/src/Invoke-AppDeployToolkit.ps1' : (files['windows/src/Deploy-Application.ps1'] ? 'windows/src/Deploy-Application.ps1' : null);
