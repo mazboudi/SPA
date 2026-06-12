@@ -428,15 +428,17 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
     scaffoldFlushedRef.current = true;
 
-    // ── Normalize lifecycle through the generated output ──
-    // Parse the compiled (generated) script back into lifecycle actions.
-    // This replaces the raw-parsed original values with canonical V4.1 values.
-    const normalized = parsePsadtBlocks(compiledScript);
-    const currentStr = JSON.stringify(lifecycleRef.current);
-    const normalizedStr = JSON.stringify(normalized.lifecycle);
-    if (currentStr !== normalizedStr) {
-      console.log('🔄 Normalize: replacing raw-parsed lifecycle with generated V4.1 output');
-      updateFields({ lifecycle: normalized.lifecycle });
+    // ── Normalize lifecycle through the generated output (refactor only) ──
+    // For refactor mode: re-parse the generated script to get canonical V4.1 values.
+    // For edit mode: skip normalization — the snapshot/parsed lifecycle is authoritative.
+    if (state.wizardMode === 'refactor') {
+      const normalized = parsePsadtBlocks(compiledScript);
+      const currentStr = JSON.stringify(lifecycleRef.current);
+      const normalizedStr = JSON.stringify(normalized.lifecycle);
+      if (currentStr !== normalizedStr) {
+        console.log('🔄 Normalize: replacing raw-parsed lifecycle with generated V4.1 output');
+        updateFields({ lifecycle: normalized.lifecycle });
+      }
     }
 
     // ── Write to disk for VS Code ──

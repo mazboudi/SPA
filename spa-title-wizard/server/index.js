@@ -208,7 +208,7 @@ function walkDir(dir, baseDir = dir) {
   for (const entry of readdirSync(dir)) {
     if (SKIP_DIRS.has(entry)) continue;
     const abs = join(dir, entry);
-    const rel = abs.slice(baseDir.length + 1); // relative path from repo root
+    const rel = abs.slice(baseDir.length + 1).replace(/\\/g, '/'); // normalize to forward slashes
     const stat = statSync(abs);
     if (stat.isDirectory()) {
       Object.assign(files, walkDir(abs, baseDir));
