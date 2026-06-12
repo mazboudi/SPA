@@ -1,1 +1,13 @@
-during 4.0 to 4.1 conversion (DTEX Forwarder app), it looks like the builder isn't showing an AppProcessesToClose variable. In the case of this app, that variable would be empty. Was it left out of the variable section in the builder because there was no Show-ADTInstallationWelcome -CloseApps? Also, are we populating Close Apps Before Install in Deploy Behavior tab from what we find in Show-ADTInstallationWelcome -CloseApps?
+during 4.0 to 4.1 conversion (DTEX Forwarder app), it looks like the builder isn't showing an AppProcessesToClose variable. In the case of this app, that variable would be empty. Was it left out of the variable section in the builder because there was no Show-ADTInstallationWelcome -CloseApps? Also, are we populating Close Apps Before Install in Deploy Behavior tab from what we find in Show-ADTInstallationWelcome -CloseApps?importProjectForEdit — diagnostic trace
+useWizardState.js:629 File keys received: Array(13)0: ".gitignore"1: ".gitlab-ci.yml"2: "app.json"3: "spa-wizard-state.json"4: "windows\\intune\\app.json"5: "windows\\intune\\assignments.json"6: "windows\\intune\\dependencies.json"7: "windows\\intune\\requirements.json"8: "windows\\intune\\supersedence.json"9: "windows\\package.yaml"10: "windows\\src\\Files\\.gitkeep"11: "windows\\src\\Invoke-AppDeployToolkit.ps1"12: "windows\\src\\_original_script.ps1.bak"length: 13[[Prototype]]: Array(0)
+useWizardState.js:630 PS1 file keys: Array(1)0: "windows\\src\\Invoke-AppDeployToolkit.ps1"length: 1[[Prototype]]: Array(0)
+useWizardState.js:631 windows/ keys: Array(9)0: "windows\\intune\\app.json"1: "windows\\intune\\assignments.json"2: "windows\\intune\\dependencies.json"3: "windows\\intune\\requirements.json"4: "windows\\intune\\supersedence.json"5: "windows\\package.yaml"6: "windows\\src\\Files\\.gitkeep"7: "windows\\src\\Invoke-AppDeployToolkit.ps1"8: "windows\\src\\_original_script.ps1.bak"length: 9[[Prototype]]: Array(0)
+useWizardState.js:635 PS1 path found: null
+useWizardState.js:636 PS1 content length: 0
+useWizardState.js:662 Snapshot lifecycle phases (action counts): Object
+useWizardState.js:670 PS1 has SPA:Action comments: null
+useWizardState.js:678 ℹ️ No parsed PSADT — keeping snapshot lifecycle
+useWizardState.js:687 FINAL lifecycle phases (action types): Object
+useWizardState.js:707 ✅ Loaded project from state snapshot
+PsadtLifecycleStep.jsx:438 🔄 Normalize: replacing raw-parsed lifecycle with generated V4.1 output
+PsadtLifecycleStep.jsx:454 📁 Scaffold flush: wrote compiled script to disk for dtex-forwarder
