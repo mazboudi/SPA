@@ -621,30 +621,68 @@ export default function useWizardState() {
 
   /**
    * Import project files from GitLab into wizard state (Edit Existing mode).
-   * Uses spa-wizard-state.json for a lossless round-trip when available.
-   * Falls back to file parsing for legacy projects without the state snapshot.
-   * @param {Object} files — { [path]: content } from GET /api/projects/:id/files
-   * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch, loadedRef, tags }
+   * @param {Object} files — { [path]: content } from clone endpoint
+   * @param {Object} projectMeta — { id, path, path_with_namespace, web_url, default_branch, loadedRef, tags, localPath }
    */
   const importProjectForEdit = useCallback((files, projectMeta) => {
+    console.group('📋 importProjectForEdit — diagnostic trace');
+    console.log('File keys received:', Object.keys(files));
+
     let parsedPsadt = null;
     const ps1Path = files['windows/src/Invoke-AppDeployToolkit.ps1'] ? 'windows/src/Invoke-AppDeployToolkit.ps1' : (files['windows/src/Deploy-Application.ps1'] ? 'windows/src/Deploy-Application.ps1' : null);
+    console.log('PS1 path found:', ps1Path);
+    console.log('PS1 content length:', ps1Path ? (files[ps1Path] || '').length : 0);
+
     if (ps1Path && files[ps1Path]) {
       parsedPsadt = parsePsadtBlocks(files[ps1Path]);
+      // Log parsed phase action counts
+      if (parsedPsadt?.lifecycle?.phases) {
+        const phaseSummary = {};
+        for (const [k, v] of Object.entries(parsedPsadt.lifecycle.phases)) {
+          phaseSummary[k] = (v.actions || []).length;
+        }
+        console.log('Parsed PSADT phases (action counts):', phaseSummary);
+      }
     }
-
 
 
     // ── Fast path: state snapshot exists → direct hydration ────────────
     if (files['spa-wizard-state.json']) {
       try {
         const snapshot = JSON.parse(files['spa-wizard-state.json']);
+
+        // Log snapshot lifecycle
+        if (snapshot.lifecycle?.phases) {
+          const snapshotSummary = {};
+          for (const [k, v] of Object.entries(snapshot.lifecycle.phases)) {
+            snapshotSummary[k] = (v.actions || []).length;
+          }
+          console.log('Snapshot lifecycle phases (action counts):', snapshotSummary);
+        } else {
+          console.warn('⚠️ Snapshot has NO lifecycle.phases!');
+        }
         
         // If we successfully parsed action blocks from the PS1 script, override the visual phase actions!
         // ONLY if the script actually has SPA:Action comment blocks, ensuring we don't erase visual blocks for clean scripts
         const hasComments = ps1Path && files[ps1Path] && /#\s*<SPA:Action/i.test(files[ps1Path]);
+        console.log('PS1 has SPA:Action comments:', hasComments);
+
         if (parsedPsadt && hasComments) {
+          console.log('✅ Overriding snapshot lifecycle with parsed PSADT lifecycle');
           snapshot.lifecycle = parsedPsadt.lifecycle;
+        } else if (parsedPsadt && !hasComments) {
+          console.log('ℹ️ Parsed PSADT available but no SPA:Action comments — keeping snapshot lifecycle');
+        } else {
+          console.log('ℹ️ No parsed PSADT — keeping snapshot lifecycle');
+        }
+
+        // Log final lifecycle going into state
+        if (snapshot.lifecycle?.phases) {
+          const finalSummary = {};
+          for (const [k, v] of Object.entries(snapshot.lifecycle.phases)) {
+            finalSummary[k] = (v.actions || []).map(a => a.type);
+          }
+          console.log('FINAL lifecycle phases (action types):', finalSummary);
         }
 
         if (ps1Path) {
@@ -664,7 +702,8 @@ export default function useWizardState() {
           vsCodeOpened: false,
         }));
         setCurrentStep(0);
-        console.log('✅ Loaded project from state snapshot with parsed PSADT blocks');
+        console.log('✅ Loaded project from state snapshot');
+        console.groupEnd();
         return;
       } catch (e) {
         console.warn('⚠️ Failed to parse spa-wizard-state.json, falling back to file parsing:', e.message);
