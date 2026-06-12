@@ -364,7 +364,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     }
   }, [!!conversionStats]); // run once when conversion stats are first available
 
-  const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'compare'
+  const activeTab = state._psadtActiveTab || 'behavior';
+  const setActiveTab = (tab) => updateFields({ _psadtActiveTab: tab });
   const [layout, setLayout] = useState('side-by-side'); // 'side-by-side' | 'stacked'
 
   const hasLegacyScript = useMemo(() => {
@@ -615,9 +616,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   onChange={v => updateField('installContext', v)}
                   options={windowsOptions.installContexts}
                 />
-                <FormField label="Max Install Time (minutes)" id="maxInstallTime">
-                  <input id="maxInstallTime" type="number" min="1" value={state.maxInstallTime} onChange={e => updateField('maxInstallTime', parseInt(e.target.value) || 60)} />
-                </FormField>
+
               </div>
               <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
               <div style={{ marginTop: 'var(--space-md)' }}>

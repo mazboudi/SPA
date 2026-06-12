@@ -14,7 +14,7 @@
   "restartBehaviors": [
     { "value": "basedOnReturnCode", "label": "Determine behavior based on return codes" },
     { "value": "allow", "label": "App install may force a device restart" },
-    { "value": "suppress", "label": "Intune will attempt to suppress any restarts" },
+    { "value": "suppress", "label": "No specific action" },
     { "value": "force", "label": "Intune will force a mandatory device restart" }
   ],
   "returnCodeTypes": [

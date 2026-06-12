@@ -184,19 +184,28 @@ export default function ReviewStep({ state, updateField }) {
               <a href={publishResult.projectUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🔗 Open Project</a>
               {publishResult.tagUrl && <a href={publishResult.tagUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🏷️ View Tag</a>}
 
-              <button className="btn btn-secondary btn-sm" onClick={() => {
-                fetch('/api/open-vscode', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    packageId: state.packageId,
-                    relativePath: 'windows/src/Invoke-AppDeployToolkit.ps1',
-                    writeOnly: false,
-                  })
-                }).catch(() => {
-                  // Fallback: try vscode:// protocol
-                  window.open(publishResult.vsCodeUrl, '_self');
-                });
+              <button className="btn btn-secondary btn-sm" onClick={async () => {
+                try {
+                  const resp = await fetch('/api/open-vscode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      packageId: state.packageId,
+                      relativePath: 'windows/src/Invoke-AppDeployToolkit.ps1',
+                      writeOnly: false,
+                    })
+                  });
+                  const data = await resp.json();
+                  // If CLI failed, server returns protocol URL — open it in browser
+                  if (data.method === 'protocol' && data.url) {
+                    window.location.href = data.url;
+                  }
+                } catch {
+                  // Network error — build vscode:// URL from local path as fallback
+                  const fallbackPath = (state._localRepoPath || '').replace(/\\/g, '/');
+                  const prefix = fallbackPath.startsWith('/') ? '' : '/';
+                  window.location.href = `vscode://file${prefix}${fallbackPath}`;
+                }
               }}>🖥️ Open in VS Code</button>
             </div>
           </div>

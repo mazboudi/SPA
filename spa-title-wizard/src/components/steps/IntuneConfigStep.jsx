@@ -44,6 +44,15 @@ const OPERATORS = [
   { value: 'lessThan', label: 'Less than' },
 ];
 
+const SCRIPT_OUTPUT_TYPES = [
+  { value: 'string', label: 'String' },
+  { value: 'dateTime', label: 'Date Time' },
+  { value: 'integer', label: 'Integer' },
+  { value: 'float', label: 'Float' },
+  { value: 'version', label: 'Version' },
+  { value: 'boolean', label: 'Boolean' },
+];
+
 const FILE_DET_TYPES = [
   { value: 'exists', label: 'File or folder exists' },
   { value: 'doesNotExist', label: 'File or folder does not exist' },
@@ -149,6 +158,8 @@ export default function IntuneConfigStep({ state, updateField }) {
     let newReq;
     if (type === 'file') {
       newReq = { type: 'file', path: '', fileOrFolder: '', detectionType: 'exists', operator: 'notConfigured', detectionValue: '', check32BitOn64: false };
+    } else if (type === 'script') {
+      newReq = { type: 'script', scriptContent: '', runAs32Bit: false, runAsAccount: false, enforceSignatureCheck: false, outputDataType: 'string', operator: 'notConfigured', detectionValue: '' };
     } else {
       newReq = { type: 'registry', hive: 'HKLM', keyPath: '', valueName: '', detectionType: 'exists', operator: 'notConfigured', detectionValue: '', check32BitOn64: false };
     }
@@ -367,7 +378,7 @@ export default function IntuneConfigStep({ state, updateField }) {
             TAB: APP INFORMATION
             ========================================== */}
         {activeTab === 'info' && (() => {
-          const defaultIntuneAppName = `${state.publisher || ''} ${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+          const defaultIntuneAppName = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
           const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
           const isDuplicate = intuneAppNameValue && intuneApps.length > 0 && intuneApps.some(app => (app.displayName || '').trim().toLowerCase() === intuneAppNameValue.trim().toLowerCase());
           return (
@@ -375,8 +386,8 @@ export default function IntuneConfigStep({ state, updateField }) {
               <div className="config-section">
                 <h3 className="section-title">App Metadata</h3>
                 <div className="form-grid">
-                  <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to Publisher + App Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
-                    <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Fiserv Google Chrome 134.0'}`} value={state.intuneAppName || ''} onChange={e => updateField('intuneAppName', e.target.value)} />
+                  <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to App Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
+                    <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} value={state.intuneAppName || ''} onChange={e => updateField('intuneAppName', e.target.value)} />
                     {isDuplicate && (
                       <div className="duplicate-warning animate-in" style={{
                         marginTop: '8px',
@@ -396,6 +407,9 @@ export default function IntuneConfigStep({ state, updateField }) {
                         </span>
                       </div>
                     )}
+                  </FormField>
+                  <FormField label="App Version" id="intuneAppVersion" hint="Synced from Basic Info — edit there to change.">
+                    <input id="intuneAppVersion" type="text" readOnly value={state.version || ''} className="mono-input" style={{ opacity: 0.8 }} />
                   </FormField>
                   <FormField label="Description" id="appDescription">
                     <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
@@ -424,7 +438,6 @@ export default function IntuneConfigStep({ state, updateField }) {
                 </FormField>
               </div>
               <ToggleSwitch label="Featured app in Company Portal" checked={state.isFeatured} onChange={v => updateField('isFeatured', v)} id="isFeatured" />
-              <ToggleSwitch label="Allow available uninstall" checked={state.allowAvailableUninstall} onChange={v => updateField('allowAvailableUninstall', v)} id="allowAvailableUninstall" />
             </div>
 
             <div className="config-section">
@@ -467,17 +480,21 @@ export default function IntuneConfigStep({ state, updateField }) {
                 <FormField label="Uninstall Command" id="uninstallCommandLine" hint="Derived from PSADT scaffold settings (read-only)">
                   <input id="uninstallCommandLine" type="text" readOnly value={derivedUninstallCmd} className="mono-input" style={{ opacity: 0.8 }} />
                 </FormField>
-                <SelectField label="Install Context" id="installContext" value={state.installContext || 'system'}
+                <SelectField label="Install behavior" id="installContext" value={state.installContext || 'system'}
                   hint="Specify if the installer runs in System or User context."
                   onChange={v => updateField('installContext', v)}
-                  options={windowsOptions.installContexts}
+                  options={[{ value: 'system', label: 'System' }, { value: 'user', label: 'User' }]}
                 />
                 <SelectField label="Device Restart Behavior" id="restartBehavior" value={state.restartBehavior || 'basedOnReturnCode'}
                   hint="How Intune manages reboots after installation completes."
                   onChange={v => updateField('restartBehavior', v)}
                   options={windowsOptions.restartBehaviors}
                 />
+                <FormField label="Installation time required (mins)" id="maxInstallTime" hint="Maximum time Intune will wait for the install to complete.">
+                  <input id="maxInstallTime" type="number" min="1" value={state.maxInstallTime} onChange={e => updateField('maxInstallTime', parseInt(e.target.value) || 60)} />
+                </FormField>
               </div>
+              <ToggleSwitch label="Allow available uninstall" checked={state.allowAvailableUninstall} onChange={v => updateField('allowAvailableUninstall', v)} id="allowAvailableUninstall" />
             </div>
 
             <div className="config-section">
@@ -525,26 +542,23 @@ export default function IntuneConfigStep({ state, updateField }) {
           <div className="animate-in">
             <div className="config-section">
               <h3 className="section-title">Requirements</h3>
-              <div className="form-grid">
-                <SelectField label="Minimum Windows Release" id="minWinRelease" value={state.minWinRelease || 'Windows11_22H2'}
-                  onChange={v => updateField('minWinRelease', v)}
-                  options={windowsOptions.windowsReleases}
-                />
-              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+                Specify the requirements that devices must meet before the app is installed.
+              </p>
 
-              {/* OS Architecture */}
-              <div style={{ marginTop: 'var(--space-md)' }}>
-                <p className="action-field__label" style={{ marginBottom: '6px' }}>Operating System Architecture</p>
+              {/* OS Architecture — first item per Intune layout */}
+              <div>
+                <p className="action-field__label" style={{ marginBottom: '6px' }}>Check operating system architecture</p>
                 <div className="detection-method-toggle">
-                  <button type="button"
-                    className={`detection-method-btn ${!state.archCheckEnabled ? 'detection-method-btn--active' : ''}`}
-                    onClick={() => updateField('archCheckEnabled', false)}>
-                    No — Allow this app to be installed on all systems
-                  </button>
                   <button type="button"
                     className={`detection-method-btn ${state.archCheckEnabled ? 'detection-method-btn--active' : ''}`}
                     onClick={() => updateField('archCheckEnabled', true)}>
-                    Yes — Specify the systems the app can be installed on
+                    Yes. Specify the systems the app can be installed on.
+                  </button>
+                  <button type="button"
+                    className={`detection-method-btn ${!state.archCheckEnabled ? 'detection-method-btn--active' : ''}`}
+                    onClick={() => updateField('archCheckEnabled', false)}>
+                    No. Allow this app to be installed on all systems.
                   </button>
                 </div>
                 {state.archCheckEnabled && (
@@ -565,31 +579,37 @@ export default function IntuneConfigStep({ state, updateField }) {
                 )}
               </div>
 
+              {/* Minimum operating system */}
+              <div className="form-grid" style={{ marginTop: 'var(--space-md)' }}>
+                <SelectField label="Minimum operating system" id="minWinRelease" value={state.minWinRelease || 'Windows11_22H2'}
+                  onChange={v => updateField('minWinRelease', v)}
+                  options={windowsOptions.windowsReleases}
+                />
+              </div>
+
               {/* Resource requirements */}
               <div className="form-grid" style={{ marginTop: 'var(--space-md)' }}>
-                <FormField label="Min Free Disk Space (MB)" id="minDiskSpaceMB"
-                  hint={state.minDiskSpaceMB == null ? '💡 Best practice: set a minimum (e.g. 500 MB)' : 'Leave empty for no requirement'}>
+                <FormField label="Disk space required (MB)" id="minDiskSpaceMB">
                   <input id="minDiskSpaceMB" type="number" min="0"
-                    placeholder="Not set"
+                    placeholder=""
                     value={state.minDiskSpaceMB ?? ''}
                     onChange={e => updateField('minDiskSpaceMB', e.target.value ? parseInt(e.target.value) : null)} />
                 </FormField>
-                <FormField label="Min Memory (MB)" id="minMemoryMB"
-                  hint={state.minMemoryMB == null ? '💡 Best practice: set a minimum (e.g. 2048 MB)' : 'Leave empty for no requirement'}>
+                <FormField label="Physical memory required (MB)" id="minMemoryMB">
                   <input id="minMemoryMB" type="number" min="0"
-                    placeholder="Not set"
+                    placeholder=""
                     value={state.minMemoryMB ?? ''}
                     onChange={e => updateField('minMemoryMB', e.target.value ? parseInt(e.target.value) : null)} />
                 </FormField>
-                <FormField label="Min Logical Processors" id="minLogicalProcessors" hint="Leave empty for no requirement">
+                <FormField label="Minimum number of logical processors required" id="minLogicalProcessors">
                   <input id="minLogicalProcessors" type="number" min="1"
-                    placeholder="Not set"
+                    placeholder=""
                     value={state.minLogicalProcessors ?? ''}
                     onChange={e => updateField('minLogicalProcessors', e.target.value ? parseInt(e.target.value) : null)} />
                 </FormField>
-                <FormField label="Min CPU Speed (MHz)" id="minCpuSpeedMHz" hint="Leave empty for no requirement">
+                <FormField label="Minimum CPU speed required (MHz)" id="minCpuSpeedMHz">
                   <input id="minCpuSpeedMHz" type="number" min="1"
-                    placeholder="Not set"
+                    placeholder=""
                     value={state.minCpuSpeedMHz ?? ''}
                     onChange={e => updateField('minCpuSpeedMHz', e.target.value ? parseInt(e.target.value) : null)} />
                 </FormField>
@@ -598,15 +618,15 @@ export default function IntuneConfigStep({ state, updateField }) {
 
             {/* ═══ CUSTOM REQUIREMENT RULES ═══ */}
             <div className="config-section">
-              <h3 className="section-title">Custom Requirement Rules <span className="section-optional">Optional &bull; {customReqs.length} rule{customReqs.length !== 1 ? 's' : ''}</span></h3>
+              <h3 className="section-title">Configure additional requirement rules <span className="section-optional">{customReqs.length} rule{customReqs.length !== 1 ? 's' : ''}</span></h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-                Add additional file or registry checks that must pass before the app can install.
+                Add additional file, registry, or script checks that must pass before the app can install.
               </p>
 
               {customReqs.map((req, idx) => (
                 <div key={idx} className="detection-rule-card" style={{ marginBottom: '8px' }}>
                   <div className="detection-rule-card__header">
-                    <span className="detection-rule-card__type">{req.type === 'file' ? '📄 File Requirement' : '🔑 Registry Requirement'}</span>
+                    <span className="detection-rule-card__type">{req.type === 'file' ? '📄 File Requirement' : req.type === 'script' ? '📜 Script Requirement' : '🔑 Registry Requirement'}</span>
                     <button type="button" className="action-btn action-btn--del" onClick={() => removeCustomReq(idx)}>✕</button>
                   </div>
                   <div className="form-grid" style={{ padding: '8px 12px 12px' }}>
@@ -657,6 +677,41 @@ export default function IntuneConfigStep({ state, updateField }) {
                         <ToggleSwitch label="Check 32-bit registry on 64-bit systems" checked={req.check32BitOn64} onChange={v => updateCustomReq(idx, 'check32BitOn64', v)} id={`req-reg-32-${idx}`} />
                       </>
                     )}
+                    {req.type === 'script' && (
+                      <>
+                        <FormField label="Script File (.ps1)" id={`req-script-file-${idx}`} style={{ gridColumn: 'span 2' }}>
+                          <div style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                            <label className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '6px 12px', margin: 0 }}>
+                              📄 Upload .ps1
+                              <input type="file" accept=".ps1" style={{ display: 'none' }} onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const text = await file.text();
+                                updateCustomReq(idx, 'scriptContent', text);
+                                updateCustomReq(idx, 'scriptFileName', file.name);
+                              }} />
+                            </label>
+                            {req.scriptContent && <span className="msi-status msi-status--ok">✅ {req.scriptFileName || 'Script loaded'} ({req.scriptContent.split('\n').length} lines)</span>}
+                          </div>
+                        </FormField>
+                        {req.scriptContent && (
+                          <div style={{ gridColumn: 'span 2', marginBottom: '8px' }}>
+                            <pre style={{ fontSize: '0.72rem', maxHeight: '120px', overflow: 'auto', padding: '8px', background: 'var(--bg-card, rgba(0,0,0,0.15))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>{req.scriptContent.slice(0, 800)}{req.scriptContent.length > 800 ? '\n...' : ''}</pre>
+                          </div>
+                        )}
+                        <SelectField label="Output Data Type" id={`req-script-output-${idx}`} value={req.outputDataType || 'string'}
+                          hint="Data type of the script's STDOUT for comparison."
+                          onChange={v => updateCustomReq(idx, 'outputDataType', v)} options={SCRIPT_OUTPUT_TYPES} />
+                        <SelectField label="Operator" id={`req-script-op-${idx}`} value={req.operator || 'notConfigured'}
+                          onChange={v => updateCustomReq(idx, 'operator', v)} options={OPERATORS} />
+                        <FormField label="Value" id={`req-script-val-${idx}`} hint="Expected STDOUT value to match against.">
+                          <input type="text" value={req.detectionValue || ''} onChange={e => updateCustomReq(idx, 'detectionValue', e.target.value)} />
+                        </FormField>
+                        <ToggleSwitch label="Run script as 32-bit process on 64-bit clients" checked={req.runAs32Bit || false} onChange={v => updateCustomReq(idx, 'runAs32Bit', v)} id={`req-script-32-${idx}`} />
+                        <ToggleSwitch label="Run this script using the logged on credentials" checked={req.runAsAccount || false} onChange={v => updateCustomReq(idx, 'runAsAccount', v)} id={`req-script-account-${idx}`} />
+                        <ToggleSwitch label="Enforce script signature check" checked={req.enforceSignatureCheck || false} onChange={v => updateCustomReq(idx, 'enforceSignatureCheck', v)} id={`req-script-sig-${idx}`} />
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -664,6 +719,7 @@ export default function IntuneConfigStep({ state, updateField }) {
               <div className="detection-add-buttons">
                 <button type="button" className="btn btn-secondary" onClick={() => addCustomReq('file')}>+ File Requirement</button>
                 <button type="button" className="btn btn-secondary" onClick={() => addCustomReq('registry')}>+ Registry Requirement</button>
+                <button type="button" className="btn btn-secondary" onClick={() => addCustomReq('script')}>+ Script Requirement</button>
               </div>
             </div>
           </div>
@@ -774,11 +830,11 @@ export default function IntuneConfigStep({ state, updateField }) {
                       className={errors[`dep_${idx}_appId`] ? 'input--error' : ''}
                       value={dep.appId || ''} onChange={e => updateDependency(idx, 'appId', e.target.value)} />
                   </FormField>
-                  <SelectField label="Dependency Type" id={`dep-type-${idx}`} value={dep.dependencyType || 'autoInstall'}
+                  <SelectField label="Automatically install" id={`dep-type-${idx}`} value={dep.dependencyType || 'autoInstall'}
                     onChange={v => updateDependency(idx, 'dependencyType', v)}
                     options={[
-                      { value: 'autoInstall', label: 'Auto install' },
-                      { value: 'detect', label: 'Detect only' },
+                      { value: 'autoInstall', label: 'Yes' },
+                      { value: 'detect', label: 'No' },
                     ]} />
                   <button type="button" className="action-btn action-btn--del" onClick={() => removeDependency(idx)} title="Remove dependency">✕</button>
                 </div>
@@ -794,11 +850,11 @@ export default function IntuneConfigStep({ state, updateField }) {
                     className={errors.supersedesAppId ? 'input--error' : ''}
                     value={state.supersedesAppId || ''} onChange={e => updateField('supersedesAppId', e.target.value)} />
                 </FormField>
-                <SelectField label="Action" id="supersedenceType" value={state.supersedenceType || 'update'}
+                <SelectField label="Uninstall previous version" id="supersedenceType" value={state.supersedenceType || 'replace'}
                   onChange={v => updateField('supersedenceType', v)}
                   options={[
-                    { value: 'update', label: 'Uninstall previous version (Update)' },
-                    { value: 'replace', label: 'Keep previous version (Side-by-side)' },
+                    { value: 'update', label: 'Yes' },
+                    { value: 'replace', label: 'No' },
                   ]}
                 />
               </div>
@@ -860,7 +916,7 @@ export default function IntuneConfigStep({ state, updateField }) {
 function IntuneMetaSummary({ state }) {
   const [expanded, setExpanded] = useState(true);
 
-  const defaultIntuneAppName = `${state.publisher || ''} ${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+  const defaultIntuneAppName = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
   const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
 
   // Build metadata rows — show all Intune-relevant fields with their current values
@@ -880,7 +936,7 @@ function IntuneMetaSummary({ state }) {
     { label: 'Installer Type', value: state.installerType?.toUpperCase() },
     { label: 'Detection Mode', value: state.detectionMode },
     { label: 'Restart Behavior', value: state.restartBehavior },
-    { label: 'Max Install Time', value: state.maxInstallTime ? `${state.maxInstallTime} min` : '' },
+    { label: 'Installation Time Required', value: state.maxInstallTime ? `${state.maxInstallTime} min` : '' },
     { label: 'Install Context', value: state.installContext },
     { label: 'Min Windows', value: state.minWinRelease },
     { label: 'Min Disk Space', value: state.minDiskSpaceMB != null ? `${state.minDiskSpaceMB} MB` : '' },

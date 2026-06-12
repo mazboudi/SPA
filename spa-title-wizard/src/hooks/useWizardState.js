@@ -289,13 +289,12 @@ export default function useWizardState() {
       }
 
       // Keep intuneAppName in sync with basic info changes if untouched or currently matching the old default
-      const oldDefault = `${prev.publisher || ''} ${prev.displayName || ''} ${prev.version || ''}`.trim().replace(/\s+/g, ' ');
-      if (['displayName', 'publisher', 'version'].includes(field)) {
+      const oldDefault = `${prev.displayName || ''} ${prev.version || ''}`.trim().replace(/\s+/g, ' ');
+      if (['displayName', 'version'].includes(field)) {
         if (!prev.intuneAppName || prev.intuneAppName === oldDefault) {
-          const pub = field === 'publisher' ? value : prev.publisher;
           const name = field === 'displayName' ? value : prev.displayName;
           const ver = field === 'version' ? value : prev.version;
-          next.intuneAppName = `${pub || ''} ${name || ''} ${ver || ''}`.trim().replace(/\s+/g, ' ');
+          next.intuneAppName = `${name || ''} ${ver || ''}`.trim().replace(/\s+/g, ' ');
         }
       }
 
@@ -557,7 +556,7 @@ export default function useWizardState() {
 
       // Auto-populate intuneAppName if not already set
       if (!next.intuneAppName) {
-        next.intuneAppName = `${next.publisher || ''} ${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
+        next.intuneAppName = `${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
       }
 
       // Auto-fill installer source filename from parsed MSI/EXE data

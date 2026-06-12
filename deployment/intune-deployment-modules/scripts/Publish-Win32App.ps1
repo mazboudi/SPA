@@ -12,6 +12,7 @@ param(
 
     [Parameter(Mandatory)] [object[]] $DetectionRules,
     [hashtable] $HardwareRequirements = @{},
+    [object[]] $RequirementRules = @(),
 
     [string] $AppJsonPath     = 'windows/intune/app.json',
     [string] $PackageYamlPath = 'windows/package.yaml',
@@ -157,7 +158,7 @@ $appBody = @{
     minimumMemoryInMB              = if ($HardwareRequirements.minimumMemoryInMB) { $HardwareRequirements.minimumMemoryInMB } else { $null }
     minimumNumberOfProcessors      = if ($HardwareRequirements.minimumNumberOfProcessors) { $HardwareRequirements.minimumNumberOfProcessors } else { $null }
     minimumCpuSpeedInMHz           = if ($HardwareRequirements.minimumCpuSpeedInMHz) { $HardwareRequirements.minimumCpuSpeedInMHz } else { $null }
-    applicableArchitectures        = if ($HardwareRequirements.applicableArchitectures) { $HardwareRequirements.applicableArchitectures } else { 'x64' }
+    applicableArchitectures        = if ($HardwareRequirements.applicableArchitectures) { $HardwareRequirements.applicableArchitectures } else { 'x86,x64,arm64' }
     minimumSupportedWindowsRelease = if ($HardwareRequirements.minimumSupportedWindowsRelease) { $HardwareRequirements.minimumSupportedWindowsRelease } else { 'Windows10_2004' }
 
     installCommandLine   = $pkg.install_command
@@ -173,6 +174,12 @@ $appBody = @{
 # Add logo if present (only include the key when we have an icon to avoid null-body issues)
 if ($largeIcon) {
     $appBody['largeIcon'] = $largeIcon
+}
+
+# Add custom requirement rules if provided (file/registry/script checks)
+if ($RequirementRules -and $RequirementRules.Count -gt 0) {
+    $appBody['requirementRules'] = @($RequirementRules)
+    Write-Log "Including $($RequirementRules.Count) custom requirement rule(s)" -LogFile $logFile
 }
 
 Write-Log "Creating Win32 app (metadata + detection rules only)" -LogFile $logFile

@@ -79,24 +79,32 @@
         -PackageYamlPath 'windows/package.yaml')
       Write-Host "Detection rules count: $($detectionRules.Count)"
 
-      # Build hardware requirements from windows/intune/requirements.json
-      $hardwareRequirements = $null
+      # Build hardware requirements + custom requirement rules from windows/intune/requirements.json
+      $hardwareRequirements = @{}
+      $requirementRules = @()
       if (Test-Path 'windows/intune/requirements.json') {
-        $hardwareRequirements = & 'intune-modules/Resolve-Requirements.ps1' `
+        $resolved = & 'intune-modules/Resolve-Requirements.ps1' `
           -RequirementsPath 'windows/intune/requirements.json'
+        $hardwareRequirements = $resolved.hardware
+        $requirementRules = $resolved.requirementRules
       }
 
       # Publish (creates or updates) the Win32 app
-      & 'intune-modules/Publish-Win32App.ps1' `
-        -IntuneWinPath      $env:INTUNEWIN_PATH `
-        -AppJsonPath        'windows/intune/app.json' `
-        -PackageYamlPath    'windows/package.yaml' `
-        -DetectionRules     $detectionRules `
-        -HardwareRequirements $hardwareRequirements `
-        -TenantId           $env:AZURE_TENANT_ID `
-        -ClientId           $env:AZURE_CLIENT_ID `
-        -ClientSecret       $env:AZURE_CLIENT_SECRET `
-        -DryRun:([bool]::Parse($env:INTUNE_DRY_RUN))
+      $publishArgs = @{
+        IntuneWinPath        = $env:INTUNEWIN_PATH
+        AppJsonPath          = 'windows/intune/app.json'
+        PackageYamlPath      = 'windows/package.yaml'
+        DetectionRules       = $detectionRules
+        HardwareRequirements = $hardwareRequirements
+        TenantId             = $env:AZURE_TENANT_ID
+        ClientId             = $env:AZURE_CLIENT_ID
+        ClientSecret         = $env:AZURE_CLIENT_SECRET
+        DryRun               = [bool]::Parse($env:INTUNE_DRY_RUN)
+      }
+      if ($requirementRules.Count -gt 0) {
+        $publishArgs['RequirementRules'] = $requirementRules
+      }
+      & 'intune-modules/Publish-Win32App.ps1' @publishArgs
   artifacts:
     when: always
     expire_in: 14 days

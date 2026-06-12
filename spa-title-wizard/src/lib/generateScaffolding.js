@@ -192,7 +192,7 @@ ${optLines.join('\n')}
 
     // Compute applicable architectures from new checkbox model
     const getApplicableArchitectures = () => {
-      if (!s.archCheckEnabled) return 'x64'; // all = default x64
+      if (!s.archCheckEnabled) return 'x86,x64,arm64'; // "No" = all architectures allowed
       const archs = [];
       if (s.archX86) archs.push('x86');
       if (s.archX64) archs.push('x64');
@@ -202,7 +202,7 @@ ${optLines.join('\n')}
 
     // Intune app.json
     files['windows/intune/app.json'] = JSON.stringify({
-      displayName: s.intuneAppName || `${s.publisher || ''} ${s.displayName || ''} ${s.version || ''}`.trim().replace(/\s+/g, ' '),
+      displayName: s.intuneAppName || `${s.displayName || ''} ${s.version || ''}`.trim().replace(/\s+/g, ' '),
       description: s.appDescription || 'TODO: Add application description.',
       publisher: s.publisher,
       appVersion: s.version,
@@ -250,7 +250,21 @@ ${optLines.join('\n')}
       minimumCpuSpeedInMHz: s.minCpuSpeedMHz ?? null,
     };
     if ((s.customRequirements || []).length > 0) {
-      reqObj.customRequirementRules = s.customRequirements;
+      // For script requirements, save the content as separate .ps1 files
+      // and reference the path instead of embedding inline
+      let scriptIdx = 0;
+      reqObj.customRequirementRules = s.customRequirements.map(req => {
+        if (req.type === 'script' && req.scriptContent) {
+          const filename = req.scriptFileName || `requirement-${scriptIdx}.ps1`;
+          const scriptPath = `windows/intune/scripts/${filename}`;
+          files[scriptPath] = req.scriptContent;
+          scriptIdx++;
+          // Return a clean rule with file reference instead of inline content
+          const { scriptContent, scriptFileName, ...rest } = req;
+          return { ...rest, scriptFile: scriptPath };
+        }
+        return req;
+      });
     }
     files['windows/intune/requirements.json'] = JSON.stringify(reqObj, null, 2);
 
@@ -515,6 +529,7 @@ fi
   delete stateSnapshot._editProjectTags;
   delete stateSnapshot._localRepoPath;
   delete stateSnapshot._lastPublishResult;
+  delete stateSnapshot._psadtActiveTab;
   delete stateSnapshot._v3Conversion;
   // File objects can't be serialized — preserve filename as string
   if (stateSnapshot.logoFile) {
