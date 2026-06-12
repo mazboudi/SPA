@@ -168,11 +168,59 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
               ))}
             </div>
           )}
-          {action.raw && (
-            <div className="action-card__raw" title="Original PowerShell command">
-              <code>{action.raw}</code>
-            </div>
-          )}
+          {action.raw && (() => {
+            // Build v4 command preview from action properties
+            let v4Cmd = '';
+            switch (action.type) {
+              case 'msi_install': {
+                const t = action.transform ? ` -Transforms '${action.transform}'` : '';
+                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
+                v4Cmd = `Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${t}${a}`;
+                break;
+              }
+              case 'msi_uninstall':
+                v4Cmd = action.productCode
+                  ? `Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '${action.productCode}'`
+                  : `Uninstall-ADTApplication -Name '${action.appName || ''}'`;
+                break;
+              case 'msi_patch':
+                v4Cmd = `Start-ADTMsiProcess -Action 'Patch' -FilePath '$dirFiles\\${action.file}'`;
+                break;
+              case 'exe_install':
+              case 'exe_uninstall':
+              case 'execute_process': {
+                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
+                const prefix = action.type === 'execute_process' ? '' : '$dirFiles\\';
+                v4Cmd = `Start-ADTProcess -FilePath '${prefix}${action.file}'${a}`;
+                break;
+              }
+              case 'file_copy':
+                v4Cmd = `Copy-ADTFile -Path "$dirFiles\\${action.source}" -Destination '${action.dest}'`;
+                break;
+              case 'file_remove':
+                v4Cmd = `Remove-ADTFile -Path '${action.path}'`;
+                break;
+              case 'registry_set':
+                v4Cmd = `Set-ADTRegistryKey -Key '${action.key}' -Name '${action.name}' -Value '${action.value}'`;
+                break;
+              case 'registry_remove':
+                v4Cmd = `Remove-ADTRegistryKey -Key '${action.key}'${action.name ? ` -Name '${action.name}'` : ''}`;
+                break;
+              case 'show_welcome':
+                v4Cmd = 'Show-ADTInstallationWelcome @saiwParams';
+                break;
+              case 'show_progress':
+                v4Cmd = `Show-ADTInstallationProgress${action.statusMessage ? ` -StatusMessage '${action.statusMessage}'` : ''}`;
+                break;
+              default:
+                v4Cmd = action.raw; // fallback for types without a specific v4 mapping
+            }
+            return v4Cmd ? (
+              <div className="action-card__raw" title="Generated v4 command">
+                <code>{v4Cmd}</code>
+              </div>
+            ) : null;
+          })()}
         </>
       )}
     </div>
@@ -612,10 +660,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   onChange={v => updateField('deployMode', v)}
                   options={windowsOptions.deployModes}
                 />
-                <SelectField label="Install Context" id="installContext" value={state.installContext}
-                  onChange={v => updateField('installContext', v)}
-                  options={windowsOptions.installContexts}
-                />
+
 
               </div>
               <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />

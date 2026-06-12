@@ -720,6 +720,16 @@ function extractPsParamValue(line, paramName) {
   return null;
 }
 
+/**
+ * Strip common PS path-variable prefixes like $dirFiles\, $dirSupportFiles\, $PSScriptRoot\
+ * so the generator can re-add the correct prefix without doubling.
+ * E.g. "$dirFiles\setup.msi" → "setup.msi"
+ */
+function stripDirPrefix(filepath) {
+  if (!filepath) return filepath;
+  return filepath.replace(/^\$(?:dirFiles|dirSupportFiles|PSScriptRoot)[\\/]/, '');
+}
+
 // ─── Brace-balanced block extractor ────────────────────────────────────────
 
 /**
@@ -1002,8 +1012,9 @@ function extractBlockActions(block) {
       const action = msiMatch[1];
       const path = extractPsParamValue(t, 'Path') || '';
       const params = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList') || '';
-      const cleanPath = path ? path.replace(/.*[\\]/, '').replace(/^\$\w+\\/, '') : '';
-      actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action}: ${cleanPath || 'default'}`, file: path, args: params, raw: t });
+      const cleanPath = path ? path.replace(/.*[\\]/, '') : '';
+      const cleanFile = stripDirPrefix(path) || cleanPath;
+      actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action}: ${cleanPath || 'default'}`, file: cleanFile, args: params, raw: t });
       matched = true;
     }
 
@@ -1084,7 +1095,7 @@ function extractBlockActions(block) {
       const copyDst = extractPsParamValue(t, 'Destination');
       if (copySrc && copyDst) {
         flushCustomBuffer();
-        actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: copySrc, dest: copyDst, raw: t });
+        actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: stripDirPrefix(copySrc), dest: copyDst, raw: t });
         matched = true;
       }
     }
