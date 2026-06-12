@@ -16,10 +16,13 @@ export default function ReviewStep({ state, updateField }) {
   // Publish state
   const [publishing, setPublishing] = useState(false);
   const [publishPhase, setPublishPhase] = useState('');
-  const [publishResult, setPublishResult] = useState(null);
   const [publishError, setPublishError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(null);
   const [pipelineAction, setPipelineAction] = useState('none');
+
+  // Persist publish result in wizard state so it survives navigation
+  const publishResult = state._lastPublishResult || null;
+  const setPublishResult = (result) => updateField('_lastPublishResult', result);
 
   // Check if publish API is reachable on mount
   useEffect(() => { checkPublishHealth().then(setApiAvailable); }, []);
@@ -181,7 +184,20 @@ export default function ReviewStep({ state, updateField }) {
               <a href={publishResult.projectUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🔗 Open Project</a>
               {publishResult.tagUrl && <a href={publishResult.tagUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🏷️ View Tag</a>}
 
-              <a href={publishResult.vsCodeUrl} className="btn btn-secondary btn-sm">🖥️ Open in VS Code</a>
+              <button className="btn btn-secondary btn-sm" onClick={() => {
+                fetch('/api/open-vscode', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    packageId: state.packageId,
+                    relativePath: 'windows/src/Invoke-AppDeployToolkit.ps1',
+                    writeOnly: false,
+                  })
+                }).catch(() => {
+                  // Fallback: try vscode:// protocol
+                  window.open(publishResult.vsCodeUrl, '_self');
+                });
+              }}>🖥️ Open in VS Code</button>
             </div>
           </div>
         ) : publishError ? (

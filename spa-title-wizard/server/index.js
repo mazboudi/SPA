@@ -1026,15 +1026,23 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
 
     console.log(`💻 Opening in VS Code: ${absolutePath}`);
 
+    // Determine the project root (clone dir) for opening as workspace
+    const projectRoot = join(CLONE_BASE, packageId);
+    const hasClone = existsSync(join(projectRoot, '.git'));
+
     // Fallback deep link for browser (cross-platform format)
-    let uriPath = absolutePath.replace(/\\/g, '/');
+    let uriPath = (hasClone ? projectRoot : absolutePath).replace(/\\/g, '/');
     if (!uriPath.startsWith('/')) {
       uriPath = '/' + uriPath;
     }
     const vsCodeUrl = `vscode://file${uriPath}`;
 
     // Execute local 'code' command in background
-    exec(`code "${absolutePath}"`, (err) => {
+    // If a local clone exists, open the project folder + navigate to the file
+    const codeCmd = hasClone
+      ? `code "${projectRoot}" -g "${absolutePath}"`
+      : `code "${absolutePath}"`;
+    exec(codeCmd, (err) => {
       if (err) {
         console.warn('⚠️ code CLI command failed (might not be in PATH). Falling back to vscode:// URL protocol.', err.message);
         return res.json({ success: true, method: 'protocol', url: vsCodeUrl });
