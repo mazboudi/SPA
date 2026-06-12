@@ -52,14 +52,15 @@ export default function ProjectPicker({ onSelect, onClose }) {
   const handleLoad = async (project, ref) => {
     setLoadingProject(project.id);
     try {
-      const url = ref
-        ? `/api/projects/${project.id}/files?ref=${encodeURIComponent(ref)}`
-        : `/api/projects/${project.id}/files`;
-      const res = await fetch(url);
+      const res = await fetch(`/api/projects/${project.id}/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: ref || undefined }),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       // Enrich projectMeta with tags (for staleness detection) from the list we already have
-      const enrichedMeta = { ...data.projectMeta, tags: project.tags || [] };
+      const enrichedMeta = { ...data.projectMeta, tags: project.tags || [], localPath: data.localPath };
       onSelect(data.files, enrichedMeta);
     } catch (err) {
       alert(`Failed to load project: ${err.message}`);

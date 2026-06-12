@@ -154,14 +154,18 @@ export default function App() {
 
       const project = checkData.project;
 
-      // 2. Fetch the project's config files from main branch
-      const filesRes = await fetch(`/api/projects/${project.id}/files`);
-      if (!filesRes.ok) throw new Error(`HTTP ${filesRes.status} trying to read files.`);
-      const filesData = await filesRes.json();
+      // 2. Clone the project locally and read files
+      const cloneRes = await fetch(`/api/projects/${project.id}/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!cloneRes.ok) throw new Error(`HTTP ${cloneRes.status} trying to clone project.`);
+      const cloneData = await cloneRes.json();
 
       // 3. Hydrate edit state and transition seamlessly
-      const enrichedMeta = { ...filesData.projectMeta, tags: project.tags || [] };
-      wizard.importProjectForEdit(filesData.files, enrichedMeta);
+      const enrichedMeta = { ...cloneData.projectMeta, tags: project.tags || [], localPath: cloneData.localPath };
+      wizard.importProjectForEdit(cloneData.files, enrichedMeta);
     } catch (err) {
       alert(`Failed to transition to existing project: ${err.message}`);
     }

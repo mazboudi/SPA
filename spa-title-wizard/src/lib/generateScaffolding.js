@@ -513,6 +513,7 @@ fi
   delete stateSnapshot._editProjectUrl;
   delete stateSnapshot._editLoadedRef;
   delete stateSnapshot._editProjectTags;
+  delete stateSnapshot._localRepoPath;
   delete stateSnapshot._v3Conversion;
   // File objects can't be serialized — preserve filename as string
   if (stateSnapshot.logoFile) {

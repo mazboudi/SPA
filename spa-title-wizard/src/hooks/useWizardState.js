@@ -18,6 +18,7 @@ const INITIAL_STATE = {
   _editProjectUrl: '',        // GitLab web URL
   _editLoadedRef: '',         // git ref used to load files (tag name or branch)
   _editProjectTags: [],       // available tags for staleness check
+  _localRepoPath: '',         // absolute path to local git clone
 
   // Step 1: Basic Info
   packageId: '',
@@ -632,13 +633,7 @@ export default function useWizardState() {
       parsedPsadt = parsePsadtBlocks(files[ps1Path]);
     }
 
-    // Clean up stale scaffold files from prior sessions
-    const editPackageId = projectMeta?.path?.replace(/\//g, '-') || '';
-    if (editPackageId) {
-      fetch(`/api/scaffold/${encodeURIComponent(editPackageId)}`, { method: 'DELETE' })
-        .then(() => console.log('🧹 Edit-mode scaffold cleanup for:', editPackageId))
-        .catch(() => {});
-    }
+
 
     // ── Fast path: state snapshot exists → direct hydration ────────────
     if (files['spa-wizard-state.json']) {
@@ -665,6 +660,7 @@ export default function useWizardState() {
           _editProjectUrl: projectMeta.web_url,
           _editLoadedRef: projectMeta.loadedRef || projectMeta.default_branch || 'main',
           _editProjectTags: projectMeta.tags || [],
+          _localRepoPath: projectMeta.localPath || '',
           vsCodeOpened: false,
         }));
         setCurrentStep(0);
@@ -693,6 +689,7 @@ export default function useWizardState() {
       next._editProjectUrl = projectMeta.web_url;
       next._editLoadedRef = projectMeta.loadedRef || projectMeta.default_branch || 'main';
       next._editProjectTags = projectMeta.tags || [];
+      next._localRepoPath = projectMeta.localPath || '';
 
       // Derive gitLabGroup from the project path (remove /software-titles/slug)
       const nsPath = projectMeta.path_with_namespace || '';

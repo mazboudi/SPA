@@ -11,11 +11,11 @@
 
 import 'dotenv/config';
 import express from 'express';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, statSync } from 'fs';
+import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
-import { exec } from 'child_process';
-import { tmpdir } from 'os';
+import { exec, execSync } from 'child_process';
+import { tmpdir, homedir } from 'os';
 import multer from 'multer';
 import CFB from 'cfb';
 
@@ -69,7 +69,7 @@ async function gitlab(method, path, body) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = data.message || data.error || JSON.stringify(data);
-    console.error(`  ❌ GitLab ${res.status}: ${msg}`);
+    if (res.status !== 404) console.error(`  ❌ GitLab ${res.status}: ${msg}`);
     throw Object.assign(new Error(`GitLab ${res.status}: ${msg}`), { status: res.status, data });
   }
   return data;
@@ -117,6 +117,130 @@ async function findProject(groupId, slug) {
   );
   // Exact slug match (search is fuzzy)
   return projects.find(p => p.path === slug) || null;
+}
+
+// ── Local Git Clone helpers ─────────────────────────────────────────────────
+
+/** Base directory for local repo clones */
+const CLONE_BASE = join(homedir(), 'spa-workbench', 'titles');
+
+/** Build an authenticated HTTPS clone URL */
+function cloneUrl(projectPath) {
+  const gitlabHost = GITLAB_URL.replace(/^https?:\/\//, '');
+  return `https://oauth2:${GITLAB_TOKEN}@${gitlabHost}/${projectPath}.git`;
+}
+
+/** Run a git command in a directory. Returns stdout. Throws on error. */
+function git(args, cwd, opts = {}) {
+  const cmd = `git ${args}`;
+  try {
+    return execSync(cmd, {
+      cwd,
+      encoding: 'utf8',
+      stdio: opts.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
+      timeout: 120_000, // 2 min max
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    }).trim();
+  } catch (err) {
+    const stderr = err.stderr?.toString().trim() || err.message;
+    if (!opts.ignoreError) {
+      console.error(`  ❌ git ${args.split(' ')[0]} failed: ${stderr}`);
+    }
+    throw new Error(`git error: ${stderr}`);
+  }
+}
+
+/**
+ * Ensure a local clone exists and is checked out to the desired ref.
+ * - If the directory exists: fetch + checkout
+ * - If not: fresh clone
+ * Returns the absolute path to the cloned repo.
+ */
+function ensureLocalClone(projectPath, ref = 'main') {
+  const slug = projectPath.split('/').pop();
+  const repoDir = join(CLONE_BASE, slug);
+  const url = cloneUrl(projectPath);
+
+  if (existsSync(join(repoDir, '.git'))) {
+    // Existing clone — fetch latest and checkout the ref
+    console.log(`  📂 Existing clone found: ${repoDir}`);
+    git('fetch origin --tags --prune', repoDir);
+    try {
+      git(`checkout ${ref}`, repoDir, { silent: true });
+    } catch {
+      // ref might be a remote branch not yet tracked
+      git(`checkout -B ${ref} origin/${ref}`, repoDir, { silent: true });
+    }
+    git(`reset --hard origin/${ref}`, repoDir, { ignoreError: true, silent: true });
+    console.log(`  📌 Checked out: ${ref}`);
+  } else {
+    // Fresh clone — remove stale directory if it exists without .git
+    if (existsSync(repoDir)) {
+      console.log(`  🧹 Removing corrupted directory (no .git): ${repoDir}`);
+      rmSync(repoDir, { recursive: true, force: true });
+    }
+    if (!existsSync(CLONE_BASE)) {
+      mkdirSync(CLONE_BASE, { recursive: true });
+    }
+    console.log(`  📥 Cloning ${projectPath} → ${repoDir}`);
+    git(`clone --branch ${ref} ${url} ${repoDir}`, CLONE_BASE);
+    console.log(`  ✅ Clone complete`);
+  }
+
+  return repoDir;
+}
+
+/**
+ * Walk a directory tree and read all text files into a { relativePath: content } map.
+ * Skips: .git/, node_modules/, and common binary extensions.
+ */
+const BINARY_EXTENSIONS = new Set([
+  '.exe', '.msi', '.msp', '.mst', '.cab', '.dll', '.sys',
+  '.pkg', '.dmg', '.app', '.zip', '.tar', '.gz', '.7z', '.rar',
+  '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg',
+  '.woff', '.woff2', '.ttf', '.eot',
+  '.intunewin', '.bin', '.dat',
+]);
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.DS_Store']);
+
+function walkDir(dir, baseDir = dir) {
+  const files = {};
+  for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry)) continue;
+    const abs = join(dir, entry);
+    const rel = abs.slice(baseDir.length + 1); // relative path from repo root
+    const stat = statSync(abs);
+    if (stat.isDirectory()) {
+      Object.assign(files, walkDir(abs, baseDir));
+    } else if (!BINARY_EXTENSIONS.has(extname(entry).toLowerCase())) {
+      try {
+        files[rel] = readFileSync(abs, 'utf8');
+      } catch {
+        // Skip unreadable files
+      }
+    }
+  }
+  return files;
+}
+
+/**
+ * Write a { relativePath: content } file map into a directory.
+ * Creates subdirectories as needed. Handles PowerShell BOM + CRLF.
+ */
+function writeFilesToDir(dir, files) {
+  for (const [relPath, content] of Object.entries(files)) {
+    const absPath = join(dir, relPath);
+    const absDir = dirname(absPath);
+    if (!existsSync(absDir)) {
+      mkdirSync(absDir, { recursive: true });
+    }
+    const isPowerShell = relPath.endsWith('.ps1');
+    const BOM = '\uFEFF';
+    const fileContent = isPowerShell
+      ? BOM + content.replace(/\r?\n/g, '\r\n')
+      : content;
+    writeFileSync(absPath, fileContent, 'utf8');
+  }
 }
 
 /**
@@ -174,68 +298,39 @@ app.post('/api/publish', async (req, res) => {
     const existing = await findProject(groupId, packageId);
 
     if (existing) {
-      // ── Existing project → commit to main + version tag ────────────
+      // ── Existing project → write to local clone + git push ────────
       const defaultBranch = existing.default_branch || 'main';
       const tagName = version ? `v${version.replace(/^v/i, '')}` : `v${Date.now()}`;
       console.log(`  🔄 Project exists (id: ${existing.id}) — updating with tag ${tagName}`);
 
-      // Determine create vs update per file
-      let existingFiles = [];
-      try {
-        const tree = await gitlab('GET',
-          `/projects/${existing.id}/repository/tree?ref=${encPath(defaultBranch)}&recursive=true&per_page=1000`
-        );
-        existingFiles = tree.map(f => f.path);
-      } catch { /* empty repo */ }
+      // Ensure local clone is up-to-date
+      const repoDir = ensureLocalClone(existing.path_with_namespace, defaultBranch);
 
-      const actions = Object.entries(files).map(([filePath, content]) => {
-        const action = existingFiles.includes(filePath) ? 'update' : 'create';
-        if (typeof content === 'string' && content.startsWith('data:')) {
-          const base64 = content.split(',')[1] || '';
-          return { action, file_path: filePath, content: base64, encoding: 'base64' };
-        }
-        return { action, file_path: filePath, content };
-      });
+      // Write all generated files into the local clone
+      writeFilesToDir(repoDir, files);
+      console.log(`  📝 Wrote ${Object.keys(files).length} files to ${repoDir}`);
 
-      // Commit directly to default branch ([skip ci] prevents auto-trigger)
-      await gitlab('POST', `/projects/${existing.id}/repository/commits`, {
-        branch: defaultBranch,
-        commit_message: `release: ${displayName || packageId} ${tagName} [skip ci]\n\nUpdated by SPA Packaging Workbench`,
-        actions,
-      });
-      console.log(`  💾 Committed ${actions.length} files to ${defaultBranch}`);
+      // Git add + commit + tag + push
+      git('add -A', repoDir);
 
-      // Create (or move) version tag — delete first if it already exists
-      let tagUrl = null;
-      const tagEncoded = encodeURIComponent(tagName);
-      try {
-        // Unprotect the tag first (GitLab may protect v* tags by default)
-        const unprotectUrl = `${API}/projects/${existing.id}/protected_tags/${tagEncoded}`;
-        await fetch(unprotectUrl, { method: 'DELETE', headers: { ...headers } }).catch(() => {});
-
-        // Delete the existing tag (raw fetch — DELETE returns 204 with no body)
-        const delUrl = `${API}/projects/${existing.id}/repository/tags/${tagEncoded}`;
-        const delRes = await fetch(delUrl, { method: 'DELETE', headers: { ...headers } });
-        if (delRes.ok || delRes.status === 204) {
-          console.log(`  🗑️  Deleted existing tag: ${tagName}`);
-        } else if (delRes.status !== 404) {
-          const errBody = await delRes.text().catch(() => '');
-          console.warn(`  ⚠️  Tag delete returned ${delRes.status}: ${errBody}`);
-        }
-      } catch {
-        // Tag didn't exist or delete failed — proceed to create
+      // Check if there are changes to commit
+      const status = git('status --porcelain', repoDir, { silent: true });
+      if (status) {
+        git(`commit -m "release: ${displayName || packageId} ${tagName} [skip ci]\n\nUpdated by SPA Packaging Workbench"`, repoDir);
+        console.log(`  💾 Committed changes`);
+      } else {
+        console.log(`  ℹ️  No changes detected — forcing tag update only`);
       }
-      try {
-        await gitlab('POST', `/projects/${existing.id}/repository/tags`, {
-          tag_name: tagName,
-          ref: defaultBranch,
-          message: `Release ${tagName} — ${displayName || packageId}\n\nPublished via SPA Packaging Workbench`,
-        });
-        tagUrl = `${existing.web_url}/-/tags/${tagName}`;
-        console.log(`  🏷️  Tag created: ${tagName}`);
-      } catch (tagErr) {
-        console.warn(`  ⚠️  Tag creation failed: ${tagErr.message}`);
-      }
+
+      // Force-update the version tag and push
+      git(`tag -f -a ${tagName} -m "Release ${tagName} — ${displayName || packageId}"`, repoDir);
+      console.log(`  🏷️  Tag set: ${tagName}`);
+
+      git(`push origin ${defaultBranch} --force`, repoDir);
+      git(`push origin ${tagName} --force`, repoDir);
+      console.log(`  🚀 Pushed to origin/${defaultBranch}`);
+
+      const tagUrl = `${existing.web_url}/-/tags/${tagName}`;
 
       // Optionally trigger pipeline via API
       let pipelineUrl = null;
@@ -262,8 +357,8 @@ app.post('/api/publish', async (req, res) => {
         tagUrl,
         pipelineUrl,
         pipelineAction: pipelineAction || 'none',
-
-        vsCodeUrl: `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${existing.path_with_namespace}.git`)}`,
+        localPath: repoDir,
+        vsCodeUrl: `vscode://file${repoDir.replace(/\\/g, '/')}`,
       });
 
     } else {
@@ -309,6 +404,15 @@ app.post('/api/publish', async (req, res) => {
         console.warn(`  ⚠️  Tag creation failed: ${tagErr.message}`);
       }
 
+      // Clone the new project locally so VS Code can open it
+      let repoDir = null;
+      try {
+        repoDir = ensureLocalClone(project.path_with_namespace, 'main');
+        console.log(`  📂 Local clone ready: ${repoDir}`);
+      } catch (cloneErr) {
+        console.warn(`  ⚠️  Local clone failed (non-critical): ${cloneErr.message}`);
+      }
+
       // Optionally trigger pipeline via API
       let pipelineUrl = null;
       if (triggerPipeline) {
@@ -334,8 +438,8 @@ app.post('/api/publish', async (req, res) => {
         tagUrl,
         pipelineUrl,
         pipelineAction: pipelineAction || 'none',
-
-        vsCodeUrl: `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${project.path_with_namespace}.git`)}`,
+        localPath: repoDir,
+        vsCodeUrl: repoDir ? `vscode://file${repoDir.replace(/\\/g, '/')}` : `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${project.path_with_namespace}.git`)}`,
       });
     }
 
@@ -349,33 +453,6 @@ app.post('/api/publish', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ██  Project Browser — Edit Existing Packages
 // ═══════════════════════════════════════════════════════════════════════════
-
-/** Files to fetch when loading an existing project for editing */
-const EDITABLE_FILES = [
-  'spa-wizard-state.json',
-  'app.json',
-  'windows/package.yaml',
-  'windows/lifecycle.yaml',
-  'windows/intune/app.json',
-  'windows/intune/requirements.json',
-  'windows/intune/assignments.json',
-  'windows/intune/supersedence.json',
-  'windows/intune/dependencies.json',
-  'windows/detection/detection-config.json',
-  'windows/detection/detect.ps1',
-  'windows/src/Invoke-AppDeployToolkit.ps1',
-  'windows/src/Deploy-Application.ps1',
-  'windows/src/files-manifest.yaml',
-  'macos/package.yaml',
-  'macos/jamf/package-inputs.json',
-  'macos/jamf/policy-inputs.json',
-  'macos/jamf/scope-inputs.json',
-  'macos/src/scripts/preinstall',
-  'macos/src/scripts/postinstall',
-  'macos/src/postinstall.sh',
-  'macos/detection/extension-attribute.sh',
-  'macos/detection/receipt-check.sh',
-];
 
 // ── Mock GitLab Helpers for Offline Development ──────────────────────────
 function getMockProjects() {
@@ -623,11 +700,12 @@ app.get('/api/projects/check', async (req, res) => {
   }
 });
 
-// ── GET /api/projects/:id/files — fetch config files for editing ────────────
-app.get('/api/projects/:id/files', async (req, res) => {
+// ── POST /api/projects/:id/clone — clone repo locally and return files ──────
+app.post('/api/projects/:id/clone', async (req, res) => {
   try {
     const projectId = req.params.id;
-    console.log(`\n📄 Fetching config files for project ${projectId}`);
+    const { ref } = req.body || {};
+    console.log(`\n📥 Clone request for project ${projectId}` + (ref ? ` @ ${ref}` : ''));
 
     // Offline / Mock fallback if token is not set or using mock ID
     if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty' || ['101', '102', '103'].includes(projectId.toString())) {
@@ -638,27 +716,53 @@ app.get('/api/projects/:id/files', async (req, res) => {
 
     // Get project metadata
     const project = await gitlab('GET', `/projects/${projectId}`);
-    // Allow caller to specify a ref (tag/branch) — defaults to default branch
-    const ref = req.query.ref || project.default_branch || 'main';
-    console.log(`  📌 Using ref: ${ref}`);
+    const targetRef = ref || project.default_branch || 'main';
 
-    // Fetch each known config file (silently skip missing files)
-    const files = {};
-    for (const filePath of EDITABLE_FILES) {
-      try {
-        const fileData = await gitlab('GET',
-          `/projects/${projectId}/repository/files/${encPath(filePath)}?ref=${encPath(ref)}`
-        );
-        // GitLab returns base64-encoded content
-        files[filePath] = Buffer.from(fileData.content, 'base64').toString('utf8');
-      } catch {
-        // File doesn't exist in this project — skip
-      }
-    }
+    // Clone or update local repo
+    const localPath = ensureLocalClone(project.path_with_namespace, targetRef);
 
-    console.log(`  📄 Loaded ${Object.keys(files).length} config files from ${project.path_with_namespace} @ ${ref}`);
+    // Walk the directory and read all text files
+    const files = walkDir(localPath);
+    console.log(`  📄 Read ${Object.keys(files).length} files from ${localPath}`);
+
     res.json({
       files,
+      localPath,
+      projectMeta: {
+        id: project.id,
+        name: project.name,
+        path: project.path,
+        path_with_namespace: project.path_with_namespace,
+        web_url: project.web_url,
+        default_branch: project.default_branch || 'main',
+        loadedRef: targetRef,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Clone failed:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// Keep GET /api/projects/:id/files as backward-compat alias
+app.get('/api/projects/:id/files', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    // Offline / Mock fallback
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty' || ['101', '102', '103'].includes(projectId.toString())) {
+      const mockResult = getMockProjectFiles(projectId);
+      return res.json(mockResult);
+    }
+
+    const project = await gitlab('GET', `/projects/${projectId}`);
+    const ref = req.query.ref || project.default_branch || 'main';
+    const localPath = ensureLocalClone(project.path_with_namespace, ref);
+    const files = walkDir(localPath);
+
+    res.json({
+      files,
+      localPath,
       projectMeta: {
         id: project.id,
         name: project.name,
@@ -868,7 +972,6 @@ app.delete('/api/scaffold/:packageId', (req, res) => {
     const scratchRoot = join(tmpdir(), 'spa-workbench', 'titles');
     const scaffoldDir = join(scratchRoot, packageId);
     if (existsSync(scaffoldDir)) {
-      const { rmSync } = require('fs');
       rmSync(scaffoldDir, { recursive: true, force: true });
       console.log(`🧹 Cleaned up scaffold directory: ${scaffoldDir}`);
       return res.json({ success: true, cleaned: true });
@@ -890,10 +993,9 @@ app.post('/api/open-vscode', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Missing packageId or relativePath' });
     }
 
-    // Resolve absolute path under OS temp directory (no git workspace dependency)
-    const scratchRoot = join(tmpdir(), 'spa-workbench', 'titles');
-    const absoluteDir = join(scratchRoot, packageId, dirname(relativePath));
-    const absolutePath = join(scratchRoot, packageId, relativePath);
+    // Resolve absolute path under local clone directory
+    const absoluteDir = join(CLONE_BASE, packageId, dirname(relativePath));
+    const absolutePath = join(CLONE_BASE, packageId, relativePath);
 
     // Write content locally
     if (content) {
@@ -957,9 +1059,8 @@ app.get('/api/read-local-file', (req, res) => {
       return res.status(400).json({ error: 'Missing packageId or relativePath' });
     }
 
-    // Read from OS temp directory (matches where /api/open-vscode writes)
-    const scratchRoot = join(tmpdir(), 'spa-workbench', 'titles');
-    const absolutePath = join(scratchRoot, packageId, relativePath);
+    // Read from local clone directory (matches where /api/open-vscode writes)
+    const absolutePath = join(CLONE_BASE, packageId, relativePath);
 
     if (!existsSync(absolutePath)) {
       return res.status(404).json({ error: `Local file not found at ${absolutePath}` });
