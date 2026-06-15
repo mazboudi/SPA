@@ -92,8 +92,18 @@ async function gitlab(method, path, body) {
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = data.message || data.error || JSON.stringify(data);
-    if (res.status !== 404) console.error(`  ❌ GitLab ${res.status}: ${msg}`);
+    // GitLab returns errors in various shapes: string, { message: string }, { message: { base: [...] } }
+    let msg;
+    if (typeof data.message === 'string') {
+      msg = data.message;
+    } else if (data.message) {
+      msg = JSON.stringify(data.message);
+    } else if (typeof data.error === 'string') {
+      msg = data.error;
+    } else {
+      msg = JSON.stringify(data);
+    }
+    console.error(`  ❌ GitLab ${res.status} ${method} ${path}: ${msg}`);
     throw Object.assign(new Error(`GitLab ${res.status}: ${msg}`), { status: res.status, data });
   }
   return data;
