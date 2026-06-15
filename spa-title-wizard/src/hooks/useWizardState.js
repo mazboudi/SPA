@@ -76,7 +76,7 @@ const INITIAL_STATE = {
 
   // Supersedence
   supersedesAppId: '',
-  supersedenceType: 'update', // 'update' = uninstall previous, 'replace' = side-by-side
+  supersedenceType: 'replace', // 'replace' = No (keep previous), 'update' = Yes (uninstall previous)
 
   // Dependencies
   dependencies: [],  // [{ appId: '', dependencyType: 'autoInstall' }]  — 'autoInstall' | 'detect'

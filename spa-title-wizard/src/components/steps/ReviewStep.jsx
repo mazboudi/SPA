@@ -175,6 +175,11 @@ export default function ReviewStep({ state, updateField }) {
                 </a>
               </div>
             )}
+            {!publishResult.pipelineUrl && publishResult.pipelineError && (
+              <div className="publish-result__pipeline publish-result__pipeline--error">
+                ⚠️ Pipeline trigger failed: {publishResult.pipelineError}
+              </div>
+            )}
             {publishResult.pipelineAction === 'none' && (
               <div className="publish-result__pipeline publish-result__pipeline--skip">
                 ⏸️ Pipeline not triggered — commit only
