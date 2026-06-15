@@ -48,6 +48,30 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
+// ── Startup diagnostic: verify token scope ──────────────────────────────────
+if (GITLAB_TOKEN) {
+  (async () => {
+    try {
+      const res = await fetch(`${API}/personal_access_tokens/self`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN } });
+      if (res.ok) {
+        const info = await res.json();
+        console.log(`🔑 GitLab token: name="${info.name}", scopes=[${info.scopes?.join(', ')}], expires=${info.expires_at || 'never'}`);
+      }
+      // Also check access to CI templates project
+      const tplPath = `${GITLAB_DEFAULT_GROUP}/spa-frameworks/gitlab-ci-templates`;
+      const tplRes = await fetch(`${API}/projects/${encodeURIComponent(tplPath)}`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN } });
+      if (!tplRes.ok) {
+        console.warn(`⚠️  Token cannot access CI templates project: ${tplPath} (HTTP ${tplRes.status}). Pipeline triggers will fail.`);
+        console.warn(`   → Ensure GITLAB_TOKEN has read access to this project, or use a group-level token.`);
+      } else {
+        console.log(`✅ CI templates project accessible: ${tplPath}`);
+      }
+    } catch (e) {
+      console.warn(`⚠️  Token diagnostic check failed: ${e.message}`);
+    }
+  })();
+}
+
 // ── GitLab helpers ──────────────────────────────────────────────────────────
 
 /** URL-encode a GitLab path for use in API calls */
