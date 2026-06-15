@@ -175,8 +175,11 @@ export function parseProjectFiles(files) {
   if (files['windows/intune/supersedence.json']) {
     try {
       const sup = JSON.parse(files['windows/intune/supersedence.json']);
-      if (sup.supersedes_app_id) state.supersedesAppId = sup.supersedes_app_id;
-      if (sup.supersedence_type) state.supersedenceType = sup.supersedence_type;
+      // camelCase (current schema) with snake_case fallback (legacy)
+      const appId = sup.supersededAppId || sup.supersedes_app_id;
+      const supType = sup.supersedenceType || sup.supersedence_type;
+      if (appId) state.supersedesAppId = appId;
+      if (supType) state.supersedenceType = supType;
     } catch (e) {
       warnings.push(`Failed to parse supersedence.json: ${e.message}`);
     }
