@@ -1,79 +1,118 @@
-2026-06-15T16:03:27.446669Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-06-15T16:03:27.446669Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-06-15T16:03:27.446669Z 00O Resolving secrets
-2026-06-15T16:03:27.446669Z 00O section_start:1781539407:prepare_executor
-2026-06-15T16:03:27.446669Z 00O+Preparing the "shell" executor
-2026-06-15T16:03:27.446669Z 00O Using Shell (pwsh) executor...
-2026-06-15T16:03:27.446669Z 00O section_end:1781539407:prepare_executor
-2026-06-15T16:03:27.446669Z 00O+section_start:1781539407:prepare_script
-2026-06-15T16:03:27.447325Z 00O+Preparing environment
-2026-06-15T16:03:28.499785Z 01O Running on vm-psa-runner-p...
-2026-06-15T16:03:28.762829Z 00O section_end:1781539408:prepare_script
-2026-06-15T16:03:28.762829Z 00O+section_start:1781539408:get_sources
-2026-06-15T16:03:28.764037Z 00O+Getting source from Git repository
-2026-06-15T16:03:30.737200Z 01O Gitaly correlation ID: 01KV60C0KXHVW43TYBTSW351XW
-2026-06-15T16:03:31.039181Z 01O Fetching changes with git depth set to 20...
-2026-06-15T16:03:31.102692Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/dtex-forwarder/.git/
-2026-06-15T16:03:33.031868Z 01O Checking out d7621d4a as detached HEAD (ref is v6.3.1005)...
-2026-06-15T16:03:33.154485Z 01O Removing schemas/
-2026-06-15T16:03:33.375272Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-06-15T16:03:34.016936Z 01O 
-2026-06-15T16:03:34.018884Z 01O Skipping Git submodules setup
-2026-06-15T16:03:34.222129Z 00O section_end:1781539414:get_sources
-2026-06-15T16:03:34.222129Z 00O+section_start:1781539414:restore_cache
-2026-06-15T16:03:34.222636Z 00O+Restoring cache
-2026-06-15T16:03:35.638613Z 01O Version:      18.9.0
-2026-06-15T16:03:35.638613Z 01O Git revision: 07e534ba
-2026-06-15T16:03:35.638613Z 01O Git branch:   18-9-stable
-2026-06-15T16:03:35.638613Z 01O GO version:   go1.25.7 X:cacheprog
-2026-06-15T16:03:35.638613Z 01O Built:        2026-02-19T16:58:00Z
-2026-06-15T16:03:35.638613Z 01O OS/Arch:      windows/amd64
-2026-06-15T16:03:35.657187Z 01O Checking cache for psadt-framework-4.1.0-non_protected...
-2026-06-15T16:03:35.818754Z 01E Runtime platform                                    arch=amd64 os=windows pid=7300 revision=07e534ba version=18.9.0
-2026-06-15T16:03:35.818754Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
-2026-06-15T16:03:35.820319Z 01E WARNING: Cache file does not exist                 
-2026-06-15T16:03:35.840511Z 01O Failed to extract cache
-2026-06-15T16:03:36.039501Z 00O section_end:1781539416:restore_cache
-2026-06-15T16:03:36.039501Z 00O+section_start:1781539416:step_script
-2026-06-15T16:03:36.040598Z 00O+Executing "step_script" stage of the job script
-2026-06-15T16:03:37.539692Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-06-15T16:03:37.555259Z 01O === Windows Build: dtex-forwarder ===
-2026-06-15T16:03:37.559009Z 01O Pipeline tag   : v6.3.1005
-2026-06-15T16:03:37.559545Z 01O --- Verifying powershell-yaml module is present ---
-2026-06-15T16:03:37.729866Z 01O --- Downloading JSON Schemas ---
-2026-06-15T16:03:38.222797Z 01E Exception: 
-2026-06-15T16:03:38.222797Z 01E Line |
-2026-06-15T16:03:38.222797Z 01E  409 |      throw "Failed to download $s from SCHEMAS_PROJECT_ID ($schemasId) …
-2026-06-15T16:03:38.222797Z 01E      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2026-06-15T16:03:38.222797Z 01E      | Failed to download app.schema.json from SCHEMAS_PROJECT_ID (86267). Ensure the variable is set and token has read_api access.
-2026-06-15T16:03:38.464485Z 00O section_end:1781539418:step_script
-2026-06-15T16:03:38.464485Z 00O+section_start:1781539418:upload_artifacts_on_failure
-2026-06-15T16:03:38.466113Z 00O+Uploading artifacts for failed job
-2026-06-15T16:03:39.875137Z 01O Version:      18.9.0
-2026-06-15T16:03:39.875137Z 01O Git revision: 07e534ba
-2026-06-15T16:03:39.875137Z 01O Git branch:   18-9-stable
-2026-06-15T16:03:39.875137Z 01O GO version:   go1.25.7 X:cacheprog
-2026-06-15T16:03:39.875137Z 01O Built:        2026-02-19T16:58:00Z
-2026-06-15T16:03:39.875137Z 01O OS/Arch:      windows/amd64
-2026-06-15T16:03:39.890063Z 01O Uploading artifacts...
-2026-06-15T16:03:40.058582Z 01E Runtime platform                                    arch=amd64 os=windows pid=11276 revision=07e534ba version=18.9.0
-2026-06-15T16:03:40.060238Z 01E WARNING: out/*.intunewin: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
-2026-06-15T16:03:40.060238Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
-2026-06-15T16:03:40.060238Z 01E WARNING: out/staging/: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
-2026-06-15T16:03:40.060238Z 01E ERROR: No files to upload                          
-2026-06-15T16:03:40.229996Z 01O Version:      18.9.0
-2026-06-15T16:03:40.229996Z 01O Git revision: 07e534ba
-2026-06-15T16:03:40.229996Z 01O Git branch:   18-9-stable
-2026-06-15T16:03:40.229996Z 01O GO version:   go1.25.7 X:cacheprog
-2026-06-15T16:03:40.229996Z 01O Built:        2026-02-19T16:58:00Z
-2026-06-15T16:03:40.229996Z 01O OS/Arch:      windows/amd64
-2026-06-15T16:03:40.240064Z 01O Uploading artifacts...
-2026-06-15T16:03:40.403589Z 01E Runtime platform                                    arch=amd64 os=windows pid=1332 revision=07e534ba version=18.9.0
-2026-06-15T16:03:40.403589Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
-2026-06-15T16:03:40.403589Z 01E ERROR: No files to upload                          
-2026-06-15T16:03:40.614298Z 00O section_end:1781539420:upload_artifacts_on_failure
-2026-06-15T16:03:40.614298Z 00O+section_start:1781539420:cleanup_file_variables
-2026-06-15T16:03:40.614298Z 00O+Cleaning up project directory and file based variables
-2026-06-15T16:03:42.053201Z 00O section_end:1781539422:cleanup_file_variables
-2026-06-15T16:03:42.053201Z 00O+
-2026-06-15T16:03:42.053709Z 00O ERROR: Job failed: exit status 1
+2026-06-15T16:10:42.238805Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-06-15T16:10:42.238805Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-06-15T16:10:42.238805Z 00O Resolving secrets
+2026-06-15T16:10:42.238805Z 00O section_start:1781539842:prepare_executor
+2026-06-15T16:10:42.238805Z 00O+Preparing the "shell" executor
+2026-06-15T16:10:42.240651Z 00O Using Shell (pwsh) executor...
+2026-06-15T16:10:42.240651Z 00O section_end:1781539842:prepare_executor
+2026-06-15T16:10:42.240651Z 00O+section_start:1781539842:prepare_script
+2026-06-15T16:10:42.240651Z 00O+Preparing environment
+2026-06-15T16:10:43.293999Z 01O Running on vm-psa-runner-p...
+2026-06-15T16:10:43.546234Z 00O section_end:1781539843:prepare_script
+2026-06-15T16:10:43.546234Z 00O+section_start:1781539843:get_sources
+2026-06-15T16:10:43.547316Z 00O+Getting source from Git repository
+2026-06-15T16:10:45.504832Z 01O Gitaly correlation ID: 01KV60S9B40P7QCGB6VMK7N0J1
+2026-06-15T16:10:45.822964Z 01O Fetching changes with git depth set to 20...
+2026-06-15T16:10:45.883859Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/dtex-forwarder/.git/
+2026-06-15T16:10:47.664969Z 01O Checking out d7621d4a as detached HEAD (ref is v6.3.1005)...
+2026-06-15T16:10:47.787537Z 01O Removing schemas/
+2026-06-15T16:10:47.994425Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-06-15T16:10:48.606517Z 01O 
+2026-06-15T16:10:48.608241Z 01O Skipping Git submodules setup
+2026-06-15T16:10:48.815594Z 00O section_end:1781539848:get_sources
+2026-06-15T16:10:48.815594Z 00O+section_start:1781539848:restore_cache
+2026-06-15T16:10:48.816104Z 00O+Restoring cache
+2026-06-15T16:10:50.217738Z 01O Version:      18.9.0
+2026-06-15T16:10:50.217738Z 01O Git revision: 07e534ba
+2026-06-15T16:10:50.217738Z 01O Git branch:   18-9-stable
+2026-06-15T16:10:50.217738Z 01O GO version:   go1.25.7 X:cacheprog
+2026-06-15T16:10:50.217738Z 01O Built:        2026-02-19T16:58:00Z
+2026-06-15T16:10:50.217738Z 01O OS/Arch:      windows/amd64
+2026-06-15T16:10:50.234512Z 01O Checking cache for psadt-framework-4.1.0-non_protected...
+2026-06-15T16:10:50.397526Z 01E Runtime platform                                    arch=amd64 os=windows pid=11268 revision=07e534ba version=18.9.0
+2026-06-15T16:10:50.397526Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
+2026-06-15T16:10:50.399040Z 01E WARNING: Cache file does not exist                 
+2026-06-15T16:10:50.418726Z 01O Failed to extract cache
+2026-06-15T16:10:50.613264Z 00O section_end:1781539850:restore_cache
+2026-06-15T16:10:50.613264Z 00O+section_start:1781539850:step_script
+2026-06-15T16:10:50.613773Z 00O+Executing "step_script" stage of the job script
+2026-06-15T16:10:52.089036Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-06-15T16:10:52.104855Z 01O === Windows Build: dtex-forwarder ===
+2026-06-15T16:10:52.105929Z 01O Pipeline tag   : v6.3.1005
+2026-06-15T16:10:52.106459Z 01O --- Verifying powershell-yaml module is present ---
+2026-06-15T16:10:52.282697Z 01O --- Downloading JSON Schemas ---
+2026-06-15T16:10:53.605023Z 01O --- Validating app.json against schema ---
+2026-06-15T16:10:53.677218Z 01O   ✓ app.json valid
+2026-06-15T16:10:53.694180Z 01O PSADT version locked to: 4.1.0
+2026-06-15T16:10:53.695256Z 01O --- Validating windows/package.yaml against schema ---
+2026-06-15T16:10:53.904485Z 01O   ✓ windows/package.yaml valid
+2026-06-15T16:10:53.907422Z 01O --- Validating windows/intune/requirements.json against schema ---
+2026-06-15T16:10:53.912308Z 01O   ✓ windows/intune/requirements.json valid
+2026-06-15T16:10:53.913298Z 01O Downloading PSADT bundle from: https://gitlab.onefiserv.net/api/v4/projects/86260/packages/generic/psadt-enterprise/4.1.0/psadt-enterprise-4.1.0.zip
+2026-06-15T16:11:00.351153Z 01O Framework extracted to: psadt-framework-4.1.0
+2026-06-15T16:11:00.352231Z 01O === Framework bundle contents (psadt-framework-4.1.0) ===
+2026-06-15T16:11:00.368992Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Config/
+2026-06-15T16:11:00.371070Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\helpers/
+2026-06-15T16:11:00.371070Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit/
+2026-06-15T16:11:00.371852Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit.Extensions/
+2026-06-15T16:11:00.372917Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Strings/
+2026-06-15T16:11:00.376650Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Deploy-Application.ps1 (4528 bytes)
+2026-06-15T16:11:00.377867Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Invoke-AppDeployToolkit.exe (216152 bytes)
+2026-06-15T16:11:00.378396Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Invoke-AppDeployToolkit.ps1 (13040 bytes)
+2026-06-15T16:11:00.378923Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\manifest.json (629 bytes)
+2026-06-15T16:11:00.379988Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Config\config.psd1 (3875 bytes)
+2026-06-15T16:11:00.381052Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\helpers\Invoke-RegistryDetection.ps1 (2145 bytes)
+2026-06-15T16:11:00.381578Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\helpers\Write-InstallLog.ps1 (1449 bytes)
+2026-06-15T16:11:00.382634Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\ADMX/
+2026-06-15T16:11:00.383183Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\Assets/
+2026-06-15T16:11:00.383714Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\Config/
+2026-06-15T16:11:00.384240Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\Frontend/
+2026-06-15T16:11:00.384763Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\lib/
+2026-06-15T16:11:00.385288Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\Strings/
+2026-06-15T16:11:00.386338Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\!README.txt (591 bytes)
+2026-06-15T16:11:00.386881Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\COPYING.Lesser (7817 bytes)
+2026-06-15T16:11:00.387408Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\PSAppDeployToolkit.cer (2626 bytes)
+2026-06-15T16:11:00.388026Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\PSAppDeployToolkit.psd1 (26301 bytes)
+2026-06-15T16:11:00.388556Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit\PSAppDeployToolkit.psm1 (1299098 bytes)
+2026-06-15T16:11:00.389613Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit.Extensions\PSAppDeployToolkit.Extensions.psd1 (4322 bytes)
+2026-06-15T16:11:00.390145Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\PSAppDeployToolkit.Extensions\PSAppDeployToolkit.Extensions.psm1 (2670 bytes)
+2026-06-15T16:11:00.391263Z 01O   ds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\psadt-framework-4.1.0\Strings\strings.psd1 (777 bytes)
+2026-06-15T16:11:00.392860Z 01O Using IntuneWinAppUtil: C:\tools\IntuneWinAppUtil.exe
+2026-06-15T16:11:00.396159Z 01O Using committed Invoke-AppDeployToolkit.ps1 (no lifecycle.yaml found)
+2026-06-15T16:11:01.362360Z 01O Overlaying title Invoke-AppDeployToolkit.ps1...
+2026-06-15T16:11:01.509339Z 01E Exception: 
+2026-06-15T16:11:01.509339Z 01E Line |
+2026-06-15T16:11:01.509339Z 01E  607 |      throw "WINDOWS_INSTALLER_SOURCE set but file not found: $($env:WI …
+2026-06-15T16:11:01.509339Z 01E      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-06-15T16:11:01.509339Z 01E      | WINDOWS_INSTALLER_SOURCE set but file not found: C:\AppSourceFiles\dtex-forwarder-for-desktop-refactored\Windows\6.3.1005\Deploy\Files\\DTEXForwarder_Windows_6.3.1005.msi
+2026-06-15T16:11:01.780575Z 00O section_end:1781539861:step_script
+2026-06-15T16:11:01.780575Z 00O+section_start:1781539861:upload_artifacts_on_failure
+2026-06-15T16:11:01.782193Z 00O+Uploading artifacts for failed job
+2026-06-15T16:11:03.211673Z 01O Version:      18.9.0
+2026-06-15T16:11:03.212196Z 01O Git revision: 07e534ba
+2026-06-15T16:11:03.212196Z 01O Git branch:   18-9-stable
+2026-06-15T16:11:03.212196Z 01O GO version:   go1.25.7 X:cacheprog
+2026-06-15T16:11:03.212196Z 01O Built:        2026-02-19T16:58:00Z
+2026-06-15T16:11:03.212196Z 01O OS/Arch:      windows/amd64
+2026-06-15T16:11:03.226699Z 01O Uploading artifacts...
+2026-06-15T16:11:03.418843Z 01E Runtime platform                                    arch=amd64 os=windows pid=10048 revision=07e534ba version=18.9.0
+2026-06-15T16:11:03.419895Z 01E WARNING: out/*.intunewin: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
+2026-06-15T16:11:03.419895Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
+2026-06-15T16:11:03.419895Z 01E WARNING: out/staging/: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
+2026-06-15T16:11:03.419895Z 01E ERROR: No files to upload                          
+2026-06-15T16:11:03.588758Z 01O Version:      18.9.0
+2026-06-15T16:11:03.588758Z 01O Git revision: 07e534ba
+2026-06-15T16:11:03.588758Z 01O Git branch:   18-9-stable
+2026-06-15T16:11:03.588758Z 01O GO version:   go1.25.7 X:cacheprog
+2026-06-15T16:11:03.588758Z 01O Built:        2026-02-19T16:58:00Z
+2026-06-15T16:11:03.588758Z 01O OS/Arch:      windows/amd64
+2026-06-15T16:11:03.598630Z 01O Uploading artifacts...
+2026-06-15T16:11:03.775037Z 01E Runtime platform                                    arch=amd64 os=windows pid=7744 revision=07e534ba version=18.9.0
+2026-06-15T16:11:03.775037Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
+2026-06-15T16:11:03.775037Z 01E ERROR: No files to upload                          
+2026-06-15T16:11:03.989072Z 00O section_end:1781539863:upload_artifacts_on_failure
+2026-06-15T16:11:03.989072Z 00O+section_start:1781539863:cleanup_file_variables
+2026-06-15T16:11:03.989072Z 00O+Cleaning up project directory and file based variables
+2026-06-15T16:11:05.439750Z 00O section_end:1781539865:cleanup_file_variables
+2026-06-15T16:11:05.439750Z 00O+
+2026-06-15T16:11:05.440257Z 00O ERROR: Job failed: exit status 1
