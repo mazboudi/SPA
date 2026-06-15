@@ -318,10 +318,11 @@ ${optLines.join('\n')}
       files['windows/src/files-manifest.yaml'] = ml.join('\n');
     }
 
-    // Logo file — include in zip if provided
-    if (s.logoFile && s.logoDataUrl) {
-      // Store as a marker; the actual binary is handled by downloadZip
-      const logoExt = s.logoFile.name.split('.').pop().toLowerCase();
+    // Logo file — include if provided (logoFile is a File object from upload,
+    // _logoFileName is the saved name from a previous session / refactor load)
+    if (s.logoDataUrl) {
+      const logoName = s.logoFile?.name || s._logoFileName || 'logo.png';
+      const logoExt = logoName.split('.').pop().toLowerCase();
       files[`windows/intune/logo.${logoExt}`] = s.logoDataUrl;
     }
 
