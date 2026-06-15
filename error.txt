@@ -1,99 +1,99 @@
-2026-06-15T17:50:05.054830Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-06-15T17:50:05.054830Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-06-15T17:50:05.054830Z 00O Resolving secrets
-2026-06-15T17:50:05.054830Z 00O section_start:1781545805:prepare_executor
-2026-06-15T17:50:05.054830Z 00O+Preparing the "shell" executor
-2026-06-15T17:50:05.055437Z 00O Using Shell (pwsh) executor...
-2026-06-15T17:50:05.055437Z 00O section_end:1781545805:prepare_executor
-2026-06-15T17:50:05.055437Z 00O+section_start:1781545805:prepare_script
-2026-06-15T17:50:05.055437Z 00O+Preparing environment
-2026-06-15T17:50:06.119711Z 01O Running on vm-psa-runner-p...
-2026-06-15T17:50:06.369271Z 00O section_end:1781545806:prepare_script
-2026-06-15T17:50:06.369271Z 00O+section_start:1781545806:get_sources
-2026-06-15T17:50:06.370375Z 00O+Getting source from Git repository
-2026-06-15T17:50:08.390561Z 01O Gitaly correlation ID: 01KV66F8DHDRG0R3THY0YF12V3
-2026-06-15T17:50:08.713349Z 01O Fetching changes with git depth set to 20...
-2026-06-15T17:50:08.776502Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/dtex-forwarder/.git/
-2026-06-15T17:50:10.709277Z 01O Checking out 0ea0c635 as detached HEAD (ref is main)...
-2026-06-15T17:50:11.203104Z 01O Removing out/
-2026-06-15T17:50:11.203104Z 01O Removing psadt-framework-4.1.0/
-2026-06-15T17:50:11.203104Z 01O Removing schemas/
-2026-06-15T17:50:11.203104Z 01O Removing windows/src/Files/DTEXForwarder_Windows_6.3.1005.msi
-2026-06-15T17:50:11.203104Z 01O Removing windows/src/SupportFiles/
-2026-06-15T17:50:11.461424Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-06-15T17:50:12.171798Z 01O 
-2026-06-15T17:50:12.172579Z 01O Skipping Git submodules setup
-2026-06-15T17:50:12.432611Z 00O section_end:1781545812:get_sources
-2026-06-15T17:50:12.432611Z 00O+section_start:1781545812:download_artifacts
-2026-06-15T17:50:12.434983Z 00O+Downloading artifacts
-2026-06-15T17:50:14.167299Z 01O Version:      18.9.0
-2026-06-15T17:50:14.167299Z 01O Git revision: 07e534ba
-2026-06-15T17:50:14.167299Z 01O Git branch:   18-9-stable
-2026-06-15T17:50:14.167299Z 01O GO version:   go1.25.7 X:cacheprog
-2026-06-15T17:50:14.167299Z 01O Built:        2026-02-19T16:58:00Z
-2026-06-15T17:50:14.167299Z 01O OS/Arch:      windows/amd64
-2026-06-15T17:50:14.185983Z 01O Downloading artifacts for windows_build (29698196)...
-2026-06-15T17:50:14.432398Z 01E Runtime platform                                    arch=amd64 os=windows pid=8312 revision=07e534ba version=18.9.0
-2026-06-15T17:50:19.244140Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KV66FJK14EPA0KGW01526FV3 host=gitlab.onefiserv.net id=29698196 responseStatus=200 OK token=64_Spx8BY
-2026-06-15T17:50:22.210916Z 00O section_end:1781545822:download_artifacts
-2026-06-15T17:50:22.210916Z 00O+section_start:1781545822:step_script
-2026-06-15T17:50:22.212002Z 00O+Executing "step_script" stage of the job script
-2026-06-15T17:50:23.538646Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-06-15T17:50:29.353594Z 01O Intune modules ready in: intune-modules
-2026-06-15T17:50:29.356472Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-06-15T17:50:29.521676Z 01O Using new detection format: detection_method=manual
-2026-06-15T17:50:29.892658Z 01O   Processing rule: type=registry
-2026-06-15T17:50:29.907246Z 01O     hive       : HKLM
-2026-06-15T17:50:29.907246Z 01O     key_path   : SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B0C478C7-D020-4046-A5C3-D72439E2B8CD}
-2026-06-15T17:50:29.908562Z 01O     value_name : DisplayVersion
-2026-06-15T17:50:29.913234Z 01O Built 1 detection rule(s) from detection_rules array
-2026-06-15T17:50:29.914893Z 01O Detection rules count: 1
-2026-06-15T17:50:29.973484Z 01O Hardware properties resolved (minOS=Windows10_21H2, arch=x86,x64,arm64)
-2026-06-15T17:50:29.977096Z 01O Custom requirement rules resolved: 0 rules
-2026-06-15T17:50:30.157474Z 01O [2026-06-15 17:50:30] [INFO] Publishing DTEX Forwarder 6.3.1005 v6.3.1005
-2026-06-15T17:50:30.163493Z 01O [2026-06-15 17:50:30] [INFO] IntuneWin: out\dtex-forwarder_6.3.1005_1.intunewin
-2026-06-15T17:50:30.170726Z 01O [2026-06-15 17:50:30] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-06-15T17:50:30.509116Z 01O [2026-06-15 17:50:30] [INFO] Token acquired (length=2258)
-2026-06-15T17:50:30.516334Z 01O [2026-06-15 17:50:30] [INFO] Using return codes from app.json (5 codes)
-2026-06-15T17:50:30.559592Z 01O [2026-06-15 17:50:30] [INFO] Logo loaded: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\windows\intune\logo.jpeg (3219 bytes, image/jpeg)
-2026-06-15T17:50:30.573550Z 01O [2026-06-15 17:50:30] [INFO] Creating Win32 app (metadata + detection rules only)
-2026-06-15T17:50:30.593130Z 01O [2026-06-15 17:50:30] [DEBUG] Request body JSON: {"detectionRules":[{"check32BitOn64System":false,"detectionValue":"6.3.1005","@odata.type":"#microsoft.graph.win32LobAppRegistryDetection","operator":"greaterThanOrEqual","detectionType":"version","keyPath":"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{B0C478C7-D020-4046-A5C3-D72439E2B8CD}","valueName":"DisplayVersion"}],"notes":"\\\\I7WP2EM3DST0001.fead.one\\ApplicationSource\\DTEXSystems_DTEXForwarder6.3.1_6.3.1005\\Intune","privacyInformationUrl":"","installCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent","publisher":"DTEXSystems","installExperience":{"deviceRestartBehavior":"suppress","maxRunTimeInMinutes":60,"runAsAccount":"system"},"minimumMemoryInMB":2048,"displayName":"DTEX Forwarder 6.3.1005","minimumFreeDiskSpaceInMB":500,"largeIcon":{"value":"ZGF0YTppbWFnZS9qcGVnO2Jhc2U2NCwvOWovNEFBUVNrWkpSZ0FCQVFBQUFRQUJBQUQvMndDRUFBa0dCd2dIQmhBU0J3Z1dGaFVWRmh3WkdCVVlGeG9nSVJvaElCMGJJQm9YR3lNa0h6UWlKQ01sSUJrVklUSWpKaXNzT2k0d0doOHpPRE10UXpRdkxpMEJDZ29LRGcwTkd3OFBHemNsSHlVM056YzNNaTAzS3pJM0xUYzNOemNyT0NzM01Dc3JLemMzTnpjM0t6Y3RMQzR0S3lzeE55MHJMVGNyTHpjckt5c3JPUC9BQUJFSUFNZ0F5QU1CSWdBQ0VRRURFUUgveEFBY0FBRUFBZ01CQVFFQUFBQUFBQUFBQUFBQUJRY0VCZ2dEQVFML3hBQkpFQUFCQXdJQ0JBc0JDZ3NKQUFBQUFBQUFBUUlEQkJFRkJoSWhNZElIRXhZWFFWRlZZWEdSa3lJVVZuS0JsS0dpc2JQUkZUSTJOMEpUVkdKemRjRWpKalZTWTRMQzhQSC94QUFhQVFFQUFnTUJBQUFBQUFBQUFBQUFBQUFBQVFRQ0F3WUYvOFFBS0JFQkFBSUNBUUVGQ1FBQUFBQUFBQUFBQUFFQ0F4RUVFd1VTTVVGUkZCVWhJbEpUWVhHaC85b0FEQU1CQUFJUkF4RUFQd0M4UUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFFUnlud0cvK05VL3FzKzhjcDhBN2FwL1daOTV6emdXRVRZN2pMS2VtZTFIUFYxbGRlMnBGZHJ0OEUzSG1peHY5dGg4MzdwVnJtdmFOeFY3MmJzdmk0YmQzSmwxUDZXcnlud0R0cW45Vm04T1UrQTl0VS9xcys4cXZtaXh2OXRnODM3bzVvc2IvYllQTis2WmRUSjlMVjdId2Z2ZnhhaVpsd0p5MmJqTUNyM1NzKzhrNDN0a1lpeHVSVVhZcUZMU2NFZU9OWXVoVndLdlZkK3Y2Smc1T3pCaVdVTXdwVDE2dVNOWDZFc2JsMU5WVnRwdCt2VnRUNGlPdGFKK2VORTltWXNsSm5qNU85TWVTOXA1NHFlRno2aVZHdGFsM09jcUlpSW0xVlZkU0lSbktuTHZiOU42OGU4ZW1ZNkNURnN2MU1FRGtSMHNUbUlxN0VWeVd1dHZFcHptVHg3dEtuODVOd3N2R1cveXF5NzI5VGV2SHZEbFZsM3Q2bTllUGVLZjVrOGQ3U3AvT1RjTkZxTURxSU16TFJPa2J4aVRKRHBhOUc2dTBiN0wyK0lEcHJsVmwzdDZtOWVQZUhLckx2YjFONjhlOFUveko0NzJsVCtjbTRPWlBIZTBxZnprM0FMeXBxbUNyZ2ErbG1hOWp0YVBhcUtpK0NwcVV3YW5NT0NVazdtVldNd01jM1VyWFRNUlU4VVZib2VXVU1LbXdMTFZQVFZNalhPamJaVmJleTYxWFZmWDBuUDNDREM2cTRScXRqRnNyNWthaXIzbzFBT2d1VldYZTNxYjE0OTRjcXN1OXZVM3J4N3hUL01uanZhVlA1eWJnNWs4ZDdTcC9PVGNBdURsVmwzdDZtOWVQZUhLckx2YjFONjhlOFUveko0NzJsVCtjbTRPWlBIZTBxZnprM0FMMWprWkxHam8zb3FLaUtpb3QwVkYyS2hHUHpMZ01iMVNURzZkRlJiS2l6UjNSZXBmYU12Q3FaOUhoa01VamtWWTQyc1ZVMmV5MUUxZVJyR2R1RDdDczFNVitqeFZSYlZLMU52YzlQMHZIYnMxOUFHMFVOZlI0aEZwVUZXeVJ0N2FUSEk1TDlWMFV5am1lV0ROUEJyalYwVldYMk9UWEhLaWRIZjRhbFR1TGd5TndqNFptZEd4MUZvYWo5VzVkVCsrTmVuNE8zeDJnYndZbGRpTkRoekVkaUZaSEVpclpGa2UxcUt2VWwxTkx6endtNGRsMUhSWWRhYW8yV1JmWll2NzZwdFg5MVBqc1ZOUTRibWZoSnhsWHZlcjdMWjBydFVjYWY1VTZ2Z3ByK3NEb09MTWVCVFNvMkhHcWR6bFd5TlNhTlZWZXBFdUNJeVhrUENjcVJJc0xPTW1WUGFtY212dlJxZm9wLzFWVUFWUndZZmw3UytNbjJiem9JNWt3SEY1c0N4cU9vcG8wYzVpdXNqcjJXN1ZiMGZDTGZ3dk51S3dVUHVuTk1VVlBDcWV5Mnp1TWtYOTF1bHErUDZ0WlQ0MTRpdW5SOXQ4YTk4MFhyNGExK1puNCtUZTFWR3ByVS9FVXJKbzBkRTlGUlV1aW90MFZPdENpTTVjSU9JWmdWMGRKZUtEWm9vdnRQOEFoci94VFY0bVJobkNoaXVHNGRGREZSUksyTmpXSXE2VjFScUlpS3V2dU5udE5ONlZQY3ZJNmNXanhueTlGNUhQM0NqK1hWVmIvVCt6WVM4bkM1alRtTG9VY0tMMTJldHZwRWZrN0FNU3pobUwzUlhvcXhvL1Rsa1ZOVHJMZlFiOVdyWW54R3ZMa2pKcXRWemdjUy9DbTJiUHFJMHZwbjRpZUIrajRtcEQ2WEhOaHpaaWY1M2wvbURmdFVPa3ptekUvd0E3eS96QnYycUFkSmdBQWN4OEluRzg0Vlo3bnZwY2NtamJiZXpiVzc3blRoekp3Z1R1cGVFYXJrWWwxWk9qa1JlN1JVSmhsNmZDWjFZbDVUalQ0VE9yRXZLY20rZTNHdXk0UHA3eDg1N2NiN01nK252QVF1bndtZFdKZVU0MCtFenF4THluSnJudHh2c3luK252RG50eHZzeW4rbnZBWFRnM0hmZ2luOTFhV254VE5MU3ZlK2ltbGUvVGU1bW1KaGRTNnN3MkdTUkVSWHh0Y3FKczF0UmY2bXE1MzRSY0x5czFZNDFTYW8vVk5YVTMrSXZSNGJmckNFOW1oK0Nzd2FUbElzZkVXOXJUMmQxdW5TNnJhK281Z3huOEh2eGgvSjlzbkZLNyt6Ui80M3pkK3pwSjcrOVBDWGpYUyszKzJPSkYrWlBuVmJkSmNlU09EckM4cnRTU1JFbHFPbVZ5YW05MGFkSGp0K29KVmJnK1NLTENhWmxWbjZxNGlOeSt4VHBmakpQRkUxb25YMC9CTDF3QjJGUHdpUDhBQVN4OFJiMk9MdGIvQU42NzY3N1RXYy9jSGxGbXorMWhsV09vUnRrZnJWcnJiR3ZUK3FmT1UvVFZlYU9EWEdWYTVxc3ZyVmp0Y2NxZGFkQytLYTBBNllCcUdTcy80Vm1xTkdzZHhVOXRjTGwyOTdGL1NUNSs0QkNaaHk1Z2tFeU9nd2lCcmtXNk9TSmlLaTlhTFk5YTdCY0x4Q1JIVitIUlNLaVdSejQydVczVmRVSkFFYWhuMUxiM3REOGxjdmRpVS9veDdvNUs1ZTdFcC9SajNTWkE3c0o2dC9XVU8zSytBTmRkdUNVOS93Q0N6N2lVampaRXhFaVlpSW14RVEvWjlFUkRHMTdXOFpBQVN4Q01kbC9CWDFmR3V3aUJaTkxTNHppbWFXbGUrbHBXdmUrdTVKZ0FBQUJGVk9XOENxNmgwbFZndE85N2x1NXpvWTFWZkZWYmRTVkFFTnlUeTM3M3FYNVBGdWprbmx2M3ZVdnllTGRKa0FRM0pQTGZ2ZXBmazhXNk9TZVcvZTlTL0o0dDBtUUI1eHhzampSc2JFUnFKWkVSTlNKMElpRVU3S3VYSE9WWFlCU3FxNjFWWUk5MG1RQmpVTkRTWWRCb1VGS3lOdDc2TEd0YW5qWkVNa0FBWWxmaDFEaVVTTnhHampsYWkzUnNqR3VTL1haVU1zQVE4ZVY4dlJTSTZMQWFaRlJib3FRUm9xTDFvdWlDWUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUIvOWs9","@odata.type":"#microsoft.graph.mimeContent","type":"image/jpeg"},"informationUrl":"","displayVersion":"6.3.1005","minimumSupportedWindowsRelease":"Windows10_21H2","@odata.type":"#microsoft.graph.win32LobApp","fileName":"dtex-forwarder_6.3.1005_1.intunewin","owner":"EUC Packaging","minimumNumberOfProcessors":null,"minimumCpuSpeedInMHz":null,"description":"DTEX Forwarder 6.3.1","returnCodes":[{"returnCode":0,"type":"success"},{"returnCode":1707,"type":"success"},{"returnCode":3010,"type":"softReboot"},{"returnCode":1641,"type":"hardReboot"},{"returnCode":1618,"type":"retry"}],"applicableArchitectures":"x86,x64,arm64","allowAvailableUninstall":true,"setupFilePath":"Invoke-AppDeployToolkit.exe","isFeatured":false,"developer":"DTEX Systems, Inc.","uninstallCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent"}
-2026-06-15T17:50:31.612611Z 01O [2026-06-15 17:50:31] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps]: Response status code does not indicate success: 400 (Bad Request).
-2026-06-15T17:50:31.746005Z 01E Invoke-RestMethod:  {   "error": {     "code": "BadRequest",     "message": "{\r\n  \u0022_version\u0022: 3,\r\n  \u0022Message\u0022:
-2026-06-15T17:50:31.746005Z 01E \u0022Icon in invalid format. - Operation ID (for customer support): 00000000-0000-0000-0000-000000000000 - Activity
-2026-06-15T17:50:31.746005Z 01E ID: 7f08ee51-5ac0-4212-899a-7ef7c2a58850 - Url:
-2026-06-15T17:50:31.746005Z 01E https://proxy.msua05.manage.microsoft.com/AppLifecycle_2605/StatelessAppMetadataFEService/deviceAppManagement/mobileApps
-2026-06-15T17:50:31.746005Z 01E ?api-version=5026-02-20\u0022,\r\n  \u0022CustomApiErrorPhrase\u0022: \u0022\u0022,\r\n  \u0022RetryAfter\u0022:
-2026-06-15T17:50:31.746005Z 01E null,\r\n  \u0022ErrorSourceService\u0022: \u0022\u0022,\r\n  \u0022HttpHeaders\u0022: \u0022{}\u0022\r\n}",    
-2026-06-15T17:50:31.746005Z 01E "innerError": {       "date": "2026-06-15T17:50:31",       "request-id": "7f08ee51-5ac0-4212-899a-7ef7c2a58850",      
-2026-06-15T17:50:31.746005Z 01E "client-request-id": "7f08ee51-5ac0-4212-899a-7ef7c2a58850"     }   } }
-2026-06-15T17:50:32.017513Z 00O section_end:1781545832:step_script
-2026-06-15T17:50:32.017513Z 00O+section_start:1781545832:upload_artifacts_on_failure
-2026-06-15T17:50:32.019200Z 00O+Uploading artifacts for failed job
-2026-06-15T17:50:33.456897Z 01O Version:      18.9.0
-2026-06-15T17:50:33.456897Z 01O Git revision: 07e534ba
-2026-06-15T17:50:33.456897Z 01O Git branch:   18-9-stable
-2026-06-15T17:50:33.456897Z 01O GO version:   go1.25.7 X:cacheprog
-2026-06-15T17:50:33.456897Z 01O Built:        2026-02-19T16:58:00Z
-2026-06-15T17:50:33.456897Z 01O OS/Arch:      windows/amd64
-2026-06-15T17:50:33.471485Z 01O Uploading artifacts...
-2026-06-15T17:50:33.642255Z 01E Runtime platform                                    arch=amd64 os=windows pid=8864 revision=07e534ba version=18.9.0
-2026-06-15T17:50:33.643446Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
-2026-06-15T17:50:33.643953Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
-2026-06-15T17:50:35.795815Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KV66G5AYJV65YJ292VJ3DHRK id=29698197 responseStatus=201 Created token=64_Spx8BY
-2026-06-15T17:50:35.991025Z 01O Version:      18.9.0
-2026-06-15T17:50:35.991025Z 01O Git revision: 07e534ba
-2026-06-15T17:50:35.991025Z 01O Git branch:   18-9-stable
-2026-06-15T17:50:35.991025Z 01O GO version:   go1.25.7 X:cacheprog
-2026-06-15T17:50:35.991025Z 01O Built:        2026-02-19T16:58:00Z
-2026-06-15T17:50:35.991025Z 01O OS/Arch:      windows/amd64
-2026-06-15T17:50:36.001715Z 01O Uploading artifacts...
-2026-06-15T17:50:36.183222Z 01E Runtime platform                                    arch=amd64 os=windows pid=13384 revision=07e534ba version=18.9.0
-2026-06-15T17:50:36.183222Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
-2026-06-15T17:50:36.183222Z 01E ERROR: No files to upload                          
-2026-06-15T17:50:36.395902Z 00O section_end:1781545836:upload_artifacts_on_failure
-2026-06-15T17:50:36.395902Z 00O+section_start:1781545836:cleanup_file_variables
-2026-06-15T17:50:36.395902Z 00O+Cleaning up project directory and file based variables
-2026-06-15T17:50:37.863743Z 00O section_end:1781545837:cleanup_file_variables
-2026-06-15T17:50:37.863743Z 00O+
-2026-06-15T17:50:37.864253Z 00O ERROR: Job failed: exit status 1
+2026-06-15T19:17:28.166651Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-06-15T19:17:28.166651Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-06-15T19:17:28.166651Z 00O Resolving secrets
+2026-06-15T19:17:28.166651Z 00O section_start:1781551048:prepare_executor
+2026-06-15T19:17:28.166651Z 00O+Preparing the "shell" executor
+2026-06-15T19:17:28.167253Z 00O Using Shell (pwsh) executor...
+2026-06-15T19:17:28.167253Z 00O section_end:1781551048:prepare_executor
+2026-06-15T19:17:28.167253Z 00O+section_start:1781551048:prepare_script
+2026-06-15T19:17:28.167253Z 00O+Preparing environment
+2026-06-15T19:17:29.213526Z 01O Running on vm-psa-runner-p...
+2026-06-15T19:17:29.471231Z 00O section_end:1781551049:prepare_script
+2026-06-15T19:17:29.471231Z 00O+section_start:1781551049:get_sources
+2026-06-15T19:17:29.471857Z 00O+Getting source from Git repository
+2026-06-15T19:17:31.524284Z 01O Gitaly correlation ID: 01KV6BF806RN1QDK6W9M79HF84
+2026-06-15T19:17:31.862188Z 01O Fetching changes with git depth set to 20...
+2026-06-15T19:17:31.931590Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/dtex-forwarder/.git/
+2026-06-15T19:17:34.033902Z 01O Checking out 57cc0153 as detached HEAD (ref is main)...
+2026-06-15T19:17:34.465416Z 01O Removing out/
+2026-06-15T19:17:34.465416Z 01O Removing psadt-framework-4.1.0/
+2026-06-15T19:17:34.465416Z 01O Removing schemas/
+2026-06-15T19:17:34.465416Z 01O Removing windows/src/Files/DTEXForwarder_Windows_6.3.1005.msi
+2026-06-15T19:17:34.465416Z 01O Removing windows/src/SupportFiles/
+2026-06-15T19:17:34.682602Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-06-15T19:17:35.336321Z 01O 
+2026-06-15T19:17:35.337600Z 01O Skipping Git submodules setup
+2026-06-15T19:17:35.544678Z 00O section_end:1781551055:get_sources
+2026-06-15T19:17:35.544678Z 00O+section_start:1781551055:download_artifacts
+2026-06-15T19:17:35.545713Z 00O+Downloading artifacts
+2026-06-15T19:17:36.987646Z 01O Version:      18.9.0
+2026-06-15T19:17:36.988163Z 01O Git revision: 07e534ba
+2026-06-15T19:17:36.988163Z 01O Git branch:   18-9-stable
+2026-06-15T19:17:36.988163Z 01O GO version:   go1.25.7 X:cacheprog
+2026-06-15T19:17:36.988163Z 01O Built:        2026-02-19T16:58:00Z
+2026-06-15T19:17:36.988163Z 01O OS/Arch:      windows/amd64
+2026-06-15T19:17:37.004072Z 01O Downloading artifacts for windows_build (29707367)...
+2026-06-15T19:17:37.183051Z 01E Runtime platform                                    arch=amd64 os=windows pid=2304 revision=07e534ba version=18.9.0
+2026-06-15T19:17:46.511731Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KV6BFJGC95YXKK863HPKTAHX host=gitlab.onefiserv.net id=29707367 responseStatus=200 OK token=64_9wRh2Y
+2026-06-15T19:17:49.208788Z 00O section_end:1781551069:download_artifacts
+2026-06-15T19:17:49.208788Z 00O+section_start:1781551069:step_script
+2026-06-15T19:17:49.209297Z 00O+Executing "step_script" stage of the job script
+2026-06-15T19:17:50.582422Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-06-15T19:17:53.355198Z 01O Intune modules ready in: intune-modules
+2026-06-15T19:17:53.358818Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-06-15T19:17:53.470190Z 01O Using new detection format: detection_method=manual
+2026-06-15T19:17:53.852460Z 01O   Processing rule: type=registry
+2026-06-15T19:17:53.863963Z 01O     hive       : HKLM
+2026-06-15T19:17:53.866156Z 01O     key_path   : SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B0C478C7-D020-4046-A5C3-D72439E2B8CD}
+2026-06-15T19:17:53.866931Z 01O     value_name : DisplayVersion
+2026-06-15T19:17:53.871664Z 01O Built 1 detection rule(s) from detection_rules array
+2026-06-15T19:17:53.873794Z 01O Detection rules count: 1
+2026-06-15T19:17:53.915037Z 01O Hardware properties resolved (minOS=Windows10_21H2, arch=x86,x64,arm64)
+2026-06-15T19:17:53.918966Z 01O Custom requirement rules resolved: 0 rules
+2026-06-15T19:17:54.059736Z 01O [2026-06-15 19:17:54] [INFO] Publishing DTEX Forwarder 6.3.1005 v6.3.1005
+2026-06-15T19:17:54.065522Z 01O [2026-06-15 19:17:54] [INFO] IntuneWin: out\dtex-forwarder_6.3.1005_1.intunewin
+2026-06-15T19:17:54.073647Z 01O [2026-06-15 19:17:54] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
+2026-06-15T19:17:54.225327Z 01O [2026-06-15 19:17:54] [INFO] Token acquired (length=2259)
+2026-06-15T19:17:54.229445Z 01O [2026-06-15 19:17:54] [INFO] Using return codes from app.json (5 codes)
+2026-06-15T19:17:54.264072Z 01O [2026-06-15 19:17:54] [INFO] Logo loaded: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder\windows\intune\logo.jpeg (3219 bytes, image/jpeg)
+2026-06-15T19:17:54.277303Z 01O [2026-06-15 19:17:54] [INFO] Creating Win32 app (metadata + detection rules only)
+2026-06-15T19:17:54.308536Z 01O [2026-06-15 19:17:54] [DEBUG] Request body JSON: {"minimumSupportedWindowsRelease":"Windows10_21H2","minimumMemoryInMB":2048,"displayVersion":"6.3.1005","installCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent","setupFilePath":"Invoke-AppDeployToolkit.exe","minimumCpuSpeedInMHz":null,"minimumFreeDiskSpaceInMB":500,"informationUrl":"","@odata.type":"#microsoft.graph.win32LobApp","notes":"\\\\I7WP2EM3DST0001.fead.one\\ApplicationSource\\DTEXSystems_DTEXForwarder6.3.1_6.3.1005\\Intune","largeIcon":{"type":"image/jpeg","@odata.type":"#microsoft.graph.mimeContent","value":"ZGF0YTppbWFnZS9qcGVnO2Jhc2U2NCwvOWovNEFBUVNrWkpSZ0FCQVFBQUFRQUJBQUQvMndDRUFBa0dCd2dIQmhBU0J3Z1dGaFVWRmh3WkdCVVlGeG9nSVJvaElCMGJJQm9YR3lNa0h6UWlKQ01sSUJrVklUSWpKaXNzT2k0d0doOHpPRE10UXpRdkxpMEJDZ29LRGcwTkd3OFBHemNsSHlVM056YzNNaTAzS3pJM0xUYzNOemNyT0NzM01Dc3JLemMzTnpjM0t6Y3RMQzR0S3lzeE55MHJMVGNyTHpjckt5c3JPUC9BQUJFSUFNZ0F5QU1CSWdBQ0VRRURFUUgveEFBY0FBRUFBZ01CQVFFQUFBQUFBQUFBQUFBQUJRY0VCZ2dEQVFML3hBQkpFQUFCQXdJQ0JBc0JDZ3NKQUFBQUFBQUFBUUlEQkJFRkJoSWhNZElIRXhZWFFWRlZZWEdSa3lJVVZuS0JsS0dpc2JQUkZUSTJOMEpUVkdKemRjRWpKalZTWTRMQzhQSC94QUFhQVFFQUFnTUJBQUFBQUFBQUFBQUFBQUFBQVFRQ0F3WUYvOFFBS0JFQkFBSUNBUUVGQ1FBQUFBQUFBQUFBQUFFQ0F4RUVFd1VTTVVGUkZCVWhJbEpUWVhHaC85b0FEQU1CQUFJUkF4RUFQd0M4UUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFFUnlud0cvK05VL3FzKzhjcDhBN2FwL1daOTV6emdXRVRZN2pMS2VtZTFIUFYxbGRlMnBGZHJ0OEUzSG1peHY5dGg4MzdwVnJtdmFOeFY3MmJzdmk0YmQzSmwxUDZXcnlud0R0cW45Vm04T1UrQTl0VS9xcys4cXZtaXh2OXRnODM3bzVvc2IvYllQTis2WmRUSjlMVjdId2Z2ZnhhaVpsd0p5MmJqTUNyM1NzKzhrNDN0a1lpeHVSVVhZcUZMU2NFZU9OWXVoVndLdlZkK3Y2Smc1T3pCaVdVTXdwVDE2dVNOWDZFc2JsMU5WVnRwdCt2VnRUNGlPdGFKK2VORTltWXNsSm5qNU85TWVTOXA1NHFlRno2aVZHdGFsM09jcUlpSW0xVlZkU0lSbktuTHZiOU42OGU4ZW1ZNkNURnN2MU1FRGtSMHNUbUlxN0VWeVd1dHZFcHptVHg3dEtuODVOd3N2R1cveXF5NzI5VGV2SHZEbFZsM3Q2bTllUGVLZjVrOGQ3U3AvT1RjTkZxTURxSU16TFJPa2J4aVRKRHBhOUc2dTBiN0wyK0lEcHJsVmwzdDZtOWVQZUhLckx2YjFONjhlOFUveko0NzJsVCtjbTRPWlBIZTBxZnprM0FMeXBxbUNyZ2ErbG1hOWp0YVBhcUtpK0NwcVV3YW5NT0NVazdtVldNd01jM1VyWFRNUlU4VVZib2VXVU1LbXdMTFZQVFZNalhPamJaVmJleTYxWFZmWDBuUDNDREM2cTRScXRqRnNyNWthaXIzbzFBT2d1VldYZTNxYjE0OTRjcXN1OXZVM3J4N3hUL01uanZhVlA1eWJnNWs4ZDdTcC9PVGNBdURsVmwzdDZtOWVQZUhLckx2YjFONjhlOFUveko0NzJsVCtjbTRPWlBIZTBxZnprM0FMMWprWkxHam8zb3FLaUtpb3QwVkYyS2hHUHpMZ01iMVNURzZkRlJiS2l6UjNSZXBmYU12Q3FaOUhoa01VamtWWTQyc1ZVMmV5MUUxZVJyR2R1RDdDczFNVitqeFZSYlZLMU52YzlQMHZIYnMxOUFHMFVOZlI0aEZwVUZXeVJ0N2FUSEk1TDlWMFV5am1lV0ROUEJyalYwVldYMk9UWEhLaWRIZjRhbFR1TGd5TndqNFptZEd4MUZvYWo5VzVkVCsrTmVuNE8zeDJnYndZbGRpTkRoekVkaUZaSEVpclpGa2UxcUt2VWwxTkx6endtNGRsMUhSWWRhYW8yV1JmWll2NzZwdFg5MVBqc1ZOUTRibWZoSnhsWHZlcjdMWjBydFVjYWY1VTZ2Z3ByK3NEb09MTWVCVFNvMkhHcWR6bFd5TlNhTlZWZXBFdUNJeVhrUENjcVJJc0xPTW1WUGFtY212dlJxZm9wLzFWVUFWUndZZmw3UytNbjJiem9JNWt3SEY1c0N4cU9vcG8wYzVpdXNqcjJXN1ZiMGZDTGZ3dk51S3dVUHVuTk1VVlBDcWV5Mnp1TWtYOTF1bHErUDZ0WlQ0MTRpdW5SOXQ4YTk4MFhyNGExK1puNCtUZTFWR3ByVS9FVXJKbzBkRTlGUlV1aW90MFZPdENpTTVjSU9JWmdWMGRKZUtEWm9vdnRQOEFoci94VFY0bVJobkNoaXVHNGRGREZSUksyTmpXSXE2VjFScUlpS3V2dU5udE5ONlZQY3ZJNmNXanhueTlGNUhQM0NqK1hWVmIvVCt6WVM4bkM1alRtTG9VY0tMMTJldHZwRWZrN0FNU3pobUwzUlhvcXhvL1Rsa1ZOVHJMZlFiOVdyWW54R3ZMa2pKcXRWemdjUy9DbTJiUHFJMHZwbjRpZUIrajRtcEQ2WEhOaHpaaWY1M2wvbURmdFVPa3ptekUvd0E3eS96QnYycUFkSmdBQWN4OEluRzg0Vlo3bnZwY2NtamJiZXpiVzc3blRoekp3Z1R1cGVFYXJrWWwxWk9qa1JlN1JVSmhsNmZDWjFZbDVUalQ0VE9yRXZLY20rZTNHdXk0UHA3eDg1N2NiN01nK252QVF1bndtZFdKZVU0MCtFenF4THluSnJudHh2c3luK252RG50eHZzeW4rbnZBWFRnM0hmZ2luOTFhV254VE5MU3ZlK2ltbGUvVGU1bW1KaGRTNnN3MkdTUkVSWHh0Y3FKczF0UmY2bXE1MzRSY0x5czFZNDFTYW8vVk5YVTMrSXZSNGJmckNFOW1oK0Nzd2FUbElzZkVXOXJUMmQxdW5TNnJhK281Z3huOEh2eGgvSjlzbkZLNyt6Ui80M3pkK3pwSjcrOVBDWGpYUyszKzJPSkYrWlBuVmJkSmNlU09EckM4cnRTU1JFbHFPbVZ5YW05MGFkSGp0K29KVmJnK1NLTENhWmxWbjZxNGlOeSt4VHBmakpQRkUxb25YMC9CTDF3QjJGUHdpUDhBQVN4OFJiMk9MdGIvQU42NzY3N1RXYy9jSGxGbXorMWhsV09vUnRrZnJWcnJiR3ZUK3FmT1UvVFZlYU9EWEdWYTVxc3ZyVmp0Y2NxZGFkQytLYTBBNllCcUdTcy80Vm1xTkdzZHhVOXRjTGwyOTdGL1NUNSs0QkNaaHk1Z2tFeU9nd2lCcmtXNk9TSmlLaTlhTFk5YTdCY0x4Q1JIVitIUlNLaVdSejQydVczVmRVSkFFYWhuMUxiM3REOGxjdmRpVS9veDdvNUs1ZTdFcC9SajNTWkE3c0o2dC9XVU8zSytBTmRkdUNVOS93Q0N6N2lVampaRXhFaVlpSW14RVEvWjlFUkRHMTdXOFpBQVN4Q01kbC9CWDFmR3V3aUJaTkxTNHppbWFXbGUrbHBXdmUrdTVKZ0FBQUJGVk9XOENxNmgwbFZndE85N2x1NXpvWTFWZkZWYmRTVkFFTnlUeTM3M3FYNVBGdWprbmx2M3ZVdnllTGRKa0FRM0pQTGZ2ZXBmazhXNk9TZVcvZTlTL0o0dDBtUUI1eHhzampSc2JFUnFKWkVSTlNKMElpRVU3S3VYSE9WWFlCU3FxNjFWWUk5MG1RQmpVTkRTWWRCb1VGS3lOdDc2TEd0YW5qWkVNa0FBWWxmaDFEaVVTTnhHampsYWkzUnNqR3VTL1haVU1zQVE4ZVY4dlJTSTZMQWFaRlJib3FRUm9xTDFvdWlDWUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUIvOWs9"},"displayName":"DTEX Forwarder 6.3.1005","detectionRules":[{"detectionValue":"6.3.1005","@odata.type":"#microsoft.graph.win32LobAppRegistryDetection","check32BitOn64System":false,"keyPath":"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{B0C478C7-D020-4046-A5C3-D72439E2B8CD}","detectionType":"version","valueName":"DisplayVersion","operator":"greaterThanOrEqual"}],"allowAvailableUninstall":true,"uninstallCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent","returnCodes":[{"returnCode":0,"type":"success"},{"returnCode":1707,"type":"success"},{"returnCode":3010,"type":"softReboot"},{"returnCode":1641,"type":"hardReboot"},{"returnCode":1618,"type":"retry"}],"isFeatured":false,"fileName":"dtex-forwarder_6.3.1005_1.intunewin","description":"DTEX Forwarder 6.3.1","developer":"DTEX Systems, Inc.","installExperience":{"deviceRestartBehavior":"suppress","runAsAccount":"system","maxRunTimeInMinutes":60},"publisher":"DTEXSystems","minimumNumberOfProcessors":null,"applicableArchitectures":"x86,x64,arm64","privacyInformationUrl":"","owner":"EUC Packaging"}
+2026-06-15T19:17:55.227891Z 01O [2026-06-15 19:17:55] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps]: Response status code does not indicate success: 400 (Bad Request).
+2026-06-15T19:17:55.347286Z 01E Invoke-RestMethod:  {   "error": {     "code": "BadRequest",     "message": "{\r\n  \u0022_version\u0022: 3,\r\n  \u0022Message\u0022:
+2026-06-15T19:17:55.347286Z 01E \u0022Icon in invalid format. - Operation ID (for customer support): 00000000-0000-0000-0000-000000000000 - Activity
+2026-06-15T19:17:55.347286Z 01E ID: 8547d575-e0da-4f9a-bfa5-01813888ccb6 - Url:
+2026-06-15T19:17:55.347286Z 01E https://proxy.msua05.manage.microsoft.com/AppLifecycle_2605/StatelessAppMetadataFEService/deviceAppManagement/mobileApps
+2026-06-15T19:17:55.347286Z 01E ?api-version=5026-02-20\u0022,\r\n  \u0022CustomApiErrorPhrase\u0022: \u0022\u0022,\r\n  \u0022RetryAfter\u0022:
+2026-06-15T19:17:55.347286Z 01E null,\r\n  \u0022ErrorSourceService\u0022: \u0022\u0022,\r\n  \u0022HttpHeaders\u0022: \u0022{}\u0022\r\n}",    
+2026-06-15T19:17:55.347286Z 01E "innerError": {       "date": "2026-06-15T19:17:55",       "request-id": "8547d575-e0da-4f9a-bfa5-01813888ccb6",      
+2026-06-15T19:17:55.347286Z 01E "client-request-id": "8547d575-e0da-4f9a-bfa5-01813888ccb6"     }   } }
+2026-06-15T19:17:55.619670Z 00O section_end:1781551075:step_script
+2026-06-15T19:17:55.619670Z 00O+section_start:1781551075:upload_artifacts_on_failure
+2026-06-15T19:17:55.620754Z 00O+Uploading artifacts for failed job
+2026-06-15T19:17:57.075045Z 01O Version:      18.9.0
+2026-06-15T19:17:57.075045Z 01O Git revision: 07e534ba
+2026-06-15T19:17:57.075045Z 01O Git branch:   18-9-stable
+2026-06-15T19:17:57.075045Z 01O GO version:   go1.25.7 X:cacheprog
+2026-06-15T19:17:57.075045Z 01O Built:        2026-02-19T16:58:00Z
+2026-06-15T19:17:57.075045Z 01O OS/Arch:      windows/amd64
+2026-06-15T19:17:57.091565Z 01O Uploading artifacts...
+2026-06-15T19:17:57.261489Z 01E Runtime platform                                    arch=amd64 os=windows pid=11772 revision=07e534ba version=18.9.0
+2026-06-15T19:17:57.262021Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
+2026-06-15T19:17:57.262531Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
+2026-06-15T19:18:00.766014Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KV6BG62FD5RRHRFN2TH0J172 id=29707368 responseStatus=201 Created token=64_9wRh2Y
+2026-06-15T19:18:00.969087Z 01O Version:      18.9.0
+2026-06-15T19:18:00.969087Z 01O Git revision: 07e534ba
+2026-06-15T19:18:00.969087Z 01O Git branch:   18-9-stable
+2026-06-15T19:18:00.969087Z 01O GO version:   go1.25.7 X:cacheprog
+2026-06-15T19:18:00.969087Z 01O Built:        2026-02-19T16:58:00Z
+2026-06-15T19:18:00.969087Z 01O OS/Arch:      windows/amd64
+2026-06-15T19:18:00.978537Z 01O Uploading artifacts...
+2026-06-15T19:18:01.165666Z 01E Runtime platform                                    arch=amd64 os=windows pid=2644 revision=07e534ba version=18.9.0
+2026-06-15T19:18:01.165666Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\dtex-forwarder) 
+2026-06-15T19:18:01.165666Z 01E ERROR: No files to upload                          
+2026-06-15T19:18:01.384039Z 00O section_end:1781551081:upload_artifacts_on_failure
+2026-06-15T19:18:01.384039Z 00O+section_start:1781551081:cleanup_file_variables
+2026-06-15T19:18:01.384039Z 00O+Cleaning up project directory and file based variables
+2026-06-15T19:18:02.856253Z 00O section_end:1781551082:cleanup_file_variables
+2026-06-15T19:18:02.856253Z 00O+
+2026-06-15T19:18:02.856931Z 00O ERROR: Job failed: exit status 1
