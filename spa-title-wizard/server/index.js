@@ -276,12 +276,18 @@ function writeFilesToDir(dir, files) {
     if (!existsSync(absDir)) {
       mkdirSync(absDir, { recursive: true });
     }
-    const isPowerShell = relPath.endsWith('.ps1');
-    const BOM = '\uFEFF';
-    const fileContent = isPowerShell
-      ? BOM + content.replace(/\r?\n/g, '\r\n')
-      : content;
-    writeFileSync(absPath, fileContent, 'utf8');
+    // Binary file (data URL) — decode and write as raw bytes
+    if (typeof content === 'string' && content.startsWith('data:')) {
+      const base64 = content.split(',')[1] || '';
+      writeFileSync(absPath, Buffer.from(base64, 'base64'));
+    } else {
+      const isPowerShell = relPath.endsWith('.ps1');
+      const BOM = '\uFEFF';
+      const fileContent = isPowerShell
+        ? BOM + content.replace(/\r?\n/g, '\r\n')
+        : content;
+      writeFileSync(absPath, fileContent, 'utf8');
+    }
   }
 }
 
