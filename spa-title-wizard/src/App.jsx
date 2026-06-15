@@ -11,7 +11,9 @@ import IntuneExportPicker from './components/ui/IntuneExportPicker';
 import ServiceNowQueue from './components/ui/ServiceNowQueue';
 import ProjectPicker from './components/ui/ProjectPicker';
 import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
-import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from './lib/intuneApi';
+import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog, pushIntuneMetadata } from './lib/intuneApi';
+import { compareIntuneState } from './lib/compareIntuneState';
+import IntuneSyncPanel from './components/IntuneSyncPanel';
 
 export default function App() {
   const wizard = useWizardState();
@@ -65,6 +67,14 @@ export default function App() {
 
   // Project picker (edit existing)
   const [showProjectPicker, setShowProjectPicker] = useState(false);
+
+  // ── Intune Sync state ────────────────────────────────────────────────
+  const [syncResult, setSyncResult] = useState(null);     // { diffs, matchCount, diffCount }
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+  const [syncPushing, setSyncPushing] = useState(false);
+  const [syncIntuneData, setSyncIntuneData] = useState(null); // raw Intune data for push
+  const [syncDismissed, setSyncDismissed] = useState(false);
 
   // ── PSADT file upload — parse metadata and immediately convert to lifecycle ────
   const handlePsadtUpload = async (e) => {
@@ -177,6 +187,12 @@ export default function App() {
     setShowRefactorFlow(false);
     setPsadtResult(null);
     setPsadtError(null);
+    // Reset sync state
+    setSyncResult(null);
+    setSyncError(null);
+    setSyncIntuneData(null);
+    setSyncDismissed(false);
+    setSyncPushing(false);
     // Keep intuneCatalog cached — don't clear it on restart
   };
 
@@ -184,6 +200,160 @@ export default function App() {
   const handleIntuneImport = (fields) => {
     wizard.importIntuneExport(fields);
   };
+
+  // ── Intune Sync — auto-trigger on edit load ───────────────────────────
+  useEffect(() => {
+    if (wizard.state.wizardMode !== 'edit') return;
+    if (!wizard.state._intuneAppId) return;
+    if (syncDismissed || syncResult || syncLoading) return;
+    // Auto-trigger sync check
+    runSyncCheck(wizard.state._intuneAppId);
+  }, [wizard.state.wizardMode, wizard.state._intuneAppId]);
+
+  const runSyncCheck = useCallback(async (appId) => {
+    setSyncLoading(true);
+    setSyncError(null);
+    setSyncResult(null);
+    setSyncDismissed(false);
+    try {
+      const intuneData = await fetchIntuneAppDetail(appId);
+      setSyncIntuneData(intuneData);
+      const result = compareIntuneState(wizard.state, intuneData);
+      setSyncResult(result);
+    } catch (err) {
+      setSyncError(err.message);
+    } finally {
+      setSyncLoading(false);
+    }
+  }, [wizard.state]);
+
+  // Pull a single field from Intune into the builder
+  const handleSyncPullField = useCallback((field, intuneValue) => {
+    // Map comparison field names back to wizard state fields
+    const fieldMap = {
+      displayName: () => wizard.updateField('intuneAppName', intuneValue),
+      description: () => wizard.updateField('appDescription', intuneValue),
+      publisher: () => wizard.updateField('publisher', intuneValue),
+      displayVersion: () => wizard.updateField('version', intuneValue),
+      owner: () => wizard.updateField('appOwner', intuneValue),
+      developer: () => wizard.updateField('appDeveloper', intuneValue),
+      informationUrl: () => wizard.updateField('informationUrl', intuneValue),
+      privacyUrl: () => wizard.updateField('privacyUrl', intuneValue),
+      notes: () => wizard.updateField('appNotes', intuneValue),
+      isFeatured: () => wizard.updateField('isFeatured', intuneValue),
+      allowAvailableUninstall: () => wizard.updateField('allowAvailableUninstall', intuneValue),
+      restartBehavior: () => wizard.updateField('restartBehavior', intuneValue),
+      maxInstallTime: () => wizard.updateField('maxInstallTime', intuneValue),
+      minWinRelease: () => wizard.updateField('minWinRelease', intuneValue),
+      minDiskSpaceMB: () => wizard.updateField('minDiskSpaceMB', intuneValue),
+      minMemoryMB: () => wizard.updateField('minMemoryMB', intuneValue),
+      minCpuSpeedMHz: () => wizard.updateField('minCpuSpeedMHz', intuneValue),
+      minProcessors: () => wizard.updateField('minLogicalProcessors', intuneValue),
+    };
+    if (fieldMap[field]) {
+      fieldMap[field]();
+      // Re-run comparison with updated state
+      if (syncIntuneData) {
+        setTimeout(() => {
+          const result = compareIntuneState(wizard.state, syncIntuneData);
+          setSyncResult(result);
+        }, 50);
+      }
+    }
+  }, [wizard, syncIntuneData]);
+
+  // Push a single field from builder to Intune
+  const handleSyncPushField = useCallback(async (field, builderValue) => {
+    if (!wizard.state._intuneAppId) return;
+    setSyncPushing(true);
+    try {
+      // Map field names to Graph API property names
+      const graphFieldMap = {
+        displayName: { displayName: builderValue },
+        description: { description: builderValue },
+        publisher: { publisher: builderValue },
+        displayVersion: { displayVersion: builderValue },
+        owner: { owner: builderValue },
+        developer: { developer: builderValue },
+        informationUrl: { informationUrl: builderValue },
+        privacyUrl: { privacyInformationUrl: builderValue },
+        notes: { notes: builderValue },
+        isFeatured: { isFeatured: builderValue },
+        allowAvailableUninstall: { allowAvailableUninstall: builderValue },
+        minWinRelease: { minimumSupportedWindowsRelease: builderValue },
+        minDiskSpaceMB: { minimumFreeDiskSpaceInMB: builderValue },
+        minMemoryMB: { minimumMemoryInMB: builderValue },
+        minCpuSpeedMHz: { minimumCpuSpeedInMHz: builderValue },
+        minProcessors: { minimumNumberOfProcessors: builderValue },
+      };
+      const updates = graphFieldMap[field];
+      if (updates) {
+        await pushIntuneMetadata(wizard.state._intuneAppId, updates);
+        // Re-fetch and re-compare
+        await runSyncCheck(wizard.state._intuneAppId);
+      }
+    } catch (err) {
+      alert(`Push failed: ${err.message}`);
+    } finally {
+      setSyncPushing(false);
+    }
+  }, [wizard.state._intuneAppId, runSyncCheck]);
+
+  // Pull all differing fields from Intune
+  const handleSyncPullAll = useCallback(() => {
+    if (!syncResult) return;
+    for (const d of syncResult.diffs) {
+      if (!d.match) handleSyncPullField(d.field, d.intune);
+    }
+  }, [syncResult, handleSyncPullField]);
+
+  // Push all differing fields to Intune
+  const handleSyncPushAll = useCallback(async () => {
+    if (!syncResult || !wizard.state._intuneAppId) return;
+    setSyncPushing(true);
+    try {
+      // Build a single PATCH payload for all metadata diffs
+      const graphFieldMap = {
+        displayName: 'displayName',
+        description: 'description',
+        publisher: 'publisher',
+        displayVersion: 'displayVersion',
+        owner: 'owner',
+        developer: 'developer',
+        informationUrl: 'informationUrl',
+        privacyUrl: 'privacyInformationUrl',
+        notes: 'notes',
+        isFeatured: 'isFeatured',
+        allowAvailableUninstall: 'allowAvailableUninstall',
+        minWinRelease: 'minimumSupportedWindowsRelease',
+        minDiskSpaceMB: 'minimumFreeDiskSpaceInMB',
+        minMemoryMB: 'minimumMemoryInMB',
+        minCpuSpeedMHz: 'minimumCpuSpeedInMHz',
+        minProcessors: 'minimumNumberOfProcessors',
+      };
+      const updates = {};
+      for (const d of syncResult.diffs) {
+        if (!d.match && graphFieldMap[d.field]) {
+          updates[graphFieldMap[d.field]] = d.builder;
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        await pushIntuneMetadata(wizard.state._intuneAppId, updates);
+      }
+      // Re-fetch and re-compare
+      await runSyncCheck(wizard.state._intuneAppId);
+    } catch (err) {
+      alert(`Push failed: ${err.message}`);
+    } finally {
+      setSyncPushing(false);
+    }
+  }, [syncResult, wizard.state._intuneAppId, runSyncCheck]);
+
+  const handleSyncDismiss = useCallback(() => {
+    setSyncDismissed(true);
+    setSyncResult(null);
+    setSyncError(null);
+  }, []);
 
   // ── Load Intune catalog from Graph API ─────────────────────────────────
   const loadIntuneCatalog = useCallback(async (refresh = false) => {
@@ -466,6 +636,36 @@ export default function App() {
         </main>
       ) : (
         <>
+          {/* Intune Sync Panel — auto-shown when editing with diffs */}
+          {(syncLoading || syncError || (syncResult && !syncDismissed)) && (
+            <IntuneSyncPanel
+              diffs={syncResult?.diffs || []}
+              matchCount={syncResult?.matchCount || 0}
+              diffCount={syncResult?.diffCount || 0}
+              loading={syncLoading}
+              error={syncError}
+              onPullField={handleSyncPullField}
+              onPushField={handleSyncPushField}
+              onPullAll={handleSyncPullAll}
+              onPushAll={handleSyncPushAll}
+              onDismiss={handleSyncDismiss}
+              pushing={syncPushing}
+            />
+          )}
+
+          {/* Manual sync button — shown when editing and panel is dismissed */}
+          {wizard.state.wizardMode === 'edit' && wizard.state._intuneAppId && syncDismissed && (
+            <div style={{ textAlign: 'right', padding: '0 16px 8px' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => runSyncCheck(wizard.state._intuneAppId)}
+                style={{ fontSize: '0.75rem', opacity: 0.7 }}
+              >
+                🔄 Re-sync with Intune
+              </button>
+            </div>
+          )}
+
           {/* Stepper */}
           <WizardStepper
             steps={wizard.steps}

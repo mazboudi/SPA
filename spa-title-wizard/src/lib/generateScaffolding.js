@@ -201,7 +201,7 @@ ${optLines.join('\n')}
     };
 
     // Intune app.json
-    files['windows/intune/app.json'] = JSON.stringify({
+    const intuneAppObj = {
       displayName: s.intuneAppName || `${s.displayName || ''} ${s.version || ''}`.trim().replace(/\s+/g, ' '),
       description: s.appDescription || 'TODO: Add application description.',
       publisher: s.publisher,
@@ -224,7 +224,10 @@ ${optLines.join('\n')}
         returnCode: parseInt(rc.code) || 0,
         type: rc.type || 'success',
       })),
-    }, null, 2);
+    };
+    // Persist Intune App ID if known (enables sync feature)
+    if (s._intuneAppId) intuneAppObj.intuneAppId = s._intuneAppId;
+    files['windows/intune/app.json'] = JSON.stringify(intuneAppObj, null, 2);
 
     // Intune assignments.json — use wizard assignments
     const assignArr = s.assignments.map(a => {

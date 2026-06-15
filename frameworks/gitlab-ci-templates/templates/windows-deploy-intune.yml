@@ -33,6 +33,7 @@
     'Resolve-Requirements.ps1',
     'Set-Win32Assignments.ps1',
     'Set-Win32Supersedence.ps1',
+    'Set-Win32Dependencies.ps1',
     'IntuneDeployment.psm1'
   )
   $ref = $env:INTUNE_MODULES_REF ?? 'main'
@@ -150,6 +151,16 @@
         & 'intune-modules/Set-Win32Supersedence.ps1' `
           -AppId              $env:APP_ID `
           -SupersedencePath   'windows/intune/supersedence.json' `
+          -TenantId           $env:AZURE_TENANT_ID `
+          -ClientId           $env:AZURE_CLIENT_ID `
+          -ClientSecret       $env:AZURE_CLIENT_SECRET
+      }
+
+      # Optional: set dependencies
+      if (Test-Path 'windows/intune/dependencies.json') {
+        & 'intune-modules/Set-Win32Dependencies.ps1' `
+          -AppId              $env:APP_ID `
+          -DependenciesPath   'windows/intune/dependencies.json' `
           -TenantId           $env:AZURE_TENANT_ID `
           -ClientId           $env:AZURE_CLIENT_ID `
           -ClientSecret       $env:AZURE_CLIENT_SECRET

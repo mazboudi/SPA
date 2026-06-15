@@ -42,3 +42,57 @@ export async function refreshIntuneCatalog() {
   }
   return res.json();
 }
+
+/**
+ * Push metadata updates to an Intune app (PATCH).
+ * @param {string} appId
+ * @param {Object} updates — Graph-compatible field updates
+ */
+export async function pushIntuneMetadata(appId, updates) {
+  const res = await fetch(`/api/intune/apps/${encodeURIComponent(appId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || `Failed to push update (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Push relationship updates (supersedence + dependencies) to an Intune app.
+ * @param {string} appId
+ * @param {Array} relationships — Graph-compatible relationship objects
+ */
+export async function pushIntuneRelationships(appId, relationships) {
+  const res = await fetch(`/api/intune/apps/${encodeURIComponent(appId)}/relationships`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ relationships }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || `Failed to push relationships (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+/**
+ * Push assignment updates to an Intune app.
+ * @param {string} appId
+ * @param {Array} assignments — Graph-compatible assignment objects
+ */
+export async function pushIntuneAssignments(appId, assignments) {
+  const res = await fetch(`/api/intune/apps/${encodeURIComponent(appId)}/assignments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assignments }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || `Failed to push assignments (HTTP ${res.status})`);
+  }
+  return res.json();
+}

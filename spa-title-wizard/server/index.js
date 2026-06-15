@@ -923,11 +923,22 @@ app.get('/api/intune/apps/:id', async (req, res) => {
   if (!graphConfigured) return res.status(501).json({ message: 'Intune integration not configured' });
   try {
     const appId = req.params.id;
-    // Fetch app detail + assignments in parallel
-    const [appData, assignData] = await Promise.all([
+    // Fetch app detail + assignments + relationships in parallel
+    const [appData, assignData, relData] = await Promise.all([
       graphApi(`/deviceAppManagement/mobileApps/${appId}`),
       graphApi(`/deviceAppManagement/mobileApps/${appId}/assignments`),
+      graphApi(`/deviceAppManagement/mobileApps/${appId}/relationships`).catch(() => ({ value: [] })),
     ]);
+
+    // Separate relationships into supersedence vs dependencies
+    const relationships = relData.value || [];
+    const supersedence = relationships
+      .filter(r => (r['@odata.type'] || '').includes('Supersedence'))
+      .map(r => ({ supersededAppId: r.targetId, supersedenceType: r.supersedenceType || 'update' }));
+    const dependencies = relationships
+      .filter(r => (r['@odata.type'] || '').includes('Dependency'))
+      .map(r => ({ appId: r.targetId, dependencyType: r.dependencyType || 'autoInstall' }));
+
     // Shape it like an Intune export JSON so parseIntuneExport() works unchanged
     const exportShape = {
       appId,
@@ -938,10 +949,88 @@ app.get('/api/intune/apps/:id', async (req, res) => {
         target: a.target || {},
         settings: a.settings || {},
       })),
+      supersedence,
+      dependencies,
     };
     res.json(exportShape);
   } catch (err) {
     console.error(`❌ Intune app detail failed (${req.params.id}):`, err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// ── Graph API write helper ──────────────────────────────────────────────────
+async function graphApiWrite(path, method, body) {
+  const token = await getGraphToken();
+  const res = await fetch(`${GRAPH_BASE}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.statusText);
+    throw Object.assign(new Error(`Graph ${res.status}: ${err}`), { status: res.status });
+  }
+  // Some Graph endpoints return 204 No Content
+  if (res.status === 204) return {};
+  return res.json();
+}
+
+// ── PATCH /api/intune/apps/:id — push metadata updates to Intune ────────────
+app.patch('/api/intune/apps/:id', async (req, res) => {
+  if (!graphConfigured) return res.status(501).json({ message: 'Intune integration not configured' });
+  try {
+    const appId = req.params.id;
+    const updates = req.body;
+    console.log(`  🔄 Pushing metadata update to Intune app ${appId}:`, Object.keys(updates));
+    const result = await graphApiWrite(`/deviceAppManagement/mobileApps/${appId}`, 'PATCH', {
+      '@odata.type': '#microsoft.graph.win32LobApp',
+      ...updates,
+    });
+    // Invalidate cache since the app was updated
+    appCache = null;
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error(`❌ Intune app update failed (${req.params.id}):`, err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// ── POST /api/intune/apps/:id/relationships — push relationship updates ─────
+app.post('/api/intune/apps/:id/relationships', async (req, res) => {
+  if (!graphConfigured) return res.status(501).json({ message: 'Intune integration not configured' });
+  try {
+    const appId = req.params.id;
+    const { relationships } = req.body; // Array of relationship objects
+    console.log(`  🔄 Pushing ${relationships.length} relationship(s) to Intune app ${appId}`);
+    const result = await graphApiWrite(
+      `/deviceAppManagement/mobileApps/${appId}/updateRelationships`,
+      'POST',
+      { relationships }
+    );
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error(`❌ Intune relationship update failed (${req.params.id}):`, err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// ── POST /api/intune/apps/:id/assignments — push assignments update ──────────
+app.post('/api/intune/apps/:id/assignments', async (req, res) => {
+  if (!graphConfigured) return res.status(501).json({ message: 'Intune integration not configured' });
+  try {
+    const appId = req.params.id;
+    const { assignments } = req.body; // Array of assignment objects
+    console.log(`  🔄 Pushing ${assignments.length} assignment(s) to Intune app ${appId}`);
+    // Graph API uses assign action for bulk assignment update
+    const result = await graphApiWrite(
+      `/deviceAppManagement/mobileApps/${appId}/assign`,
+      'POST',
+      { mobileAppAssignments: assignments }
+    );
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error(`❌ Intune assignment update failed (${req.params.id}):`, err.message);
     res.status(err.status || 500).json({ message: err.message });
   }
 });

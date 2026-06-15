@@ -108,6 +108,9 @@ export function parseProjectFiles(files) {
       state.allowAvailableUninstall = intuneApp.allowAvailableUninstall ?? true;
       state.appNotes = intuneApp.notes || '';
 
+      // Intune App ID — enables sync feature
+      if (intuneApp.intuneAppId) state._intuneAppId = intuneApp.intuneAppId;
+
       // Category
       if (intuneApp.categories?.length > 0) {
         state.softwareCategory = intuneApp.categories[0].displayName || '';
@@ -182,6 +185,21 @@ export function parseProjectFiles(files) {
       if (supType) state.supersedenceType = supType;
     } catch (e) {
       warnings.push(`Failed to parse supersedence.json: ${e.message}`);
+    }
+  }
+
+  // ── windows/intune/dependencies.json ─────────────────────────────────────
+  if (files['windows/intune/dependencies.json']) {
+    try {
+      const deps = JSON.parse(files['windows/intune/dependencies.json']);
+      if (Array.isArray(deps) && deps.length > 0) {
+        state.dependencies = deps.map(d => ({
+          appId: d.appId || d.targetId || '',
+          dependencyType: d.dependencyType || 'autoInstall',
+        }));
+      }
+    } catch (e) {
+      warnings.push(`Failed to parse dependencies.json: ${e.message}`);
     }
   }
 
