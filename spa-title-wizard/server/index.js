@@ -132,14 +132,21 @@ function cloneUrl(projectPath) {
 
 /** Run a git command in a directory. Returns stdout. Throws on error. */
 function git(args, cwd, opts = {}) {
-  const cmd = `git ${args}`;
+  // Use -c credential.helper= to forcefully disable all credential helpers
+  const cmd = `git -c credential.helper= ${args}`;
   try {
     return execSync(cmd, {
       cwd,
       encoding: 'utf8',
       stdio: opts.silent ? 'pipe' : ['pipe', 'pipe', 'pipe'],
       timeout: 120_000, // 2 min max
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0',
+        // Bypass system credential helpers (fixes 'credential-manager-core' errors on Windows)
+        GIT_CONFIG_NOSYSTEM: '1',
+        GIT_ASKPASS: '',
+      },
     }).trim();
   } catch (err) {
     const stderr = err.stderr?.toString().trim() || err.message;
@@ -162,8 +169,9 @@ function ensureLocalClone(projectPath, ref = 'main') {
   const url = cloneUrl(projectPath);
 
   if (existsSync(join(repoDir, '.git'))) {
-    // Existing clone — fetch latest and checkout the ref
+    // Existing clone — ensure remote URL uses current token, then fetch
     console.log(`  📂 Existing clone found: ${repoDir}`);
+    git(`remote set-url origin ${url}`, repoDir, { silent: true });
     git('fetch origin --tags --prune', repoDir);
     try {
       git(`checkout ${ref}`, repoDir, { silent: true });

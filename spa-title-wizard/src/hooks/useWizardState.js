@@ -554,10 +554,8 @@ export default function useWizardState() {
         next.packageId = toKebabCase(next.displayName);
       }
 
-      // Auto-populate intuneAppName if not already set
-      if (!next.intuneAppName) {
-        next.intuneAppName = `${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
-      }
+      // Always set intuneAppName to displayName + version (matches new-title behavior)
+      next.intuneAppName = `${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
 
       // Auto-fill installer source filename from parsed MSI/EXE data
       if (!next.installerSourceFile) {

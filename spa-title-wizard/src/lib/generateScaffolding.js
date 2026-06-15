@@ -169,7 +169,7 @@ detection:
     }
     const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
     const bootstrapperExe = 'Invoke-AppDeployToolkit.exe';
-    const installCmd = `${bootstrapperExe}${installSuffix}`;
+    const installCmd = `${bootstrapperExe} -DeploymentType Install${installSuffix}`;
     const uninstallCmd = `${bootstrapperExe} -DeploymentType Uninstall${installSuffix}`;
 
     files['windows/package.yaml'] = `# ${s.displayName} ${s.version} — Windows package definition
