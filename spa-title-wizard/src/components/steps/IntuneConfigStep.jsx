@@ -216,7 +216,7 @@ export default function IntuneConfigStep({ state, updateField }) {
     if (state.deployMode) psadtFlags.push(`-DeployMode ${state.deployMode}`);
     if (state.allowRebootPassThru) psadtFlags.push('-AllowRebootPassThru');
     const suffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    return `Invoke-AppDeployToolkit.exe${suffix}`;
+    return `Invoke-AppDeployToolkit.exe -DeploymentType Install${suffix}`;
   }, [state.deployMode, state.allowRebootPassThru]);
 
   const derivedUninstallCmd = useMemo(() => {
