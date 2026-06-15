@@ -52,7 +52,7 @@ export default function generateScaffolding(s, forPublish = false) {
     // Build the full installer path from dir + filename
     if (s.installerSourceDir && s.installerSourceFile) {
       const dir = s.installerSourceDir.replace(/[\\/]+$/, '');  // strip trailing slash
-      vars.push(`  WINDOWS_INSTALLER_SOURCE: '${dir}\\\\${s.installerSourceFile}'`);
+      vars.push(`  WINDOWS_INSTALLER_SOURCE: '${dir}\\${s.installerSourceFile}'`);
     }
     if (s.supportFilesSource) {
       vars.push(`  WINDOWS_SUPPORT_FILES_SOURCE: '${s.supportFilesSource}'`);
