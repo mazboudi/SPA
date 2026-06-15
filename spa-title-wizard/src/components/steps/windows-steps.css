@@ -85,6 +85,40 @@
 .action-card__raw { padding: 4px 10px 6px; }
 .action-card__raw code { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono, monospace); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ── v4 Command Preview (green, expandable) ── */
+.cmd-preview {
+  display: flex; align-items: flex-start; gap: 4px;
+  padding: 4px 10px 6px;
+  background: rgba(34, 197, 94, 0.04);
+  border-top: 1px solid rgba(34, 197, 94, 0.12);
+}
+.cmd-preview__toggle {
+  flex-shrink: 0;
+  background: none; border: none; cursor: pointer;
+  color: #4ade80; font-size: 0.72rem; font-weight: 700;
+  padding: 0; line-height: 1.4;
+  width: 16px; text-align: center;
+  font-family: inherit;
+  opacity: 0.7; transition: opacity 0.15s;
+}
+.cmd-preview__toggle:hover { opacity: 1; }
+.cmd-preview__code {
+  font-size: 0.68rem;
+  color: #4ade80;
+  font-family: var(--font-mono, monospace);
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.cmd-preview--open .cmd-preview__code {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: visible;
+  text-overflow: unset;
+}
+
 /* Custom script / unmatched action cards */
 .action-card--custom { border-left: 3px solid #f59e0b; }
 .action-card--custom .action-card__header { background: rgba(245, 158, 11, 0.06); }

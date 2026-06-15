@@ -721,6 +721,12 @@ export default function useWizardState() {
       delete next._lifecycleVarActions;
       delete next._lifecyclePhases;
 
+      // For refactored titles, always default to 'mirror' regardless of what the parser detected.
+      // Only preserve the parsed repairMode for editing titles (re-editing an already published title).
+      if (next.wizardMode !== 'edit' && next.lifecycle) {
+        next.lifecycle = { ...next.lifecycle, repairMode: 'mirror' };
+      }
+
       return next;
     });
     setCurrentStep(0);
