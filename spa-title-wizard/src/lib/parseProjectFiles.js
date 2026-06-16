@@ -108,7 +108,9 @@ export function parseProjectFiles(files) {
       state.allowAvailableUninstall = intuneApp.allowAvailableUninstall ?? true;
       state.appNotes = intuneApp.notes || '';
 
-      // Intune App ID — enables sync feature
+      // Intune Sync App ID — user-chosen sync target (not the import source)
+      if (intuneApp.syncIntuneAppId) state.syncIntuneAppId = intuneApp.syncIntuneAppId;
+      // Legacy: keep _intuneAppId for display only — do NOT use for sync
       if (intuneApp.intuneAppId) state._intuneAppId = intuneApp.intuneAppId;
 
       // Category

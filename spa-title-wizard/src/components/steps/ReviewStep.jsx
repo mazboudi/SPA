@@ -1,8 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import generateScaffolding from '../../lib/generateScaffolding';
 import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
+import { fetchIntuneAppDetail, pushIntuneMetadata } from '../../lib/intuneApi';
+import { compareIntuneState } from '../../lib/compareIntuneState';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
@@ -55,6 +57,113 @@ export default function ReviewStep({ state, updateField }) {
   const validationResults = useMemo(() => validateGeneratedFiles(files), [files]);
   const allValid = validationResults.length > 0 && validationResults.every(r => r.valid);
   const hasErrors = validationResults.some(r => !r.valid);
+
+  // ── Push to Intune state ────────────────────────────────────────────────
+  const [pushDiffs, setPushDiffs] = useState(null);      // comparison result
+  const [pushLoading, setPushLoading] = useState(false);  // fetching comparison
+  const [pushPushing, setPushPushing] = useState(false);  // actively pushing
+  const [pushError, setPushError] = useState(null);
+  const [pushSuccess, setPushSuccess] = useState(false);
+  const [pushConfirm, setPushConfirm] = useState(false);  // user confirmed
+
+  // Map builder diff fields to Graph API property names
+  const GRAPH_FIELD_MAP = {
+    displayName: 'displayName',
+    description: 'description',
+    publisher: 'publisher',
+    displayVersion: 'displayVersion',
+    owner: 'owner',
+    developer: 'developer',
+    informationUrl: 'informationUrl',
+    privacyUrl: 'privacyInformationUrl',
+    notes: 'notes',
+    isFeatured: 'isFeatured',
+    allowAvailableUninstall: 'allowAvailableUninstall',
+    minWinRelease: 'minimumSupportedWindowsRelease',
+    minDiskSpaceMB: 'minimumFreeDiskSpaceInMB',
+    minMemoryMB: 'minimumMemoryInMB',
+    minCpuSpeedMHz: 'minimumCpuSpeedInMHz',
+    minProcessors: 'minimumNumberOfProcessors',
+  };
+
+  // Fields we never push from the builder
+  const BLOCKED_PUSH_FIELDS = new Set([
+    'assignments',       // too dangerous
+    'detectionRules',    // complex; pipeline handles this
+    'returnCodes',       // pipeline handles this
+    'installCommandLine', 'uninstallCommandLine', // pipeline sets these
+  ]);
+
+  // Fetch comparison for push preview when entering Review with a syncIntuneAppId
+  useEffect(() => {
+    if (state.wizardMode !== 'edit') return;
+    if (!state.syncIntuneAppId) return;
+    if (pushDiffs) return;
+    fetchPushPreview();
+  }, [state.wizardMode, state.syncIntuneAppId]);
+
+  const fetchPushPreview = useCallback(async () => {
+    setPushLoading(true);
+    setPushError(null);
+    try {
+      const intuneData = await fetchIntuneAppDetail(state.syncIntuneAppId);
+      const result = compareIntuneState(state, intuneData);
+      // Filter to only pushable metadata diffs
+      const pushable = result.diffs.filter(d =>
+        !d.match && GRAPH_FIELD_MAP[d.field] && !BLOCKED_PUSH_FIELDS.has(d.field)
+      );
+      setPushDiffs(pushable);
+    } catch (err) {
+      setPushError(err.message);
+    } finally {
+      setPushLoading(false);
+    }
+  }, [state]);
+
+  const handlePushToIntune = useCallback(async () => {
+    if (!pushDiffs || pushDiffs.length === 0) return;
+    setPushPushing(true);
+    setPushError(null);
+    setPushSuccess(false);
+    try {
+      // Build single PATCH payload
+      const updates = {};
+      for (const d of pushDiffs) {
+        if (GRAPH_FIELD_MAP[d.field]) {
+          updates[GRAPH_FIELD_MAP[d.field]] = d.builder;
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        await pushIntuneMetadata(state.syncIntuneAppId, updates);
+      }
+
+      // Also commit files to GitLab WITHOUT triggering pipeline
+      try {
+        await publishToGitLab({
+          packageId: state.packageId,
+          gitLabGroup: state.gitLabGroup,
+          category: state.category,
+          displayName: state.displayName,
+          version: state.version,
+          files,
+          pipelineAction: 'none', // don't trigger pipeline
+        });
+      } catch (gitErr) {
+        console.warn('GitLab commit after push failed:', gitErr.message);
+        // Non-fatal — Intune push succeeded
+      }
+
+      setPushSuccess(true);
+      setPushConfirm(false);
+      // Refresh the diff
+      setPushDiffs(null);
+      setTimeout(fetchPushPreview, 1000);
+    } catch (err) {
+      setPushError(err.message);
+    } finally {
+      setPushPushing(false);
+    }
+  }, [pushDiffs, state, files, fetchPushPreview]);
 
   const handleDownloadZip = async () => {
     setExporting(true);
@@ -275,6 +384,101 @@ export default function ReviewStep({ state, updateField }) {
           </div>
         )}
       </div>
+
+      {/* ═══ Push to Intune ═══ */}
+      {state.wizardMode === 'edit' && state.syncIntuneAppId && (
+        <div className="publish-section" style={{ borderColor: 'rgba(99, 102, 241, 0.25)' }}>
+          <h3 className="publish-section__title">🔄 Push Changes to Intune</h3>
+          <p className="publish-section__desc" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            Push metadata changes from the builder directly to the linked Intune app.
+            Also commits updated files to GitLab (without triggering the pipeline).
+          </p>
+
+          {pushLoading && (
+            <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              ⏳ Loading comparison…
+            </div>
+          )}
+
+          {pushError && (
+            <div className="publish-result publish-result--error">
+              <span>❌ {pushError}</span>
+              <button className="btn btn-sm btn-ghost" onClick={fetchPushPreview}>Retry</button>
+            </div>
+          )}
+
+          {pushSuccess && (
+            <div className="publish-result publish-result--success">
+              <span>✅ Changes pushed to Intune and committed to GitLab successfully.</span>
+            </div>
+          )}
+
+          {pushDiffs && pushDiffs.length === 0 && !pushSuccess && (
+            <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+              ✅ No pushable metadata differences found. Builder and Intune are in sync.
+            </div>
+          )}
+
+          {pushDiffs && pushDiffs.length > 0 && !pushSuccess && (
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', padding: '0 16px', margin: '8px 0' }}>
+                The following <strong>{pushDiffs.length}</strong> field{pushDiffs.length !== 1 ? 's' : ''} will be updated in Intune:
+              </p>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', margin: '0 0 12px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>Field</th>
+                    <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>Current (Intune)</th>
+                    <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>New (Builder)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pushDiffs.map(d => (
+                    <tr key={d.field} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={{ padding: '4px 12px', color: '#f59e0b', fontWeight: 500 }}>⚠️ {d.label}</td>
+                      <td style={{ padding: '4px 12px' }}>
+                        <code style={{ fontSize: '0.7rem', color: '#ef4444' }}>{d.intuneDisplay || '(empty)'}</code>
+                      </td>
+                      <td style={{ padding: '4px 12px' }}>
+                        <code style={{ fontSize: '0.7rem', color: '#4ade80' }}>{d.builderDisplay || '(empty)'}</code>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {!pushConfirm ? (
+                <div style={{ padding: '0 12px 12px', textAlign: 'right' }}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setPushConfirm(true)}
+                    disabled={pushPushing}
+                  >
+                    Review & Confirm Push
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: '8px 12px 12px', background: 'rgba(239,68,68,0.05)', borderTop: '1px solid rgba(239,68,68,0.15)' }}>
+                  <p style={{ fontSize: '0.78rem', color: '#f59e0b', margin: '0 0 8px', fontWeight: 600 }}>
+                    ⚠️ This will modify the live Intune app. Are you sure?
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setPushConfirm(false)} disabled={pushPushing}>Cancel</button>
+                    <button
+                      className="btn btn-sm"
+                      style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)' }}
+                      onClick={handlePushToIntune}
+                      disabled={pushPushing}
+                    >
+                      {pushPushing ? '⏳ Pushing…' : `🔄 Push ${pushDiffs.length} Change${pushDiffs.length !== 1 ? 's' : ''} to Intune`}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Schema Validation */}
       <div className={`validation-panel ${hasErrors ? 'validation-panel--error' : 'validation-panel--ok'}`}>

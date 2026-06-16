@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import './intune-sync.css';
 
 /**
- * IntuneSyncPanel — Shows a side-by-side comparison of builder state vs live Intune data.
- * Allows per-field pull/push and bulk actions.
+ * IntuneSyncPanel — Pull-only comparison of builder state vs live Intune data.
+ * Shows diffs grouped by category with per-field "Pull from Intune" actions.
  *
  * Props:
  *   diffs       — Array from compareIntuneState()
@@ -12,11 +12,8 @@ import './intune-sync.css';
  *   loading     — boolean, true while fetching
  *   error       — error message string
  *   onPullField(field, intuneValue) — pull a single field from Intune into builder
- *   onPushField(field, builderValue) — push a single field from builder to Intune
  *   onPullAll() — pull all differing fields from Intune
- *   onPushAll() — push all differing fields to Intune
  *   onDismiss() — close the panel
- *   pushing     — boolean, true while pushing updates
  */
 export default function IntuneSyncPanel({
   diffs = [],
@@ -25,11 +22,8 @@ export default function IntuneSyncPanel({
   loading = false,
   error = null,
   onPullField,
-  onPushField,
   onPullAll,
-  onPushAll,
   onDismiss,
-  pushing = false,
 }) {
   const [filterMode, setFilterMode] = useState('diffs'); // 'all' | 'diffs'
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -126,18 +120,9 @@ export default function IntuneSyncPanel({
           <button
             className="sync-panel__btn sync-panel__btn--pull"
             onClick={onPullAll}
-            disabled={pushing}
             title="Update builder with all Intune values"
           >
             ← Pull All from Intune
-          </button>
-          <button
-            className="sync-panel__btn sync-panel__btn--push"
-            onClick={onPushAll}
-            disabled={pushing}
-            title="Push all builder values to Intune"
-          >
-            Push All to Intune →
           </button>
         </div>
       </div>
@@ -162,7 +147,7 @@ export default function IntuneSyncPanel({
                       <th className="sync-panel__th sync-panel__th--field">Field</th>
                       <th className="sync-panel__th sync-panel__th--builder">Builder (GitLab)</th>
                       <th className="sync-panel__th sync-panel__th--intune">Intune (Live)</th>
-                      <th className="sync-panel__th sync-panel__th--actions">Actions</th>
+                      <th className="sync-panel__th sync-panel__th--actions">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -179,24 +164,13 @@ export default function IntuneSyncPanel({
                         </td>
                         <td className="sync-panel__td sync-panel__td--actions">
                           {!d.match && (
-                            <>
-                              <button
-                                className="sync-panel__action-btn sync-panel__action-btn--pull"
-                                onClick={() => onPullField(d.field, d.intune)}
-                                disabled={pushing}
-                                title="Use Intune value"
-                              >
-                                ← Pull
-                              </button>
-                              <button
-                                className="sync-panel__action-btn sync-panel__action-btn--push"
-                                onClick={() => onPushField(d.field, d.builder)}
-                                disabled={pushing}
-                                title="Push builder value to Intune"
-                              >
-                                Push →
-                              </button>
-                            </>
+                            <button
+                              className="sync-panel__action-btn sync-panel__action-btn--pull"
+                              onClick={() => onPullField(d.field, d.intune)}
+                              title="Use Intune value in builder"
+                            >
+                              ← Pull
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -208,13 +182,6 @@ export default function IntuneSyncPanel({
           );
         })}
       </div>
-
-      {pushing && (
-        <div className="sync-panel__pushing-overlay">
-          <div className="sync-panel__spinner" />
-          <p>Pushing updates…</p>
-        </div>
-      )}
     </div>
   );
 }

@@ -225,8 +225,8 @@ ${optLines.join('\n')}
         type: rc.type || 'success',
       })),
     };
-    // Persist Intune App ID if known (enables sync feature)
-    if (s._intuneAppId) intuneAppObj.intuneAppId = s._intuneAppId;
+    // Persist Intune Sync App ID if user has explicitly set one
+    if (s.syncIntuneAppId) intuneAppObj.syncIntuneAppId = s.syncIntuneAppId;
     files['windows/intune/app.json'] = JSON.stringify(intuneAppObj, null, 2);
 
     // Intune assignments.json — use wizard assignments

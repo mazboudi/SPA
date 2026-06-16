@@ -1,8 +1,23 @@
-The new Intune two-way sync feature looks nice! The only major issue I see is that when I go to edit the existing GitLab project (which was published to Intune), the Workbench assumes I want to sync up with the Intune app I imported metadata from when originally refactoring. I see it in the app.json for the DTEX Forwarder project ("intuneAppId": "b82a344a-73aa-43ef-9071-92abac16c431"). The AppId used to import Intune metadata during a refactor should not be persisted in the app.json (or at least not referenced for the purposes of Intune metadata sync). We need a "Sync with existing Intune Win32 App" option in the Intune section of the Workbench. Selection could be the same as in the refactor screen where you can import metadata from Intune.  All we really need is the ability to manually specify the AppId to sync with. It's fine (even desirable) to persist this AppId so long as we can change or remove the association in the Workbench.
+The new Intune two-way sync feature looks nice! 
+The only major issue I see is that when I go to edit the existing GitLab project (which was published to Intune), 
+the Workbench assumes I want to sync up with the Intune app I imported metadata from when originally refactoring. 
+I see it in the app.json for the DTEX Forwarder project ("intuneAppId": "b82a344a-73aa-43ef-9071-92abac16c431"). 
+The AppId used to import Intune metadata during a refactor should not be persisted in the app.json 
+(or at least not referenced for the purposes of Intune metadata sync). 
+We need a "Sync with existing Intune Win32 App" option in the Intune section of the Workbench. 
+Selection could be the same as in the refactor screen where you can import metadata from Intune.  
+All we really need is the ability to manually select the app or specify the AppId to sync with. 
+It's fine (even desirable) to persist this AppId so long as we can change or remove the association in the Workbench.
 
 A few other thoughts on the implementation:
-Only show the Intune Sync screen in the Intune section of the Workbench. Have it appear below the project navigation links.
+Only show the Intune Sync screen in the Intune section of the Workbench for titles we edit.  
+Have it appear below the project navigation links.
 If no Intune app has been specified to sync with yet, give the option to load from catalog or specify manually via AppId.
-While I like the option to push to Intune, I think it's too dangerous in its current form. Also, for it to be useful in its current form, one would need to make edits to Intune metadata in the Workbench, publish to GitLab, and then perform an edit on the project again. (I can explain this better over voice/screenshare.)
-Building on the last bullet point, I think we just give the option to pull from Intune in the Intune Sync section. If we want to allow pushing to Intune, we make that an option on the Review & Export page with a clear summary of exactly what's going to change.
-Don't allow pushing of assignments from the Workbench to Intune outside of hardcoded test groups. Just too dangerous in my opinion. I think assignments should be done manually in Intune or through automated ServiceNow workflow.
+
+While I like the option to push to Intune, I think it's too dangerous in its current form. 
+Also, for it to be useful in its current form, one would need to make edits to Intune metadata in the Workbench, 
+publish to GitLab, and then perform an edit on the project again.
+Building on the last bullet point, I think we just give the option to pull from Intune in the Intune Sync section. 
+If we want to allow pushing to Intune, we make that an option on the Review & Export page with a clear summary of 
+exactly what's going to change and we also update (push) the changes to gitlab without triggering the pipeline
+Don't allow pushing of assignments from the Workbench to Intune outside of hardcoded test groups. 

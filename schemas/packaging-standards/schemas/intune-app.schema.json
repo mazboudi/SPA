@@ -119,6 +119,10 @@
           }
         }
       }
+    },
+    "syncIntuneAppId": {
+      "type": "string",
+      "description": "The Intune Win32 app GUID that this project is linked to for bi-directional sync. Set explicitly by the user in the Workbench."
     }
   }
 }

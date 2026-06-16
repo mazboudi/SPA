@@ -1,8 +1,11 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
 import AssignmentsSection from '../ui/AssignmentsSection';
+import IntuneSyncPanel from '../IntuneSyncPanel';
+import { compareIntuneState } from '../../lib/compareIntuneState';
+import { fetchIntuneAppDetail } from '../../lib/intuneApi';
 import windowsOptions from '../../config/windowsOptions.json';
 import './windows-steps.css';
 
@@ -76,7 +79,7 @@ const REG_HIVES = [
   { value: 'HKCU', label: 'HKEY_CURRENT_USER' },
 ];
 
-export default function IntuneConfigStep({ state, updateField }) {
+export default function IntuneConfigStep({ state, updateField, intuneCatalog, loadIntuneCatalog, fetchAppDetail }) {
   const [activeTab, setActiveTab] = useState('info');
   const [intuneApps, setIntuneApps] = useState([]);
   const scriptFileRef = useRef(null);
@@ -99,6 +102,111 @@ export default function IntuneConfigStep({ state, updateField }) {
     };
     fetchCatalog();
     return () => { active = false; };
+  }, []);
+
+  // ── Intune Sync state ────────────────────────────────────────────────
+  const [syncResult, setSyncResult] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+  const [syncIntuneData, setSyncIntuneData] = useState(null);
+  const [showCatalogPicker, setShowCatalogPicker] = useState(false);
+  const [manualAppId, setManualAppId] = useState('');
+  const [catalogForSync, setCatalogForSync] = useState(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+
+  // Auto-fetch comparison when syncIntuneAppId is set and we're editing
+  useEffect(() => {
+    if (state.wizardMode !== 'edit') return;
+    if (!state.syncIntuneAppId) return;
+    if (syncResult || syncLoading) return;
+    runSyncCheck(state.syncIntuneAppId);
+  }, [state.wizardMode, state.syncIntuneAppId]);
+
+  const runSyncCheck = useCallback(async (appId) => {
+    setSyncLoading(true);
+    setSyncError(null);
+    setSyncResult(null);
+    try {
+      const intuneData = await fetchIntuneAppDetail(appId);
+      setSyncIntuneData(intuneData);
+      const result = compareIntuneState(state, intuneData);
+      setSyncResult(result);
+    } catch (err) {
+      setSyncError(err.message);
+    } finally {
+      setSyncLoading(false);
+    }
+  }, [state]);
+
+  const handleSyncPullField = useCallback((field, intuneValue) => {
+    const fieldMap = {
+      displayName: 'intuneAppName',
+      description: 'appDescription',
+      publisher: 'publisher',
+      displayVersion: 'version',
+      owner: 'appOwner',
+      developer: 'appDeveloper',
+      informationUrl: 'informationUrl',
+      privacyUrl: 'privacyUrl',
+      notes: 'appNotes',
+      isFeatured: 'isFeatured',
+      allowAvailableUninstall: 'allowAvailableUninstall',
+      restartBehavior: 'restartBehavior',
+      maxInstallTime: 'maxInstallTime',
+      minWinRelease: 'minWinRelease',
+      minDiskSpaceMB: 'minDiskSpaceMB',
+      minMemoryMB: 'minMemoryMB',
+      minCpuSpeedMHz: 'minCpuSpeedMHz',
+      minProcessors: 'minLogicalProcessors',
+    };
+    if (fieldMap[field]) {
+      updateField(fieldMap[field], intuneValue);
+      // Re-run comparison after pull
+      if (syncIntuneData) {
+        setTimeout(() => {
+          const result = compareIntuneState(state, syncIntuneData);
+          setSyncResult(result);
+        }, 50);
+      }
+    }
+  }, [updateField, state, syncIntuneData]);
+
+  const handleSyncPullAll = useCallback(() => {
+    if (!syncResult) return;
+    for (const d of syncResult.diffs) {
+      if (!d.match) handleSyncPullField(d.field, d.intune);
+    }
+  }, [syncResult, handleSyncPullField]);
+
+  const handleSetSyncApp = useCallback((appId) => {
+    updateField('syncIntuneAppId', appId);
+    setManualAppId('');
+    setSyncResult(null);
+    setSyncError(null);
+    // Will auto-trigger comparison via the useEffect
+  }, [updateField]);
+
+  const handleRemoveSyncApp = useCallback(() => {
+    updateField('syncIntuneAppId', '');
+    setSyncResult(null);
+    setSyncError(null);
+    setSyncIntuneData(null);
+  }, [updateField]);
+
+  const handleLoadCatalogForSync = useCallback(async () => {
+    setCatalogLoading(true);
+    try {
+      const res = await fetch('/api/intune/apps');
+      if (res.ok) {
+        const data = await res.json();
+        setCatalogForSync(data.apps || []);
+      }
+    } catch (e) {
+      console.warn('Failed to load catalog for sync:', e);
+    } finally {
+      setCatalogLoading(false);
+    }
+    setShowCatalogPicker(true);
   }, []);
 
   const errors = useMemo(() => {
@@ -312,6 +420,91 @@ export default function IntuneConfigStep({ state, updateField }) {
       {/* ═══ INTUNE METADATA SUMMARY ═══ */}
       {(state._intuneExportImported || state.wizardMode === 'edit') && (
         <IntuneMetaSummary state={state} />
+      )}
+
+      {/* ═══ INTUNE SYNC SECTION — edit mode only ═══ */}
+      {state.wizardMode === 'edit' && (
+        <div className="intune-sync-section">
+          <div className="intune-sync-section__header">
+            <span className="intune-sync-section__icon">🔄</span>
+            <span className="intune-sync-section__title">Intune Sync</span>
+            {state.syncIntuneAppId && (
+              <span className="intune-sync-section__appid" title={state.syncIntuneAppId}>
+                {state.syncIntuneAppId.substring(0, 8)}…
+              </span>
+            )}
+          </div>
+
+          {!state.syncIntuneAppId ? (
+            /* No sync app configured — show selector */
+            <div className="intune-sync-section__setup">
+              <p className="intune-sync-section__hint">
+                Link this title to an existing Intune Win32 app to compare and pull metadata.
+              </p>
+              <div className="intune-sync-section__actions">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={handleLoadCatalogForSync}
+                  disabled={catalogLoading}
+                >
+                  {catalogLoading ? '⏳ Loading…' : '📋 Select from Intune Catalog'}
+                </button>
+                <div className="intune-sync-section__manual">
+                  <input
+                    type="text"
+                    className="form-input form-input--sm"
+                    placeholder="Or paste Intune App ID (GUID)…"
+                    value={manualAppId}
+                    onChange={e => setManualAppId(e.target.value)}
+                    style={{ flex: 1, minWidth: 260 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    disabled={!manualAppId.trim() || !GUID_RE.test(manualAppId.trim())}
+                    onClick={() => handleSetSyncApp(manualAppId.trim())}
+                  >
+                    Link
+                  </button>
+                </div>
+              </div>
+
+              {/* Inline catalog picker */}
+              {showCatalogPicker && catalogForSync && (
+                <div className="intune-sync-section__catalog">
+                  <CatalogMiniPicker
+                    apps={catalogForSync}
+                    onSelect={(app) => {
+                      handleSetSyncApp(app.id || app.appId);
+                      setShowCatalogPicker(false);
+                    }}
+                    onClose={() => setShowCatalogPicker(false)}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Sync app is set — show comparison */
+            <div className="intune-sync-section__content">
+              <div className="intune-sync-section__linked">
+                <span>Linked to: <code>{state.syncIntuneAppId}</code></span>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => { setSyncResult(null); runSyncCheck(state.syncIntuneAppId); }}>↻ Re-check</button>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={handleRemoveSyncApp} style={{ color: '#ef4444' }}>✕ Remove</button>
+              </div>
+              <IntuneSyncPanel
+                diffs={syncResult?.diffs || []}
+                matchCount={syncResult?.matchCount || 0}
+                diffCount={syncResult?.diffCount || 0}
+                loading={syncLoading}
+                error={syncError}
+                onPullField={handleSyncPullField}
+                onPullAll={handleSyncPullAll}
+                onDismiss={() => setSyncResult(null)}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {hasErrors && (
@@ -943,7 +1136,8 @@ function IntuneMetaSummary({ state }) {
     { label: 'Min Memory', value: state.minMemoryMB != null ? `${state.minMemoryMB} MB` : '' },
     { label: 'Assignments', value: state.assignments?.length ? `${state.assignments.length} group(s)` : '' },
     { label: 'Supersedes', value: state.supersedesAppId || '' },
-    { label: 'Intune App ID', value: state._intuneAppId, mono: true },
+    { label: 'Sync Intune App', value: state.syncIntuneAppId, mono: true },
+    { label: 'Import Source ID', value: !state.syncIntuneAppId && state._intuneAppId ? state._intuneAppId : '', mono: true },
   ].filter(r => r.value && r.value !== '');
 
   const populatedCount = metaRows.length;
@@ -1091,6 +1285,115 @@ function IntuneMetaSummary({ state }) {
         .intune-meta-row__badge--muted {
           background: rgba(255,255,255,0.06);
           color: var(--text-muted);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── CatalogMiniPicker — inline compact app selector for sync ─────────────
+function CatalogMiniPicker({ apps, onSelect, onClose }) {
+  const [search, setSearch] = useState('');
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (searchRef.current) searchRef.current.focus();
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return apps.slice(0, 50);
+    const q = search.toLowerCase();
+    return apps.filter(app =>
+      (app.displayName || '').toLowerCase().includes(q) ||
+      (app.publisher || '').toLowerCase().includes(q) ||
+      (app.id || app.appId || '').toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [apps, search]);
+
+  return (
+    <div className="catalog-mini-picker">
+      <div className="catalog-mini-picker__header">
+        <input
+          ref={searchRef}
+          type="text"
+          className="form-input form-input--sm"
+          placeholder="Search by name, publisher, or ID…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button type="button" className="btn btn-ghost btn-xs" onClick={onClose}>✕</button>
+      </div>
+      <div className="catalog-mini-picker__list">
+        {filtered.length === 0 && <div className="catalog-mini-picker__empty">No apps match "{search}"</div>}
+        {filtered.map(app => {
+          const uid = app.id || app.appId;
+          return (
+            <button
+              key={uid}
+              type="button"
+              className="catalog-mini-picker__item"
+              onClick={() => onSelect(app)}
+            >
+              <span className="catalog-mini-picker__name">{app.displayName}</span>
+              <span className="catalog-mini-picker__meta">
+                {app.publisher || ''} • {app.displayVersion || app.version || '—'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <style>{`
+        .catalog-mini-picker {
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md, 8px);
+          margin-top: 8px;
+          background: var(--bg-card, rgba(0,0,0,0.15));
+          overflow: hidden;
+        }
+        .catalog-mini-picker__header {
+          display: flex;
+          gap: 6px;
+          padding: 8px;
+          border-bottom: 1px solid var(--border-subtle);
+        }
+        .catalog-mini-picker__list {
+          max-height: 240px;
+          overflow-y: auto;
+        }
+        .catalog-mini-picker__empty {
+          padding: 16px;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: 0.78rem;
+        }
+        .catalog-mini-picker__item {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          padding: 8px 12px;
+          background: none;
+          border: none;
+          border-bottom: 1px solid rgba(255,255,255,0.03);
+          cursor: pointer;
+          text-align: left;
+          color: inherit;
+          font-family: inherit;
+          transition: background 0.15s;
+        }
+        .catalog-mini-picker__item:hover {
+          background: rgba(99, 102, 241, 0.08);
+        }
+        .catalog-mini-picker__name {
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: var(--text-primary);
+        }
+        .catalog-mini-picker__meta {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          margin-top: 2px;
         }
       `}</style>
     </div>

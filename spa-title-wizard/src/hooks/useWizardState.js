@@ -81,6 +81,9 @@ const INITIAL_STATE = {
   // Dependencies
   dependencies: [],  // [{ appId: '', dependencyType: 'autoInstall' }]  — 'autoInstall' | 'detect'
 
+  // Intune Sync — the Intune app ID explicitly chosen by the user for syncing
+  syncIntuneAppId: '',
+
   // Requirements
   minWinRelease: 'Windows11_22H2',
   archCheckEnabled: false,       // false = all architectures, true = specify
