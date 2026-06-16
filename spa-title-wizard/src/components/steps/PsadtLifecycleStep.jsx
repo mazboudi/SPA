@@ -21,8 +21,14 @@ import './windows-steps.css';
  * Dedicated card for raw_ps (unparsed block) actions.
  * Shows the full PowerShell block in a resizable monospace editor with a warning badge.
  */
-function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
+function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand }) {
   const [expanded, setExpanded] = useState(false);
+
+  // Sync with parent "Expand All" / "Collapse All" toggle
+  useEffect(() => {
+    if (forceExpand !== undefined) setExpanded(forceExpand);
+  }, [forceExpand]);
+
   const isLocked = !!action.isManuallyEdited;
   const isCardDisabled = !action.enabled;
   const preview = (action.note || action.script || '').split('\n')[0].substring(0, 60);
@@ -101,8 +107,14 @@ function CmdPreview({ cmd }) {
 }
 
 /** Inline action card — editable, deletable, reorderable */
-function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove }) {
+function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand }) {
   const [expanded, setExpanded] = useState(false);
+
+  // Sync with parent "Expand All" / "Collapse All" toggle
+  useEffect(() => {
+    if (forceExpand !== undefined) setExpanded(forceExpand);
+  }, [forceExpand]);
+
   const def = ACTION_TYPE_MAP[action.type];
   const icon = def?.icon || '▪️';
   const label = def?.label || action.type;
@@ -111,7 +123,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
 
   if (isRawPs) {
     return <RawPsCard action={action} index={index} total={total} phaseKey={phaseKey}
-      onUpdate={onUpdate} onRemove={onRemove} onMove={onMove} />;
+      onUpdate={onUpdate} onRemove={onRemove} onMove={onMove} forceExpand={forceExpand} />;
   }
 
   // Read-only system-managed variable — render as locked non-editable card
@@ -468,6 +480,7 @@ function AddActionPicker({ phaseKey, onAdd }) {
 
 export default function PsadtLifecycleStep({ state, updateField, updateFields, addAction, removeAction, updateAction, moveAction, updateLifecycleRoot, psadtResult }) {
   const [expandedPhases, setExpandedPhases] = useState({});
+  const [expandAllCards, setExpandAllCards] = useState({}); // { [phaseKey]: boolean } — expand all action cards in a phase
   const [showScript, setShowScript] = useState(false);
   const lc = state.lifecycle;
   const isRefactor = state.wizardMode === 'refactor';
@@ -504,7 +517,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       { name: '$adtSession.RequireAdmin',                value: '$true',                          desc: 'Require admin privileges' },
       { name: '$adtSession.DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name',   desc: 'Script friendly name (auto-set)' },
       { name: '$adtSession.DeployAppScriptParameters',   value: '$PSBoundParameters',             desc: 'Bound parameters (auto-set)' },
-      { name: '$adtSession.DeployAppScriptVersion',      value: '4.1.0',                          desc: 'Framework version (auto-set)' },
+      { name: '$adtSession.DeployAppScriptVersion',      value: '4.1.8',                          desc: 'Framework version (auto-set)' },
     ].map(v => ({
       type: 'custom_variable',
       desc: `${v.name} = ${v.value}`,
@@ -523,7 +536,46 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         variableDeclaration: { actions: [...stdVarActions, ...systemVarActions] },
       },
     });
-  }, []); // run once on mount
+  }, [state.publisher, state.displayName, state.version, state.appOwner]); // re-run if key fields change while vars haven't been seeded yet
+
+  // ── Reactively sync PSADT variables when wizard Project Info / Installer fields change ──
+  // This ensures that if the user changes e.g. version or publisher on an earlier step,
+  // the PSADT variable declarations stay in sync without requiring a nav-away-and-back.
+  useEffect(() => {
+    const varPhase = lc.phases?.variableDeclaration;
+    const existingActions = varPhase?.actions || [];
+    if (existingActions.length === 0) return; // nothing to sync yet
+
+    // Map of PSADT variable name → current wizard state value
+    const syncMap = {
+      '$appVendor':  state.publisher || '',
+      '$appName':    (state.displayName || '').replace(/\s+/g, ''),
+      '$appVersion': state.version || '',
+      '$appScriptAuthor': state.appOwner || 'EUC Packaging',
+    };
+
+    let changed = false;
+    const updatedActions = existingActions.map(action => {
+      if (action.type !== 'custom_variable') return action;
+      if (action.readOnly || action.systemManaged) return action;
+      if (syncMap[action.name] !== undefined && action.value !== syncMap[action.name]) {
+        changed = true;
+        const newValue = syncMap[action.name];
+        return { ...action, value: newValue, desc: `${action.name} = '${newValue}'` };
+      }
+      return action;
+    });
+
+    if (changed) {
+      updateField('lifecycle', {
+        ...lc,
+        phases: {
+          ...lc.phases,
+          variableDeclaration: { ...varPhase, actions: updatedActions },
+        },
+      });
+    }
+  }, [state.publisher, state.displayName, state.version, state.appOwner]);
 
   // ── Auto-seed show_welcome + show_progress cards for new titles ──
   useEffect(() => {
@@ -974,6 +1026,18 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         )}
                         <span className="phase-header__chevron">{isExpanded ? '▾' : '▸'}</span>
                       </button>
+                      {isExpanded && actions.length > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 12px 0' }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            style={{ fontSize: '0.68rem' }}
+                            onClick={() => setExpandAllCards(prev => ({ ...prev, [phaseKey]: !prev[phaseKey] }))}
+                          >
+                            {expandAllCards[phaseKey] ? '▾ Collapse All' : '▸ Expand All'}
+                          </button>
+                        </div>
+                      )}
                       {isExpanded && (
                         <div className="phase-body">
                           {actions.length === 0 && (
@@ -981,7 +1045,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                           )}
                           {actions.map((action, i) => (
                             <ActionCard key={i} action={action} index={i} total={actions.length} phaseKey={phaseKey}
-                              onUpdate={handleUpdateAction} onRemove={handleRemoveAction} onMove={handleMoveAction} />
+                              onUpdate={handleUpdateAction} onRemove={handleRemoveAction} onMove={handleMoveAction}
+                              forceExpand={expandAllCards[phaseKey]} />
                           ))}
                           <AddActionPicker phaseKey={phaseKey} onAdd={handleAddAction} />
                         </div>

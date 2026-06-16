@@ -98,7 +98,14 @@ export function parseProjectFiles(files) {
   if (files['windows/intune/app.json']) {
     try {
       const intuneApp = JSON.parse(files['windows/intune/app.json']);
-      state.intuneAppName = intuneApp.displayName || '';
+      // Only set intuneAppName if user customized it beyond the auto-generated pattern.
+      // The auto-generated pattern is "DisplayName Version" — if it matches, leave blank
+      // so the dynamic default keeps updating when displayName/version change.
+      const intuneDisplayName = intuneApp.displayName || '';
+      const autoPattern = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+      if (intuneDisplayName && intuneDisplayName !== autoPattern) {
+        state.intuneAppName = intuneDisplayName;
+      }
       state.appDescription = intuneApp.description || '';
       state.appOwner = intuneApp.owner || 'EUC Packaging';
       state.appDeveloper = intuneApp.developer || '';
