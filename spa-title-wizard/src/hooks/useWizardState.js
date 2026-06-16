@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { parseProjectFiles } from '../lib/parseProjectFiles';
 import parsePsadtBlocks from '../lib/parsePsadtBlocks';
+import { deriveState } from './deriveState';
 
 const INITIAL_STATE = {
   // Wizard mode: 'new', 'refactor', or 'edit'
@@ -254,8 +255,12 @@ function syncInstallerActions(next, prevInstallerType) {
 }
 
 export default function useWizardState() {
-  const [state, setState] = useState(INITIAL_STATE);
+  const [rawState, setRawState] = useState(INITIAL_STATE);
+  const state = useMemo(() => deriveState(rawState), [rawState]);
   const [currentStep, setCurrentStep] = useState(0);
+
+  // All internal writes go to setRawState, consumers read from `state` (derived)
+  const setState = setRawState;
 
   const updateField = useCallback((field, value) => {
     setState(prev => {
@@ -291,15 +296,8 @@ export default function useWizardState() {
         next.appDeveloper = value;
       }
 
-      // Keep intuneAppName in sync with basic info changes if untouched or currently matching the old default
-      const oldDefault = `${prev.displayName || ''} ${prev.version || ''}`.trim().replace(/\s+/g, ' ');
-      if (['displayName', 'version'].includes(field)) {
-        if (!prev.intuneAppName || prev.intuneAppName === oldDefault) {
-          const name = field === 'displayName' ? value : prev.displayName;
-          const ver = field === 'version' ? value : prev.version;
-          next.intuneAppName = `${name || ''} ${ver || ''}`.trim().replace(/\s+/g, ' ');
-        }
-      }
+      // intuneAppName is derived by deriveState() from displayName + version.
+      // No manual sync needed here.
 
       // Auto-migrate action cards when installerType changes
       if (field === 'installerType') {
@@ -435,6 +433,8 @@ export default function useWizardState() {
     setState(prev => {
       // Only seed for new title mode (skip for refactors — both passthrough and convert)
       if (prev.wizardMode === 'refactor') return prev;
+      // Skip if editing an existing project
+      if (prev.wizardMode === 'edit') return prev;
 
       // Only seed if all phases are empty (user hasn't added anything yet)
       const allEmpty = Object.values(prev.lifecycle.phases).every(p => !p.actions || p.actions.length === 0);
@@ -445,7 +445,45 @@ export default function useWizardState() {
         phases[key] = { ...phases[key], actions };
       };
 
-      // Derive source filename from installer source fields
+      // ── 1. Variable declarations ──────────────────────────────────────
+      const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+      const stdVarActions = [
+        { name: '$appVendor',        value: prev.publisher || '' },
+        { name: '$appName',          value: (prev.displayName || '').replace(/\s+/g, '') },
+        { name: '$appVersion',       value: prev.version || '' },
+        { name: '$appArch',          value: '' },
+        { name: '$appLang',          value: 'EN' },
+        { name: '$appRevision',      value: '01' },
+        { name: '$adtSession.AppProcessesToClose', value: '' },
+        { name: '$appScriptVersion', value: '1.0.0' },
+        { name: '$appScriptDate',    value: today },
+        { name: '$appScriptAuthor',  value: prev.appOwner || 'EUC Packaging' },
+      ].map(v => ({
+        type: 'custom_variable',
+        desc: `${v.name} = '${v.value}'`,
+        name: v.name,
+        value: v.value,
+        enabled: true,
+      }));
+
+      const systemVarActions = [
+        { name: '$adtSession.RequireAdmin',                value: '$true',                          desc: 'Require admin privileges' },
+        { name: '$adtSession.DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name',   desc: 'Script friendly name (auto-set)' },
+        { name: '$adtSession.DeployAppScriptParameters',   value: '$PSBoundParameters',             desc: 'Bound parameters (auto-set)' },
+        { name: '$adtSession.DeployAppScriptVersion',      value: '4.1.8',                          desc: 'Framework version (auto-set)' },
+      ].map(v => ({
+        type: 'custom_variable',
+        desc: `${v.name} = ${v.value}`,
+        name: v.name,
+        value: v.value,
+        enabled: true,
+        readOnly: true,
+        systemManaged: true,
+      }));
+
+      mkPhase('variableDeclaration', [...stdVarActions, ...systemVarActions]);
+
+      // ── 2. Install / Uninstall actions ────────────────────────────────
       const srcFile = prev.installerSourceFile || '';
 
       if (prev.installerType === 'msi') {
@@ -465,6 +503,27 @@ export default function useWizardState() {
           { type: 'exe_uninstall', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
         ]);
       }
+
+      // ── 3. Pre-Install / Pre-Uninstall / Pre-Repair welcome + progress ─
+      const defaultWelcome = {
+        type: 'show_welcome', enabled: true,
+        allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
+        checkDiskSpace: true, persistPrompt: true,
+        closeProcessesCountdown: 0, forceCloseProcessesCountdown: 0,
+        blockExecution: false,
+      };
+      const countdownWelcome = {
+        type: 'show_welcome', enabled: true,
+        allowDefer: false, deferTimes: 0, deferDays: 0, deferDeadline: '',
+        checkDiskSpace: false, persistPrompt: false,
+        closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
+        blockExecution: false,
+      };
+      const defaultProgress = { type: 'show_progress', enabled: true, statusMessage: '', topMost: true };
+
+      mkPhase('preInstall',   [defaultWelcome, defaultProgress]);
+      mkPhase('preUninstall', [countdownWelcome, defaultProgress]);
+      mkPhase('preRepair',    [countdownWelcome, defaultProgress]);
 
       return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
     });
@@ -557,8 +616,7 @@ export default function useWizardState() {
         next.packageId = toKebabCase(next.displayName);
       }
 
-      // Always set intuneAppName to displayName + version (matches new-title behavior)
-      next.intuneAppName = `${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
+      // intuneAppName is derived by deriveState() — no explicit set needed here
 
       // Auto-fill installer source filename from parsed MSI/EXE data
       if (!next.installerSourceFile) {
@@ -602,9 +660,13 @@ export default function useWizardState() {
         next[key] = value;
       }
 
-      // If we got a displayName from Intune, map it to intuneAppName to keep customization
+      // If the Intune displayName differs from the auto-generated pattern,
+      // store it as an explicit override so deriveState preserves it.
       if (intuneFields.displayName) {
-        next.intuneAppName = intuneFields.displayName;
+        const autoPattern = `${next.displayName || ''} ${next.version || ''}`.trim().replace(/\s+/g, ' ');
+        if (intuneFields.displayName !== autoPattern) {
+          next._intuneAppNameOverride = intuneFields.displayName;
+        }
       }
 
       // Auto-derive packageId from displayName

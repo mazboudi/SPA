@@ -79,11 +79,11 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     }
 
     // 3. Assemble atomic updates list
+    // Note: displayName and publisher are NOT set here — those are managed
+    // on the Project Info step and should not be overridden by WinGet metadata.
     const updates = {
       installerType: type,
       installerSourceFile: filename,
-      displayName: wingetResult.packageName || wingetResult.packageIdentifier,
-      publisher: wingetResult.publisher || 'WinGet',
       version: wingetResult.packageVersion || '1.0.0'
     };
 

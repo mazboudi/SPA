@@ -535,6 +535,24 @@ fi
   delete stateSnapshot._lastPublishResult;
   delete stateSnapshot._psadtActiveTab;
   delete stateSnapshot._v3Conversion;
+  delete stateSnapshot._intuneAppId; // ephemeral import source — not persisted
+  // intuneAppName is derived by deriveState() — don't persist it
+  delete stateSnapshot.intuneAppName;
+  // _intuneAppNameOverride IS persisted (user's explicit custom name)
+  // Strip _userEdited flags from lifecycle actions (internal tracking only)
+  if (stateSnapshot.lifecycle?.phases) {
+    for (const phase of Object.values(stateSnapshot.lifecycle.phases)) {
+      if (phase.actions) {
+        phase.actions = phase.actions.map(a => {
+          if (a._userEdited) {
+            const { _userEdited, ...rest } = a;
+            return rest;
+          }
+          return a;
+        });
+      }
+    }
+  }
   // File objects can't be serialized — preserve filename as string
   if (stateSnapshot.logoFile) {
     stateSnapshot._logoFileName = stateSnapshot.logoFile.name || 'logo.png';

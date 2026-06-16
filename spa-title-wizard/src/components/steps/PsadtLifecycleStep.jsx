@@ -120,6 +120,17 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
   const label = def?.label || action.type;
   const isCustom = action.type === 'custom_script';
   const isRawPs = action.type === 'raw_ps';
+  const isCustomVar = action.type === 'custom_variable';
+
+  // Wrap onUpdate: when a custom_variable's 'value' field is edited by the user,
+  // set _userEdited so deriveState() won't overwrite it with the source field value.
+  const handleFieldUpdate = (pk, idx, updates) => {
+    if (isCustomVar && updates.hasOwnProperty('value')) {
+      onUpdate(pk, idx, { ...updates, _userEdited: true });
+    } else {
+      onUpdate(pk, idx, updates);
+    }
+  };
 
   if (isRawPs) {
     return <RawPsCard action={action} index={index} total={total} phaseKey={phaseKey}
@@ -180,15 +191,15 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 <div key={f.key} className="action-field">
                   <label className="action-field__label">{f.label}</label>
                   {f.type === 'boolean' ? (
-                    <input type="checkbox" checked={!!action[f.key]} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.checked })} />
+                    <input type="checkbox" checked={!!action[f.key]} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.checked })} />
                   ) : f.type === 'number' ? (
-                    <input type="number" value={action[f.key] ?? f.default ?? 0} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: parseInt(e.target.value) || 0 })} />
+                    <input type="number" value={action[f.key] ?? f.default ?? 0} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: parseInt(e.target.value) || 0 })} />
                   ) : f.type === 'guids' ? (
-                    <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
+                    <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
                   ) : f.type === 'textarea' ? (
-                    <textarea rows="4" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
+                    <textarea rows="4" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
                   ) : (
-                    <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => onUpdate(phaseKey, index, { [f.key]: e.target.value })} />
+                    <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} />
                   )}
                 </div>
               ))}
@@ -485,133 +496,10 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   const lc = state.lifecycle;
   const isRefactor = state.wizardMode === 'refactor';
 
-  // ── Auto-populate variableDeclaration with standard PSADT vars (new titles) ──
-  useEffect(() => {
-    const varPhase = lc.phases?.variableDeclaration;
-    const alreadyPopulated = (varPhase?.actions || []).length > 0;
-    const isEdit = state.wizardMode === 'edit';
-    if (isRefactor || isEdit || alreadyPopulated) return; // refactored/edited titles already have vars
+  // NOTE: All lifecycle seeding (variables, install/uninstall, welcome/progress)
+  // is now handled atomically in seedDefaultLifecycleActions() (useWizardState.js)
+  // when navigating to the PSADT step. No component-level seed effects needed.
 
-    const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-    const stdVarActions = [
-      { name: '$appVendor',        value: state.publisher || '' },
-      { name: '$appName',          value: (state.displayName || '').replace(/\s+/g, '') },
-      { name: '$appVersion',       value: state.version || '' },
-      { name: '$appArch',          value: '' },
-      { name: '$appLang',          value: 'EN' },
-      { name: '$appRevision',      value: '01' },
-      { name: '$adtSession.AppProcessesToClose', value: '' },
-      { name: '$appScriptVersion', value: '1.0.0' },
-      { name: '$appScriptDate',    value: today },
-      { name: '$appScriptAuthor',  value: state.appOwner || 'EUC Packaging' },
-    ].map(v => ({
-      type: 'custom_variable',
-      desc: `${v.name} = '${v.value}'`,
-      name: v.name,
-      value: v.value,
-      enabled: true,
-    }));
-
-    // System-managed variables — shown as read-only so packagers know they exist
-    const systemVarActions = [
-      { name: '$adtSession.RequireAdmin',                value: '$true',                          desc: 'Require admin privileges' },
-      { name: '$adtSession.DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name',   desc: 'Script friendly name (auto-set)' },
-      { name: '$adtSession.DeployAppScriptParameters',   value: '$PSBoundParameters',             desc: 'Bound parameters (auto-set)' },
-      { name: '$adtSession.DeployAppScriptVersion',      value: '4.1.8',                          desc: 'Framework version (auto-set)' },
-    ].map(v => ({
-      type: 'custom_variable',
-      desc: `${v.name} = ${v.value}`,
-      name: v.name,
-      value: v.value,
-      enabled: true,
-      readOnly: true,
-      systemManaged: true,
-    }));
-
-    // Single state update — populate the variableDeclaration phase
-    updateField('lifecycle', {
-      ...lc,
-      phases: {
-        ...lc.phases,
-        variableDeclaration: { actions: [...stdVarActions, ...systemVarActions] },
-      },
-    });
-  }, [state.publisher, state.displayName, state.version, state.appOwner]); // re-run if key fields change while vars haven't been seeded yet
-
-  // ── Reactively sync PSADT variables when wizard Project Info / Installer fields change ──
-  // This ensures that if the user changes e.g. version or publisher on an earlier step,
-  // the PSADT variable declarations stay in sync without requiring a nav-away-and-back.
-  useEffect(() => {
-    const varPhase = lc.phases?.variableDeclaration;
-    const existingActions = varPhase?.actions || [];
-    if (existingActions.length === 0) return; // nothing to sync yet
-
-    // Map of PSADT variable name → current wizard state value
-    const syncMap = {
-      '$appVendor':  state.publisher || '',
-      '$appName':    (state.displayName || '').replace(/\s+/g, ''),
-      '$appVersion': state.version || '',
-      '$appScriptAuthor': state.appOwner || 'EUC Packaging',
-    };
-
-    let changed = false;
-    const updatedActions = existingActions.map(action => {
-      if (action.type !== 'custom_variable') return action;
-      if (action.readOnly || action.systemManaged) return action;
-      if (syncMap[action.name] !== undefined && action.value !== syncMap[action.name]) {
-        changed = true;
-        const newValue = syncMap[action.name];
-        return { ...action, value: newValue, desc: `${action.name} = '${newValue}'` };
-      }
-      return action;
-    });
-
-    if (changed) {
-      updateField('lifecycle', {
-        ...lc,
-        phases: {
-          ...lc.phases,
-          variableDeclaration: { ...varPhase, actions: updatedActions },
-        },
-      });
-    }
-  }, [state.publisher, state.displayName, state.version, state.appOwner]);
-
-  // ── Auto-seed show_welcome + show_progress cards for new titles ──
-  useEffect(() => {
-    const isEdit = state.wizardMode === 'edit';
-    if (isRefactor || isEdit) return; // refactored/edited titles already have actions
-
-    const phases = lc.phases || {};
-    // Only seed if preInstall is empty (hasn't been seeded yet)
-    if ((phases.preInstall?.actions || []).length > 0) return;
-
-    const defaultWelcome = {
-      type: 'show_welcome', enabled: true,
-      allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
-      checkDiskSpace: true, persistPrompt: true,
-      closeProcessesCountdown: 0, forceCloseProcessesCountdown: 0,
-      blockExecution: false,
-    };
-    const countdownWelcome = {
-      type: 'show_welcome', enabled: true,
-      allowDefer: false, deferTimes: 0, deferDays: 0, deferDeadline: '',
-      checkDiskSpace: false, persistPrompt: false,
-      closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
-      blockExecution: false,
-    };
-    const defaultProgress = { type: 'show_progress', enabled: true, statusMessage: '', topMost: true };
-
-    updateField('lifecycle', {
-      ...lc,
-      phases: {
-        ...phases,
-        preInstall:   { actions: [defaultWelcome, defaultProgress, ...(phases.preInstall?.actions || [])] },
-        preUninstall: { actions: [countdownWelcome, defaultProgress, ...(phases.preUninstall?.actions || [])] },
-        preRepair:    { actions: [countdownWelcome, defaultProgress, ...(phases.preRepair?.actions || [])] },
-      },
-    });
-  }, []); // run once on mount
 
   // Compute compatibility report for converted v3 scripts
   const compatReport = useMemo(() => {

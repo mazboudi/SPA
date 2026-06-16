@@ -13,6 +13,7 @@ function toKebabCase(str) {
 }
 
 export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadExistingProject }) {
+  const isEditMode = state.wizardMode === 'edit';
   const [checkingProject, setCheckingProject] = useState(false);
   const [existingProject, setExistingProject] = useState(null);
   
@@ -233,14 +234,16 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
 
 
       <div className="form-grid">
-        <FormField label="Display Name" required id="displayName" hint="Human-readable name, e.g. 'Google Chrome'">
+        <FormField label="Display Name" required id="displayName" hint={isEditMode ? 'Display Name is locked in edit mode.' : "Human-readable name, e.g. 'Google Chrome'"}>
           <input
             id="displayName"
             type="text"
             placeholder="e.g. Google Chrome"
             value={state.displayName}
             onChange={e => updateField('displayName', e.target.value)}
-            autoFocus
+            autoFocus={!isEditMode}
+            disabled={isEditMode}
+            className={isEditMode ? 'input-disabled' : ''}
           />
         </FormField>
 
@@ -351,13 +354,15 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           </FormField>
         )}
 
-        <FormField label="Publisher" required id="publisher">
+        <FormField label="Publisher" required id="publisher" hint={isEditMode ? 'Publisher is locked in edit mode.' : undefined}>
           <input
             id="publisher"
             type="text"
             placeholder="e.g. Google LLC"
             value={state.publisher}
             onChange={e => updateField('publisher', e.target.value)}
+            disabled={isEditMode}
+            className={isEditMode ? 'input-disabled' : ''}
           />
         </FormField>
 
@@ -379,7 +384,8 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           onChange={v => updateField('category', v)}
           placeholder="Select a category..."
           options={CATEGORIES}
-          hint="Determines the GitLab subgroup path and Jamf category."
+          hint={isEditMode ? 'Category is locked in edit mode.' : 'Determines the GitLab subgroup path and Jamf category.'}
+          disabled={isEditMode}
         />
 
         <FormField label="GitLab Group" id="gitLabGroup" hint="Locked by environment configuration.">
@@ -408,8 +414,9 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
               <button
                 key={p.value}
                 type="button"
-                className={`platform-btn ${state.platform === p.value ? 'platform-btn--selected' : ''}`}
-                onClick={() => updateField('platform', p.value)}
+                className={`platform-btn ${state.platform === p.value ? 'platform-btn--selected' : ''} ${isEditMode ? 'platform-btn--disabled' : ''}`}
+                onClick={() => !isEditMode && updateField('platform', p.value)}
+                disabled={isEditMode}
               >
                 <span className="platform-btn__icon">{p.icon}</span>
                 <div className="platform-btn__info">
@@ -649,6 +656,12 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+
+        .platform-btn--disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          pointer-events: none;
         }
 
         /* ── Duplicate Alert Card ── */

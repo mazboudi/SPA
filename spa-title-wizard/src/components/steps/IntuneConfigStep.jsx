@@ -138,9 +138,16 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     }
   }, [state]);
 
+  // Re-run comparison reactively when state changes (e.g. after a pull updates a field)
+  useEffect(() => {
+    if (!syncIntuneData || syncLoading) return;
+    const result = compareIntuneState(state, syncIntuneData);
+    setSyncResult(result);
+  }, [state, syncIntuneData]);
+
   const handleSyncPullField = useCallback((field, intuneValue) => {
     const fieldMap = {
-      displayName: 'intuneAppName',
+      displayName: '_intuneAppNameOverride',
       description: 'appDescription',
       publisher: 'publisher',
       displayVersion: 'version',
@@ -161,15 +168,8 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     };
     if (fieldMap[field]) {
       updateField(fieldMap[field], intuneValue);
-      // Re-run comparison after pull
-      if (syncIntuneData) {
-        setTimeout(() => {
-          const result = compareIntuneState(state, syncIntuneData);
-          setSyncResult(result);
-        }, 50);
-      }
     }
-  }, [updateField, state, syncIntuneData]);
+  }, [updateField]);
 
   const handleSyncPullAll = useCallback(() => {
     if (!syncResult) return;
@@ -579,8 +579,16 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               <div className="config-section">
                 <h3 className="section-title">App Metadata</h3>
                 <div className="form-grid">
-                  <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to App Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
-                    <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} value={state.intuneAppName || ''} onChange={e => updateField('intuneAppName', e.target.value)} />
+                  <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to App Display Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
+                    <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} value={intuneAppNameValue} onChange={e => {
+                      const val = e.target.value;
+                      // If the user typed exactly the auto-default (or cleared the field), remove the override
+                      if (!val || val === defaultIntuneAppName) {
+                        updateField('_intuneAppNameOverride', '');
+                      } else {
+                        updateField('_intuneAppNameOverride', val);
+                      }
+                    }} />
                     {isDuplicate && (
                       <div className="duplicate-warning animate-in" style={{
                         marginTop: '8px',
