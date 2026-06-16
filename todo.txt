@@ -1,15 +1,8 @@
-Intune section Allow available uninstall option 
+The new Intune two-way sync feature looks nice! The only major issue I see is that when I go to edit the existing GitLab project (which was published to Intune), the Workbench assumes I want to sync up with the Intune app I imported metadata from when originally refactoring. I see it in the app.json for the DTEX Forwarder project ("intuneAppId": "b82a344a-73aa-43ef-9071-92abac16c431"). The AppId used to import Intune metadata during a refactor should not be persisted in the app.json (or at least not referenced for the purposes of Intune metadata sync). We need a "Sync with existing Intune Win32 App" option in the Intune section of the Workbench. Selection could be the same as in the refactor screen where you can import metadata from Intune.  All we really need is the ability to manually specify the AppId to sync with. It's fine (even desirable) to persist this AppId so long as we can change or remove the association in the Workbench.
 
-Restart behavior needs to be better defined for the 4 options (match wording from Intune) 
-
-Ability to add additional return codes besides the defaults (see return code structure of an Intune w32 app) 
-
-Requirements – add min # of logical processors and min CPU speed 
-
-Requirements – ability to add custom requirement rules (File, Registry, or Script) 
-
-Requirements – Options for “Check OS architecture” should be either “No, Allow this app to be installed on all systems” or “Yes, Specify the systems the app can be installed on” which should then reveal checkboxes for install on x86, x64, ARM64. 
-
-Detection – Options should be either “Manually configure detection rules” with type either MSI, File, or Registry (can have only 1 MSI rule but can have multiple file and registry rules) or “Use custom script detection” where users would supply a ps1 file. Options for custom script detection beyond ps1 file are “run script as 32-bit process on 64-bit clients” and “enforce script signature check and run script silently.” 
-
-App dependencies and supersedence options via App ID with proper options for both (dependencies – Automatically install yes/no, supersedence – uninstall previous version yes/no).  
+A few other thoughts on the implementation:
+Only show the Intune Sync screen in the Intune section of the Workbench. Have it appear below the project navigation links.
+If no Intune app has been specified to sync with yet, give the option to load from catalog or specify manually via AppId.
+While I like the option to push to Intune, I think it's too dangerous in its current form. Also, for it to be useful in its current form, one would need to make edits to Intune metadata in the Workbench, publish to GitLab, and then perform an edit on the project again. (I can explain this better over voice/screenshare.)
+Building on the last bullet point, I think we just give the option to pull from Intune in the Intune Sync section. If we want to allow pushing to Intune, we make that an option on the Review & Export page with a clear summary of exactly what's going to change.
+Don't allow pushing of assignments from the Workbench to Intune outside of hardcoded test groups. Just too dangerous in my opinion. I think assignments should be done manually in Intune or through automated ServiceNow workflow.
