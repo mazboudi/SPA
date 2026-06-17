@@ -184,15 +184,6 @@ export default function IntuneSyncPanel({
                         <td className="sync-panel__td sync-panel__td--actions">
                           {!d.match ? (
                             <div className="sync-panel__action-group">
-                              {onKeepField && (
-                                <button
-                                  className="sync-panel__action-btn sync-panel__action-btn--keep"
-                                  onClick={() => onKeepField(d.field)}
-                                  title="Keep the builder value"
-                                >
-                                  Builder →
-                                </button>
-                              )}
                               <button
                                 className="sync-panel__action-btn sync-panel__action-btn--pull"
                                 onClick={() => onPullField(d.field, d.intune)}

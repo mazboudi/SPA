@@ -140,10 +140,11 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   // Re-run comparison reactively when state changes (e.g. after a pull updates a field)
   useEffect(() => {
-    if (!syncIntuneData || syncLoading) return;
+    if (!syncIntuneData) return;
+    if (syncLoading) return;
     const result = compareIntuneState(state, syncIntuneData);
     setSyncResult(result);
-  }, [state, syncIntuneData]);
+  }, [state, syncIntuneData, syncLoading]);
 
   const handleSyncPullField = useCallback((field, intuneValue) => {
     const fieldMap = {
@@ -166,17 +167,50 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
       minCpuSpeedMHz: 'minCpuSpeedMHz',
       minProcessors: 'minLogicalProcessors',
     };
-    if (fieldMap[field]) {
-      updateField(fieldMap[field], intuneValue);
+    const mappedField = fieldMap[field];
+    if (mappedField) {
+      updateField(mappedField, intuneValue);
     }
   }, [updateField]);
 
   const handleSyncPullAll = useCallback(() => {
     if (!syncResult) return;
     for (const d of syncResult.diffs) {
-      if (!d.match) handleSyncPullField(d.field, d.intune);
+      if (!d.match) {
+        const fieldMap = {
+          displayName: '_intuneAppNameOverride',
+          description: 'appDescription',
+          publisher: 'publisher',
+          displayVersion: 'version',
+          owner: 'appOwner',
+          developer: 'appDeveloper',
+          informationUrl: 'informationUrl',
+          privacyUrl: 'privacyUrl',
+          notes: 'appNotes',
+          isFeatured: 'isFeatured',
+          allowAvailableUninstall: 'allowAvailableUninstall',
+          restartBehavior: 'restartBehavior',
+          maxInstallTime: 'maxInstallTime',
+          minWinRelease: 'minWinRelease',
+          minDiskSpaceMB: 'minDiskSpaceMB',
+          minMemoryMB: 'minMemoryMB',
+          minCpuSpeedMHz: 'minCpuSpeedMHz',
+          minProcessors: 'minLogicalProcessors',
+        };
+        const mapped = fieldMap[d.field];
+        if (mapped) updateField(mapped, d.intune);
+      }
     }
-  }, [syncResult, handleSyncPullField]);
+  }, [syncResult, updateField]);
+
+  // "Keep All Builder" — builder values are already in state, so this is a no-op
+  // for data, but we force a re-check to refresh the panel display.
+  const handleSyncKeepAll = useCallback(() => {
+    if (syncIntuneData) {
+      const result = compareIntuneState(state, syncIntuneData);
+      setSyncResult(result);
+    }
+  }, [state, syncIntuneData]);
 
   const handleSetSyncApp = useCallback((appId) => {
     updateField('syncIntuneAppId', appId);
@@ -1082,8 +1116,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                     error={syncError}
                     onPullField={handleSyncPullField}
                     onPullAll={handleSyncPullAll}
-                    onKeepField={() => {}}
-                    onKeepAll={() => {}}
+                    onKeepAll={handleSyncKeepAll}
                     onRefresh={() => { setSyncResult(null); runSyncCheck(state.syncIntuneAppId); }}
                     onDismiss={() => setSyncResult(null)}
                   />
