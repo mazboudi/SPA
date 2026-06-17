@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import './intune-sync.css';
 
 /**
- * IntuneSyncPanel — Pull-only comparison of builder state vs live Intune data.
- * Shows diffs grouped by category with per-field "Pull from Intune" actions.
+ * IntuneSyncPanel — Bi-directional comparison of builder state vs live Intune data.
+ * Shows diffs grouped by category with per-field "Use Builder" / "Use Intune" actions.
  *
  * Props:
  *   diffs       — Array from compareIntuneState()
@@ -11,8 +11,11 @@ import './intune-sync.css';
  *   diffCount   — number of differing fields
  *   loading     — boolean, true while fetching
  *   error       — error message string
- *   onPullField(field, intuneValue) — pull a single field from Intune into builder
- *   onPullAll() — pull all differing fields from Intune
+ *   onPullField(field, intuneValue) — set builder field to Intune value
+ *   onPullAll()  — set all differing fields to Intune values
+ *   onKeepField(field) — keep builder value (no-op, just marks resolved)
+ *   onKeepAll()  — keep all builder values
+ *   onRefresh()  — re-fetch and re-compare
  *   onDismiss() — close the panel
  */
 export default function IntuneSyncPanel({
@@ -23,6 +26,9 @@ export default function IntuneSyncPanel({
   error = null,
   onPullField,
   onPullAll,
+  onKeepField,
+  onKeepAll,
+  onRefresh,
   onDismiss,
 }) {
   const [filterMode, setFilterMode] = useState('diffs'); // 'all' | 'diffs'
@@ -77,16 +83,17 @@ export default function IntuneSyncPanel({
     );
   }
 
-  if (diffCount === 0) {
+  if (diffs.length > 0 && diffCount === 0) {
     return (
       <div className="sync-panel sync-panel--ok">
         <div className="sync-panel__header">
           <h3 className="sync-panel__title">✅ In Sync</h3>
-          <button className="sync-panel__close" onClick={onDismiss}>✕</button>
+          <div className="sync-panel__header-actions">
+            {onRefresh && <button className="sync-panel__btn sync-panel__btn--secondary" onClick={onRefresh}>↻ Re-check</button>}
+          </div>
         </div>
         <div className="sync-panel__ok-body">
           <p>All {matchCount} comparable fields match between the builder and Intune.</p>
-          <button className="sync-panel__btn sync-panel__btn--secondary" onClick={onDismiss}>Close</button>
         </div>
       </div>
     );
@@ -97,8 +104,11 @@ export default function IntuneSyncPanel({
       <div className="sync-panel__header">
         <h3 className="sync-panel__title">
           🔄 Intune Sync — <span className="sync-panel__diff-count">{diffCount} difference{diffCount !== 1 && 's'}</span>
+          {matchCount > 0 && <span className="sync-panel__match-count">, {matchCount} matching</span>}
         </h3>
-        <button className="sync-panel__close" onClick={onDismiss}>✕</button>
+        <div className="sync-panel__header-actions">
+          {onRefresh && <button className="sync-panel__btn sync-panel__btn--secondary" onClick={onRefresh}>↻ Re-check</button>}
+        </div>
       </div>
 
       <div className="sync-panel__toolbar">
@@ -117,12 +127,21 @@ export default function IntuneSyncPanel({
           </button>
         </div>
         <div className="sync-panel__bulk-actions">
+          {onKeepAll && (
+            <button
+              className="sync-panel__btn sync-panel__btn--keep"
+              onClick={onKeepAll}
+              title="Keep all builder values (no changes)"
+            >
+              Use All Builder →
+            </button>
+          )}
           <button
             className="sync-panel__btn sync-panel__btn--pull"
             onClick={onPullAll}
             title="Update builder with all Intune values"
           >
-            ← Pull All from Intune
+            ← Use All Intune
           </button>
         </div>
       </div>
@@ -147,7 +166,7 @@ export default function IntuneSyncPanel({
                       <th className="sync-panel__th sync-panel__th--field">Field</th>
                       <th className="sync-panel__th sync-panel__th--builder">Builder (GitLab)</th>
                       <th className="sync-panel__th sync-panel__th--intune">Intune (Live)</th>
-                      <th className="sync-panel__th sync-panel__th--actions">Action</th>
+                      <th className="sync-panel__th sync-panel__th--actions">Resolve</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,14 +182,27 @@ export default function IntuneSyncPanel({
                           <code className="sync-panel__value">{d.intuneDisplay || '(empty)'}</code>
                         </td>
                         <td className="sync-panel__td sync-panel__td--actions">
-                          {!d.match && (
-                            <button
-                              className="sync-panel__action-btn sync-panel__action-btn--pull"
-                              onClick={() => onPullField(d.field, d.intune)}
-                              title="Use Intune value in builder"
-                            >
-                              ← Pull
-                            </button>
+                          {!d.match ? (
+                            <div className="sync-panel__action-group">
+                              {onKeepField && (
+                                <button
+                                  className="sync-panel__action-btn sync-panel__action-btn--keep"
+                                  onClick={() => onKeepField(d.field)}
+                                  title="Keep the builder value"
+                                >
+                                  Builder →
+                                </button>
+                              )}
+                              <button
+                                className="sync-panel__action-btn sync-panel__action-btn--pull"
+                                onClick={() => onPullField(d.field, d.intune)}
+                                title="Use Intune value in builder"
+                              >
+                                ← Intune
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="sync-panel__resolved">✓</span>
                           )}
                         </td>
                       </tr>

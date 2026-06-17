@@ -445,5 +445,13 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
 .psadt-tab-btn__icon {
   font-size: 1.1rem;
 }
-
+.psadt-tab-btn__badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
 

@@ -422,90 +422,8 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         <IntuneMetaSummary state={state} />
       )}
 
-      {/* ═══ INTUNE SYNC SECTION — edit mode only ═══ */}
-      {state.wizardMode === 'edit' && (
-        <div className="intune-sync-section">
-          <div className="intune-sync-section__header">
-            <span className="intune-sync-section__icon">🔄</span>
-            <span className="intune-sync-section__title">Intune Sync</span>
-            {state.syncIntuneAppId && (
-              <span className="intune-sync-section__appid" title={state.syncIntuneAppId}>
-                {state.syncIntuneAppId.substring(0, 8)}…
-              </span>
-            )}
-          </div>
 
-          {!state.syncIntuneAppId ? (
-            /* No sync app configured — show selector */
-            <div className="intune-sync-section__setup">
-              <p className="intune-sync-section__hint">
-                Link this title to an existing Intune Win32 app to compare and pull metadata.
-              </p>
-              <div className="intune-sync-section__actions">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-secondary"
-                  onClick={handleLoadCatalogForSync}
-                  disabled={catalogLoading}
-                >
-                  {catalogLoading ? '⏳ Loading…' : '📋 Select from Intune Catalog'}
-                </button>
-                <div className="intune-sync-section__manual">
-                  <input
-                    type="text"
-                    className="form-input form-input--sm"
-                    placeholder="Or paste Intune App ID (GUID)…"
-                    value={manualAppId}
-                    onChange={e => setManualAppId(e.target.value)}
-                    style={{ flex: 1, minWidth: 260 }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary"
-                    disabled={!manualAppId.trim() || !GUID_RE.test(manualAppId.trim())}
-                    onClick={() => handleSetSyncApp(manualAppId.trim())}
-                  >
-                    Link
-                  </button>
-                </div>
-              </div>
 
-              {/* Inline catalog picker */}
-              {showCatalogPicker && catalogForSync && (
-                <div className="intune-sync-section__catalog">
-                  <CatalogMiniPicker
-                    apps={catalogForSync}
-                    onSelect={(app) => {
-                      handleSetSyncApp(app.id || app.appId);
-                      setShowCatalogPicker(false);
-                    }}
-                    onClose={() => setShowCatalogPicker(false)}
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Sync app is set — show comparison */
-            <div className="intune-sync-section__content">
-              <div className="intune-sync-section__linked">
-                <span>Linked to: <code>{state.syncIntuneAppId}</code></span>
-                <button type="button" className="btn btn-ghost btn-xs" onClick={() => { setSyncResult(null); runSyncCheck(state.syncIntuneAppId); }}>↻ Re-check</button>
-                <button type="button" className="btn btn-ghost btn-xs" onClick={handleRemoveSyncApp} style={{ color: '#ef4444' }}>✕ Remove</button>
-              </div>
-              <IntuneSyncPanel
-                diffs={syncResult?.diffs || []}
-                matchCount={syncResult?.matchCount || 0}
-                diffCount={syncResult?.diffCount || 0}
-                loading={syncLoading}
-                error={syncError}
-                onPullField={handleSyncPullField}
-                onPullAll={handleSyncPullAll}
-                onDismiss={() => setSyncResult(null)}
-              />
-            </div>
-          )}
-        </div>
-      )}
 
       {hasErrors && (
         <div className="validation-banner">
@@ -564,6 +482,19 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
           <span className="psadt-tab-btn__icon">👥</span>
           <span className="psadt-tab-btn__label">Assignments</span>
         </button>
+        {state.wizardMode === 'edit' && (
+          <button
+            type="button"
+            className={`psadt-tab-btn ${activeTab === 'sync' ? 'psadt-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab('sync')}
+          >
+            <span className="psadt-tab-btn__icon">🔄</span>
+            <span className="psadt-tab-btn__label">Intune Sync</span>
+            {syncResult && syncResult.diffCount > 0 && (
+              <span className="psadt-tab-btn__badge">{syncResult.diffCount}</span>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="intune-tab-content">
@@ -1073,6 +1004,92 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               onChange={v => updateField('assignments', v)}
               validationErrors={errors}
             />
+          </div>
+        )}
+
+        {/* ==========================================
+            TAB: INTUNE SYNC (edit mode only)
+            ========================================== */}
+        {activeTab === 'sync' && state.wizardMode === 'edit' && (
+          <div className="animate-in">
+            <div className="config-section">
+              <h3 className="section-title">🔄 Intune Sync</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)' }}>
+                Compare builder state against live Intune data. Resolve differences per-field by choosing whether to keep the builder value or use the Intune value.
+              </p>
+
+              {!state.syncIntuneAppId ? (
+                /* No sync app configured — show selector */
+                <div className="intune-sync-section__setup">
+                  <p className="intune-sync-section__hint">
+                    Link this title to an existing Intune Win32 app to compare metadata.
+                  </p>
+                  <div className="intune-sync-section__actions">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={handleLoadCatalogForSync}
+                      disabled={catalogLoading}
+                    >
+                      {catalogLoading ? '⏳ Loading…' : '📋 Select from Intune Catalog'}
+                    </button>
+                    <div className="intune-sync-section__manual">
+                      <input
+                        type="text"
+                        className="form-input form-input--sm"
+                        placeholder="Or paste Intune App ID (GUID)…"
+                        value={manualAppId}
+                        onChange={e => setManualAppId(e.target.value)}
+                        style={{ flex: 1, minWidth: 260 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        disabled={!manualAppId.trim() || !GUID_RE.test(manualAppId.trim())}
+                        onClick={() => handleSetSyncApp(manualAppId.trim())}
+                      >
+                        Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Inline catalog picker */}
+                  {showCatalogPicker && catalogForSync && (
+                    <div className="intune-sync-section__catalog">
+                      <CatalogMiniPicker
+                        apps={catalogForSync}
+                        onSelect={(app) => {
+                          handleSetSyncApp(app.id || app.appId);
+                          setShowCatalogPicker(false);
+                        }}
+                        onClose={() => setShowCatalogPicker(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Sync app is set — show comparison */
+                <div>
+                  <div className="intune-sync-section__linked" style={{ marginBottom: 'var(--space-md)', padding: '8px 12px', background: 'var(--bg-card, rgba(255,255,255,0.02))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <span>Linked to: <code>{state.syncIntuneAppId}</code></span>
+                    <button type="button" className="btn btn-ghost btn-xs" onClick={handleRemoveSyncApp} style={{ color: '#ef4444', marginLeft: 'auto' }}>✕ Unlink</button>
+                  </div>
+                  <IntuneSyncPanel
+                    diffs={syncResult?.diffs || []}
+                    matchCount={syncResult?.matchCount || 0}
+                    diffCount={syncResult?.diffCount || 0}
+                    loading={syncLoading}
+                    error={syncError}
+                    onPullField={handleSyncPullField}
+                    onPullAll={handleSyncPullAll}
+                    onKeepField={() => {}}
+                    onKeepAll={() => {}}
+                    onRefresh={() => { setSyncResult(null); runSyncCheck(state.syncIntuneAppId); }}
+                    onDismiss={() => setSyncResult(null)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
