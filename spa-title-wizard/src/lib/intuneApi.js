@@ -96,3 +96,21 @@ export async function pushIntuneAssignments(appId, assignments) {
   }
   return res.json();
 }
+
+/**
+ * Save live Intune data to the local project workspace (windows/intune/live_app.json)
+ * @param {string} projectId - The GitLab project ID
+ * @param {Object} parsedData - The live data, mapped to builder app.json schema
+ */
+export async function saveIntuneSnapshot(projectId, parsedData) {
+  const res = await fetch(`/api/projects/${projectId}/intune-sync-snapshot`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ liveData: parsedData }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || `Failed to save snapshot (HTTP ${res.status})`);
+  }
+  return res.json();
+}

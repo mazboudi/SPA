@@ -837,6 +837,40 @@ app.get('/api/projects/:id/files', async (req, res) => {
   }
 });
 
+// ── POST /api/projects/:id/intune-sync-snapshot — save live data to windows/intune/live_app.json ──────
+app.post('/api/projects/:id/intune-sync-snapshot', express.json(), async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const { liveData } = req.body;
+    
+    if (!liveData) {
+      return res.status(400).json({ message: 'Missing liveData payload' });
+    }
+
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty' || ['101', '102', '103'].includes(projectId.toString())) {
+      // Mock mode, just pretend it succeeded
+      return res.json({ success: true, path: 'windows/intune/live_app.json' });
+    }
+
+    const project = await gitlab('GET', `/projects/${projectId}`);
+    const localPath = ensureLocalClone(project.path_with_namespace, project.default_branch || 'main');
+    
+    const targetDir = path.join(localPath, 'windows', 'intune');
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    
+    const targetFile = path.join(targetDir, 'live_app.json');
+    fs.writeFileSync(targetFile, JSON.stringify(liveData, null, 2), 'utf-8');
+    
+    console.log(`✅ Saved live Intune snapshot to ${targetFile}`);
+    res.json({ success: true, path: 'windows/intune/live_app.json' });
+  } catch (err) {
+    console.error('❌ Failed to save Intune snapshot:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ██  Microsoft Graph — Intune Win32 App Catalog
 // ═══════════════════════════════════════════════════════════════════════════
