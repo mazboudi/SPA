@@ -113,14 +113,6 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
   const [catalogForSync, setCatalogForSync] = useState(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
 
-  // Auto-fetch comparison when syncIntuneAppId is set and we're editing
-  useEffect(() => {
-    if (state.wizardMode !== 'edit') return;
-    if (!state.syncIntuneAppId) return;
-    if (syncIntuneData || syncLoading) return;
-    runSyncCheck(state.syncIntuneAppId);
-  }, [state.wizardMode, state.syncIntuneAppId, syncIntuneData, syncLoading, runSyncCheck]);
-
   const runSyncCheck = useCallback(async (appId) => {
     setSyncLoading(true);
     setSyncError(null);
@@ -140,7 +132,15 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     } finally {
       setSyncLoading(false);
     }
-  }, [state.id]);
+  }, [state._editProjectId]);
+
+  // Auto-fetch comparison when syncIntuneAppId is set and we're editing
+  useEffect(() => {
+    if (state.wizardMode !== 'edit') return;
+    if (!state.syncIntuneAppId) return;
+    if (syncIntuneData || syncLoading) return;
+    runSyncCheck(state.syncIntuneAppId);
+  }, [state.wizardMode, state.syncIntuneAppId, syncIntuneData, syncLoading, runSyncCheck]);
 
   const handleSyncPullField = useCallback((field, value) => {
     // For structural JSON picker, the field is exactly the builder key
@@ -484,9 +484,6 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
           >
             <span className="psadt-tab-btn__icon">🔄</span>
             <span className="psadt-tab-btn__label">Intune Sync</span>
-            {syncResult && syncResult.diffCount > 0 && (
-              <span className="psadt-tab-btn__badge">{syncResult.diffCount}</span>
-            )}
           </button>
         )}
       </div>
