@@ -5,7 +5,9 @@ import ToggleSwitch from '../ui/ToggleSwitch';
 import AssignmentsSection from '../ui/AssignmentsSection';
 import JsonDiffPicker from '../ui/JsonDiffPicker';
 import { parseIntuneExport } from '../../lib/parseIntuneExport';
+import { generateIntuneExport } from '../../lib/generateIntuneExport';
 import { fetchIntuneAppDetail, saveIntuneSnapshot } from '../../lib/intuneApi';
+import { set, isEqual } from 'lodash';
 import windowsOptions from '../../config/windowsOptions.json';
 import './windows-steps.css';
 
@@ -107,23 +109,25 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
   // ── Intune Sync state ────────────────────────────────────────────────
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState(null);
-  const [syncIntuneData, setSyncIntuneData] = useState(null);
+  const [syncRawIntuneData, setSyncRawIntuneData] = useState(null);
   const [showCatalogPicker, setShowCatalogPicker] = useState(false);
   const [manualAppId, setManualAppId] = useState('');
   const [catalogForSync, setCatalogForSync] = useState(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
+
+  const syncGeneratedIntuneData = useMemo(() => generateIntuneExport(state), [state]);
 
   const runSyncCheck = useCallback(async (appId) => {
     setSyncLoading(true);
     setSyncError(null);
     try {
       const intuneData = await fetchIntuneAppDetail(appId);
-      const parsed = parseIntuneExport(intuneData);
-      setSyncIntuneData(parsed.fields);
+      setSyncRawIntuneData(intuneData);
       
-      // Save it to the backend as a snapshot (non-blocking for UI)
+      // We still want to save the snapshot so the user has offline history of the raw data
+      // We can just save the raw data instead of parsed fields!
       if (state._editProjectId) {
-        saveIntuneSnapshot(state._editProjectId, parsed.fields).catch(err => {
+        saveIntuneSnapshot(state._editProjectId, intuneData).catch(err => {
           console.warn('Failed to save Intune snapshot to workspace:', err);
         });
       }
@@ -138,53 +142,62 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
   useEffect(() => {
     if (state.wizardMode !== 'edit') return;
     if (!state.syncIntuneAppId) return;
-    if (syncIntuneData || syncLoading) return;
+    if (syncRawIntuneData || syncLoading) return;
     runSyncCheck(state.syncIntuneAppId);
-  }, [state.wizardMode, state.syncIntuneAppId, syncIntuneData, syncLoading, runSyncCheck]);
+  }, [state.wizardMode, state.syncIntuneAppId, syncRawIntuneData, syncLoading, runSyncCheck]);
 
-  const handleSyncPullField = useCallback((field, value) => {
-    // For structural JSON picker, the field is exactly the builder key
-    // Handle nested fields like lifecycle.phases...
-    if (field.includes('.')) {
-      // We don't support deeply nested cherry picks easily without a deep setter,
-      // but for top-level it works. Let's just handle top-level strings for now,
-      // or simple objects.
-      console.warn("Deep nested cherry pick not fully supported yet:", field);
-    } else {
-      // Special case: if it's displayName, it goes to _intuneAppNameOverride in edit mode 
-      // based on the new deriveState architecture.
-      if (field === 'displayName') {
-        updateField('_intuneAppNameOverride', value);
-      } else {
-        updateField(field, value);
+  const handleSyncPullField = useCallback((fieldPath, value) => {
+    if (!syncGeneratedIntuneData) return;
+    
+    // 1. Create a deep clone of the current generated Intune JSON
+    const updatedExport = JSON.parse(JSON.stringify(syncGeneratedIntuneData));
+    
+    // 2. Apply the pulled field using Lodash
+    set(updatedExport, fieldPath, value);
+    
+    // 3. Parse it back to Builder state properties
+    const parsed = parseIntuneExport(updatedExport);
+    
+    // 4. Update the state with ONLY the properties that actually changed
+    for (const [key, parsedVal] of Object.entries(parsed.fields)) {
+      if (!isEqual(state[key], parsedVal)) {
+        if (key === 'displayName') {
+          updateField('_intuneAppNameOverride', parsedVal);
+        } else {
+          updateField(key, parsedVal);
+        }
       }
     }
-  }, [updateField]);
+  }, [syncGeneratedIntuneData, state, updateField]);
 
   const handleSyncPullAll = useCallback(() => {
-    if (!syncIntuneData) return;
-    for (const [key, value] of Object.entries(syncIntuneData)) {
-      if (key === 'displayName') {
-        updateField('_intuneAppNameOverride', value);
-      } else {
-        updateField(key, value);
+    if (!syncRawIntuneData) return;
+    
+    // When pulling all, we take the ENTIRE raw Intune object and parse it!
+    const parsed = parseIntuneExport(syncRawIntuneData);
+    
+    for (const [key, parsedVal] of Object.entries(parsed.fields)) {
+      if (!isEqual(state[key], parsedVal)) {
+        if (key === 'displayName') {
+          updateField('_intuneAppNameOverride', parsedVal);
+        } else {
+          updateField(key, parsedVal);
+        }
       }
     }
-  }, [syncIntuneData, updateField]);
+  }, [syncRawIntuneData, state, updateField]);
 
   const handleSetSyncApp = useCallback((appId) => {
     updateField('syncIntuneAppId', appId);
     setManualAppId('');
-    setSyncResult(null);
     setSyncError(null);
     // Will auto-trigger comparison via the useEffect
   }, [updateField]);
 
   const handleRemoveSyncApp = useCallback(() => {
     updateField('syncIntuneAppId', '');
-    setSyncResult(null);
     setSyncError(null);
-    setSyncIntuneData(null);
+    setSyncRawIntuneData(null);
   }, [updateField]);
 
   const handleLoadCatalogForSync = useCallback(async () => {
@@ -1071,14 +1084,10 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                     <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Fetching live Intune data...</div>
                   ) : syncError ? (
                     <div className="validation-banner">⚠️ {syncError}</div>
-                  ) : syncIntuneData ? (
+                  ) : syncRawIntuneData ? (
                     <JsonDiffPicker
-                      targetObj={{
-                        ...state,
-                        // Override displayName in targetObj so it matches what we'd export to Intune App Name
-                        displayName: state.intuneAppName,
-                      }}
-                      sourceObj={syncIntuneData}
+                      targetObj={syncGeneratedIntuneData}
+                      sourceObj={syncRawIntuneData}
                       onPullField={handleSyncPullField}
                       onPullAll={handleSyncPullAll}
                       titleLeft="Builder (app.json)"
