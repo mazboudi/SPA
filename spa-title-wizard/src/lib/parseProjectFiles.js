@@ -103,8 +103,14 @@ export function parseProjectFiles(files) {
       // so deriveState() keeps the name current when displayName/version change.
       const intuneDisplayName = intuneApp.displayName || '';
       const autoPattern = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
-      if (intuneDisplayName && intuneDisplayName !== autoPattern) {
-        state._intuneAppNameOverride = intuneDisplayName;
+      
+      // If we don't have a displayName in state yet (e.g. missing app.json), we shouldn't 
+      // lock in an override because it will break auto-calculation when the user fills in Basic Info.
+      // Also, check if it matches common auto-patterns.
+      if (state.displayName && intuneDisplayName) {
+        if (intuneDisplayName !== autoPattern && intuneDisplayName !== state.displayName.trim()) {
+          state._intuneAppNameOverride = intuneDisplayName;
+        }
       }
       state.appDescription = intuneApp.description || '';
       state.appOwner = intuneApp.owner || 'EUC Packaging';

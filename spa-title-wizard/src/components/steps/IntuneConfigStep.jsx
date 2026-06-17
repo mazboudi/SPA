@@ -241,6 +241,28 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   const hasErrors = Object.keys(errors).length > 0;
 
+  // ── Mandatory field validation per tab ─────────────────────────────────
+  const defaultIntuneAppNameGlobal = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+  const intuneAppNameGlobal = state.intuneAppName || defaultIntuneAppNameGlobal;
+
+  const tabValidation = useMemo(() => {
+    const v = { info: [], detection: [] };
+    // Info tab
+    if (!intuneAppNameGlobal) v.info.push('Intune App Name is required');
+    if (!(state.appDescription || '').trim()) v.info.push('Description is required');
+    if (!(state.publisher || '').trim()) v.info.push('Publisher is required');
+    // Detection tab
+    const detRules = state.detectionRules || [];
+    if (state.detectionMethod === 'script') {
+      if (!(state.scriptContent || '').trim()) v.detection.push('Detection script is required');
+    } else {
+      if (detRules.length === 0) v.detection.push('At least 1 detection rule is required');
+    }
+    return v;
+  }, [intuneAppNameGlobal, state.appDescription, state.publisher, state.detectionRules, state.detectionMethod, state.scriptContent]);
+
+  const hasMandatoryErrors = (tabValidation.info.length + tabValidation.detection.length) > 0;
+
   // ── Return Codes CRUD ────────────────────────────────────────────────
   const returnCodes = state.returnCodes || [];
   const addReturnCode = () => {
@@ -438,6 +460,12 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
           <span>Some fields have validation errors. Fix them before exporting to avoid Graph API failures.</span>
         </div>
       )}
+      {hasMandatoryErrors && (
+        <div className="validation-banner" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+          <span className="validation-banner__icon">🚫</span>
+          <span>Required fields are missing: {[...tabValidation.info, ...tabValidation.detection].join(' · ')}</span>
+        </div>
+      )}
 
       {/* Premium Navigation Tabs */}
       <div className="psadt-tab-bar">
@@ -448,6 +476,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         >
           <span className="psadt-tab-btn__icon">📋</span>
           <span className="psadt-tab-btn__label">App Information</span>
+          {tabValidation.info.length > 0 && <span className="tab-error-dot" title={tabValidation.info.join(', ')}>●</span>}
         </button>
         <button
           type="button"
@@ -472,6 +501,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         >
           <span className="psadt-tab-btn__icon">🔍</span>
           <span className="psadt-tab-btn__label">Detection Rules</span>
+          {tabValidation.detection.length > 0 && <span className="tab-error-dot" title={tabValidation.detection.join(', ')}>●</span>}
         </button>
         <button
           type="button"
@@ -514,7 +544,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               <div className="config-section">
                 <h3 className="section-title">App Metadata</h3>
                 <div className="form-grid">
-                  <FormField label="Intune App Name" id="intuneAppName" hint="Customize how the application displays in the Intune Company Portal. Defaults to App Display Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
+                  <FormField label="Intune App Name" id="intuneAppName" required hint="Customize how the application displays in the Intune Company Portal. Defaults to App Display Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
                     <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} value={intuneAppNameValue} onChange={e => {
                       const val = e.target.value;
                       // If the user typed exactly the auto-default (or cleared the field), remove the override
@@ -547,10 +577,10 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                   <FormField label="App Version" id="intuneAppVersion" hint="Synced from Basic Info — edit there to change.">
                     <input id="intuneAppVersion" type="text" readOnly value={state.version || ''} className="mono-input" style={{ opacity: 0.8 }} />
                   </FormField>
-                  <FormField label="Description" id="appDescription">
+                  <FormField label="Description" id="appDescription" required error={!(state.appDescription || '').trim() ? 'Description is required' : undefined}>
                     <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
                   </FormField>
-                <FormField label="Publisher" id="publisher">
+                <FormField label="Publisher" id="publisher" required error={!(state.publisher || '').trim() ? 'Publisher is required' : undefined}>
                   <input id="publisher" type="text" placeholder="e.g. Microsoft, Adobe" value={state.publisher || ''} onChange={e => updateField('publisher', e.target.value)} />
                 </FormField>
                 <FormField label="Owner" id="appOwner">
@@ -1105,6 +1135,8 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         .validation-banner { display: flex; align-items: center; gap: var(--space-sm); padding: 10px var(--space-md); margin-bottom: var(--space-lg); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--color-error, #ef4444); }
         .validation-banner__icon { font-size: 1rem; }
         .input--error { border-color: var(--color-error, #ef4444) !important; box-shadow: 0 0 0 1px rgba(239,68,68,0.25); }
+        .tab-error-dot { color: #ef4444; font-size: 0.6rem; margin-left: 4px; animation: pulse-dot 1.5s ease-in-out infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         .arch-checkboxes { display: flex; gap: var(--space-lg); margin-top: var(--space-sm); padding: 10px var(--space-md); background: var(--bg-card, rgba(255,255,255,0.02)); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
         .arch-checkbox { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }

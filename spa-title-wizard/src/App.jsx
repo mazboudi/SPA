@@ -381,7 +381,7 @@ export default function App() {
           <div>
             <h1 className="app-header__title">SPA Packaging Workbench</h1>
             <h2 className="visually-hidden">SPA Title Scaffolding Workbench</h2>
-            <p className="app-header__subtitle">Software Package Automation — Title Scaffolding</p>
+            <p className="app-header__subtitle">Software Packaging Automation — Win32 App Manager</p>
           </div>
         </div>
 

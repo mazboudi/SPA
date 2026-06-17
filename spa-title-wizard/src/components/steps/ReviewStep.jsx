@@ -22,6 +22,28 @@ export default function ReviewStep({ state, updateField }) {
   const [apiAvailable, setApiAvailable] = useState(null);
   const [pipelineAction, setPipelineAction] = useState('none');
 
+  // Intune mandatory field validation — blocks Build+Publish and Build+Publish+Assign
+  const intuneReady = useMemo(() => {
+    const intuneAppName = state.intuneAppName || `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+    if (!intuneAppName) return false;
+    if (!(state.appDescription || '').trim()) return false;
+    if (!(state.publisher || '').trim()) return false;
+    const detRules = state.detectionRules || [];
+    if (state.detectionMethod === 'script') {
+      if (!(state.scriptContent || '').trim()) return false;
+    } else {
+      if (detRules.length === 0) return false;
+    }
+    return true;
+  }, [state.intuneAppName, state.displayName, state.version, state.appDescription, state.publisher, state.detectionRules, state.detectionMethod, state.scriptContent]);
+
+  // Auto-reset pipeline action if the current selection is no longer valid
+  useEffect(() => {
+    if (!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign')) {
+      setPipelineAction('build');
+    }
+  }, [intuneReady, pipelineAction]);
+
   // Persist publish result in wizard state so it survives navigation
   const publishResult = state._lastPublishResult || null;
   const setPublishResult = (result) => updateField('_lastPublishResult', result);
@@ -342,8 +364,8 @@ export default function ReviewStep({ state, updateField }) {
                   if (isWin) {
                     options.push(
                       { value: 'build', label: '📦 Build', desc: 'Package .intunewin only' },
-                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package and upload to Intune' },
-                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — deploy to Intune with assignments' },
+                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package and upload to Intune', disabled: !intuneReady },
+                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — deploy to Intune with assignments', disabled: !intuneReady },
                     );
                   }
                   if (isMac && !isWin) {
@@ -357,16 +379,19 @@ export default function ReviewStep({ state, updateField }) {
                     );
                   }
                   return options.map(opt => (
-                    <label key={opt.value} className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''}`}>
+                    <label key={opt.value} className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''} ${opt.disabled ? 'pipeline-option--disabled' : ''}`}
+                      title={opt.disabled ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)' : ''}
+                    >
                       <input
                         type="radio"
                         name="pipelineAction"
                         value={opt.value}
                         checked={pipelineAction === opt.value}
                         onChange={() => setPipelineAction(opt.value)}
+                        disabled={opt.disabled}
                       />
                       <span className="pipeline-option__label">{opt.label}</span>
-                      <span className="pipeline-option__desc">{opt.desc}</span>
+                      <span className="pipeline-option__desc">{opt.desc}{opt.disabled ? ' ⚠️ Intune fields incomplete' : ''}</span>
                     </label>
                   ));
                 })()}
@@ -381,6 +406,7 @@ export default function ReviewStep({ state, updateField }) {
             </button>
             {apiAvailable === false && <span className="publish-hint">⚠️ Publish API not reachable — start with <code>npm run server</code></span>}
             {hasErrors && <span className="publish-hint">⚠️ Fix schema errors before publishing</span>}
+            {!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign') && <span className="publish-hint">🚫 Complete required Intune fields to enable Build + Publish</span>}
           </div>
         )}
       </div>
@@ -836,6 +862,12 @@ export default function ReviewStep({ state, updateField }) {
           font-size: 0.7rem;
           color: var(--text-muted);
           line-height: 1.3;
+        }
+        .pipeline-option--disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          pointer-events: none;
+          border-color: rgba(239, 68, 68, 0.2);
         }
 
         /* ── Script Editor CSS ── */

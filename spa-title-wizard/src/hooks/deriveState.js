@@ -38,7 +38,27 @@ export function deriveState(raw) {
   // This ensures the Intune App Name always stays current when either field changes,
   // unless the user deliberately customized it.
   const computedIntuneAppName = `${raw.displayName || ''} ${raw.version || ''}`.trim().replace(/\s+/g, ' ');
-  state.intuneAppName = raw._intuneAppNameOverride || computedIntuneAppName;
+
+  // Detect stale auto-generated overrides: if the override looks like
+  // "DisplayName <old-version>" (displayName followed by a version number),
+  // it was set by a previous import/save and should NOT block recalculation.
+  // Only true user-custom names (e.g. "My Custom Portal Name") are preserved.
+  let effectiveOverride = raw._intuneAppNameOverride;
+  if (effectiveOverride && raw.displayName) {
+    const prefix = raw.displayName.trim();
+    if (effectiveOverride.startsWith(prefix + ' ')) {
+      const suffix = effectiveOverride.slice(prefix.length + 1).trim();
+      // If the part after displayName starts with a digit, it's a version → auto-generated
+      if (/^\d/.test(suffix)) {
+        effectiveOverride = null;
+      }
+    } else if (effectiveOverride === prefix) {
+      // Override is just the display name with no version — also auto-generated
+      effectiveOverride = null;
+    }
+  }
+
+  state.intuneAppName = effectiveOverride || computedIntuneAppName;
 
   // ── Derived: PSADT Variable Values ───────────────────────────────────
   // Patch variableDeclaration action values from wizard source fields.

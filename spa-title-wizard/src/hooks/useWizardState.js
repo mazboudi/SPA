@@ -416,8 +416,21 @@ export default function useWizardState() {
         return true;
       case 'installer':
         return true; // Installer source is optional guidance, not a blocker
-      case 'intune':
+      case 'intune': {
+        // Mandatory Intune fields
+        const intuneAppName = state.intuneAppName || `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
+        if (!intuneAppName) return false;
+        if (!(state.appDescription || '').trim()) return false;
+        if (!(state.publisher || '').trim()) return false;
+        // Detection rules: at least 1 manual rule, or a detection script
+        const detRules = state.detectionRules || [];
+        if (state.detectionMethod === 'script') {
+          if (!(state.scriptContent || '').trim()) return false;
+        } else {
+          if (detRules.length === 0) return false;
+        }
         return true;
+      }
       case 'macos':
         return true;
       case 'review':
@@ -698,6 +711,16 @@ export default function useWizardState() {
     if (files['spa-wizard-state.json']) {
       try {
         const snapshot = JSON.parse(files['spa-wizard-state.json']);
+
+        // Clean up stale _intuneAppNameOverride: if it matches the auto-generated
+        // pattern (displayName + version), it was never intentionally customized.
+        // Remove it so deriveState() auto-calculates correctly going forward.
+        if (snapshot._intuneAppNameOverride) {
+          const autoPattern = `${snapshot.displayName || ''} ${snapshot.version || ''}`.trim().replace(/\s+/g, ' ');
+          if (snapshot._intuneAppNameOverride === autoPattern || snapshot._intuneAppNameOverride === (snapshot.displayName || '').trim()) {
+            delete snapshot._intuneAppNameOverride;
+          }
+        }
 
         // If we successfully parsed action blocks from the PS1 script, override the visual phase actions!
         // ONLY if the script actually has SPA:Action comment blocks, ensuring we don't erase visual blocks for clean scripts
