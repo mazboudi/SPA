@@ -63,7 +63,7 @@ export default function generatePsadtScript(s, clean = false) {
           const logName = action.logName ? ` -LogName '${action.logName}'` : '';
           const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
           const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args}${transform}${addlArgs}${logName}${successCodes}${rebootCodes}`);
+          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '${action.file}'${args}${transform}${addlArgs}${logName}${successCodes}${rebootCodes}`);
           break;
         }
         case 'exe_install': {
@@ -72,7 +72,7 @@ export default function generatePsadtScript(s, clean = false) {
           const nw = action.noWait ? ' -NoWait' : '';
           const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
           const ignoreCodes = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
-          actionLines.push(`        Start-ADTProcess -FilePath '$dirFiles\\${action.file}'${args}${ws}${nw}${successCodes}${ignoreCodes}`);
+          actionLines.push(`        Start-ADTProcess -FilePath '${action.file}'${args}${ws}${nw}${successCodes}${ignoreCodes}`);
           break;
         }
         case 'execute_process': {
@@ -116,7 +116,7 @@ export default function generatePsadtScript(s, clean = false) {
           const recurse = action.recurse !== false ? ' -Recurse' : '';
           const flatten = action.flatten ? ' -Flatten' : '';
           const mode = action.fileCopyMode ? ` -FileCopyMode '${action.fileCopyMode}'` : '';
-          actionLines.push(`        Copy-ADTFile -Path "$dirFiles\\${action.source}" -Destination '${action.dest}'${recurse}${flatten}${mode}`);
+          actionLines.push(`        Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${recurse}${flatten}${mode}`);
           break;
         }
         case 'file_remove': {
@@ -244,9 +244,9 @@ export default function generatePsadtScript(s, clean = false) {
           const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
           const nw = action.noWait ? ' -NoWait' : '';
           if (isMsi) {
-            actionLines.push(`        Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '$dirFiles\\${action.file}'${args}`);
+            actionLines.push(`        Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '${action.file}'${args}`);
           } else {
-            actionLines.push(`        Start-ADTProcessAsUser -FilePath '$dirFiles\\${action.file}'${args}${ws}${nw}`);
+            actionLines.push(`        Start-ADTProcessAsUser -FilePath '${action.file}'${args}${ws}${nw}`);
           }
           break;
         }
@@ -259,7 +259,7 @@ export default function generatePsadtScript(s, clean = false) {
           break;
         }
         case 'copy_file_to_user_profiles': {
-          actionLines.push(`        Copy-ADTFileToUserProfiles -Path "$dirFiles\\${action.source}" -Destination '${action.destination}'`);
+          actionLines.push(`        Copy-ADTFileToUserProfiles -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.destination}'`);
           break;
         }
         case 'new_shortcut': {
@@ -384,7 +384,7 @@ export default function generatePsadtScript(s, clean = false) {
         }
         case 'msi_patch': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          actionLines.push(`        Start-ADTMsiProcess -Action 'Patch' -FilePath '$dirFiles\\${action.file}'${args}`);
+          actionLines.push(`        Start-ADTMsiProcess -Action 'Patch' -FilePath '${action.file}'${args}`);
           break;
         }
         case 'set_permission': {

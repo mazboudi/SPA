@@ -215,7 +215,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 const log = action.logName ? ` -LogName '${action.logName}'` : '';
                 const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
                 const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-                v4Cmd = `Start-ADTMsiProcess -Action 'Install' -FilePath '$dirFiles\\${action.file}'${a}${t}${addl}${log}${sc}${rc}`;
+                v4Cmd = `Start-ADTMsiProcess -Action 'Install' -FilePath '${action.file}'${a}${t}${addl}${log}${sc}${rc}`;
                 break;
               }
               case 'msi_uninstall': {
@@ -234,7 +234,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
               }
               case 'msi_patch': {
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                v4Cmd = `Start-ADTMsiProcess -Action 'Patch' -FilePath '$dirFiles\\${action.file}'${a}`;
+                v4Cmd = `Start-ADTMsiProcess -Action 'Patch' -FilePath '${action.file}'${a}`;
                 break;
               }
               case 'exe_install':
@@ -244,7 +244,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 const nw = action.noWait ? ' -NoWait' : '';
                 const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
                 const ic = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
-                v4Cmd = `Start-ADTProcess -FilePath '$dirFiles\\${action.file}'${a}${ws}${nw}${sc}${ic}`;
+                v4Cmd = `Start-ADTProcess -FilePath '${action.file}'${a}${ws}${nw}${sc}${ic}`;
                 break;
               }
               case 'execute_process': {
@@ -260,15 +260,15 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
                 const isMsi = (action.file || '').toLowerCase().endsWith('.msi');
                 v4Cmd = isMsi
-                  ? `Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '$dirFiles\\${action.file}'${a}`
-                  : `Start-ADTProcessAsUser -FilePath '$dirFiles\\${action.file}'${a}`;
+                  ? `Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '${action.file}'${a}`
+                  : `Start-ADTProcessAsUser -FilePath '${action.file}'${a}`;
                 break;
               }
               case 'file_copy': {
                 const r = action.recurse !== false ? ' -Recurse' : '';
                 const fl = action.flatten ? ' -Flatten' : '';
                 const m = action.fileCopyMode ? ` -FileCopyMode '${action.fileCopyMode}'` : '';
-                v4Cmd = `Copy-ADTFile -Path "$dirFiles\\${action.source}" -Destination '${action.dest}'${r}${fl}${m}`;
+                v4Cmd = `Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${r}${fl}${m}`;
                 break;
               }
               case 'file_remove':
@@ -346,7 +346,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 v4Cmd = 'Unblock-ADTAppExecution';
                 break;
               case 'copy_file_to_user_profiles':
-                v4Cmd = `Copy-ADTFileToUserProfiles -Path "$dirFiles\\${action.source}" -Destination '${action.destination}'`;
+                v4Cmd = `Copy-ADTFileToUserProfiles -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.destination}'`;
                 break;
               case 'remove_file_from_profiles':
                 v4Cmd = `Remove-ADTFileFromUserProfiles -Path '${action.path}'`;
