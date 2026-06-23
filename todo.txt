@@ -1,6 +1,44 @@
-•	NEW TITLE
-o	PSADT variables section is empty in builder when I first hit the Visual Action Builder tab. When navigating away and back, variable section is pre-populated as I would expect.
-o	For new title, DeployAppScriptVersion locked variable in Builder shows as 4.1.0. Shows correct value in Script Developer. 
-o	If user goes back and changes project version (e.g. by applying form from winget), PSADT $appVersion variable is not updated. Apply form did change project version, but Project Version needs to dynamically drive PSADT variables. Basically, anything in the Project Info and Installer sections should dynamically update applicable PSADT builder sections. More testing reveals that builder is not updated if you update anything in Project Info or Installer sections. I tried updating, for example, Install Arguments and builder data remains at previous values.
-o	Intune App Name not updating dynamically when project version is updated, but Intune App Version is updated. App Name remains Project Display Name + “old” Project Version.
-•	For Visual Action Builder, give option to expand all items in a specific section (e.g. expand all items in Variable Declaration section instead of having to expand them one by one). 
+Visual Action Builder – Recommended Actions per Lifecycle Phase
+Variable Declaration
+Custom Variable — PowerShell variable assignment, e.g., $MyVariable = 'Value' (no dedicated PSADT command)
+
+Pre-Installation/Uninstallation
+Show Installation Welcome — Show-ADTInstallationWelcome
+Show Installation Progress — Show-ADTInstallationProgress
+•	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+•	Start-ADTMsiProcess with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+•	Uninstall-ADTApplication with the following parameters exposed in builder: -Name -NameMatch -ProductCode -ApplicationType -FilterScript -ArgumentList -AdditionalArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+Copy File / Folder — Copy-ADTFile with recommended builder parameters: -Path -Destination -Recurse -Flatten -ContinueFileCopyOnError -FileCopyMode -RobocopyParams -RobocopyAdditionalParams
+Copy File to User Profiles — Copy-ADTFileToUserProfiles
+Create Folder — New-ADTFolder
+•	Delete File(s) (Remove-ADTFile) with following parameters exposed in builder: -Path (accepts wildcards and an array of values) -LiteralPath (does not accept wildcards, will accept an array of values)
+•	Delete Folder(s) (Remove-ADTFolder) with -Path and -DisableRecursion parameters exposed in builder.
+•	Remove Registry Key / Value (Remove-ADTRegistryKey)
+•	Set Registry Key / Value (Set-ADTRegistryKey)
+Stop/Kill Process — PowerShell Stop-Process  -Name 
+Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
+Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
+•	Get-ADTPendingReboot “Is System Reboot Pending” by storing Boolean return value from (Get-ADTPendingReboot).IsSystemRebootPending in a specified variable.
+
+
+Installation/Uninstallation
+•	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+•	Start-ADTProcessAsUser with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+•	Start-ADTMsiProcess with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+•	Start-ADTMsiProcessAsUser with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
+Stop/Kill Process — Stop-ADTProcess
+Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
+Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
+Post-Installation/Uninstallation
+•	Show Completion Message (Show-ADTInstallationPrompt)
+•	Prompt for Restart (Show-ADTInstallationRestartPrompt)
+•	Create Shortcut (New-ADTShortcut) – only for Post-Installation
+Copy File / Folder — Copy-ADTFile with recommended builder parameters: -Path -Destination -Recurse -Flatten -ContinueFileCopyOnError -FileCopyMode -RobocopyParams -RobocopyAdditionalParams
+Remove File from User Profiles — Remove-ADTFileFromUserProfiles
+•	Delete File(s) (Remove-ADTFile) with following parameters exposed in builder: -Path (accepts wildcards and an array of values) -LiteralPath (does not accept wildcards, will accept an array of values)
+•	Delete Folder(s) (Remove-ADTFolder) with -Path and -DisableRecursion parameters exposed in builder.
+•	Remove Registry Key / Value (Remove-ADTRegistryKey)
+•	Set Registry Key / Value (Set-ADTRegistryKey)
+Stop/Kill Process — Stop-ADTProcess
+Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
+Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
