@@ -198,6 +198,12 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                     <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
                   ) : f.type === 'textarea' ? (
                     <textarea rows="4" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
+                  ) : f.type === 'select' && f.options ? (
+                    <select value={action[f.key] || f.default || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })}>
+                      {f.options.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   ) : (
                     <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} />
                   )}
@@ -209,13 +215,20 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
             let v4Cmd = '';
             switch (action.type) {
               case 'msi_install': {
+                const msiAction = action.action || 'Install';
+                const fp = action.file ? ` -FilePath '${action.file}'` : '';
+                const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
                 const t = action.transform ? ` -Transforms '${action.transform}'` : '';
                 const addl = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+                const p = action.patches ? ` -Patches '${action.patches}'` : '';
                 const log = action.logName ? ` -LogName '${action.logName}'` : '';
                 const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
                 const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-                v4Cmd = `Start-ADTMsiProcess -Action 'Install' -FilePath '${action.file}'${a}${t}${addl}${log}${sc}${rc}`;
+                const pt = action.passThru ? ' -PassThru' : '';
+                let cmd = `Start-ADTMsiProcess -Action '${msiAction}'${fp}${pc}${a}${t}${addl}${p}${log}${sc}${rc}${pt}`;
+                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+                v4Cmd = cmd;
                 break;
               }
               case 'msi_uninstall': {
@@ -238,42 +251,86 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 break;
               }
               case 'exe_install':
-              case 'exe_uninstall': {
-                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
-                const nw = action.noWait ? ' -NoWait' : '';
-                const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-                const ic = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
-                v4Cmd = `Start-ADTProcess -FilePath '${action.file}'${a}${ws}${nw}${sc}${ic}`;
-                break;
-              }
+              case 'exe_uninstall':
               case 'execute_process': {
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
-                const nw = action.noWait ? ' -NoWait' : '';
                 const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-                const ic = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
-                v4Cmd = `Start-ADTProcess -FilePath '${action.file}'${a}${ws}${nw}${sc}${ic}`;
+                const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+                const pt = action.passThru ? ' -PassThru' : '';
+                let cmd = `Start-ADTProcess -FilePath '${action.file}'${a}${sc}${rc}${pt}`;
+                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+                v4Cmd = cmd;
                 break;
               }
               case 'execute_process_as_user': {
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                const isMsi = (action.file || '').toLowerCase().endsWith('.msi');
-                v4Cmd = isMsi
-                  ? `Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '${action.file}'${a}`
-                  : `Start-ADTProcessAsUser -FilePath '${action.file}'${a}`;
+                const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+                const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+                const pt = action.passThru ? ' -PassThru' : '';
+                let cmd = `Start-ADTProcessAsUser -FilePath '${action.file}'${a}${sc}${rc}${pt}`;
+                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+                v4Cmd = cmd;
+                break;
+              }
+              case 'msi_process_as_user': {
+                const msiAction = action.action || 'Install';
+                const fp = action.file ? ` -FilePath '${action.file}'` : '';
+                const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
+                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
+                const addl = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+                const t = action.transform ? ` -Transforms '${action.transform}'` : '';
+                const p = action.patches ? ` -Patches '${action.patches}'` : '';
+                const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+                const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+                const pt = action.passThru ? ' -PassThru' : '';
+                let cmd = `Start-ADTMsiProcessAsUser -Action '${msiAction}'${fp}${pc}${a}${addl}${t}${p}${sc}${rc}${pt}`;
+                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+                v4Cmd = cmd;
+                break;
+              }
+              case 'uninstall_application': {
+                const nm = action.name ? ` -Name '${action.name}'` : '';
+                const nmatch = action.nameMatch && action.nameMatch !== 'Contains' ? ` -NameMatch '${action.nameMatch}'` : '';
+                const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
+                const at = action.applicationType && action.applicationType !== 'All' ? ` -ApplicationType '${action.applicationType}'` : '';
+                const fs = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
+                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
+                const addl = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+                const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+                const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+                const pt = action.passThru ? ' -PassThru' : '';
+                let cmd = `Uninstall-ADTApplication${nm}${nmatch}${pc}${at}${fs}${a}${addl}${sc}${rc}${pt}`;
+                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+                v4Cmd = cmd;
                 break;
               }
               case 'file_copy': {
                 const r = action.recurse !== false ? ' -Recurse' : '';
                 const fl = action.flatten ? ' -Flatten' : '';
                 const m = action.fileCopyMode ? ` -FileCopyMode '${action.fileCopyMode}'` : '';
-                v4Cmd = `Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${r}${fl}${m}`;
+                const ce = action.continueOnError ? ' -ContinueFileCopyOnError' : '';
+                const rbcP = action.robocopyParams ? ` -RobocopyParams '${action.robocopyParams}'` : '';
+                const rbcA = action.robocopyAdditionalParams ? ` -RobocopyAdditionalParams '${action.robocopyAdditionalParams}'` : '';
+                v4Cmd = `Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${r}${fl}${m}${ce}${rbcP}${rbcA}`;
                 break;
               }
-              case 'file_remove':
-                v4Cmd = `Remove-ADTFile -Path '${action.path}'`;
+              case 'file_remove': {
+                const rmR = action.recurse ? ' -Recurse' : '';
+                v4Cmd = action.literalPath
+                  ? `Remove-ADTFile -LiteralPath '${action.literalPath}'${rmR}`
+                  : `Remove-ADTFile -Path '${action.path || ''}'${rmR}`;
                 break;
+              }
+              case 'folder_remove': {
+                const dr = action.disableRecursion ? ' -DisableRecursion' : '';
+                v4Cmd = `Remove-ADTFolder -Path '${action.path}'${dr}`;
+                break;
+              }
+              case 'pending_reboot': {
+                const vn = (action.varName || 'isRebootPending').replace(/^\$/, '');
+                v4Cmd = `$${vn} = (Get-ADTPendingReboot).IsSystemRebootPending`;
+                break;
+              }
               case 'create_folder':
                 v4Cmd = `New-ADTFolder -Path '${action.path}'`;
                 break;
@@ -335,8 +392,8 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
               case 'restart_prompt': {
                 const cd = action.countdownSeconds ? ` -CountdownSeconds ${action.countdownSeconds}` : ' -CountdownSeconds 600';
                 const nh = action.countdownNoHideSeconds ? ` -CountdownNoHideSeconds ${action.countdownNoHideSeconds}` : '';
-                const ns = action.noSilentRestart ? ' -NoSilentRestart' : '';
-                v4Cmd = `Show-ADTInstallationRestartPrompt${cd}${nh}${ns}`;
+                const sr = action.silentRestart ? ' -SilentRestart' : '';
+                v4Cmd = `Show-ADTInstallationRestartPrompt${cd}${nh}${sr}`;
                 break;
               }
               case 'block_app_execution':
@@ -800,14 +857,6 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
               </div>
               <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
-              <div style={{ marginTop: 'var(--space-md)' }}>
-                <SelectField label="Repair Mode" id="lc-repairMode" value={lc.repairMode} onChange={v => updateLifecycleRoot('repairMode', v)}
-                  options={[
-                    { value: 'mirror', label: 'Mirror Install (default)' },
-                    { value: 'custom', label: 'Custom Repair Actions' },
-                  ]}
-                />
-              </div>
             </div>
           </div>
         )}
@@ -869,21 +918,11 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               <h3 className="section-title">
                 Lifecycle Phases 
                 <span className="section-optional">
-                  {lc.repairMode === 'mirror' ? '7 phases active' : '10 phases active'}
+                  {PHASE_KEYS.length} phases active
                 </span>
               </h3>
-              {lc.repairMode === 'mirror' && (
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)', padding: '10px 14px', background: 'rgba(59, 130, 246, 0.04)', border: '1px solid rgba(59, 130, 246, 0.15)', borderRadius: 'var(--radius-sm)' }}>
-                  💡 <strong>Repair Mode is set to Mirror Install</strong>. The 3 repair phases are automated to copy your Install phase actions and are hidden. Change Repair Mode to <strong>Custom Repair Actions</strong> to configure separate repair steps.
-                </div>
-              )}
               <div className="lifecycle-panels">
-                {PHASE_KEYS.filter(phaseKey => {
-                  if (lc.repairMode === 'mirror' && ['preRepair', 'repair', 'postRepair'].includes(phaseKey)) {
-                    return false;
-                  }
-                  return true;
-                }).map(phaseKey => {
+                {PHASE_KEYS.map(phaseKey => {
                   const meta = PHASE_META[phaseKey];
                   const phaseData = lc.phases?.[phaseKey] || { actions: [] };
                   const actions = phaseData.actions || [];

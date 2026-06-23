@@ -142,6 +142,7 @@ $appBody = @{
     notes                  = $intuneMeta.notes ?? ''
     isFeatured             = if ($intuneMeta.isFeatured -eq $true) { $true } else { $false }
     allowAvailableUninstall = if ($intuneMeta.allowAvailableUninstall -eq $true) { $true } else { $false }
+    roleScopeTagIds        = if ($intuneMeta.roleScopeTagIds) { @($intuneMeta.roleScopeTagIds) } else { @() }
 
     # REQUIRED CREATE-TIME FIELDS
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)
@@ -206,16 +207,42 @@ Write-Log "Starting content upload..." -LogFile $logFile
 
 # ── Set categories (post-creation relationship) ──────────────────────────────
 if ($intuneMeta.categories -and $intuneMeta.categories.Count -gt 0) {
+    Write-Log "Resolving Intune categories..." -LogFile $logFile
+    $availCats = $null
+    try {
+        $availCats = (Invoke-GraphRequest -Token $token -Method GET -Uri "$GRAPH_BASE/deviceAppManagement/mobileAppCategories").value
+    } catch {
+        Write-Log "Warning: Could not fetch categories list from Intune - $($_.Exception.Message)" WARN -LogFile $logFile
+    }
+
     foreach ($catId in $intuneMeta.categories) {
-        try {
-            Invoke-GraphRequest `
-                -Token  $token `
-                -Method POST `
-                -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId/categories/`$ref" `
-                -Body   @{ '@odata.id' = "$GRAPH_BASE/deviceAppManagement/mobileAppCategories/$catId" }
-            Write-Log "Category assigned: $catId" -LogFile $logFile
-        } catch {
-            Write-Log "Warning: Could not assign category $catId - $($_.Exception.Message)" WARN -LogFile $logFile
+        $resolvedCatId = $null
+        
+        # Check if $catId is already a GUID
+        if ($catId -match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
+            $resolvedCatId = $catId
+        } elseif ($availCats) {
+            # Try to resolve by displayName (case-insensitive)
+            $matchedCat = $availCats | Where-Object { $_.displayName -eq $catId -or $_.displayName -like "*$catId*" } | Select-Object -First 1
+            if ($matchedCat) {
+                $resolvedCatId = $matchedCat.id
+                Write-Log "Resolved category name '$catId' to ID '$resolvedCatId'" -LogFile $logFile
+            }
+        }
+
+        if ($resolvedCatId) {
+            try {
+                Invoke-GraphRequest `
+                    -Token  $token `
+                    -Method POST `
+                    -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId/categories/`$ref" `
+                    -Body   @{ '@odata.id' = "$GRAPH_BASE/deviceAppManagement/mobileAppCategories/$resolvedCatId" }
+                Write-Log "Category assigned: $resolvedCatId ($catId)" -LogFile $logFile
+            } catch {
+                Write-Log "Warning: Could not assign category $catId - $($_.Exception.Message)" WARN -LogFile $logFile
+            }
+        } else {
+            Write-Log "Warning: Category '$catId' could not be resolved to a valid Intune Category GUID" WARN -LogFile $logFile
         }
     }
 }

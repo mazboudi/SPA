@@ -224,6 +224,8 @@ ${optLines.join('\n')}
         returnCode: parseInt(rc.code) || 0,
         type: rc.type || 'success',
       })),
+      categories: s.intuneCategoryIds?.length ? s.intuneCategoryIds : (s.softwareCategory ? [s.softwareCategory] : []),
+      roleScopeTagIds: s.roleScopeTagIds || [],
     };
     // Persist Intune Sync App ID if user has explicitly set one
     if (s.syncIntuneAppId) intuneAppObj.syncIntuneAppId = s.syncIntuneAppId;

@@ -111,5 +111,20 @@ export function deriveState(raw) {
     }
   }
 
+  // Derive softwareCategory from basic info category if not already set (e.g. from sync/import)
+  if (!state.softwareCategory && state.category) {
+    const map = {
+      'browsers': 'Browsers',
+      'productivity': 'Productivity',
+      'developer-tools': 'Developer Tools',
+      'security': 'Security',
+      'communication': 'Communication',
+      'utilities': 'Utilities',
+      'endpoint-management': 'Endpoint Management',
+      'custom': 'Custom',
+    };
+    state.softwareCategory = map[state.category] || '';
+  }
+
   return state;
 }

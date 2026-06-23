@@ -57,22 +57,34 @@ export default function generatePsadtScript(s, clean = false) {
       const actionLines = [];
       switch (action.type) {
         case 'msi_install': {
+          const msiAction = action.action || 'Install';
+          const filePart = action.file ? ` -FilePath '${action.file}'` : '';
+          const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
           const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
           const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+          const patches = action.patches ? ` -Patches '${action.patches}'` : '';
           const logName = action.logName ? ` -LogName '${action.logName}'` : '';
           const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
           const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          actionLines.push(`        Start-ADTMsiProcess -Action 'Install' -FilePath '${action.file}'${args}${transform}${addlArgs}${logName}${successCodes}${rebootCodes}`);
+          const pt = action.passThru ? ' -PassThru' : '';
+          let cmd = `Start-ADTMsiProcess -Action '${msiAction}'${filePart}${pcPart}${args}${transform}${addlArgs}${patches}${logName}${successCodes}${rebootCodes}${pt}`;
+          if (action.passThru && action.passThruVar) {
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+          }
+          actionLines.push(`        ${cmd}`);
           break;
         }
         case 'exe_install': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
-          const nw = action.noWait ? ' -NoWait' : '';
           const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-          const ignoreCodes = action.ignoreExitCodes ? ` -IgnoreExitCodes ${action.ignoreExitCodes}` : '';
-          actionLines.push(`        Start-ADTProcess -FilePath '${action.file}'${args}${ws}${nw}${successCodes}${ignoreCodes}`);
+          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+          const pt = action.passThru ? ' -PassThru' : '';
+          let cmd = `Start-ADTProcess -FilePath '${action.file}'${args}${successCodes}${rebootCodes}${pt}`;
+          if (action.passThru && action.passThruVar) {
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+          }
+          actionLines.push(`        ${cmd}`);
           break;
         }
         case 'execute_process': {
@@ -116,11 +128,47 @@ export default function generatePsadtScript(s, clean = false) {
           const recurse = action.recurse !== false ? ' -Recurse' : '';
           const flatten = action.flatten ? ' -Flatten' : '';
           const mode = action.fileCopyMode ? ` -FileCopyMode '${action.fileCopyMode}'` : '';
-          actionLines.push(`        Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${recurse}${flatten}${mode}`);
+          const contErr = action.continueOnError ? ' -ContinueFileCopyOnError' : '';
+          const rbcParams = action.robocopyParams ? ` -RobocopyParams '${action.robocopyParams}'` : '';
+          const rbcAdd = action.robocopyAdditionalParams ? ` -RobocopyAdditionalParams '${action.robocopyAdditionalParams}'` : '';
+          actionLines.push(`        Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}`);
           break;
         }
         case 'file_remove': {
-          actionLines.push(`        Remove-ADTFile -Path '${action.path}' -ErrorAction SilentlyContinue`);
+          const rmRecurse = action.recurse ? ' -Recurse' : '';
+          if (action.literalPath) {
+            actionLines.push(`        Remove-ADTFile -LiteralPath '${action.literalPath}'${rmRecurse}`);
+          } else {
+            actionLines.push(`        Remove-ADTFile -Path '${action.path || ''}'${rmRecurse}`);
+          }
+          break;
+        }
+        case 'folder_remove': {
+          const disableRec = action.disableRecursion ? ' -DisableRecursion' : '';
+          actionLines.push(`        Remove-ADTFolder -Path '${action.path}'${disableRec}`);
+          break;
+        }
+        case 'pending_reboot': {
+          const cleanVar = (action.varName || 'isRebootPending').replace(/^\$/, '');
+          actionLines.push(`        $${cleanVar} = (Get-ADTPendingReboot).IsSystemRebootPending`);
+          break;
+        }
+        case 'uninstall_application': {
+          const name = action.name ? ` -Name '${action.name}'` : '';
+          const nameMatch = action.nameMatch && action.nameMatch !== 'Contains' ? ` -NameMatch '${action.nameMatch}'` : '';
+          const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
+          const appType = action.applicationType && action.applicationType !== 'All' ? ` -ApplicationType '${action.applicationType}'` : '';
+          const filter = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
+          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
+          const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+          const pt = action.passThru ? ' -PassThru' : '';
+          let cmd = `Uninstall-ADTApplication${name}${nameMatch}${pc}${appType}${filter}${args}${addlArgs}${successCodes}${rebootCodes}${pt}`;
+          if (action.passThru && action.passThruVar) {
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+          }
+          actionLines.push(`        ${cmd}`);
           break;
         }
         case 'create_folder': {
@@ -239,15 +287,33 @@ export default function generatePsadtScript(s, clean = false) {
           break;
         }
         case 'execute_process_as_user': {
-          const isMsi = (action.file || '').toLowerCase().endsWith('.msi');
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
-          const nw = action.noWait ? ' -NoWait' : '';
-          if (isMsi) {
-            actionLines.push(`        Start-ADTMsiProcessAsUser -Action 'Install' -FilePath '${action.file}'${args}`);
-          } else {
-            actionLines.push(`        Start-ADTProcessAsUser -FilePath '${action.file}'${args}${ws}${nw}`);
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+          const pt = action.passThru ? ' -PassThru' : '';
+          let cmd = `Start-ADTProcessAsUser -FilePath '${action.file}'${args}${successCodes}${rebootCodes}${pt}`;
+          if (action.passThru && action.passThruVar) {
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
           }
+          actionLines.push(`        ${cmd}`);
+          break;
+        }
+        case 'msi_process_as_user': {
+          const msiAction = action.action || 'Install';
+          const filePart = action.file ? ` -FilePath '${action.file}'` : '';
+          const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
+          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
+          const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
+          const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
+          const patches = action.patches ? ` -Patches '${action.patches}'` : '';
+          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+          const pt = action.passThru ? ' -PassThru' : '';
+          let cmd = `Start-ADTMsiProcessAsUser -Action '${msiAction}'${filePart}${pcPart}${args}${addlArgs}${transform}${patches}${successCodes}${rebootCodes}${pt}`;
+          if (action.passThru && action.passThruVar) {
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+          }
+          actionLines.push(`        ${cmd}`);
           break;
         }
         case 'block_app_execution': {
@@ -310,8 +376,8 @@ export default function generatePsadtScript(s, clean = false) {
         case 'restart_prompt': {
           const countdown = action.countdownSeconds ? ` -CountdownSeconds ${action.countdownSeconds}` : ' -CountdownSeconds 600';
           const noHide = action.countdownNoHideSeconds ? ` -CountdownNoHideSeconds ${action.countdownNoHideSeconds}` : '';
-          const noSilent = action.noSilentRestart ? ' -NoSilentRestart' : '';
-          actionLines.push(`        Show-ADTInstallationRestartPrompt${countdown}${noHide}${noSilent}`);
+          const silent = action.silentRestart ? ' -SilentRestart' : '';
+          actionLines.push(`        Show-ADTInstallationRestartPrompt${countdown}${noHide}${silent}`);
           break;
         }
         case 'active_setup': {
@@ -582,22 +648,7 @@ export default function generatePsadtScript(s, clean = false) {
 
   const postUninstallBlock = compilePhaseBlock(userActions('postUninstall'), 'Post-Uninstall', 'Perform Post-Uninstallation tasks here');
 
-  // Repair phases
-  let preRepairBlock, repairBlock, postRepairBlock;
-  if (lc.repairMode === 'mirror') {
-    preRepairBlock = preInstallBlock;
-    repairBlock = installBlock;
-    postRepairBlock = postInstallBlock;
-  } else {
-    preRepairBlock = compilePhaseBlock(userActions('preRepair'), 'Pre-Repair', 'Perform Pre-Repair tasks here');
 
-    repairBlock = [
-      STD_ZEROCONFIG_MSI_OTHER,
-      compilePhaseBlock(userActions('repair'), 'Repair', 'Perform Repair tasks here')
-    ].join('\n\n');
-
-    postRepairBlock = compilePhaseBlock(userActions('postRepair'), 'Post-Repair', 'Perform Post-Repair tasks here');
-  }
 
   // ── 4. Assemble standard PSADT template ──────────────────────────────────
   return `<#
@@ -726,35 +777,6 @@ ${uninstallBlock}
     $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
 
 ${postUninstallBlock}
-}
-
-function Repair-ADTDeployment
-{
-    [CmdletBinding()]
-    param
-    (
-    )
-
-    ##================================================
-    ## MARK: Pre-Repair
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
-
-${preRepairBlock}
-
-    ##================================================
-    ## MARK: Repair
-    ##================================================
-    $adtSession.InstallPhase = $adtSession.DeploymentType
-
-${repairBlock}
-
-    ##================================================
-    ## MARK: Post-Repair
-    ##================================================
-    $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
-
-${postRepairBlock}
 }
 
 

@@ -511,19 +511,11 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
           />
         </div>
         <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
-        <div style={{ marginTop: 'var(--space-md)' }}>
-          <SelectField label="Repair Mode" id="lc-repairMode" value={lc.repairMode} onChange={v => updateLifecycleRoot('repairMode', v)}
-            options={[
-              { value: 'mirror', label: 'Mirror Install (default)' },
-              { value: 'custom', label: 'Custom Repair Actions' },
-            ]}
-          />
-        </div>
       </div>
 
       {/* ═══ PHASE PANELS ═══ */}
       <div className="config-section">
-        <h3 className="section-title">Lifecycle Phases <span className="section-optional">{state.wizardMode === 'refactor' ? 'Imported' : '10 phases'}</span></h3>
+        <h3 className="section-title">Lifecycle Phases <span className="section-optional">{PHASE_KEYS.length} phases</span></h3>
         <div className="lifecycle-panels">
           {PHASE_KEYS.map(phaseKey => {
             const meta = PHASE_META[phaseKey];

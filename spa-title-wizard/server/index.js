@@ -969,11 +969,12 @@ app.get('/api/intune/apps/:id', async (req, res) => {
   if (!graphConfigured) return res.status(501).json({ message: 'Intune integration not configured' });
   try {
     const appId = req.params.id;
-    // Fetch app detail + assignments + relationships in parallel
-    const [appData, assignData, relData] = await Promise.all([
+    // Fetch app detail + assignments + relationships + categories in parallel
+    const [appData, assignData, relData, categoriesData] = await Promise.all([
       graphApi(`/deviceAppManagement/mobileApps/${appId}`),
       graphApi(`/deviceAppManagement/mobileApps/${appId}/assignments`),
       graphApi(`/deviceAppManagement/mobileApps/${appId}/relationships`).catch(() => ({ value: [] })),
+      graphApi(`/deviceAppManagement/mobileApps/${appId}/categories`).catch(() => ({ value: [] })),
     ]);
 
     // Separate relationships into supersedence vs dependencies
@@ -984,6 +985,9 @@ app.get('/api/intune/apps/:id', async (req, res) => {
     const dependencies = relationships
       .filter(r => (r['@odata.type'] || '').includes('Dependency'))
       .map(r => ({ appId: r.targetId, dependencyType: r.dependencyType || 'autoInstall' }));
+
+    // Append categories to appData so parseIntuneExport can pick it up
+    appData.categories = categoriesData.value || [];
 
     // Shape it like an Intune export JSON so parseIntuneExport() works unchanged
     const exportShape = {

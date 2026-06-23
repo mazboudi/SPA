@@ -128,8 +128,16 @@ export function parseProjectFiles(files) {
 
       // Category
       if (intuneApp.categories?.length > 0) {
-        state.softwareCategory = intuneApp.categories[0].displayName || '';
+        state.intuneCategoryIds = intuneApp.categories.map(c => typeof c === 'object' ? c.id : c).filter(Boolean);
+        const firstCat = intuneApp.categories[0];
+        state.softwareCategory = typeof firstCat === 'object' ? (firstCat.displayName || '') : firstCat;
+      } else {
+        state.intuneCategoryIds = [];
+        state.softwareCategory = '';
       }
+
+      // Scope tags
+      state.roleScopeTagIds = intuneApp.roleScopeTagIds || [];
     } catch (e) {
       warnings.push(`Failed to parse windows/intune/app.json: ${e.message}`);
     }
@@ -221,9 +229,6 @@ export function parseProjectFiles(files) {
   // ── windows/lifecycle.yaml ──────────────────────────────────────────────
   if (files['windows/lifecycle.yaml']) {
     const lcResult = parseLifecycleYaml(files['windows/lifecycle.yaml']);
-    if (lcResult.repairMode) {
-      state._lifecycleRepairMode = lcResult.repairMode;
-    }
     if (lcResult.variables && lcResult.variables.length > 0) {
       state._lifecycleVarActions = lcResult.variables;
     }

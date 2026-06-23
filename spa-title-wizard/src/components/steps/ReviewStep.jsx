@@ -3,7 +3,7 @@ import generateScaffolding from '../../lib/generateScaffolding';
 import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
-import { fetchIntuneAppDetail, pushIntuneMetadata } from '../../lib/intuneApi';
+import { fetchIntuneAppDetail, pushIntuneMetadata, pushIntuneRelationships } from '../../lib/intuneApi';
 import { compareIntuneState } from '../../lib/compareIntuneState';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
@@ -130,9 +130,13 @@ export default function ReviewStep({ state, updateField }) {
     try {
       const intuneData = await fetchIntuneAppDetail(state.syncIntuneAppId);
       const result = compareIntuneState(state, intuneData);
-      // Filter to only pushable metadata diffs
+      // Filter to only pushable metadata diffs + relationship diffs
+      const RELATIONSHIP_FIELDS = new Set(['supersedence', 'dependencies']);
       const pushable = result.diffs.filter(d =>
-        !d.match && GRAPH_FIELD_MAP[d.field] && !BLOCKED_PUSH_FIELDS.has(d.field)
+        !d.match && (
+          (GRAPH_FIELD_MAP[d.field] && !BLOCKED_PUSH_FIELDS.has(d.field)) ||
+          RELATIONSHIP_FIELDS.has(d.field)
+        )
       );
       setPushDiffs(pushable);
     } catch (err) {
@@ -157,6 +161,31 @@ export default function ReviewStep({ state, updateField }) {
       }
       if (Object.keys(updates).length > 0) {
         await pushIntuneMetadata(state.syncIntuneAppId, updates);
+      }
+
+      // Push relationships (supersedence + dependencies) if any changed
+      const hasRelDiff = pushDiffs.some(d => d.field === 'supersedence' || d.field === 'dependencies');
+      if (hasRelDiff) {
+        const relationships = [];
+        // Build supersedence relationship
+        if (state.supersedesAppId) {
+          relationships.push({
+            '@odata.type': '#microsoft.graph.mobileAppSupersedence',
+            targetId: state.supersedesAppId,
+            supersedenceType: state.supersedenceType === 'update' ? 'update' : 'replace',
+          });
+        }
+        // Build dependency relationships
+        for (const dep of (state.dependencies || [])) {
+          if (dep.appId) {
+            relationships.push({
+              '@odata.type': '#microsoft.graph.mobileAppDependency',
+              targetId: dep.appId,
+              dependencyType: dep.dependencyType || 'autoInstall',
+            });
+          }
+        }
+        await pushIntuneRelationships(state.syncIntuneAppId, relationships);
       }
 
       // Also commit files to GitLab WITHOUT triggering pipeline

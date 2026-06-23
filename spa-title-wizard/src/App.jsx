@@ -381,7 +381,7 @@ export default function App() {
           <div>
             <h1 className="app-header__title">SPA Packaging Workbench</h1>
             <h2 className="visually-hidden">SPA Title Scaffolding Workbench</h2>
-            <p className="app-header__subtitle">Software Packaging Automation — Win32 App Manager</p>
+            <p className="app-header__subtitle">Software Packaging Automation — MAC and Win32 App Manager</p>
           </div>
         </div>
 
@@ -448,7 +448,7 @@ export default function App() {
               <button className="mode-card mode-card--refactor" onClick={() => setShowRefactorFlow(true)} id="mode-refactor-title">
                 <span className="mode-card__icon">🔄</span>
                 <h3 className="mode-card__title">Refactor Existing</h3>
-                <p className="mode-card__desc">Import from your Intune catalog and PSADT script to pre-populate the workbench with existing configuration.</p>
+                <p className="mode-card__desc">Import from your Intune catalog and PSADT script to pre-populate the workbench with existing configuration. Supported PSADT v3x and v4x.</p>
                 <span className="mode-card__upload-hint">Intune export + PSADT script import</span>
               </button>
 
@@ -459,10 +459,6 @@ export default function App() {
                 <span className="mode-card__upload-hint">GitLab project → Workbench</span>
               </button>
             </div>
-
-            <p className="mode-selector__hint">
-              Supported: <code>Deploy-Application.ps1</code> (v3) and <code>Invoke-AppDeployToolkit.ps1</code> (v4)
-            </p>
           </div>
         </main>
       ) : (

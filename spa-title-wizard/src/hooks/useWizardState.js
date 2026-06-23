@@ -85,6 +85,11 @@ const INITIAL_STATE = {
   // Intune Sync — the Intune app ID explicitly chosen by the user for syncing
   syncIntuneAppId: '',
 
+  // Intune App Information
+  softwareCategory: '',  // Intune Company Portal category (e.g. 'Productivity', 'Business')
+  intuneCategoryIds: [], // Intune category GUIDs/IDs to write to app.json
+  roleScopeTagIds: [],   // Scope Tag GUIDs/IDs to write to app.json
+
   // Requirements
   minWinRelease: 'Windows11_22H2',
   archCheckEnabled: false,       // false = all architectures, true = specify
@@ -98,9 +103,8 @@ const INITIAL_STATE = {
   customRequirements: [],  // [{ type: 'file'|'registry', ...fields }]
 
 
-  // Lifecycle phases (PSADT) — 10-phase model with actions arrays
+  // Lifecycle phases (PSADT) — 7-phase model with actions arrays
   lifecycle: {
-    repairMode: 'mirror', // 'mirror' or 'custom'
     phases: {
       variableDeclaration: { actions: [] },
       preInstall:    { actions: [] },
@@ -109,9 +113,6 @@ const INITIAL_STATE = {
       preUninstall:  { actions: [] },
       uninstall:     { actions: [] },
       postUninstall: { actions: [] },
-      preRepair:     { actions: [] },
-      repair:        { actions: [] },
-      postRepair:    { actions: [] },
     },
   },
 
@@ -536,7 +537,6 @@ export default function useWizardState() {
 
       mkPhase('preInstall',   [defaultWelcome, defaultProgress]);
       mkPhase('preUninstall', [countdownWelcome, defaultProgress]);
-      mkPhase('preRepair',    [countdownWelcome, defaultProgress]);
 
       return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
     });
@@ -785,9 +785,6 @@ export default function useWizardState() {
       if (parsedPsadt) {
         next.lifecycle = parsedPsadt.lifecycle;
       } else {
-        if (parsed._lifecycleRepairMode) {
-          next.lifecycle = { ...prev.lifecycle, repairMode: parsed._lifecycleRepairMode };
-        }
         if (parsed._lifecycleVarActions || parsed._lifecyclePhases) {
           const phases = { ...prev.lifecycle.phases };
           if (parsed._lifecycleVarActions) {
@@ -808,12 +805,6 @@ export default function useWizardState() {
       delete next._lifecycleRepairMode;
       delete next._lifecycleVarActions;
       delete next._lifecyclePhases;
-
-      // For refactored titles, always default to 'mirror' regardless of what the parser detected.
-      // Only preserve the parsed repairMode for editing titles (re-editing an already published title).
-      if (next.wizardMode !== 'edit' && next.lifecycle) {
-        next.lifecycle = { ...next.lifecycle, repairMode: 'mirror' };
-      }
 
       return next;
     });

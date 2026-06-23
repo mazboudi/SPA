@@ -1421,7 +1421,18 @@ function extractBlockActions(block) {
     if (!matched && /Show-(?:ADT)?InstallationRestartPrompt\b/i.test(t)) {
       flushCustomBuffer();
       const countdownMatch = t.match(/-CountdownSeconds\s+(\d+)/i);
-      actions.push({ type: 'restart_prompt', desc: 'Restart prompt', countdownSeconds: countdownMatch ? parseInt(countdownMatch[1]) : 600, raw: t });
+      const noHideMatch = t.match(/-CountdownNoHideSeconds\s+(\d+)/i);
+      const hasSilentRestart = /-SilentRestart\b/i.test(t);
+      // Legacy support: -NoSilentRestart was the old v3 name (opposite meaning)
+      const hasNoSilentRestart = /-NoSilentRestart\b/i.test(t);
+      actions.push({
+        type: 'restart_prompt',
+        desc: 'Restart prompt',
+        countdownSeconds: countdownMatch ? parseInt(countdownMatch[1]) : 600,
+        countdownNoHideSeconds: noHideMatch ? parseInt(noHideMatch[1]) : 0,
+        silentRestart: hasSilentRestart && !hasNoSilentRestart,
+        raw: t,
+      });
       matched = true;
     }
 
@@ -1571,9 +1582,6 @@ function extractAllPhasesV3(text) {
     'Pre-Uninstallation': 'preUninstall',
     'Uninstallation': 'uninstall',
     'Post-Uninstallation': 'postUninstall',
-    'Pre-Repair': 'preRepair',
-    'Repair': 'repair',
-    'Post-Repair': 'postRepair',
   };
   for (const [psName, key] of Object.entries(phaseNames)) {
     const block = extractV3Phase(text, psName);
@@ -1809,7 +1817,6 @@ function extractAllPhasesV4(text) {
   const funcMap = {
     'Install-ADTDeployment': { 'Pre-Install': 'preInstall', 'Install': 'install', 'Post-Install': 'postInstall' },
     'Uninstall-ADTDeployment': { 'Pre-Uninstall': 'preUninstall', 'Uninstall': 'uninstall', 'Post-Uninstall': 'postUninstall' },
-    'Repair-ADTDeployment': { 'Pre-Repair': 'preRepair', 'Repair': 'repair', 'Post-Repair': 'postRepair' },
   };
   for (const [funcName, marks] of Object.entries(funcMap)) {
     const funcBody = extractV4Function(text, funcName);

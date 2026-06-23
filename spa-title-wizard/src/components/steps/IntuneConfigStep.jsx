@@ -58,6 +58,17 @@ const SCRIPT_OUTPUT_TYPES = [
   { value: 'boolean', label: 'Boolean' },
 ];
 
+const PROJECT_CATEGORY_MAP = {
+  'browsers': 'Browsers',
+  'productivity': 'Productivity',
+  'developer-tools': 'Developer Tools',
+  'security': 'Security',
+  'communication': 'Communication',
+  'utilities': 'Utilities',
+  'endpoint-management': 'Endpoint Management',
+  'custom': 'Custom',
+};
+
 const FILE_DET_TYPES = [
   { value: 'exists', label: 'File or folder exists' },
   { value: 'doesNotExist', label: 'File or folder does not exist' },
@@ -446,10 +457,6 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         <p>Manage app properties, installation context, hardware requirements, detection conditions, and assignments.</p>
       </div>
 
-      {/* ═══ INTUNE METADATA SUMMARY ═══ */}
-      {(state._intuneExportImported || state.wizardMode === 'edit') && (
-        <IntuneMetaSummary state={state} />
-      )}
 
 
 
@@ -509,7 +516,15 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
           onClick={() => setActiveTab('dependencies')}
         >
           <span className="psadt-tab-btn__icon">🔗</span>
-          <span className="psadt-tab-btn__label">Dependencies & Supersedence</span>
+          <span className="psadt-tab-btn__label">Dependencies</span>
+        </button>
+        <button
+          type="button"
+          className={`psadt-tab-btn ${activeTab === 'supersedence' ? 'psadt-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('supersedence')}
+        >
+          <span className="psadt-tab-btn__icon">♻️</span>
+          <span className="psadt-tab-btn__label">Supersedence</span>
         </button>
         <button
           type="button"
@@ -542,12 +557,11 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
           return (
             <div className="animate-in">
               <div className="config-section">
-                <h3 className="section-title">App Metadata</h3>
+                <h3 className="section-title">App Information</h3>
                 <div className="form-grid">
-                  <FormField label="Intune App Name" id="intuneAppName" required hint="Customize how the application displays in the Intune Company Portal. Defaults to App Display Name + Version if left blank." style={{ gridColumn: 'span 2' }}>
+                  <FormField label="Name" id="intuneAppName" required hint="The display name of the application in the Intune Company Portal." style={{ gridColumn: 'span 2' }}>
                     <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} value={intuneAppNameValue} onChange={e => {
                       const val = e.target.value;
-                      // If the user typed exactly the auto-default (or cleared the field), remove the override
                       if (!val || val === defaultIntuneAppName) {
                         updateField('_intuneAppNameOverride', '');
                       } else {
@@ -574,63 +588,73 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                       </div>
                     )}
                   </FormField>
+                  <FormField label="Description" id="appDescription" required error={!(state.appDescription || '').trim() ? 'Description is required' : undefined} style={{ gridColumn: 'span 2' }}>
+                    <textarea id="appDescription" rows="3" placeholder="A summary of the app's function for the Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
+                  </FormField>
+                  <FormField label="Publisher" id="publisher" required error={!(state.publisher || '').trim() ? 'Publisher is required' : undefined}>
+                    <input id="publisher" type="text" placeholder="e.g. Microsoft, Adobe, Google" value={state.publisher || ''} onChange={e => updateField('publisher', e.target.value)} />
+                  </FormField>
                   <FormField label="App Version" id="intuneAppVersion" hint="Synced from Basic Info — edit there to change.">
                     <input id="intuneAppVersion" type="text" readOnly value={state.version || ''} className="mono-input" style={{ opacity: 0.8 }} />
                   </FormField>
-                  <FormField label="Description" id="appDescription" required error={!(state.appDescription || '').trim() ? 'Description is required' : undefined}>
-                    <textarea id="appDescription" rows="2" placeholder="Application description for Intune Company Portal" value={state.appDescription || ''} onChange={e => updateField('appDescription', e.target.value)} />
+                   <FormField label="Category" id="softwareCategory" hint="Synced from Basic Info — edit there to change.">
+                    <input id="softwareCategory" type="text" readOnly value={PROJECT_CATEGORY_MAP[state.category] || state.softwareCategory || '— None —'} className="mono-input" style={{ opacity: 0.8 }} />
                   </FormField>
-                <FormField label="Publisher" id="publisher" required error={!(state.publisher || '').trim() ? 'Publisher is required' : undefined}>
-                  <input id="publisher" type="text" placeholder="e.g. Microsoft, Adobe" value={state.publisher || ''} onChange={e => updateField('publisher', e.target.value)} />
-                </FormField>
-                <FormField label="Owner" id="appOwner">
-                  <input id="appOwner" type="text" value={state.appOwner || 'EUC Packaging'} onChange={e => updateField('appOwner', e.target.value)} />
-                </FormField>
-                <FormField label="Developer" id="appDeveloper">
-                  <input id="appDeveloper" type="text" placeholder="e.g. Microsoft, Adobe" value={state.appDeveloper || ''} onChange={e => updateField('appDeveloper', e.target.value)} />
-                </FormField>
-                <FormField label="Information URL" id="informationUrl" hint="Link to app docs or vendor site" error={errors.informationUrl}>
-                  <input id="informationUrl" type="url" placeholder="https://example.com"
-                    className={errors.informationUrl ? 'input--error' : ''}
-                    value={state.informationUrl || ''} onChange={e => updateField('informationUrl', e.target.value)} />
-                </FormField>
-                <FormField label="Privacy URL" id="privacyUrl" error={errors.privacyUrl}>
-                  <input id="privacyUrl" type="url" placeholder="https://example.com/privacy"
-                    className={errors.privacyUrl ? 'input--error' : ''}
-                    value={state.privacyUrl || ''} onChange={e => updateField('privacyUrl', e.target.value)} />
-                </FormField>
-                <FormField label="Notes" id="appNotes">
-                  <input id="appNotes" type="text" value={state.appNotes || 'Managed by SPA pipeline.'} onChange={e => updateField('appNotes', e.target.value)} />
-                </FormField>
+                  <div /> {/* spacer for grid alignment */}
+                  <ToggleSwitch label="Show this as a featured app in the Company Portal" checked={state.isFeatured} onChange={v => updateField('isFeatured', v)} id="isFeatured" />
+                </div>
               </div>
-              <ToggleSwitch label="Featured app in Company Portal" checked={state.isFeatured} onChange={v => updateField('isFeatured', v)} id="isFeatured" />
-            </div>
 
-            <div className="config-section">
-              <h3 className="section-title">App Logo <span className="section-optional">Optional</span></h3>
-              <div className="logo-upload-area">
-                <label className="btn btn-secondary">
-                  🖼️ Upload Logo (PNG/JPG)
-                  <input type="file" accept=".png,.jpg,.jpeg,.gif,.bmp" onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    updateField('logoFile', file);
-                    const reader = new FileReader();
-                    reader.onload = () => updateField('logoDataUrl', reader.result);
-                    reader.readAsDataURL(file);
-                  }} style={{ display: 'none' }} />
-                </label>
-                {state.logoDataUrl && (
-                  <div className="logo-preview">
-                    <img src={state.logoDataUrl} alt="App logo" style={{ maxWidth: 64, maxHeight: 64, borderRadius: 'var(--radius-sm)' }} />
-                    <span className="msi-status msi-status--ok">✅ {state.logoFile?.name || state._logoFileName || 'Logo loaded'}</span>
-                  </div>
-                )}
+              <div className="config-section">
+                <h3 className="section-title">Links & Contact</h3>
+                <div className="form-grid">
+                  <FormField label="Information URL" id="informationUrl" hint="A link to documentation or internal wikis" error={errors.informationUrl}>
+                    <input id="informationUrl" type="url" placeholder="https://example.com"
+                      className={errors.informationUrl ? 'input--error' : ''}
+                      value={state.informationUrl || ''} onChange={e => updateField('informationUrl', e.target.value)} />
+                  </FormField>
+                  <FormField label="Privacy URL" id="privacyUrl" hint="A link to the vendor's privacy policy" error={errors.privacyUrl}>
+                    <input id="privacyUrl" type="url" placeholder="https://example.com/privacy"
+                      className={errors.privacyUrl ? 'input--error' : ''}
+                      value={state.privacyUrl || ''} onChange={e => updateField('privacyUrl', e.target.value)} />
+                  </FormField>
+                  <FormField label="Developer" id="appDeveloper" hint="The specific developer name (often same as Publisher)">
+                    <input id="appDeveloper" type="text" placeholder="e.g. Microsoft, Adobe" value={state.appDeveloper || ''} onChange={e => updateField('appDeveloper', e.target.value)} />
+                  </FormField>
+                  <FormField label="Owner" id="appOwner" hint="Internal contact or team responsible for the app">
+                    <input id="appOwner" type="text" value={state.appOwner || 'EUC Packaging'} onChange={e => updateField('appOwner', e.target.value)} />
+                  </FormField>
+                  <FormField label="Notes" id="appNotes" hint="Admin-only comments about the package" style={{ gridColumn: 'span 2' }}>
+                    <textarea id="appNotes" rows="2" value={state.appNotes || 'Managed by SPA pipeline.'} onChange={e => updateField('appNotes', e.target.value)} />
+                  </FormField>
+                </div>
+              </div>
+
+              <div className="config-section">
+                <h3 className="section-title">App Logo <span className="section-optional">Optional</span></h3>
+                <div className="logo-upload-area">
+                  {state.logoDataUrl && (
+                    <div className="logo-preview" style={{ marginBottom: 'var(--space-md)' }}>
+                      <img src={state.logoDataUrl} alt="App logo" style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.06)', padding: 4 }} />
+                      <span className="msi-status msi-status--ok" style={{ marginLeft: 12 }}>✅ {state.logoFile?.name || state._logoFileName || 'Logo loaded'}</span>
+                    </div>
+                  )}
+                  <label className="btn btn-secondary">
+                    🖼️ {state.logoDataUrl ? 'Change Logo' : 'Upload Logo'} (PNG/JPG)
+                    <input type="file" accept=".png,.jpg,.jpeg,.gif,.bmp" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      updateField('logoFile', file);
+                      const reader = new FileReader();
+                      reader.onload = () => updateField('logoDataUrl', reader.result);
+                      reader.readAsDataURL(file);
+                    }} style={{ display: 'none' }} />
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
         {/* ==========================================
             TAB: PROGRAM
@@ -979,15 +1003,19 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         )}
 
         {/* ==========================================
-            TAB: DEPENDENCIES & SUPERSEDENCE
+            TAB: DEPENDENCIES
             ========================================== */}
         {activeTab === 'dependencies' && (
           <div className="animate-in">
             <div className="config-section">
               <h3 className="section-title">App Dependencies <span className="section-optional">Optional &bull; {dependencies.length} dependenc{dependencies.length === 1 ? 'y' : 'ies'}</span></h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-                Specify other Intune apps that must be installed before this app.
+                Specify other Intune Win32 apps that must be installed before this app. If added, you must specify whether the dependency should be automatically installed.
               </p>
+
+              {dependencies.length === 0 && (
+                <p className="phase-empty" style={{ marginBottom: 'var(--space-md)' }}>No dependencies configured. This app will install independently.</p>
+              )}
 
               {dependencies.map((dep, idx) => (
                 <div key={idx} className="dep-row" style={{ marginBottom: '8px' }}>
@@ -1007,9 +1035,19 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               ))}
               <button type="button" className="add-action__btn" onClick={addDependency}>+ Add Dependency</button>
             </div>
+          </div>
+        )}
 
+        {/* ==========================================
+            TAB: SUPERSEDENCE
+            ========================================== */}
+        {activeTab === 'supersedence' && (
+          <div className="animate-in">
             <div className="config-section">
               <h3 className="section-title">Supersedence <span className="section-optional">Optional</span></h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+                Define which existing Intune app this new package will update or replace (uninstall).
+              </p>
               <div className="form-grid">
                 <FormField label="Superseded App ID" id="supersedesAppId" hint="Intune app GUID of the app being replaced" error={errors.supersedesAppId}>
                   <input id="supersedesAppId" type="text" placeholder="Leave empty if not superseding"
@@ -1017,10 +1055,11 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                     value={state.supersedesAppId || ''} onChange={e => updateField('supersedesAppId', e.target.value)} />
                 </FormField>
                 <SelectField label="Uninstall previous version" id="supersedenceType" value={state.supersedenceType || 'replace'}
+                  hint="'Yes' = uninstall the old app. 'No' = keep both versions."
                   onChange={v => updateField('supersedenceType', v)}
                   options={[
-                    { value: 'update', label: 'Yes' },
-                    { value: 'replace', label: 'No' },
+                    { value: 'update', label: 'Yes — uninstall previous version' },
+                    { value: 'replace', label: 'No — keep previous version' },
                   ]}
                 />
               </div>
@@ -1046,6 +1085,11 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
             ========================================== */}
         {activeTab === 'sync' && state.wizardMode === 'edit' && (
           <div className="animate-in">
+            {/* Intune Properties summary — shown only in Sync tab */}
+            {(state._intuneExportImported || state.wizardMode === 'edit') && (
+              <IntuneMetaSummary state={state} />
+            )}
+
             <div className="config-section">
               <h3 className="section-title">🔄 Intune Sync</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)' }}>
@@ -1176,42 +1220,108 @@ function IntuneMetaSummary({ state }) {
   const defaultIntuneAppName = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
   const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
 
-  // Build metadata rows — show all Intune-relevant fields with their current values
-  const metaRows = [
+  // Derive commands
+  const derivedInstallCmd = useMemo(() => {
+    const psadtFlags = [];
+    if (state.deployMode) psadtFlags.push(`-DeployMode ${state.deployMode}`);
+    if (state.allowRebootPassThru) psadtFlags.push('-AllowRebootPassThru');
+    const suffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
+    return `Invoke-AppDeployToolkit.exe -DeploymentType Install${suffix}`;
+  }, [state.deployMode, state.allowRebootPassThru]);
+
+  const derivedUninstallCmd = useMemo(() => {
+    const psadtFlags = [];
+    if (state.deployMode) psadtFlags.push(`-DeployMode ${state.deployMode}`);
+    if (state.allowRebootPassThru) psadtFlags.push('-AllowRebootPassThru');
+    const suffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
+    return `Invoke-AppDeployToolkit.exe -DeploymentType Uninstall${suffix}`;
+  }, [state.deployMode, state.allowRebootPassThru]);
+
+  const archText = state.archCheckEnabled
+    ? [state.archX86 && 'x86', state.archX64 && 'x64', state.archArm64 && 'ARM64'].filter(Boolean).join(', ') || 'None specified'
+    : 'All architectures (x86, x64, ARM64)';
+
+  const detectionRulesText = (() => {
+    if (state.detectionMethod === 'custom') {
+      return 'Custom detection script';
+    }
+    const rules = state.detectionRules || [];
+    if (rules.length === 0) return '';
+    return rules.map((r, i) => {
+      const type = r.ruleType?.toUpperCase() || 'RULE';
+      let details = '';
+      if (r.ruleType === 'msi') details = r.msiProductCode || '';
+      else if (r.ruleType === 'file') details = r.filePath ? `${r.filePath}\\${r.fileName || ''}` : '';
+      else if (r.ruleType === 'registry') details = r.keyPath || '';
+      return `${i + 1}. [${type}] ${details}`;
+    }).join('\n');
+  })();
+
+  const appInfoRows = [
     { label: 'Display Name', value: intuneAppNameValue },
     { label: 'Publisher', value: state.publisher },
     { label: 'Version', value: state.version },
-    { label: 'Description', value: state.appDescription, truncate: true },
+    { label: 'Category', value: PROJECT_CATEGORY_MAP[state.category] || state.softwareCategory },
     { label: 'Owner', value: state.appOwner },
     { label: 'Developer', value: state.appDeveloper },
-    { label: 'Category', value: state.softwareCategory },
+    { label: 'Description', value: state.appDescription, truncate: true },
     { label: 'Information URL', value: state.informationUrl, isUrl: true },
     { label: 'Privacy URL', value: state.privacyUrl, isUrl: true },
     { label: 'Notes', value: state.appNotes, truncate: true },
-    { label: 'Featured', value: state.isFeatured ? 'Yes' : 'No', badge: state.isFeatured ? 'accent' : 'muted' },
-    { label: 'Allow Uninstall', value: state.allowAvailableUninstall ? 'Yes' : 'No', badge: state.allowAvailableUninstall ? 'accent' : 'muted' },
-    { label: 'Installer Type', value: state.installerType?.toUpperCase() },
-    { label: 'Detection Mode', value: state.detectionMode },
-    { label: 'Restart Behavior', value: state.restartBehavior },
-    { label: 'Installation Time Required', value: state.maxInstallTime ? `${state.maxInstallTime} min` : '' },
-    { label: 'Install Context', value: state.installContext },
-    { label: 'Min Windows', value: state.minWinRelease },
-    { label: 'Min Disk Space', value: state.minDiskSpaceMB != null ? `${state.minDiskSpaceMB} MB` : '' },
-    { label: 'Min Memory', value: state.minMemoryMB != null ? `${state.minMemoryMB} MB` : '' },
-    { label: 'Assignments', value: state.assignments?.length ? `${state.assignments.length} group(s)` : '' },
-    { label: 'Supersedes', value: state.supersedesAppId || '' },
-    { label: 'Sync Intune App', value: state.syncIntuneAppId, mono: true },
-    { label: 'Import Source ID', value: !state.syncIntuneAppId && state._intuneAppId ? state._intuneAppId : '', mono: true },
+    { label: 'Featured in Portal', value: state.isFeatured ? 'Yes' : 'No', badge: state.isFeatured ? 'accent' : 'muted' },
+    { label: 'Role Scope Tags', value: state.roleScopeTagIds?.length ? state.roleScopeTagIds.join(', ') : '' },
   ].filter(r => r.value && r.value !== '');
 
-  const populatedCount = metaRows.length;
+  const programRows = [
+    { label: 'Install Command', value: derivedInstallCmd, mono: true },
+    { label: 'Uninstall Command', value: derivedUninstallCmd, mono: true },
+    { label: 'Install Behavior', value: state.installContext ? (state.installContext === 'system' ? 'System' : 'User') : '' },
+    { label: 'Device Restart Behavior', value: state.restartBehavior },
+    { label: 'Installation Time', value: state.maxInstallTime ? `${state.maxInstallTime} mins` : '' },
+    { label: 'Allow Available Uninstall', value: state.allowAvailableUninstall ? 'Yes' : 'No', badge: state.allowAvailableUninstall ? 'accent' : 'muted' },
+    { label: 'Return Codes', value: state.returnCodes?.length ? `${state.returnCodes.length} code(s)` : '' },
+  ].filter(r => r.value && r.value !== '');
+
+  const requirementsRows = [
+    { label: 'OS Architecture', value: archText },
+    { label: 'Minimum Windows Release', value: state.minWinRelease },
+    { label: 'Min Disk Space', value: state.minDiskSpaceMB != null ? `${state.minDiskSpaceMB} MB` : '' },
+    { label: 'Min Memory', value: state.minMemoryMB != null ? `${state.minMemoryMB} MB` : '' },
+    { label: 'Min Logical Processors', value: state.minLogicalProcessors },
+    { label: 'Min CPU Speed', value: state.minCpuSpeedMHz != null ? `${state.minCpuSpeedMHz} MHz` : '' },
+    { label: 'Requirement Rules', value: state.customRequirements?.length ? `${state.customRequirements.length} rule(s)` : '' },
+  ].filter(r => r.value && r.value !== '');
+
+  const detectionRows = [
+    { label: 'Detection Mode', value: state.detectionMethod === 'custom' ? 'Custom detection script' : 'Manually configure detection rules' },
+    { label: 'Rules List', value: detectionRulesText, pre: true },
+  ].filter(r => r.value && r.value !== '');
+
+  const relationshipsRows = [
+    { label: 'Dependencies', value: state.dependencies?.length ? state.dependencies.map(d => `${d.appId} (${d.dependencyType})`).join(', ') : '' },
+    { label: 'Supersedes App ID', value: state.supersedesAppId },
+    { label: 'Supersedence Type', value: state.supersedesAppId && state.supersedenceType ? (state.supersedenceType === 'update' ? 'Yes — Uninstall previous' : 'No — Keep previous') : '' },
+    { label: 'Assignments', value: state.assignments?.length ? `${state.assignments.length} group(s)` : '' },
+    { label: 'Sync Intune App ID', value: state.syncIntuneAppId, mono: true },
+    { label: 'Import Source App ID', value: !state.syncIntuneAppId && state._intuneAppId ? state._intuneAppId : '', mono: true },
+  ].filter(r => r.value && r.value !== '');
+
+  const sections = [
+    { title: 'App Information', icon: '📋', rows: appInfoRows },
+    { title: 'Program Settings', icon: '💻', rows: programRows },
+    { title: 'Requirements', icon: '🛠️', rows: requirementsRows },
+    { title: 'Detection Rules', icon: '🔍', rows: detectionRows },
+    { title: 'Relationships & Sync', icon: '🔗', rows: relationshipsRows },
+  ];
+
+  const totalPopulatedCount = sections.reduce((acc, sec) => acc + sec.rows.length, 0);
 
   return (
     <div className="intune-meta-summary">
       <button type="button" className="intune-meta-summary__header" onClick={() => setExpanded(!expanded)}>
         <span className="intune-meta-summary__icon">📋</span>
         <span className="intune-meta-summary__title">Intune Properties</span>
-        <span className="intune-meta-summary__badge">{populatedCount} populated</span>
+        <span className="intune-meta-summary__badge">{totalPopulatedCount} populated</span>
         {state._intuneExportImported && (
           <span className="intune-meta-summary__source">from Intune catalog</span>
         )}
@@ -1219,19 +1329,50 @@ function IntuneMetaSummary({ state }) {
       </button>
       {expanded && (
         <div className="intune-meta-summary__body">
-          <div className="intune-meta-grid">
-            {metaRows.map(row => (
-              <div key={row.label} className="intune-meta-row">
-                <span className="intune-meta-row__label">{row.label}</span>
-                {row.isUrl && row.value ? (
-                  <a className="intune-meta-row__value intune-meta-row__value--link" href={row.value} target="_blank" rel="noopener noreferrer">{row.value}</a>
-                ) : row.badge ? (
-                  <span className={`intune-meta-row__badge intune-meta-row__badge--${row.badge}`}>{row.value}</span>
-                ) : (
-                  <span className={`intune-meta-row__value ${row.mono ? 'intune-meta-row__value--mono' : ''} ${row.truncate ? 'intune-meta-row__value--truncate' : ''}`}>{row.value}</span>
-                )}
-              </div>
-            ))}
+          <div className="intune-meta-summary__left">
+            {sections.map(section => {
+              if (section.rows.length === 0) return null;
+              return (
+                <div key={section.title} className="intune-meta-section">
+                  <h4 className="intune-meta-section__title">
+                    <span className="intune-meta-section__icon">{section.icon}</span>
+                    {section.title}
+                  </h4>
+                  <div className="intune-meta-grid">
+                    {section.rows.map(row => (
+                      <div key={row.label} className="intune-meta-row">
+                        <span className="intune-meta-row__label">{row.label}</span>
+                        {row.pre ? (
+                          <pre className="intune-meta-row__value intune-meta-row__value--pre">{row.value}</pre>
+                        ) : row.isUrl && row.value ? (
+                          <a className="intune-meta-row__value intune-meta-row__value--link" href={row.value} target="_blank" rel="noopener noreferrer">{row.value}</a>
+                        ) : row.badge ? (
+                          <span className={`intune-meta-row__badge intune-meta-row__badge--${row.badge}`}>{row.value}</span>
+                        ) : (
+                          <span className={`intune-meta-row__value ${row.mono ? 'intune-meta-row__value--mono' : ''} ${row.truncate ? 'intune-meta-row__value--truncate' : ''}`}>{row.value}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="intune-meta-summary__right">
+            <div className="intune-meta-summary__logo-container">
+              {state.logoDataUrl ? (
+                <img src={state.logoDataUrl} alt="App logo" className="intune-meta-summary__logo" />
+              ) : (
+                <div className="intune-meta-summary__logo-placeholder">
+                  🖼️
+                </div>
+              )}
+            </div>
+            <div className="intune-meta-summary__logo-title">App Logo</div>
+            <div className="intune-meta-summary__logo-filename">
+              {state.logoFile?.name || state._logoFileName || 'No logo uploaded'}
+            </div>
           </div>
         </div>
       )}
@@ -1287,29 +1428,119 @@ function IntuneMetaSummary({ state }) {
           flex-shrink: 0;
         }
         .intune-meta-summary__body {
-          padding: var(--space-sm) var(--space-md) var(--space-md);
+          display: flex;
+          gap: var(--space-lg);
+          padding: var(--space-md);
           border-top: 1px solid var(--border-subtle);
+        }
+        @media (max-width: 768px) {
+          .intune-meta-summary__body {
+            flex-direction: column-reverse;
+          }
+        }
+        .intune-meta-summary__left {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-lg);
+        }
+        .intune-meta-summary__right {
+          width: 180px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--space-xs);
+          padding: var(--space-md);
+          border: 1px dashed var(--border-subtle);
+          border-radius: var(--radius-md);
+          background: rgba(255, 255, 255, 0.01);
+          text-align: center;
+          align-self: flex-start;
+          position: sticky;
+          top: var(--space-md);
+        }
+        @media (max-width: 768px) {
+          .intune-meta-summary__right {
+            width: 100%;
+            position: relative;
+            top: 0;
+            align-self: stretch;
+          }
+        }
+        .intune-meta-summary__logo-container {
+          width: 96px;
+          height: 96px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-subtle);
+          overflow: hidden;
+          padding: var(--space-xs);
+          margin-bottom: var(--space-xs);
+        }
+        .intune-meta-summary__logo {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+        }
+        .intune-meta-summary__logo-placeholder {
+          font-size: 2.5rem;
+          color: var(--text-muted);
+          opacity: 0.5;
+        }
+        .intune-meta-summary__logo-title {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .intune-meta-summary__logo-filename {
+          font-size: 0.65rem;
+          color: var(--text-muted);
+          word-break: break-all;
+          max-width: 160px;
+        }
+        .intune-meta-section {
+          padding-bottom: var(--space-md);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .intune-meta-section:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+        .intune-meta-section__title {
+          display: flex;
+          align-items: center;
+          gap: var(--space-xs);
+          font-size: 0.76rem;
+          font-weight: 700;
+          color: var(--text-accent, #7c8aff);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin: 0 0 var(--space-md) 0;
+        }
+        .intune-meta-section__icon {
+          font-size: 0.9rem;
         }
         .intune-meta-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-          gap: 6px 16px;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 10px var(--space-lg);
         }
         .intune-meta-row {
           display: flex;
-          align-items: baseline;
-          gap: var(--space-sm);
-          padding: 3px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.03);
+          flex-direction: column;
+          gap: 4px;
+          padding: 4px 0;
         }
         .intune-meta-row__label {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           font-weight: 600;
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.03em;
-          flex-shrink: 0;
-          min-width: 100px;
         }
         .intune-meta-row__value {
           font-size: 0.78rem;
@@ -1327,6 +1558,18 @@ function IntuneMetaSummary({ state }) {
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
+        .intune-meta-row__value--pre {
+          white-space: pre-wrap;
+          font-family: var(--font-mono);
+          font-size: 0.72rem;
+          color: var(--text-secondary);
+          margin: 0;
+          padding: 6px 10px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border-subtle);
+          width: 100%;
+        }
         .intune-meta-row__value--link {
           font-size: 0.74rem;
           color: var(--text-accent, #7c8aff);
@@ -1341,6 +1584,8 @@ function IntuneMetaSummary({ state }) {
           font-weight: 600;
           padding: 1px 8px;
           border-radius: 8px;
+          display: inline-block;
+          width: fit-content;
         }
         .intune-meta-row__badge--accent {
           background: rgba(99,140,255,0.12);

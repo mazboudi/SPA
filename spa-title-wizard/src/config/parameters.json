@@ -1,87 +1,26 @@
 [
+  {"_comment": "=== custom_variable ==="},
   {
-    "cmdlet": "msi_install",
-    "parameter": "file",
-    "label": "MSI File",
+    "cmdlet": "custom_variable",
+    "parameter": "name",
+    "label": "Variable Name",
     "type": "text",
-    "placeholder": "app.msi",
+    "placeholder": "$myVar",
     "required": true
   },
   {
-    "cmdlet": "msi_install",
-    "parameter": "args",
-    "label": "Arguments",
+    "cmdlet": "custom_variable",
+    "parameter": "value",
+    "label": "Value",
     "type": "text",
-    "placeholder": "/QN /norestart",
-    "default": "/QN /norestart"
-  },
-  {
-    "cmdlet": "msi_install",
-    "parameter": "transform",
-    "label": "Transform File (.mst)",
-    "type": "text",
-    "placeholder": "transform.mst"
-  },
-  {
-    "cmdlet": "msi_install",
-    "parameter": "additionalArgs",
-    "label": "Additional Arguments",
-    "type": "text",
-    "placeholder": "PROPERTY=Value"
-  },
-  {
-    "cmdlet": "msi_install",
-    "parameter": "logName",
-    "label": "Custom Log Name",
-    "type": "text",
-    "placeholder": "MyApp_Install"
-  },
-  {
-    "cmdlet": "msi_install",
-    "parameter": "successExitCodes",
-    "label": "Success Exit Codes (comma-separated)",
-    "type": "text",
-    "placeholder": "0,1641,3010"
-  },
-  {
-    "cmdlet": "msi_install",
-    "parameter": "rebootExitCodes",
-    "label": "Reboot Exit Codes (comma-separated)",
-    "type": "text",
-    "placeholder": "1641,3010"
-  },
-  {
-    "cmdlet": "msi_uninstall",
-    "parameter": "appName",
-    "label": "App Name",
-    "type": "text",
-    "placeholder": "Application Name"
-  },
-  {
-    "cmdlet": "msi_uninstall",
-    "parameter": "productCode",
-    "label": "Product Code (GUID)",
-    "type": "text",
-    "placeholder": "{GUID}"
-  },
-  {
-    "cmdlet": "msi_uninstall",
-    "parameter": "args",
-    "label": "Arguments",
-    "type": "text",
-    "placeholder": "/qn /NORESTART"
-  },
-  {
-    "cmdlet": "msi_uninstall_batch",
-    "parameter": "guids",
-    "label": "Product Code GUIDs (one per line)",
-    "type": "guids",
     "required": true
   },
+
+  {"_comment": "=== exe_install → Start-ADTProcess ==="},
   {
     "cmdlet": "exe_install",
     "parameter": "file",
-    "label": "EXE File Path",
+    "label": "File Path",
     "type": "text",
     "placeholder": "setup.exe",
     "required": true
@@ -89,24 +28,9 @@
   {
     "cmdlet": "exe_install",
     "parameter": "args",
-    "label": "Arguments",
+    "label": "Arguments (-ArgumentList)",
     "type": "text",
-    "placeholder": "/S",
-    "default": "/S"
-  },
-  {
-    "cmdlet": "exe_install",
-    "parameter": "windowStyle",
-    "label": "Window Style",
-    "type": "select",
-    "options": ["Hidden", "Normal", "Maximized", "Minimized"]
-  },
-  {
-    "cmdlet": "exe_install",
-    "parameter": "noWait",
-    "label": "Don't Wait for Exit",
-    "type": "boolean",
-    "default": false
+    "placeholder": "/S"
   },
   {
     "cmdlet": "exe_install",
@@ -117,126 +41,393 @@
   },
   {
     "cmdlet": "exe_install",
-    "parameter": "ignoreExitCodes",
-    "label": "Ignore Exit Codes",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes",
     "type": "text",
-    "placeholder": "1"
+    "placeholder": "1641,3010"
   },
   {
-    "cmdlet": "exe_uninstall",
-    "parameter": "file",
-    "label": "Uninstaller Path",
-    "type": "text",
-    "placeholder": "C:\\Program Files\\App\\uninstall.exe",
-    "required": true
-  },
-  {
-    "cmdlet": "exe_uninstall",
-    "parameter": "args",
-    "label": "Arguments",
-    "type": "text",
-    "placeholder": "/S",
-    "default": "/S"
-  },
-  {
-    "cmdlet": "exe_uninstall",
-    "parameter": "windowStyle",
-    "label": "Window Style",
-    "type": "select",
-    "options": ["Hidden", "Normal", "Maximized", "Minimized"]
-  },
-  {
-    "cmdlet": "exe_uninstall",
-    "parameter": "noWait",
-    "label": "Don't Wait for Exit",
+    "cmdlet": "exe_install",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
     "type": "boolean",
     "default": false
   },
   {
-    "cmdlet": "execute_process",
-    "parameter": "file",
-    "label": "File Path",
+    "cmdlet": "exe_install",
+    "parameter": "passThruVar",
+    "label": "Store Result In Variable",
     "type": "text",
-    "placeholder": "powershell.exe",
-    "required": true
+    "placeholder": "processResult"
   },
+
+  {"_comment": "=== msi_install → Start-ADTMsiProcess ==="},
   {
-    "cmdlet": "execute_process",
-    "parameter": "args",
-    "label": "Arguments",
-    "type": "text",
-    "required": true
-  },
-  {
-    "cmdlet": "execute_process",
-    "parameter": "windowStyle",
-    "label": "Window Style",
+    "cmdlet": "msi_install",
+    "parameter": "action",
+    "label": "Action",
     "type": "select",
-    "options": ["Hidden", "Normal", "Maximized", "Minimized"]
+    "options": ["Install", "Uninstall", "Patch", "Repair"],
+    "default": "Install",
+    "required": true
   },
   {
-    "cmdlet": "execute_process",
-    "parameter": "noWait",
-    "label": "Don't Wait for Exit",
+    "cmdlet": "msi_install",
+    "parameter": "file",
+    "label": "MSI / MSP File Path (-FilePath)",
+    "type": "text",
+    "placeholder": "app.msi"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "productCode",
+    "label": "Product Code GUID (-ProductCode)",
+    "type": "text",
+    "placeholder": "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "args",
+    "label": "Arguments (-ArgumentList)",
+    "type": "text",
+    "placeholder": "/QN /norestart"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "additionalArgs",
+    "label": "Additional Arguments (-AdditionalArgumentList)",
+    "type": "text",
+    "placeholder": "PROPERTY=Value"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "transform",
+    "label": "Transform File (.mst) (-Transforms)",
+    "type": "text",
+    "placeholder": "transform.mst"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "patches",
+    "label": "Patch Files (.msp) (-Patches)",
+    "type": "text",
+    "placeholder": "patch1.msp, patch2.msp"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes",
+    "type": "text",
+    "placeholder": "0,1641,3010"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes",
+    "type": "text",
+    "placeholder": "1641,3010"
+  },
+  {
+    "cmdlet": "msi_install",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
     "type": "boolean",
     "default": false
   },
   {
-    "cmdlet": "execute_process",
+    "cmdlet": "msi_install",
+    "parameter": "passThruVar",
+    "label": "Store Result In Variable",
+    "type": "text",
+    "placeholder": "msiResult"
+  },
+
+  {"_comment": "=== uninstall_application → Uninstall-ADTApplication ==="},
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "name",
+    "label": "Application Name (-Name)",
+    "type": "text",
+    "placeholder": "Application Display Name",
+    "required": true
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "nameMatch",
+    "label": "Name Match Mode (-NameMatch)",
+    "type": "select",
+    "options": ["Contains", "Exact", "Wildcard", "Regex"],
+    "default": "Contains"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "productCode",
+    "label": "Product Code GUID (-ProductCode)",
+    "type": "text",
+    "placeholder": "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "applicationType",
+    "label": "Application Type (-ApplicationType)",
+    "type": "select",
+    "options": ["All", "MSI", "EXE"],
+    "default": "All"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "filterScript",
+    "label": "Filter Script (-FilterScript)",
+    "type": "text",
+    "placeholder": "{ $_.Publisher -match 'Vendor' }"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "args",
+    "label": "Arguments (-ArgumentList)",
+    "type": "text",
+    "placeholder": "/S /quiet"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "additionalArgs",
+    "label": "Additional Arguments (-AdditionalArgumentList)",
+    "type": "text",
+    "placeholder": "PROPERTY=Value"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes",
+    "type": "text",
+    "placeholder": "0,1641,3010"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes",
+    "type": "text",
+    "placeholder": "1641,3010"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "passThruVar",
+    "label": "Store Result In Variable",
+    "type": "text",
+    "placeholder": "uninstallResult"
+  },
+
+  {"_comment": "=== execute_process_as_user → Start-ADTProcessAsUser ==="},
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "file",
+    "label": "File Path / Program (-FilePath)",
+    "type": "text",
+    "placeholder": "setup.exe",
+    "required": true
+  },
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "args",
+    "label": "Arguments (-ArgumentList)",
+    "type": "text",
+    "placeholder": "/S"
+  },
+  {
+    "cmdlet": "execute_process_as_user",
     "parameter": "successExitCodes",
     "label": "Success Exit Codes",
     "type": "text",
     "placeholder": "0,3010"
   },
   {
-    "cmdlet": "execute_process",
-    "parameter": "ignoreExitCodes",
-    "label": "Ignore Exit Codes",
+    "cmdlet": "execute_process_as_user",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes",
     "type": "text",
-    "placeholder": "1"
+    "placeholder": "1641,3010"
   },
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "passThruVar",
+    "label": "Store Result In Variable",
+    "type": "text",
+    "placeholder": "processResult"
+  },
+
+  {"_comment": "=== msi_process_as_user → Start-ADTMsiProcessAsUser ==="},
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "action",
+    "label": "Action",
+    "type": "select",
+    "options": ["Install", "Uninstall", "Patch", "Repair"],
+    "default": "Install",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "file",
+    "label": "MSI File Path (-FilePath)",
+    "type": "text",
+    "placeholder": "app.msi",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "productCode",
+    "label": "Product Code GUID (-ProductCode)",
+    "type": "text",
+    "placeholder": "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "args",
+    "label": "Arguments (-ArgumentList)",
+    "type": "text",
+    "placeholder": "/QN /norestart"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "additionalArgs",
+    "label": "Additional Arguments (-AdditionalArgumentList)",
+    "type": "text",
+    "placeholder": "PROPERTY=Value"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "transform",
+    "label": "Transform File (.mst) (-Transforms)",
+    "type": "text",
+    "placeholder": "transform.mst"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "patches",
+    "label": "Patch Files (.msp) (-Patches)",
+    "type": "text",
+    "placeholder": "patch1.msp, patch2.msp"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes",
+    "type": "text",
+    "placeholder": "0,1641,3010"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes",
+    "type": "text",
+    "placeholder": "1641,3010"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "passThruVar",
+    "label": "Store Result In Variable",
+    "type": "text",
+    "placeholder": "msiResult"
+  },
+
+  {"_comment": "=== file_copy → Copy-ADTFile ==="},
   {
     "cmdlet": "file_copy",
     "parameter": "source",
-    "label": "Source Path",
+    "label": "Source Path (-Path)",
     "type": "text",
     "required": true
   },
   {
     "cmdlet": "file_copy",
     "parameter": "dest",
-    "label": "Destination Path",
+    "label": "Destination Path (-Destination)",
     "type": "text",
     "required": true
   },
   {
     "cmdlet": "file_copy",
     "parameter": "recurse",
-    "label": "Recurse (Include Subdirectories)",
+    "label": "Recurse (-Recurse)",
     "type": "boolean",
     "default": true
   },
   {
     "cmdlet": "file_copy",
     "parameter": "flatten",
-    "label": "Flatten Directory Structure",
+    "label": "Flatten Directory Structure (-Flatten)",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "continueOnError",
+    "label": "Continue On Error (-ContinueFileCopyOnError)",
     "type": "boolean",
     "default": false
   },
   {
     "cmdlet": "file_copy",
     "parameter": "fileCopyMode",
-    "label": "Copy Engine",
+    "label": "Copy Engine (-FileCopyMode)",
     "type": "select",
     "options": ["Native", "Robocopy"]
   },
   {
-    "cmdlet": "file_remove",
-    "parameter": "path",
-    "label": "Path to Remove",
+    "cmdlet": "file_copy",
+    "parameter": "robocopyParams",
+    "label": "Robocopy Parameters (override defaults)",
     "type": "text",
+    "placeholder": "/NJH /NJS /NS /NC /NP /NDL /FP /IS /IT /IM /XX /MT:4 /R:1 /W:1"
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "robocopyAdditionalParams",
+    "label": "Robocopy Additional Parameters (append)",
+    "type": "text",
+    "placeholder": "/A-:SH"
+  },
+
+  {"_comment": "=== copy_file_to_user_profiles → Copy-ADTFileToUserProfiles ==="},
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "source",
+    "label": "Source File (-Path)",
+    "type": "text",
+    "placeholder": "config.json",
     "required": true
   },
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "destination",
+    "label": "Destination (relative to user profile)",
+    "type": "text",
+    "placeholder": "AppData\\Local\\MyApp",
+    "required": true
+  },
+
+  {"_comment": "=== create_folder → New-ADTFolder ==="},
   {
     "cmdlet": "create_folder",
     "parameter": "path",
@@ -244,6 +435,48 @@
     "type": "text",
     "required": true
   },
+
+  {"_comment": "=== file_remove → Remove-ADTFile ==="},
+  {
+    "cmdlet": "file_remove",
+    "parameter": "path",
+    "label": "Path (accepts wildcards) (-Path)",
+    "type": "text",
+    "placeholder": "C:\\Temp\\*.log"
+  },
+  {
+    "cmdlet": "file_remove",
+    "parameter": "literalPath",
+    "label": "Literal Path (no wildcards) (-LiteralPath)",
+    "type": "text",
+    "placeholder": "C:\\Program Files\\App\\file.dat"
+  },
+  {
+    "cmdlet": "file_remove",
+    "parameter": "recurse",
+    "label": "Recurse (-Recurse)",
+    "type": "boolean",
+    "default": false
+  },
+
+  {"_comment": "=== folder_remove → Remove-ADTFolder ==="},
+  {
+    "cmdlet": "folder_remove",
+    "parameter": "path",
+    "label": "Folder Path (-Path)",
+    "type": "text",
+    "placeholder": "C:\\Temp\\MyAppCache",
+    "required": true
+  },
+  {
+    "cmdlet": "folder_remove",
+    "parameter": "disableRecursion",
+    "label": "Disable Recursion (-DisableRecursion)",
+    "type": "boolean",
+    "default": false
+  },
+
+  {"_comment": "=== registry_set → Set-ADTRegistryKey ==="},
   {
     "cmdlet": "registry_set",
     "parameter": "key",
@@ -269,7 +502,7 @@
   {
     "cmdlet": "registry_set",
     "parameter": "regType",
-    "label": "Value Type",
+    "label": "Value Type (-Type)",
     "type": "select",
     "options": ["String", "ExpandString", "Binary", "DWord", "MultiString", "QWord"]
   },
@@ -280,6 +513,8 @@
     "type": "text",
     "placeholder": "S-1-5-..."
   },
+
+  {"_comment": "=== registry_remove → Remove-ADTRegistryKey ==="},
   {
     "cmdlet": "registry_remove",
     "parameter": "key",
@@ -295,42 +530,25 @@
     "type": "text",
     "placeholder": "Leave empty to remove entire key"
   },
+
+  {"_comment": "=== stop_process → Stop-Process ==="},
   {
-    "cmdlet": "env_variable",
-    "parameter": "name",
-    "label": "Variable Name",
+    "cmdlet": "stop_process",
+    "parameter": "processName",
+    "label": "Process Name(s) (comma-separated, no extension)",
     "type": "text",
+    "placeholder": "chrome, firefox",
     "required": true
   },
   {
-    "cmdlet": "env_variable",
-    "parameter": "value",
-    "label": "Variable Value",
-    "type": "text",
-    "required": true
+    "cmdlet": "stop_process",
+    "parameter": "force",
+    "label": "Force Kill (-Force)",
+    "type": "boolean",
+    "default": true
   },
-  {
-    "cmdlet": "remove_env_variable",
-    "parameter": "name",
-    "label": "Variable Name",
-    "type": "text",
-    "required": true
-  },
-  {
-    "cmdlet": "custom_variable",
-    "parameter": "name",
-    "label": "Variable Name",
-    "type": "text",
-    "placeholder": "$myVar",
-    "required": true
-  },
-  {
-    "cmdlet": "custom_variable",
-    "parameter": "value",
-    "label": "Value",
-    "type": "text",
-    "required": true
-  },
+
+  {"_comment": "=== sleep → Start-Sleep ==="},
   {
     "cmdlet": "sleep",
     "parameter": "seconds",
@@ -339,6 +557,35 @@
     "default": 5,
     "required": true
   },
+
+  {"_comment": "=== custom_script → Custom PowerShell ==="},
+  {
+    "cmdlet": "custom_script",
+    "parameter": "code",
+    "label": "PowerShell Code",
+    "type": "textarea",
+    "placeholder": "# Custom PowerShell commands",
+    "required": true
+  },
+  {
+    "cmdlet": "custom_script",
+    "parameter": "note",
+    "label": "Note / Description",
+    "type": "text",
+    "placeholder": "Brief description of what this does"
+  },
+
+  {"_comment": "=== pending_reboot → Get-ADTPendingReboot ==="},
+  {
+    "cmdlet": "pending_reboot",
+    "parameter": "varName",
+    "label": "Store Boolean In Variable",
+    "type": "text",
+    "placeholder": "isRebootPending",
+    "required": true
+  },
+
+  {"_comment": "=== show_welcome → Show-ADTInstallationWelcome ==="},
   {
     "cmdlet": "show_welcome",
     "parameter": "allowDefer",
@@ -402,6 +649,8 @@
     "type": "boolean",
     "default": false
   },
+
+  {"_comment": "=== show_progress → Show-ADTInstallationProgress ==="},
   {
     "cmdlet": "show_progress",
     "parameter": "statusMessage",
@@ -416,97 +665,32 @@
     "type": "boolean",
     "default": true
   },
+
+  {"_comment": "=== show_completion → Show-ADTInstallationPrompt ==="},
+
+  {"_comment": "=== restart_prompt → Show-ADTInstallationRestartPrompt ==="},
   {
-    "cmdlet": "custom_script",
-    "parameter": "code",
-    "label": "PowerShell Code",
-    "type": "textarea",
-    "placeholder": "# Custom PowerShell commands",
-    "required": true
+    "cmdlet": "restart_prompt",
+    "parameter": "countdownSeconds",
+    "label": "Countdown (seconds)",
+    "type": "number",
+    "default": 600
   },
   {
-    "cmdlet": "custom_script",
-    "parameter": "note",
-    "label": "Note",
-    "type": "text",
-    "placeholder": "Brief description of what this does"
+    "cmdlet": "restart_prompt",
+    "parameter": "countdownNoHideSeconds",
+    "label": "Countdown No-Hide (seconds)",
+    "type": "number"
   },
   {
-    "cmdlet": "raw_ps",
-    "parameter": "script",
-    "label": "PowerShell Script Block",
-    "type": "textarea",
-    "placeholder": "# Unparsed block — edit or delete",
-    "required": true
+    "cmdlet": "restart_prompt",
+    "parameter": "silentRestart",
+    "label": "Silent Restart (no prompt, restart immediately)",
+    "type": "boolean",
+    "default": false
   },
-  {
-    "cmdlet": "raw_ps",
-    "parameter": "note",
-    "label": "Note",
-    "type": "text",
-    "placeholder": "Brief description of what this block does"
-  },
-  {
-    "cmdlet": "execute_process_as_user",
-    "parameter": "file",
-    "label": "File Path / Program",
-    "type": "text",
-    "placeholder": "setup.exe",
-    "required": true
-  },
-  {
-    "cmdlet": "execute_process_as_user",
-    "parameter": "args",
-    "label": "Arguments",
-    "type": "text",
-    "placeholder": "/S"
-  },
-  {
-    "cmdlet": "block_app_execution",
-    "parameter": "processName",
-    "label": "Process Name(s)",
-    "type": "text",
-    "placeholder": "chrome (comma-separated)",
-    "required": true
-  },
-  {
-    "cmdlet": "block_app_execution",
-    "parameter": "textHeader",
-    "label": "Header Title",
-    "type": "text",
-    "placeholder": "Google Chrome must close"
-  },
-  {
-    "cmdlet": "block_app_execution",
-    "parameter": "textMessage",
-    "label": "Prompt Message",
-    "type": "text",
-    "placeholder": "Please save your work and close Chrome to continue."
-  },
-  {
-    "cmdlet": "unblock_app_execution",
-    "parameter": "processName",
-    "label": "Process Name(s)",
-    "type": "text",
-    "placeholder": "chrome (comma-separated)",
-    "required": true
-  },
-  {
-    "cmdlet": "copy_file_to_user_profiles",
-    "parameter": "source",
-    "label": "Source File",
-    "type": "text",
-    "placeholder": "config.json",
-    "required": true
-  },
-  {
-    "cmdlet": "copy_file_to_user_profiles",
-    "parameter": "destination",
-    "label": "Destination Directory (relative to user profile)",
-    "type": "text",
-    "placeholder": "AppData\\Local\\MyApp",
-    "required": true
-  },
+
+  {"_comment": "=== new_shortcut → New-ADTShortcut ==="},
   {
     "cmdlet": "new_shortcut",
     "parameter": "shortcutPath",
@@ -544,12 +728,154 @@
     "type": "text",
     "placeholder": "Launch MyApp"
   },
+
+  {"_comment": "=== remove_file_from_profiles → Remove-ADTFileFromUserProfiles ==="},
+  {
+    "cmdlet": "remove_file_from_profiles",
+    "parameter": "path",
+    "label": "Path (relative to user profile)",
+    "type": "text",
+    "placeholder": "AppData\\Local\\MyApp\\cache",
+    "required": true
+  },
+
+  {"_comment": "=== Legacy types — keep parameter definitions for backward compat rendering ==="},
+
+  {
+    "cmdlet": "raw_ps",
+    "parameter": "script",
+    "label": "PowerShell Script Block",
+    "type": "textarea",
+    "placeholder": "# Unparsed block — edit or delete",
+    "required": true
+  },
+  {
+    "cmdlet": "raw_ps",
+    "parameter": "note",
+    "label": "Note",
+    "type": "text",
+    "placeholder": "Brief description of what this block does"
+  },
+  {
+    "cmdlet": "msi_uninstall",
+    "parameter": "appName",
+    "label": "App Name",
+    "type": "text",
+    "placeholder": "Application Name"
+  },
+  {
+    "cmdlet": "msi_uninstall",
+    "parameter": "productCode",
+    "label": "Product Code (GUID)",
+    "type": "text",
+    "placeholder": "{GUID}"
+  },
+  {
+    "cmdlet": "msi_uninstall",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/qn /NORESTART"
+  },
+  {
+    "cmdlet": "msi_uninstall_batch",
+    "parameter": "guids",
+    "label": "Product Code GUIDs (one per line)",
+    "type": "guids",
+    "required": true
+  },
+  {
+    "cmdlet": "exe_uninstall",
+    "parameter": "file",
+    "label": "Uninstaller Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "exe_uninstall",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text",
+    "placeholder": "/S"
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "file",
+    "label": "File Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "execute_process",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text"
+  },
+  {
+    "cmdlet": "msi_patch",
+    "parameter": "file",
+    "label": "Patch File (.msp)",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_patch",
+    "parameter": "args",
+    "label": "Arguments",
+    "type": "text"
+  },
+  {
+    "cmdlet": "registry_marker",
+    "parameter": "_placeholder",
+    "label": "Auto-populated from project info",
+    "type": "text"
+  },
+  {
+    "cmdlet": "remove_registry_marker",
+    "parameter": "_placeholder",
+    "label": "Auto-populated from project info",
+    "type": "text"
+  },
+  {
+    "cmdlet": "env_variable",
+    "parameter": "name",
+    "label": "Variable Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "env_variable",
+    "parameter": "value",
+    "label": "Variable Value",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "remove_env_variable",
+    "parameter": "name",
+    "label": "Variable Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "block_app_execution",
+    "parameter": "processName",
+    "label": "Process Name(s)",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "unblock_app_execution",
+    "parameter": "processName",
+    "label": "Process Name(s)",
+    "type": "text",
+    "required": true
+  },
   {
     "cmdlet": "show_balloon_tip",
     "parameter": "balloonText",
-    "label": "Balloon Message Text",
+    "label": "Balloon Message",
     "type": "text",
-    "placeholder": "Installation of MyApp completed successfully.",
     "required": true
   },
   {
@@ -557,15 +883,13 @@
     "parameter": "balloonTitle",
     "label": "Balloon Title",
     "type": "text",
-    "placeholder": "MyApp Install",
     "required": true
   },
   {
     "cmdlet": "show_balloon_tip",
     "parameter": "balloonIcon",
-    "label": "Icon (Info/Warning/Error)",
+    "label": "Icon",
     "type": "text",
-    "placeholder": "Info",
     "default": "Info"
   },
   {
@@ -573,7 +897,6 @@
     "parameter": "text",
     "label": "Message Text",
     "type": "text",
-    "placeholder": "Please save all your work before proceeding.",
     "required": true
   },
   {
@@ -581,93 +904,47 @@
     "parameter": "title",
     "label": "Dialog Title",
     "type": "text",
-    "placeholder": "Important Notice",
     "required": true
   },
   {
     "cmdlet": "show_dialog_box",
     "parameter": "buttons",
-    "label": "Buttons (OK, OKCancel, YesNo, YesNoCancel)",
+    "label": "Buttons",
     "type": "text",
-    "placeholder": "OK",
     "default": "OK"
   },
   {
     "cmdlet": "show_dialog_box",
     "parameter": "icon",
-    "label": "Icon (Asterisk, Error, Exclamation, Information, None, Question, Stop, Warning)",
+    "label": "Icon",
     "type": "text",
-    "placeholder": "Information",
     "default": "Information"
   },
   {
     "cmdlet": "get_installed_application",
     "parameter": "name",
-    "label": "Application Name to Query",
+    "label": "Application Name",
     "type": "text",
-    "placeholder": "Google Chrome",
     "required": true
   },
   {
     "cmdlet": "get_installed_application",
     "parameter": "varName",
-    "label": "Store in Variable Name (e.g. appInfo)",
+    "label": "Store in Variable",
     "type": "text",
-    "placeholder": "appInfo",
-    "required": true
-  },
-  {
-    "cmdlet": "set_service_state",
-    "parameter": "name",
-    "label": "Service Name",
-    "type": "text",
-    "placeholder": "Spooler",
-    "required": true
-  },
-  {
-    "cmdlet": "set_service_state",
-    "parameter": "mode",
-    "label": "Action",
-    "type": "select",
-    "options": ["start", "stop", "Automatic", "Manual", "Disabled"],
-    "required": true
-  },
-  {
-    "cmdlet": "set_service_state",
-    "parameter": "startMode",
-    "label": "Startup Type (when setting startup mode)",
-    "type": "select",
-    "options": ["Automatic", "Manual", "Disabled"]
-  },
-  {
-    "cmdlet": "write_log_entry",
-    "parameter": "message",
-    "label": "Log Message",
-    "type": "text",
-    "placeholder": "Starting custom configuration tasks...",
-    "required": true
-  },
-  {
-    "cmdlet": "write_log_entry",
-    "parameter": "severity",
-    "label": "Severity (1 = Info, 2 = Warning, 3 = Error)",
-    "type": "number",
-    "default": 1,
     "required": true
   },
   {
     "cmdlet": "get_installed_application",
     "parameter": "productCode",
-    "label": "Product Code (GUID)",
-    "type": "text",
-    "placeholder": "{GUID}"
+    "label": "Product Code",
+    "type": "text"
   },
   {
     "cmdlet": "get_installed_application",
     "parameter": "publisher",
     "label": "Publisher Filter",
-    "type": "text",
-    "placeholder": "Microsoft"
+    "type": "text"
   },
   {
     "cmdlet": "get_installed_application",
@@ -684,31 +961,39 @@
     "options": ["x86", "x64"]
   },
   {
-    "cmdlet": "restart_prompt",
-    "parameter": "countdownSeconds",
-    "label": "Countdown (seconds)",
+    "cmdlet": "set_service_state",
+    "parameter": "name",
+    "label": "Service Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "set_service_state",
+    "parameter": "mode",
+    "label": "Action",
+    "type": "select",
+    "options": ["start", "stop", "Automatic", "Manual", "Disabled"],
+    "required": true
+  },
+  {
+    "cmdlet": "write_log_entry",
+    "parameter": "message",
+    "label": "Log Message",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "write_log_entry",
+    "parameter": "severity",
+    "label": "Severity",
     "type": "number",
-    "default": 600
-  },
-  {
-    "cmdlet": "restart_prompt",
-    "parameter": "countdownNoHideSeconds",
-    "label": "Countdown No-Hide (seconds)",
-    "type": "number"
-  },
-  {
-    "cmdlet": "restart_prompt",
-    "parameter": "noSilentRestart",
-    "label": "No Silent Restart",
-    "type": "boolean",
-    "default": false
+    "default": 1
   },
   {
     "cmdlet": "active_setup",
     "parameter": "stubExePath",
     "label": "Executable Path",
     "type": "text",
-    "placeholder": "C:\\Program Files\\App\\configure.exe",
     "required": true
   },
   {
@@ -721,29 +1006,25 @@
     "cmdlet": "active_setup",
     "parameter": "description",
     "label": "Description",
-    "type": "text",
-    "placeholder": "Per-user configuration for MyApp"
+    "type": "text"
   },
   {
     "cmdlet": "active_setup",
     "parameter": "version",
     "label": "Version",
-    "type": "text",
-    "placeholder": "1.0"
+    "type": "text"
   },
   {
     "cmdlet": "active_setup",
     "parameter": "key",
     "label": "Active Setup Key",
-    "type": "text",
-    "placeholder": "MyApp_Setup"
+    "type": "text"
   },
   {
     "cmdlet": "all_users_registry",
     "parameter": "code",
-    "label": "Script Block (runs per user hive)",
+    "label": "Script Block",
     "type": "textarea",
-    "placeholder": "Set-ADTRegistryKey -Key 'HKCU:\\Software\\MyApp' -Name 'Setting' -Value '1'",
     "required": true
   },
   {
@@ -751,7 +1032,6 @@
     "parameter": "extensionId",
     "label": "Extension ID",
     "type": "text",
-    "placeholder": "abcdefghijklmnopqrstuvwxyz1234",
     "required": true
   },
   {
@@ -765,8 +1045,7 @@
     "cmdlet": "add_edge_extension",
     "parameter": "updateUrl",
     "label": "Update URL",
-    "type": "text",
-    "placeholder": "https://edge.microsoft.com/extensionwebstorebase/v1/crx"
+    "type": "text"
   },
   {
     "cmdlet": "remove_edge_extension",
@@ -780,7 +1059,6 @@
     "parameter": "filePath",
     "label": "DLL File Path",
     "type": "text",
-    "placeholder": "C:\\Program Files\\App\\mylib.dll",
     "required": true
   },
   {
@@ -794,110 +1072,13 @@
     "cmdlet": "install_ms_updates",
     "parameter": "directory",
     "label": "Updates Directory",
-    "type": "text",
-    "placeholder": "$dirFiles"
-  },
-  {
-    "cmdlet": "stop_process",
-    "parameter": "processName",
-    "label": "Process Name(s) (comma-separated, no extension)",
-    "type": "text",
-    "placeholder": "chrome, firefox",
-    "required": true
-  },
-  {
-    "cmdlet": "stop_process",
-    "parameter": "force",
-    "label": "Force Kill",
-    "type": "boolean",
-    "default": true
-  },
-  {
-    "cmdlet": "ini_set",
-    "parameter": "filePath",
-    "label": "INI File Path",
-    "type": "text",
-    "placeholder": "C:\\Program Files\\App\\config.ini",
-    "required": true
-  },
-  {
-    "cmdlet": "ini_set",
-    "parameter": "section",
-    "label": "Section Name",
-    "type": "text",
-    "placeholder": "Settings",
-    "required": true
-  },
-  {
-    "cmdlet": "ini_set",
-    "parameter": "key",
-    "label": "Key Name",
-    "type": "text",
-    "placeholder": "Language",
-    "required": true
-  },
-  {
-    "cmdlet": "ini_set",
-    "parameter": "value",
-    "label": "Value",
-    "type": "text",
-    "placeholder": "EN",
-    "required": true
-  },
-  {
-    "cmdlet": "ini_remove",
-    "parameter": "filePath",
-    "label": "INI File Path",
-    "type": "text",
-    "placeholder": "C:\\Program Files\\App\\config.ini",
-    "required": true
-  },
-  {
-    "cmdlet": "ini_remove",
-    "parameter": "section",
-    "label": "Section Name",
-    "type": "text",
-    "placeholder": "Settings",
-    "required": true
-  },
-  {
-    "cmdlet": "ini_remove",
-    "parameter": "key",
-    "label": "Key Name",
-    "type": "text",
-    "placeholder": "Language",
-    "required": true
-  },
-  {
-    "cmdlet": "remove_file_from_profiles",
-    "parameter": "path",
-    "label": "Path (relative to user profile)",
-    "type": "text",
-    "placeholder": "AppData\\Local\\MyApp\\cache",
-    "required": true
-  },
-  {
-    "cmdlet": "msi_patch",
-    "parameter": "file",
-    "label": "Patch File (.msp)",
-    "type": "text",
-    "placeholder": "patch.msp",
-    "required": true
-  },
-  {
-    "cmdlet": "msi_patch",
-    "parameter": "args",
-    "label": "Arguments",
-    "type": "text",
-    "placeholder": "/QN /norestart",
-    "default": "/QN /norestart"
+    "type": "text"
   },
   {
     "cmdlet": "set_permission",
     "parameter": "path",
     "label": "File / Folder Path",
     "type": "text",
-    "placeholder": "C:\\Program Files\\MyApp",
     "required": true
   },
   {
@@ -905,7 +1086,6 @@
     "parameter": "user",
     "label": "User / Group",
     "type": "text",
-    "placeholder": "BUILTIN\\Users",
     "required": true
   },
   {
@@ -913,7 +1093,6 @@
     "parameter": "permission",
     "label": "Permission",
     "type": "text",
-    "placeholder": "FullControl, Modify, ReadAndExecute, Read, Write",
     "required": true
   },
   {
@@ -921,7 +1100,6 @@
     "parameter": "inheritance",
     "label": "Inheritance",
     "type": "text",
-    "placeholder": "ContainerInherit, ObjectInherit",
     "default": "ContainerInherit, ObjectInherit"
   },
   {
@@ -929,7 +1107,6 @@
     "parameter": "propagation",
     "label": "Propagation",
     "type": "text",
-    "placeholder": "None",
     "default": "None"
   },
   {
@@ -937,7 +1114,61 @@
     "parameter": "accessControlType",
     "label": "Access Control Type",
     "type": "text",
-    "placeholder": "Allow",
     "default": "Allow"
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "filePath",
+    "label": "INI File Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "section",
+    "label": "Section Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "key",
+    "label": "Key Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_set",
+    "parameter": "value",
+    "label": "Value",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_remove",
+    "parameter": "filePath",
+    "label": "INI File Path",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_remove",
+    "parameter": "section",
+    "label": "Section Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "ini_remove",
+    "parameter": "key",
+    "label": "Key Name",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "close_progress",
+    "parameter": "_placeholder",
+    "label": "No parameters",
+    "type": "text"
   }
 ]

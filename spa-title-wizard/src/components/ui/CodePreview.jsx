@@ -122,9 +122,6 @@ export default function CodePreview({ code, filename, activePhase, hideHeader = 
       preUninstall: '## MARK: Pre-Uninstall',
       uninstall: '## MARK: Uninstall',
       postUninstall: '## MARK: Post-Uninstall',
-      preRepair: '## MARK: Pre-Repair',
-      repair: '## MARK: Repair',
-      postRepair: '## MARK: Post-Repair'
     };
 
     const marker = phaseMarkers[phaseKey];

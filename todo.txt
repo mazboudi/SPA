@@ -1,8 +1,8 @@
 Visual Action Builder – Recommended Actions per Lifecycle Phase
-Variable Declaration
+Variable Declaration:
 Custom Variable — PowerShell variable assignment, e.g., $MyVariable = 'Value' (no dedicated PSADT command)
 
-Pre-Installation/Uninstallation
+Pre-Installation/Uninstallation:
 Show Installation Welcome — Show-ADTInstallationWelcome
 Show Installation Progress — Show-ADTInstallationProgress
 •	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
@@ -21,15 +21,16 @@ Custom PowerShell — Inline PowerShell script block or direct PowerShell statem
 •	Get-ADTPendingReboot “Is System Reboot Pending” by storing Boolean return value from (Get-ADTPendingReboot).IsSystemRebootPending in a specified variable.
 
 
-Installation/Uninstallation
+Installation/Uninstallation:
 •	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
 •	Start-ADTProcessAsUser with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
 •	Start-ADTMsiProcess with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
 •	Start-ADTMsiProcessAsUser with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-Stop/Kill Process — Stop-ADTProcess
+Stop/Kill Process — PowerShell Stop-Process  -Name 
 Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
 Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
-Post-Installation/Uninstallation
+
+Post-Installation/Uninstallation:
 •	Show Completion Message (Show-ADTInstallationPrompt)
 •	Prompt for Restart (Show-ADTInstallationRestartPrompt)
 •	Create Shortcut (New-ADTShortcut) – only for Post-Installation
@@ -39,6 +40,6 @@ Remove File from User Profiles — Remove-ADTFileFromUserProfiles
 •	Delete Folder(s) (Remove-ADTFolder) with -Path and -DisableRecursion parameters exposed in builder.
 •	Remove Registry Key / Value (Remove-ADTRegistryKey)
 •	Set Registry Key / Value (Set-ADTRegistryKey)
-Stop/Kill Process — Stop-ADTProcess
+Stop/Kill Process — PowerShell Stop-Process  -Name 
 Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
 Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)

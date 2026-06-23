@@ -26,7 +26,6 @@ function dedentLines(blockLines) {
 export default function parsePsadtBlocks(content) {
   const result = {
     lifecycle: {
-      repairMode: 'mirror',
       phases: {
         variableDeclaration: { actions: [] },
         preInstall: { actions: [] },
@@ -35,9 +34,6 @@ export default function parsePsadtBlocks(content) {
         preUninstall: { actions: [] },
         uninstall: { actions: [] },
         postUninstall: { actions: [] },
-        preRepair: { actions: [] },
-        repair: { actions: [] },
-        postRepair: { actions: [] },
       }
     }
   };
@@ -98,9 +94,6 @@ export default function parsePsadtBlocks(content) {
     preUninstall: [],
     uninstall: [],
     postUninstall: [],
-    preRepair: [],
-    repair: [],
-    postRepair: [],
   };
 
   let currentPhase = null;
@@ -128,14 +121,21 @@ export default function parsePsadtBlocks(content) {
       }
       continue;
     }
+    // Skip Repair-ADTDeployment (no longer used in PSADT 4.1x)
     if (/function\s+Repair-ADTDeployment/.test(line)) {
-      currentPhase = 'preRepair';
-      bracesCount = 0;
+      // Skip until the function closes
+      let repairBraces = 0;
       for (const ch of line) {
-        if (ch === '{') bracesCount++;
-        if (ch === '}') bracesCount--;
+        if (ch === '{') repairBraces++;
+        if (ch === '}') repairBraces--;
       }
-      result.lifecycle.repairMode = 'custom'; // If Repair-ADTDeployment function is defined, it is a custom repair
+      while (i + 1 < lines.length && repairBraces > 0) {
+        i++;
+        for (const ch of lines[i]) {
+          if (ch === '{') repairBraces++;
+          if (ch === '}') repairBraces--;
+        }
+      }
       continue;
     }
 
@@ -156,13 +156,13 @@ export default function parsePsadtBlocks(content) {
       }
 
       // Detect sub-phase marker overrides
-      if (currentPhase.startsWith('pre') && /##\s*MARK:\s*(Install|Uninstall|Repair)\b/.test(line)) {
+      if (currentPhase.startsWith('pre') && /##\s*MARK:\s*(Install|Uninstall)\b/.test(line)) {
         currentPhase = currentPhase.replace('pre', '').toLowerCase();
         bracesCount = tempBraces;
         continue;
       }
       if (!currentPhase.startsWith('post') && /##\s*MARK:\s*Post-/.test(line)) {
-        const type = currentPhase.includes('uninstall') ? 'uninstall' : currentPhase.includes('install') ? 'install' : 'repair';
+        const type = currentPhase.includes('uninstall') ? 'uninstall' : 'install';
         currentPhase = 'post' + type.charAt(0).toUpperCase() + type.slice(1);
         bracesCount = tempBraces;
         continue;

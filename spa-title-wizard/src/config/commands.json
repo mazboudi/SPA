@@ -1,131 +1,5 @@
 [
   {
-    "name": "msi_install",
-    "label": "MSI Install",
-    "icon": "📦",
-    "category": "Installer",
-    "supportedPhases": ["install", "repair"]
-  },
-  {
-    "name": "msi_uninstall",
-    "label": "MSI Uninstall",
-    "icon": "🗑️",
-    "category": "Installer",
-    "supportedPhases": ["uninstall", "preInstall", "preRepair"]
-  },
-  {
-    "name": "msi_uninstall_batch",
-    "label": "Batch MSI Uninstall (GUIDs)",
-    "icon": "🗑️",
-    "category": "Installer",
-    "supportedPhases": ["preInstall", "preRepair", "uninstall"]
-  },
-  {
-    "name": "exe_install",
-    "label": "EXE Install",
-    "icon": "⚙️",
-    "category": "Installer",
-    "supportedPhases": ["install", "repair"]
-  },
-  {
-    "name": "exe_uninstall",
-    "label": "EXE Uninstall",
-    "icon": "🗑️",
-    "category": "Installer",
-    "supportedPhases": ["uninstall", "preInstall"]
-  },
-  {
-    "name": "execute_process",
-    "label": "Run Process / Script",
-    "icon": "▶️",
-    "category": "Process",
-    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
-  },
-  {
-    "name": "file_copy",
-    "label": "Copy File / Folder",
-    "icon": "📋",
-    "category": "File Operations",
-    "supportedPhases": ["preInstall", "install", "postInstall", "repair", "postRepair"]
-  },
-  {
-    "name": "file_remove",
-    "label": "Delete File / Folder",
-    "icon": "🧹",
-    "category": "File Operations",
-    "supportedPhases": ["preInstall", "postInstall", "postUninstall", "postRepair"]
-  },
-  {
-    "name": "create_folder",
-    "label": "Create Folder",
-    "icon": "📁",
-    "category": "File Operations",
-    "supportedPhases": ["preInstall", "install", "postInstall"]
-  },
-  {
-    "name": "registry_set",
-    "label": "Set Registry Value",
-    "icon": "🔑",
-    "category": "Registry",
-    "supportedPhases": ["postInstall", "postRepair", "preInstall", "install"]
-  },
-  {
-    "name": "registry_remove",
-    "label": "Remove Registry Key / Value",
-    "icon": "🔑",
-    "category": "Registry",
-    "supportedPhases": ["postUninstall", "postInstall", "preInstall"]
-  },
-  {
-    "name": "registry_marker",
-    "label": "Write Fiserv Detection Marker",
-    "icon": "🏷️",
-    "category": "Registry",
-    "supportedPhases": ["postInstall", "postRepair"]
-  },
-  {
-    "name": "remove_registry_marker",
-    "label": "Remove Fiserv Detection Marker",
-    "icon": "🏷️",
-    "category": "Registry",
-    "supportedPhases": ["postUninstall"]
-  },
-  {
-    "name": "env_variable",
-    "label": "Set Environment Variable",
-    "icon": "🌍",
-    "category": "Environment",
-    "supportedPhases": ["postInstall", "preInstall", "postRepair"]
-  },
-  {
-    "name": "remove_env_variable",
-    "label": "Remove Environment Variable",
-    "icon": "🌍",
-    "category": "Environment",
-    "supportedPhases": ["postUninstall"]
-  },
-  {
-    "name": "show_welcome",
-    "label": "Show Installation Welcome",
-    "icon": "👋",
-    "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
-  },
-  {
-    "name": "show_progress",
-    "label": "Show Installation Progress",
-    "icon": "⏳",
-    "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "preUninstall", "preRepair", "install", "uninstall", "repair"]
-  },
-  {
-    "name": "show_completion",
-    "label": "Show Completion Message",
-    "icon": "🎉",
-    "category": "UI Prompts",
-    "supportedPhases": ["postInstall", "postRepair"]
-  },
-  {
     "name": "custom_variable",
     "label": "Custom Variable",
     "icon": "📝",
@@ -133,194 +7,376 @@
     "supportedPhases": ["variableDeclaration"]
   },
   {
-    "name": "sleep",
-    "label": "Wait / Delay",
-    "icon": "⏱️",
-    "category": "Misc",
-    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "name": "show_welcome",
+    "label": "Show Installation Welcome",
+    "icon": "👋",
+    "category": "UI Prompts",
+    "psadtCmdlet": "Show-ADTInstallationWelcome",
+    "supportedPhases": ["preInstall", "preUninstall"]
   },
   {
-    "name": "custom_script",
-    "label": "Custom PowerShell",
-    "icon": "📜",
-    "category": "Custom",
-    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "name": "show_progress",
+    "label": "Show Installation Progress",
+    "icon": "⏳",
+    "category": "UI Prompts",
+    "psadtCmdlet": "Show-ADTInstallationProgress",
+    "supportedPhases": ["preInstall", "preUninstall"]
   },
   {
-    "name": "raw_ps",
-    "label": "Raw PowerShell Block",
-    "icon": "🔷",
-    "category": "Custom",
-    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "name": "exe_install",
+    "label": "Run Process (Start-ADTProcess)",
+    "icon": "▶️",
+    "category": "Process",
+    "psadtCmdlet": "Start-ADTProcess",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
+  },
+  {
+    "name": "msi_install",
+    "label": "Run MSI Process (Start-ADTMsiProcess)",
+    "icon": "📦",
+    "category": "Installer",
+    "psadtCmdlet": "Start-ADTMsiProcess",
+    "supportedPhases": ["preInstall", "install", "preUninstall", "uninstall"]
+  },
+  {
+    "name": "uninstall_application",
+    "label": "Uninstall Application (Uninstall-ADTApplication)",
+    "icon": "🗑️",
+    "category": "Installer",
+    "psadtCmdlet": "Uninstall-ADTApplication",
+    "supportedPhases": ["preInstall", "preUninstall"]
   },
   {
     "name": "execute_process_as_user",
-    "label": "Run Process as Logged-On User",
+    "label": "Run Process as User (Start-ADTProcessAsUser)",
     "icon": "👤",
     "category": "Process",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "psadtCmdlet": "Start-ADTProcessAsUser",
+    "supportedPhases": ["install", "uninstall"]
   },
   {
-    "name": "block_app_execution",
-    "label": "Block Conflicting Applications",
-    "icon": "🛡️",
-    "category": "Process",
-    "supportedPhases": ["preInstall", "preUninstall", "preRepair"]
+    "name": "msi_process_as_user",
+    "label": "Run MSI as User (Start-ADTMsiProcessAsUser)",
+    "icon": "👤",
+    "category": "Installer",
+    "psadtCmdlet": "Start-ADTMsiProcessAsUser",
+    "supportedPhases": ["install", "uninstall"]
   },
   {
-    "name": "unblock_app_execution",
-    "label": "Unblock Conflicting Applications",
-    "icon": "🔓",
-    "category": "Process",
-    "supportedPhases": ["postInstall", "postUninstall", "postRepair"]
+    "name": "file_copy",
+    "label": "Copy File / Folder (Copy-ADTFile)",
+    "icon": "📋",
+    "category": "File Operations",
+    "psadtCmdlet": "Copy-ADTFile",
+    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
   },
   {
     "name": "copy_file_to_user_profiles",
     "label": "Copy File to User Profiles",
     "icon": "👥",
     "category": "File Operations",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preRepair", "repair", "postRepair"]
+    "psadtCmdlet": "Copy-ADTFileToUserProfiles",
+    "supportedPhases": ["preInstall", "preUninstall"]
   },
   {
-    "name": "new_shortcut",
-    "label": "Create Shortcut",
-    "icon": "🔗",
+    "name": "create_folder",
+    "label": "Create Folder (New-ADTFolder)",
+    "icon": "📁",
     "category": "File Operations",
-    "supportedPhases": ["install", "postInstall", "repair", "postRepair"]
+    "psadtCmdlet": "New-ADTFolder",
+    "supportedPhases": ["preInstall", "preUninstall"]
   },
   {
-    "name": "show_balloon_tip",
-    "label": "Show Balloon Notification",
-    "icon": "💬",
-    "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "name": "file_remove",
+    "label": "Delete File(s) (Remove-ADTFile)",
+    "icon": "🧹",
+    "category": "File Operations",
+    "psadtCmdlet": "Remove-ADTFile",
+    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
   },
   {
-    "name": "show_dialog_box",
-    "label": "Show Dialog Box Prompt",
-    "icon": "🔲",
-    "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "name": "folder_remove",
+    "label": "Delete Folder(s) (Remove-ADTFolder)",
+    "icon": "🗑️",
+    "category": "File Operations",
+    "psadtCmdlet": "Remove-ADTFolder",
+    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
   },
   {
-    "name": "get_installed_application",
-    "label": "Query Installed Application",
-    "icon": "🔍",
-    "category": "System",
-    "supportedPhases": ["variableDeclaration", "preInstall", "preUninstall", "preRepair"]
-  },
-  {
-    "name": "set_service_state",
-    "label": "Set Service State",
-    "icon": "⚙️",
-    "category": "System",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
-  },
-  {
-    "name": "write_log_entry",
-    "label": "Write Custom Log Entry",
-    "icon": "📝",
-    "category": "System",
-    "supportedPhases": ["variableDeclaration", "preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
-  },
-  {
-    "name": "restart_prompt",
-    "label": "Prompt for Restart",
-    "icon": "🔄",
-    "category": "UI Prompts",
-    "supportedPhases": ["postInstall", "postRepair"]
-  },
-  {
-    "name": "active_setup",
-    "label": "Active Setup (Per-User Config)",
-    "icon": "👤",
-    "category": "System",
-    "supportedPhases": ["postInstall", "postRepair"]
-  },
-  {
-    "name": "all_users_registry",
-    "label": "Apply Registry to All User Hives",
-    "icon": "👥",
+    "name": "registry_set",
+    "label": "Set Registry Key / Value (Set-ADTRegistryKey)",
+    "icon": "🔑",
     "category": "Registry",
-    "supportedPhases": ["postInstall", "postRepair", "postUninstall"]
+    "psadtCmdlet": "Set-ADTRegistryKey",
+    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
   },
   {
-    "name": "add_edge_extension",
-    "label": "Deploy Edge Extension",
-    "icon": "🌐",
-    "category": "System",
-    "supportedPhases": ["postInstall"]
-  },
-  {
-    "name": "remove_edge_extension",
-    "label": "Remove Edge Extension",
-    "icon": "🌐",
-    "category": "System",
-    "supportedPhases": ["postUninstall"]
-  },
-  {
-    "name": "register_dll",
-    "label": "Register / Unregister DLL",
-    "icon": "🔧",
-    "category": "System",
-    "supportedPhases": ["postInstall", "postUninstall"]
-  },
-  {
-    "name": "install_ms_updates",
-    "label": "Install Windows Updates (.msu)",
-    "icon": "🔄",
-    "category": "Installer",
-    "supportedPhases": ["install", "postInstall"]
+    "name": "registry_remove",
+    "label": "Remove Registry Key / Value (Remove-ADTRegistryKey)",
+    "icon": "🔑",
+    "category": "Registry",
+    "psadtCmdlet": "Remove-ADTRegistryKey",
+    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
   },
   {
     "name": "stop_process",
     "label": "Stop / Kill Process",
     "icon": "⛔",
     "category": "Process",
-    "supportedPhases": ["preInstall", "preUninstall", "preRepair", "install", "uninstall", "repair"]
+    "psadtCmdlet": "Stop-Process",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
   },
   {
-    "name": "ini_set",
-    "label": "Set INI File Value",
-    "icon": "📄",
-    "category": "File Operations",
-    "supportedPhases": ["postInstall", "install", "postRepair", "repair"]
+    "name": "sleep",
+    "label": "Wait / Delay (Start-Sleep)",
+    "icon": "⏱️",
+    "category": "Misc",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
   },
   {
-    "name": "ini_remove",
-    "label": "Remove INI File Value",
-    "icon": "📄",
-    "category": "File Operations",
-    "supportedPhases": ["postUninstall", "preUninstall", "postInstall"]
+    "name": "custom_script",
+    "label": "Custom PowerShell",
+    "icon": "📜",
+    "category": "Custom",
+    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
   },
   {
-    "name": "close_progress",
-    "label": "Close Progress Dialog",
-    "icon": "❎",
+    "name": "pending_reboot",
+    "label": "Check Pending Reboot (Get-ADTPendingReboot)",
+    "icon": "🔄",
+    "category": "System",
+    "psadtCmdlet": "Get-ADTPendingReboot",
+    "supportedPhases": ["preInstall", "preUninstall"]
+  },
+  {
+    "name": "show_completion",
+    "label": "Show Completion Message",
+    "icon": "🎉",
     "category": "UI Prompts",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall", "preRepair", "repair", "postRepair"]
+    "psadtCmdlet": "Show-ADTInstallationPrompt",
+    "supportedPhases": ["postInstall", "postUninstall"]
+  },
+  {
+    "name": "restart_prompt",
+    "label": "Prompt for Restart",
+    "icon": "🔄",
+    "category": "UI Prompts",
+    "psadtCmdlet": "Show-ADTInstallationRestartPrompt",
+    "supportedPhases": ["postInstall", "postUninstall"]
+  },
+  {
+    "name": "new_shortcut",
+    "label": "Create Shortcut (New-ADTShortcut)",
+    "icon": "🔗",
+    "category": "File Operations",
+    "psadtCmdlet": "New-ADTShortcut",
+    "supportedPhases": ["postInstall"]
   },
   {
     "name": "remove_file_from_profiles",
     "label": "Remove File from User Profiles",
     "icon": "👥",
     "category": "File Operations",
-    "supportedPhases": ["postUninstall", "preUninstall", "postInstall"]
+    "psadtCmdlet": "Remove-ADTFileFromUserProfiles",
+    "supportedPhases": ["postInstall", "postUninstall"]
+  },
+
+  {"_comment": "=== Legacy types below: hidden from Add menu, still renderable for imports ==="},
+
+  {
+    "name": "raw_ps",
+    "label": "Raw PowerShell Block",
+    "icon": "🔷",
+    "category": "Custom",
+    "supportedPhases": []
+  },
+  {
+    "name": "msi_uninstall",
+    "label": "MSI Uninstall (legacy)",
+    "icon": "🗑️",
+    "category": "Installer",
+    "supportedPhases": []
+  },
+  {
+    "name": "msi_uninstall_batch",
+    "label": "Batch MSI Uninstall (legacy)",
+    "icon": "🗑️",
+    "category": "Installer",
+    "supportedPhases": []
+  },
+  {
+    "name": "exe_uninstall",
+    "label": "EXE Uninstall (legacy)",
+    "icon": "🗑️",
+    "category": "Installer",
+    "supportedPhases": []
+  },
+  {
+    "name": "execute_process",
+    "label": "Run Process (legacy)",
+    "icon": "▶️",
+    "category": "Process",
+    "supportedPhases": []
   },
   {
     "name": "msi_patch",
-    "label": "MSI Patch (.msp)",
+    "label": "MSI Patch (legacy)",
     "icon": "🩹",
     "category": "Installer",
-    "supportedPhases": ["install", "repair", "postInstall"]
+    "supportedPhases": []
+  },
+  {
+    "name": "registry_marker",
+    "label": "Write Fiserv Detection Marker (legacy)",
+    "icon": "🏷️",
+    "category": "Registry",
+    "supportedPhases": []
+  },
+  {
+    "name": "remove_registry_marker",
+    "label": "Remove Fiserv Detection Marker (legacy)",
+    "icon": "🏷️",
+    "category": "Registry",
+    "supportedPhases": []
+  },
+  {
+    "name": "env_variable",
+    "label": "Set Environment Variable (legacy)",
+    "icon": "🌍",
+    "category": "Environment",
+    "supportedPhases": []
+  },
+  {
+    "name": "remove_env_variable",
+    "label": "Remove Environment Variable (legacy)",
+    "icon": "🌍",
+    "category": "Environment",
+    "supportedPhases": []
+  },
+  {
+    "name": "block_app_execution",
+    "label": "Block Conflicting Applications (legacy)",
+    "icon": "🛡️",
+    "category": "Process",
+    "supportedPhases": []
+  },
+  {
+    "name": "unblock_app_execution",
+    "label": "Unblock Applications (legacy)",
+    "icon": "🔓",
+    "category": "Process",
+    "supportedPhases": []
+  },
+  {
+    "name": "show_balloon_tip",
+    "label": "Show Balloon Notification (legacy)",
+    "icon": "💬",
+    "category": "UI Prompts",
+    "supportedPhases": []
+  },
+  {
+    "name": "show_dialog_box",
+    "label": "Show Dialog Box (legacy)",
+    "icon": "🔲",
+    "category": "UI Prompts",
+    "supportedPhases": []
+  },
+  {
+    "name": "get_installed_application",
+    "label": "Query Installed Application (legacy)",
+    "icon": "🔍",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "set_service_state",
+    "label": "Set Service State (legacy)",
+    "icon": "⚙️",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "write_log_entry",
+    "label": "Write Log Entry (legacy)",
+    "icon": "📝",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "active_setup",
+    "label": "Active Setup (legacy)",
+    "icon": "👤",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "all_users_registry",
+    "label": "All Users Registry (legacy)",
+    "icon": "👥",
+    "category": "Registry",
+    "supportedPhases": []
+  },
+  {
+    "name": "add_edge_extension",
+    "label": "Deploy Edge Extension (legacy)",
+    "icon": "🌐",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "remove_edge_extension",
+    "label": "Remove Edge Extension (legacy)",
+    "icon": "🌐",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "register_dll",
+    "label": "Register / Unregister DLL (legacy)",
+    "icon": "🔧",
+    "category": "System",
+    "supportedPhases": []
+  },
+  {
+    "name": "install_ms_updates",
+    "label": "Install Windows Updates (legacy)",
+    "icon": "🔄",
+    "category": "Installer",
+    "supportedPhases": []
   },
   {
     "name": "set_permission",
-    "label": "Set File / Folder Permissions",
+    "label": "Set File Permissions (legacy)",
     "icon": "🔐",
     "category": "File Operations",
-    "supportedPhases": ["postInstall", "install", "postRepair", "repair"]
+    "supportedPhases": []
+  },
+  {
+    "name": "ini_set",
+    "label": "Set INI Value (legacy)",
+    "icon": "📄",
+    "category": "File Operations",
+    "supportedPhases": []
+  },
+  {
+    "name": "ini_remove",
+    "label": "Remove INI Value (legacy)",
+    "icon": "📄",
+    "category": "File Operations",
+    "supportedPhases": []
+  },
+  {
+    "name": "close_progress",
+    "label": "Close Progress Dialog (legacy)",
+    "icon": "❎",
+    "category": "UI Prompts",
+    "supportedPhases": []
+  },
+  {
+    "name": "custom_variable_legacy",
+    "label": "Custom Variable (legacy context)",
+    "icon": "📝",
+    "category": "Variables",
+    "supportedPhases": []
   }
 ]
-
-

@@ -16,9 +16,6 @@ export const PHASE_KEYS = [
   'preUninstall',
   'uninstall',
   'postUninstall',
-  'preRepair',
-  'repair',
-  'postRepair',
 ];
 
 /** Phase display metadata */
@@ -30,9 +27,6 @@ export const PHASE_META = {
   preUninstall:        { label: 'Pre-Uninstallation',   icon: '🔽', short: 'Pre-Uninstall' },
   uninstall:           { label: 'Uninstallation',       icon: '🗑️', short: 'Uninstall' },
   postUninstall:       { label: 'Post-Uninstallation',  icon: '🧹', short: 'Post-Uninstall' },
-  preRepair:           { label: 'Pre-Repair',           icon: '🔧', short: 'Pre-Repair' },
-  repair:              { label: 'Repair',               icon: '🔨', short: 'Repair' },
-  postRepair:          { label: 'Post-Repair',          icon: '✨', short: 'Post-Repair' },
 };
 
 import commands from './commands.json';
@@ -40,9 +34,13 @@ import parameters from './parameters.json';
 
 /**
  * Action type definitions dynamically constructed from commands.json and parameters.json
+ * Filter out JSON comment entries (objects with only a _comment key)
  */
-export const ACTION_TYPES = commands.map(cmd => {
-  const fields = parameters
+const activeCommands = commands.filter(cmd => cmd.name);
+const activeParameters = parameters.filter(param => param.cmdlet);
+
+export const ACTION_TYPES = activeCommands.map(cmd => {
+  const fields = activeParameters
     .filter(param => param.cmdlet === cmd.name)
     .map(param => ({
       key: param.parameter,
@@ -50,7 +48,8 @@ export const ACTION_TYPES = commands.map(cmd => {
       type: param.type,
       placeholder: param.placeholder,
       required: !!param.required,
-      default: param.default
+      default: param.default,
+      options: param.options
     }));
   
   return {

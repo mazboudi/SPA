@@ -26,6 +26,19 @@ export function parseIntuneExport(exportData) {
   fields.allowAvailableUninstall = app.allowAvailableUninstall ?? true;
   fields.platform = 'windows';
 
+  // Categories mapping
+  if (app.categories && app.categories.length > 0) {
+    fields.intuneCategoryIds = app.categories.map(c => typeof c === 'object' ? c.id : c).filter(Boolean);
+    const firstCat = app.categories[0];
+    fields.softwareCategory = typeof firstCat === 'object' ? (firstCat.displayName || '') : firstCat;
+  } else {
+    fields.intuneCategoryIds = [];
+    fields.softwareCategory = '';
+  }
+
+  // Scope tags mapping
+  fields.roleScopeTagIds = app.roleScopeTagIds || [];
+
   // Store original Intune app ID for reference
   fields._intuneAppId = exportData.appId || app.id || '';
 
