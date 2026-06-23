@@ -204,21 +204,21 @@ function syncInstallerActions(next, prevInstallerType) {
   const phases = { ...next.lifecycle.phases };
   const value = next.installerType;
 
-  // 1. Install phase: swap msi_install <-> exe_install
+  // 1. Install phase: swap start_msi_process <-> start_process
   if (phases.install && Array.isArray(phases.install.actions)) {
     phases.install.actions = phases.install.actions.map(action => {
-      if (value === 'exe' && action.type === 'msi_install') {
+      if (value === 'exe' && action.type === 'start_msi_process') {
         return {
           ...action,
-          type: 'exe_install',
+          type: 'start_process',
           file: next.installerSourceFile || next.exeSourceFilename || 'setup.exe',
           args: next.exeInstallArgs || '/S'
         };
       }
-      if (value === 'msi' && action.type === 'exe_install') {
+      if (value === 'msi' && action.type === 'start_process') {
         return {
           ...action,
-          type: 'msi_install',
+          type: 'start_msi_process',
           file: next.installerSourceFile || next.msiFileName || 'installer.msi',
           args: '/QN /norestart'
         };
@@ -227,22 +227,23 @@ function syncInstallerActions(next, prevInstallerType) {
     });
   }
 
-  // 2. Uninstall phase: swap msi_uninstall <-> exe_uninstall
+  // 2. Uninstall phase: swap uninstall_application <-> start_process
   if (phases.uninstall && Array.isArray(phases.uninstall.actions)) {
     phases.uninstall.actions = phases.uninstall.actions.map(action => {
-      if (value === 'exe' && action.type === 'msi_uninstall') {
+      if (value === 'exe' && action.type === 'uninstall_application') {
         return {
           ...action,
-          type: 'exe_uninstall',
+          type: 'start_process',
           file: next.exeUninstallPath || '',
           args: next.exeUninstallArgs || '/S'
         };
       }
-      if (value === 'msi' && action.type === 'exe_uninstall') {
+      // Be careful swapping start_process -> uninstall_application (only swap if it looks like the main uninstaller)
+      if (value === 'msi' && action.type === 'start_process' && action.file === (next.exeUninstallPath || '')) {
         return {
           ...action,
-          type: 'msi_uninstall',
-          appName: next.displayName || '',
+          type: 'uninstall_application',
+          name: next.displayName || '',
           productCode: next.msiProductCode || '',
           args: '/qn /NORESTART'
         };
@@ -272,6 +273,15 @@ export default function useWizardState() {
         next.packageId = toKebabCase(value);
         next.existingProject = null;
         next.duplicateAcknowledge = false;
+        if (prev.displayName && prev._intuneAppNameOverride && prev._intuneAppNameOverride.includes(prev.displayName)) {
+          next._intuneAppNameOverride = prev._intuneAppNameOverride.replace(prev.displayName, value);
+        }
+      }
+
+      if (field === 'version') {
+        if (prev.version && prev._intuneAppNameOverride && prev._intuneAppNameOverride.includes(prev.version)) {
+          next._intuneAppNameOverride = prev._intuneAppNameOverride.replace(prev.version, value);
+        }
       }
 
       if (field === 'packageId' || field === 'gitLabGroup') {
@@ -312,6 +322,15 @@ export default function useWizardState() {
   const updateFields = useCallback((fields) => {
     setState(prev => {
       const next = { ...prev, ...fields };
+
+      if (fields.displayName !== undefined && prev.displayName && prev._intuneAppNameOverride && prev._intuneAppNameOverride.includes(prev.displayName)) {
+        next._intuneAppNameOverride = prev._intuneAppNameOverride.replace(prev.displayName, fields.displayName);
+      }
+
+      if (fields.version !== undefined && prev.version && prev._intuneAppNameOverride && prev._intuneAppNameOverride.includes(prev.version)) {
+        next._intuneAppNameOverride = prev._intuneAppNameOverride.replace(prev.version, fields.version);
+      }
+
       if (fields.hasOwnProperty('installerType')) {
         return syncInstallerActions(next, prev.installerType);
       }
@@ -503,18 +522,18 @@ export default function useWizardState() {
       if (prev.installerType === 'msi') {
         const msiFile = prev.msiFileName || srcFile || 'installer.msi';
         mkPhase('install', [
-          { type: 'msi_install', enabled: true, file: msiFile, args: '/QN /norestart' },
+          { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart' },
         ]);
         mkPhase('uninstall', [
-          { type: 'msi_uninstall', enabled: true, appName: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
+          { type: 'uninstall_application', enabled: true, name: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
         ]);
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
         mkPhase('install', [
-          { type: 'exe_install', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
+          { type: 'start_process', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
         ]);
         mkPhase('uninstall', [
-          { type: 'exe_uninstall', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
+          { type: 'start_process', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
         ]);
       }
 

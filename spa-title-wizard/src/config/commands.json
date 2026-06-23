@@ -4,7 +4,9 @@
     "label": "Custom Variable",
     "icon": "📝",
     "category": "Variables",
-    "supportedPhases": ["variableDeclaration"]
+    "supportedPhases": [
+      "variableDeclaration"
+    ]
   },
   {
     "name": "show_welcome",
@@ -12,7 +14,10 @@
     "icon": "👋",
     "category": "UI Prompts",
     "psadtCmdlet": "Show-ADTInstallationWelcome",
-    "supportedPhases": ["preInstall", "preUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "preUninstall"
+    ]
   },
   {
     "name": "show_progress",
@@ -20,23 +25,34 @@
     "icon": "⏳",
     "category": "UI Prompts",
     "psadtCmdlet": "Show-ADTInstallationProgress",
-    "supportedPhases": ["preInstall", "preUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "preUninstall"
+    ]
   },
   {
-    "name": "exe_install",
+    "name": "start_process",
     "label": "Run Process (Start-ADTProcess)",
     "icon": "▶️",
     "category": "Process",
     "psadtCmdlet": "Start-ADTProcess",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "install",
+      "uninstall"
+    ]
   },
   {
-    "name": "msi_install",
+    "name": "start_msi_process",
     "label": "Run MSI Process (Start-ADTMsiProcess)",
     "icon": "📦",
     "category": "Installer",
     "psadtCmdlet": "Start-ADTMsiProcess",
-    "supportedPhases": ["preInstall", "install", "preUninstall", "uninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "install",
+      "uninstall"
+    ]
   },
   {
     "name": "uninstall_application",
@@ -44,7 +60,11 @@
     "icon": "🗑️",
     "category": "Installer",
     "psadtCmdlet": "Uninstall-ADTApplication",
-    "supportedPhases": ["preInstall", "preUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "uninstall",
+      "preUninstall"
+    ]
   },
   {
     "name": "execute_process_as_user",
@@ -52,15 +72,10 @@
     "icon": "👤",
     "category": "Process",
     "psadtCmdlet": "Start-ADTProcessAsUser",
-    "supportedPhases": ["install", "uninstall"]
-  },
-  {
-    "name": "msi_process_as_user",
-    "label": "Run MSI as User (Start-ADTMsiProcessAsUser)",
-    "icon": "👤",
-    "category": "Installer",
-    "psadtCmdlet": "Start-ADTMsiProcessAsUser",
-    "supportedPhases": ["install", "uninstall"]
+    "supportedPhases": [
+      "install",
+      "uninstall"
+    ]
   },
   {
     "name": "file_copy",
@@ -68,15 +83,11 @@
     "icon": "📋",
     "category": "File Operations",
     "psadtCmdlet": "Copy-ADTFile",
-    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
-  },
-  {
-    "name": "copy_file_to_user_profiles",
-    "label": "Copy File to User Profiles",
-    "icon": "👥",
-    "category": "File Operations",
-    "psadtCmdlet": "Copy-ADTFileToUserProfiles",
-    "supportedPhases": ["preInstall", "preUninstall"]
+    "supportedPhases": [
+      "install",
+      "postInstall",
+      "preUninstall"
+    ]
   },
   {
     "name": "create_folder",
@@ -84,7 +95,9 @@
     "icon": "📁",
     "category": "File Operations",
     "psadtCmdlet": "New-ADTFolder",
-    "supportedPhases": ["preInstall", "preUninstall"]
+    "supportedPhases": [
+      "install"
+    ]
   },
   {
     "name": "file_remove",
@@ -92,7 +105,12 @@
     "icon": "🧹",
     "category": "File Operations",
     "psadtCmdlet": "Remove-ADTFile",
-    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "postInstall",
+      "uninstall",
+      "postUninstall"
+    ]
   },
   {
     "name": "folder_remove",
@@ -100,7 +118,10 @@
     "icon": "🗑️",
     "category": "File Operations",
     "psadtCmdlet": "Remove-ADTFolder",
-    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
+    "supportedPhases": [
+      "uninstall",
+      "postUninstall"
+    ]
   },
   {
     "name": "registry_set",
@@ -108,7 +129,12 @@
     "icon": "🔑",
     "category": "Registry",
     "psadtCmdlet": "Set-ADTRegistryKey",
-    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "postInstall",
+      "preUninstall",
+      "postUninstall"
+    ]
   },
   {
     "name": "registry_remove",
@@ -116,37 +142,26 @@
     "icon": "🔑",
     "category": "Registry",
     "psadtCmdlet": "Remove-ADTRegistryKey",
-    "supportedPhases": ["preInstall", "postInstall", "preUninstall", "postUninstall"]
-  },
-  {
-    "name": "stop_process",
-    "label": "Stop / Kill Process",
-    "icon": "⛔",
-    "category": "Process",
-    "psadtCmdlet": "Stop-Process",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
-  },
-  {
-    "name": "sleep",
-    "label": "Wait / Delay (Start-Sleep)",
-    "icon": "⏱️",
-    "category": "Misc",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "postInstall",
+      "preUninstall",
+      "postUninstall"
+    ]
   },
   {
     "name": "custom_script",
     "label": "Custom PowerShell",
     "icon": "📜",
     "category": "Custom",
-    "supportedPhases": ["preInstall", "install", "postInstall", "preUninstall", "uninstall", "postUninstall"]
-  },
-  {
-    "name": "pending_reboot",
-    "label": "Check Pending Reboot (Get-ADTPendingReboot)",
-    "icon": "🔄",
-    "category": "System",
-    "psadtCmdlet": "Get-ADTPendingReboot",
-    "supportedPhases": ["preInstall", "preUninstall"]
+    "supportedPhases": [
+      "preInstall",
+      "install",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
+    ]
   },
   {
     "name": "show_completion",
@@ -154,15 +169,10 @@
     "icon": "🎉",
     "category": "UI Prompts",
     "psadtCmdlet": "Show-ADTInstallationPrompt",
-    "supportedPhases": ["postInstall", "postUninstall"]
-  },
-  {
-    "name": "restart_prompt",
-    "label": "Prompt for Restart",
-    "icon": "🔄",
-    "category": "UI Prompts",
-    "psadtCmdlet": "Show-ADTInstallationRestartPrompt",
-    "supportedPhases": ["postInstall", "postUninstall"]
+    "supportedPhases": [
+      "postInstall",
+      "postUninstall"
+    ]
   },
   {
     "name": "new_shortcut",
@@ -170,213 +180,84 @@
     "icon": "🔗",
     "category": "File Operations",
     "psadtCmdlet": "New-ADTShortcut",
-    "supportedPhases": ["postInstall"]
+    "supportedPhases": [
+      "postInstall"
+    ]
   },
   {
-    "name": "remove_file_from_profiles",
-    "label": "Remove File from User Profiles",
-    "icon": "👥",
-    "category": "File Operations",
-    "psadtCmdlet": "Remove-ADTFileFromUserProfiles",
-    "supportedPhases": ["postInstall", "postUninstall"]
-  },
-
-  {"_comment": "=== Legacy types below: hidden from Add menu, still renderable for imports ==="},
-
-  {
-    "name": "raw_ps",
-    "label": "Raw PowerShell Block",
-    "icon": "🔷",
-    "category": "Custom",
-    "supportedPhases": []
+    "name": "stop_service",
+    "label": "Stop Service (Stop-ADTServiceAndDependencies)",
+    "icon": "⛔",
+    "category": "System",
+    "psadtCmdlet": "Stop-ADTServiceAndDependencies",
+    "supportedPhases": [
+      "preInstall",
+      "preUninstall"
+    ]
   },
   {
-    "name": "msi_uninstall",
-    "label": "MSI Uninstall (legacy)",
-    "icon": "🗑️",
-    "category": "Installer",
-    "supportedPhases": []
-  },
-  {
-    "name": "msi_uninstall_batch",
-    "label": "Batch MSI Uninstall (legacy)",
-    "icon": "🗑️",
-    "category": "Installer",
-    "supportedPhases": []
-  },
-  {
-    "name": "exe_uninstall",
-    "label": "EXE Uninstall (legacy)",
-    "icon": "🗑️",
-    "category": "Installer",
-    "supportedPhases": []
-  },
-  {
-    "name": "execute_process",
-    "label": "Run Process (legacy)",
-    "icon": "▶️",
-    "category": "Process",
-    "supportedPhases": []
-  },
-  {
-    "name": "msi_patch",
-    "label": "MSI Patch (legacy)",
+    "name": "start_msp_process",
+    "label": "Run MSP Process (Start-ADTMspProcess)",
     "icon": "🩹",
     "category": "Installer",
-    "supportedPhases": []
+    "psadtCmdlet": "Start-ADTMspProcess",
+    "supportedPhases": [
+      "install"
+    ]
   },
   {
-    "name": "registry_marker",
-    "label": "Write Fiserv Detection Marker (legacy)",
-    "icon": "🏷️",
-    "category": "Registry",
-    "supportedPhases": []
-  },
-  {
-    "name": "remove_registry_marker",
-    "label": "Remove Fiserv Detection Marker (legacy)",
-    "icon": "🏷️",
-    "category": "Registry",
-    "supportedPhases": []
-  },
-  {
-    "name": "env_variable",
-    "label": "Set Environment Variable (legacy)",
-    "icon": "🌍",
-    "category": "Environment",
-    "supportedPhases": []
-  },
-  {
-    "name": "remove_env_variable",
-    "label": "Remove Environment Variable (legacy)",
-    "icon": "🌍",
-    "category": "Environment",
-    "supportedPhases": []
-  },
-  {
-    "name": "block_app_execution",
-    "label": "Block Conflicting Applications (legacy)",
-    "icon": "🛡️",
-    "category": "Process",
-    "supportedPhases": []
-  },
-  {
-    "name": "unblock_app_execution",
-    "label": "Unblock Applications (legacy)",
-    "icon": "🔓",
-    "category": "Process",
-    "supportedPhases": []
-  },
-  {
-    "name": "show_balloon_tip",
-    "label": "Show Balloon Notification (legacy)",
-    "icon": "💬",
-    "category": "UI Prompts",
-    "supportedPhases": []
-  },
-  {
-    "name": "show_dialog_box",
-    "label": "Show Dialog Box (legacy)",
-    "icon": "🔲",
-    "category": "UI Prompts",
-    "supportedPhases": []
-  },
-  {
-    "name": "get_installed_application",
-    "label": "Query Installed Application (legacy)",
-    "icon": "🔍",
-    "category": "System",
-    "supportedPhases": []
-  },
-  {
-    "name": "set_service_state",
-    "label": "Set Service State (legacy)",
-    "icon": "⚙️",
-    "category": "System",
-    "supportedPhases": []
-  },
-  {
-    "name": "write_log_entry",
-    "label": "Write Log Entry (legacy)",
+    "name": "write_log",
+    "label": "Write Log Entry (Write-ADTLogEntry)",
     "icon": "📝",
     "category": "System",
-    "supportedPhases": []
+    "psadtCmdlet": "Write-ADTLogEntry",
+    "supportedPhases": [
+      "preInstall",
+      "install",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
+    ]
   },
   {
-    "name": "active_setup",
-    "label": "Active Setup (legacy)",
-    "icon": "👤",
-    "category": "System",
-    "supportedPhases": []
+    "name": "set_ini",
+    "label": "Set INI Value (Set-ADTIniSection)",
+    "icon": "📄",
+    "category": "File Operations",
+    "psadtCmdlet": "Set-ADTIniSection",
+    "supportedPhases": [
+      "postInstall"
+    ]
   },
   {
     "name": "all_users_registry",
-    "label": "All Users Registry (legacy)",
+    "label": "All Users Registry (Invoke-ADTAllUsersRegistryAction)",
     "icon": "👥",
     "category": "Registry",
-    "supportedPhases": []
+    "psadtCmdlet": "Invoke-ADTAllUsersRegistryAction",
+    "supportedPhases": [
+      "postInstall"
+    ]
   },
   {
-    "name": "add_edge_extension",
-    "label": "Deploy Edge Extension (legacy)",
-    "icon": "🌐",
+    "name": "get_registry_key",
+    "label": "Get Registry Key (Get-ADTRegistryKey)",
+    "icon": "🔍",
+    "category": "Registry",
+    "psadtCmdlet": "Get-ADTRegistryKey",
+    "supportedPhases": [
+      "preUninstall"
+    ]
+  },
+  {
+    "name": "remove_firewall_rule",
+    "label": "Remove Firewall Rule (Remove-NetFirewallRule)",
+    "icon": "🛡️",
     "category": "System",
-    "supportedPhases": []
-  },
-  {
-    "name": "remove_edge_extension",
-    "label": "Remove Edge Extension (legacy)",
-    "icon": "🌐",
-    "category": "System",
-    "supportedPhases": []
-  },
-  {
-    "name": "register_dll",
-    "label": "Register / Unregister DLL (legacy)",
-    "icon": "🔧",
-    "category": "System",
-    "supportedPhases": []
-  },
-  {
-    "name": "install_ms_updates",
-    "label": "Install Windows Updates (legacy)",
-    "icon": "🔄",
-    "category": "Installer",
-    "supportedPhases": []
-  },
-  {
-    "name": "set_permission",
-    "label": "Set File Permissions (legacy)",
-    "icon": "🔐",
-    "category": "File Operations",
-    "supportedPhases": []
-  },
-  {
-    "name": "ini_set",
-    "label": "Set INI Value (legacy)",
-    "icon": "📄",
-    "category": "File Operations",
-    "supportedPhases": []
-  },
-  {
-    "name": "ini_remove",
-    "label": "Remove INI Value (legacy)",
-    "icon": "📄",
-    "category": "File Operations",
-    "supportedPhases": []
-  },
-  {
-    "name": "close_progress",
-    "label": "Close Progress Dialog (legacy)",
-    "icon": "❎",
-    "category": "UI Prompts",
-    "supportedPhases": []
-  },
-  {
-    "name": "custom_variable_legacy",
-    "label": "Custom Variable (legacy context)",
-    "icon": "📝",
-    "category": "Variables",
-    "supportedPhases": []
+    "psadtCmdlet": "Remove-NetFirewallRule",
+    "supportedPhases": [
+      "postUninstall"
+    ]
   }
 ]

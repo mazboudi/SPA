@@ -274,7 +274,9 @@ export default function CodePreview({ code, filename, activePhase, hideHeader = 
         .code-preview__code {
           padding: 0 16px;
           background: transparent !important;
-          overflow-x: auto;
+          overflow-x: hidden;
+          white-space: pre-wrap;
+          word-break: break-all;
           font-family: inherit;
           font-size: inherit;
           line-height: inherit;

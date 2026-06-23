@@ -1027,7 +1027,7 @@ function extractBlockActions(block) {
         const argVal = extractPsParamValue(t, 'ArgumentList');
         const transformVal = extractPsParamValue(t, 'Transforms?');
         const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
-        const actionObj = { type: `msi_${(actionMatch?.[1] || 'install').toLowerCase()}`, desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argVal || '', raw: t };
+        const actionObj = { type: 'start_msi_process', action: actionMatch?.[1] || 'Install', desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argVal || '', raw: t };
         if (transformVal) actionObj.transform = transformVal;
         actions.push(actionObj);
         matched = true;
@@ -1052,7 +1052,7 @@ function extractBlockActions(block) {
       const unAppMatch = t.match(/Uninstall-ADTApplication\s+-Name\s+['"]([^'"]+)['"]/i);
       if (unAppMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'msi_uninstall', desc: `Uninstall by name: ${unAppMatch[1]}`, appName: unAppMatch[1], raw: t });
+        actions.push({ type: 'uninstall_application', desc: `Uninstall by name: ${unAppMatch[1]}`, appName: unAppMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1062,7 +1062,7 @@ function extractBlockActions(block) {
       const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
       if (rmMsiMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'msi_uninstall', desc: `Remove MSI: ${rmMsiMatch[1]}`, appName: rmMsiMatch[1], raw: t });
+        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, appName: rmMsiMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1073,7 +1073,66 @@ function extractBlockActions(block) {
       if (procMatch) {
         flushCustomBuffer();
         const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
-        actions.push({ type: 'execute_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramVal || '', raw: t });
+        actions.push({ type: 'start_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramVal || '', raw: t });
+        matched = true;
+      }
+    }
+
+
+    // Stop-ADTServiceAndDependencies
+    
+
+    // Start-ADTMspProcess
+    if (!matched) {
+      const mspMatch = t.match(/Start-ADTMspProcess\b.*-FilePath\s+['"]([^'"]+)['"]/i);
+      if (mspMatch) {
+        flushCustomBuffer();
+        const fname = mspMatch[1].replace(/.*[\\]/, '');
+        const argVal = extractPsParamValue(t, 'ArgumentList');
+        actions.push({ type: 'start_msp_process', desc: `Run MSP: ${fname}`, file: mspMatch[1], args: argVal || '', raw: t });
+        matched = true;
+      }
+    }
+
+    // Write-ADTLogEntry
+    
+
+    // Set-ADTIniSection
+    if (!matched) {
+      const iniMatch = t.match(/Set-ADTIniSection\b/i);
+      if (iniMatch) {
+        flushCustomBuffer();
+        const fp = extractPsParamValue(t, 'FilePath');
+        const sec = extractPsParamValue(t, 'Section');
+        const k = extractPsParamValue(t, 'Key');
+        const v = extractPsParamValue(t, 'Value');
+        actions.push({ type: 'set_ini', desc: `Set INI: ${k}=${v}`, filePath: fp || '', section: sec || '', key: k || '', value: v || '', raw: t });
+        matched = true;
+      }
+    }
+
+    
+
+    // Get-ADTRegistryKey
+    if (!matched) {
+      const getRegMatch = t.match(/Get-ADTRegistryKey\b.*-Key\s+['"]([^'"]+)['"]/i);
+      if (getRegMatch) {
+        flushCustomBuffer();
+        const val = extractPsParamValue(t, 'Value');
+        const varMatch = t.match(/^\s*\$(\w+)\s*=/);
+        actions.push({ type: 'get_registry_key', desc: `Get Reg: ${getRegMatch[1]}`, key: getRegMatch[1], value: val || '', passThruVar: varMatch ? varMatch[1] : '', raw: t });
+        matched = true;
+      }
+    }
+
+    // Remove-NetFirewallRule
+    if (!matched) {
+      const fwMatch = t.match(/Remove-NetFirewallRule\b/i);
+      if (fwMatch) {
+        flushCustomBuffer();
+        const dn = extractPsParamValue(t, 'DisplayName');
+        const n = extractPsParamValue(t, 'Name');
+        actions.push({ type: 'remove_firewall_rule', desc: `Remove Firewall Rule`, displayName: dn || '', name: n || '', raw: t });
         matched = true;
       }
     }
@@ -1084,7 +1143,7 @@ function extractBlockActions(block) {
       if (startProcMatch) {
         flushCustomBuffer();
         const spArgVal = extractPsParamValue(t, 'ArgumentList');
-        actions.push({ type: 'execute_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgVal || '', raw: t });
+        actions.push({ type: 'start_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgVal || '', raw: t });
         matched = true;
       }
     }
@@ -1190,7 +1249,7 @@ function extractBlockActions(block) {
       const em = envMatch || adtEnvMatch;
       if (em) {
         flushCustomBuffer();
-        actions.push({ type: 'env_variable', desc: `Env: ${em[1]} = ${em[2]}`, name: em[1], value: em[2], raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Env: ${em[1]} = ${em[2]}`, name: em[1], value: em[2], raw: t });
         matched = true;
       }
     }
@@ -1200,7 +1259,7 @@ function extractBlockActions(block) {
       const removeEnvMatch = t.match(/Remove-ADTEnvironmentVariable\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (removeEnvMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'remove_env_variable', desc: `Remove env: ${removeEnvMatch[1]}`, name: removeEnvMatch[1], raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Remove env: ${removeEnvMatch[1]}`, name: removeEnvMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1278,7 +1337,7 @@ function extractBlockActions(block) {
         const sec = extractPsParamValue(t, 'Section') || '';
         const key = extractPsParamValue(t, 'Key') || '';
         const val = extractPsParamValue(t, 'Value') || '';
-        actions.push({ type: 'ini_set', enabled: true, filePath: fp, section: sec, key, value: val, raw: t });
+        actions.push({ type: 'custom_script', code: t, enabled: true, filePath: fp, section: sec, key, value: val, raw: t });
         matched = true;
       }
     }
@@ -1291,7 +1350,7 @@ function extractBlockActions(block) {
         const fp = extractPsParamValue(t, 'FilePath') || '';
         const sec = extractPsParamValue(t, 'Section') || '';
         const key = extractPsParamValue(t, 'Key') || '';
-        actions.push({ type: 'ini_remove', enabled: true, filePath: fp, section: sec, key, raw: t });
+        actions.push({ type: 'custom_script', code: t, enabled: true, filePath: fp, section: sec, key, raw: t });
         matched = true;
       }
     }
@@ -1299,7 +1358,7 @@ function extractBlockActions(block) {
     // Close-ADTInstallationProgress / Close-InstallationProgress
     if (!matched && /Close-(?:ADT)?InstallationProgress/i.test(t)) {
       flushCustomBuffer();
-      actions.push({ type: 'close_progress', enabled: true, raw: t });
+      actions.push({ type: 'custom_script', code: t, enabled: true, raw: t });
       matched = true;
     }
 
@@ -1321,7 +1380,7 @@ function extractBlockActions(block) {
         const fpMatch = t.match(/-FilePath\s+['"]([^'"]+)['"]/i);
         const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
         const fname = fpMatch ? fpMatch[1].replace(/.*[\\]/, '') : '';
-        actions.push({ type: 'msi_patch', enabled: true, file: fname, args: argMatch?.[1] || '', raw: t });
+        actions.push({ type: 'custom_script', code: t, enabled: true, file: fname, args: argMatch?.[1] || '', raw: t });
         matched = true;
       }
     }
@@ -1337,7 +1396,7 @@ function extractBlockActions(block) {
         const inherit = extractPsParamValue(t, 'Inheritance') || '';
         const prop = extractPsParamValue(t, 'Propagation') || '';
         const acType = extractPsParamValue(t, 'AccessControlType') || 'Allow';
-        actions.push({ type: 'set_permission', enabled: true, path, user, permission: perm, inheritance: inherit, propagation: prop, accessControlType: acType, raw: t });
+        actions.push({ type: 'custom_script', code: t, enabled: true, path, user, permission: perm, inheritance: inherit, propagation: prop, accessControlType: acType, raw: t });
         matched = true;
       }
     }
@@ -1412,7 +1471,7 @@ function extractBlockActions(block) {
       const getAppMatch = t.match(/\$([\w]+)\s*=\s*Get-ADTApplication\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (getAppMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'get_installed_application', desc: `Query: ${getAppMatch[2]}`, varName: getAppMatch[1], name: getAppMatch[2], raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Query: ${getAppMatch[2]}`, varName: getAppMatch[1], name: getAppMatch[2], raw: t });
         matched = true;
       }
     }
@@ -1442,7 +1501,7 @@ function extractBlockActions(block) {
       if (activeSetupMatch) {
         flushCustomBuffer();
         const keyMatch = t.match(/-Key\s+['"]([^'"]+)['"]/i);
-        actions.push({ type: 'active_setup', desc: `Active Setup: ${activeSetupMatch[1]}`, stubExePath: activeSetupMatch[1], key: keyMatch?.[1] || '', raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Active Setup: ${activeSetupMatch[1]}`, stubExePath: activeSetupMatch[1], key: keyMatch?.[1] || '', raw: t });
         matched = true;
       }
     }
@@ -1453,7 +1512,7 @@ function extractBlockActions(block) {
       if (addEdgeMatch) {
         flushCustomBuffer();
         const modeMatch = t.match(/-InstallationMode\s+['"]([^'"]+)['"]/i);
-        actions.push({ type: 'add_edge_extension', desc: `Edge ext: ${addEdgeMatch[1]}`, extensionId: addEdgeMatch[1], installationMode: modeMatch?.[1] || 'force_installed', raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Edge ext: ${addEdgeMatch[1]}`, extensionId: addEdgeMatch[1], installationMode: modeMatch?.[1] || 'force_installed', raw: t });
         matched = true;
       }
     }
@@ -1463,7 +1522,7 @@ function extractBlockActions(block) {
       const removeEdgeMatch = t.match(/Remove-ADTEdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
       if (removeEdgeMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'remove_edge_extension', desc: `Remove Edge ext: ${removeEdgeMatch[1]}`, extensionId: removeEdgeMatch[1], raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Remove Edge ext: ${removeEdgeMatch[1]}`, extensionId: removeEdgeMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1473,7 +1532,7 @@ function extractBlockActions(block) {
       const regDllMatch = t.match(/(Register|Unregister)-ADTDll\s+.*-FilePath\s+['"]([^'"]+)['"]/i);
       if (regDllMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'register_dll', desc: `${regDllMatch[1]} DLL: ${regDllMatch[2]}`, filePath: regDllMatch[2], action: regDllMatch[1], raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `${regDllMatch[1]} DLL: ${regDllMatch[2]}`, filePath: regDllMatch[2], action: regDllMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1482,7 +1541,7 @@ function extractBlockActions(block) {
     if (!matched && /Install-ADTMSUpdates\b/i.test(t)) {
       flushCustomBuffer();
       const dirMatch = t.match(/-Directory\s+['"]([^'"]+)['"]/i);
-      actions.push({ type: 'install_ms_updates', desc: 'Install MS Updates', directory: dirMatch?.[1] || '', raw: t });
+      actions.push({ type: 'custom_script', code: t, desc: 'Install MS Updates', directory: dirMatch?.[1] || '', raw: t });
       matched = true;
     }
 
@@ -1491,37 +1550,22 @@ function extractBlockActions(block) {
       const startSvcMatch = t.match(/Start-ADTServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (startSvcMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'set_service_state', desc: `Start service: ${startSvcMatch[1]}`, name: startSvcMatch[1], mode: 'start', raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Start service: ${startSvcMatch[1]}`, name: startSvcMatch[1], mode: 'start', raw: t });
         matched = true;
       }
     }
-    if (!matched) {
-      const stopSvcMatch = t.match(/Stop-ADTServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
-      if (stopSvcMatch) {
-        flushCustomBuffer();
-        actions.push({ type: 'set_service_state', desc: `Stop service: ${stopSvcMatch[1]}`, name: stopSvcMatch[1], mode: 'stop', raw: t });
-        matched = true;
-      }
-    }
+    
     if (!matched) {
       const setStartModeMatch = t.match(/Set-ADTServiceStartMode\s+.*-Name\s+['"]([^'"]+)['"].*-StartMode\s+['"]([^'"]+)['"]/i);
       if (setStartModeMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'set_service_state', desc: `Service ${setStartModeMatch[1]} → ${setStartModeMatch[2]}`, name: setStartModeMatch[1], mode: setStartModeMatch[2], startMode: setStartModeMatch[2], raw: t });
+        actions.push({ type: 'custom_script', code: t, desc: `Service ${setStartModeMatch[1]} → ${setStartModeMatch[2]}`, name: setStartModeMatch[1], mode: setStartModeMatch[2], startMode: setStartModeMatch[2], raw: t });
         matched = true;
       }
     }
 
     // Write-ADTLogEntry
-    if (!matched) {
-      const logMatch = t.match(/Write-ADTLogEntry\s+.*-Message\s+['"]([^'"]+)['"]/i);
-      if (logMatch) {
-        flushCustomBuffer();
-        const sevMatch = t.match(/-Severity\s+(\d)/i);
-        actions.push({ type: 'write_log_entry', desc: `Log: ${logMatch[1]}`, message: logMatch[1], severity: sevMatch ? parseInt(sevMatch[1]) : 1, raw: t });
-        matched = true;
-      }
-    }
+    
 
     // ── Unmatched line — buffer or skip ────────────────────────────────
     if (!matched) {
