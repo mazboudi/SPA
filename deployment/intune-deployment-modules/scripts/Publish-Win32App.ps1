@@ -142,7 +142,7 @@ $appBody = @{
     notes                  = $intuneMeta.notes ?? ''
     isFeatured             = if ($intuneMeta.isFeatured -eq $true) { $true } else { $false }
     allowAvailableUninstall = if ($intuneMeta.allowAvailableUninstall -eq $true) { $true } else { $false }
-    roleScopeTagIds        = if ($intuneMeta.roleScopeTagIds) { @($intuneMeta.roleScopeTagIds) } else { @() }
+    roleScopeTagIds        = @(if ($intuneMeta.roleScopeTagIds) { @($intuneMeta.roleScopeTagIds) | Where-Object { $_ -ne '0' -and $_ -ne 0 } } else { })
 
     # REQUIRED CREATE-TIME FIELDS
     fileName      = [System.IO.Path]::GetFileName($IntuneWinPath)

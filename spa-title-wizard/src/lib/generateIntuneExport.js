@@ -37,7 +37,9 @@ export function generateIntuneExport(state) {
       type: rc.type || 'success',
     })),
     categories: state.intuneCategoryIds || [],
-    roleScopeTagIds: state.roleScopeTagIds || [],
+    roleScopeTagIds: Array.isArray(state.roleScopeTagIds)
+      ? state.roleScopeTagIds.filter(id => id !== '0' && id !== 0)
+      : [],
   };
 
   const assignments = (state.assignments || []).map(a => {

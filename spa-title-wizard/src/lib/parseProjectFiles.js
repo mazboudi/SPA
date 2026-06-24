@@ -137,7 +137,11 @@ export function parseProjectFiles(files) {
       }
 
       // Scope tags
-      state.roleScopeTagIds = intuneApp.roleScopeTagIds || [];
+      // Scope tags — filter out Intune's default "0" scope tag (means "no real scope tag assigned")
+      const rawScopeTagIds = intuneApp.roleScopeTagIds;
+      state.roleScopeTagIds = Array.isArray(rawScopeTagIds)
+        ? rawScopeTagIds.filter(id => id !== '0' && id !== 0)
+        : [];
     } catch (e) {
       warnings.push(`Failed to parse windows/intune/app.json: ${e.message}`);
     }

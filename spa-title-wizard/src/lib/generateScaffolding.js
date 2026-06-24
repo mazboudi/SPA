@@ -225,7 +225,10 @@ ${optLines.join('\n')}
         type: rc.type || 'success',
       })),
       categories: s.intuneCategoryIds?.length ? s.intuneCategoryIds : (s.softwareCategory ? [s.softwareCategory] : []),
-      roleScopeTagIds: s.roleScopeTagIds || [],
+      // Sanitize roleScopeTagIds — must always be an array; filter out Intune's default "0" scope tag
+      roleScopeTagIds: Array.isArray(s.roleScopeTagIds)
+        ? s.roleScopeTagIds.filter(id => id !== '0' && id !== 0)
+        : [],
     };
     // Persist Intune Sync App ID if user has explicitly set one
     if (s.syncIntuneAppId) intuneAppObj.syncIntuneAppId = s.syncIntuneAppId;

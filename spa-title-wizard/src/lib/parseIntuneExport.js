@@ -37,7 +37,13 @@ export function parseIntuneExport(exportData) {
   }
 
   // Scope tags mapping
-  fields.roleScopeTagIds = app.roleScopeTagIds || [];
+  // roleScopeTagIds: Intune returns ["0"] as the default (no real scope tags).
+  // Filter out "0" so we don't persist the default scope tag, which causes
+  // the Graph API to reject the create/update request.
+  const rawScopeTagIds = app.roleScopeTagIds;
+  fields.roleScopeTagIds = Array.isArray(rawScopeTagIds)
+    ? rawScopeTagIds.filter(id => id !== '0' && id !== 0)
+    : [];
 
   // Store original Intune app ID for reference
   fields._intuneAppId = exportData.appId || app.id || '';
