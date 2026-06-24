@@ -3,7 +3,7 @@ import generateScaffolding from '../../lib/generateScaffolding';
 import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
-import { fetchIntuneAppDetail, pushIntuneMetadata, pushIntuneRelationships } from '../../lib/intuneApi';
+import { pushIntuneMetadata } from '../../lib/intuneApi';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
@@ -206,14 +206,13 @@ export default function ReviewStep({ state, updateField }) {
       setPushSuccess(true);
       setPushConfirm(false);
       // Refresh the diff
-      setPushDiffs(null);
-      setTimeout(fetchPushPreview, 1000);
+      // syncPendingFields was cleared by updateField above — no refresh needed
     } catch (err) {
       setPushError(err.message);
     } finally {
       setPushPushing(false);
     }
-  }, [pushDiffs, state, files, fetchPushPreview]);
+  }, [pushDiffs, state, files, updateField]);
 
   const handleDownloadZip = async () => {
     setExporting(true);
@@ -453,7 +452,7 @@ export default function ReviewStep({ state, updateField }) {
           {pushError && (
             <div className="publish-result publish-result--error">
               <span>❌ {pushError}</span>
-              <button className="btn btn-sm btn-ghost" onClick={fetchPushPreview}>Retry</button>
+              <button className="btn btn-sm btn-ghost" onClick={() => setPushError(null)}>Dismiss</button>
             </div>
           )}
 
