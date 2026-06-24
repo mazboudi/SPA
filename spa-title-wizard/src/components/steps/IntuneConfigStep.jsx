@@ -134,7 +134,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     try {
       const intuneData = await fetchIntuneAppDetail(appId);
       setSyncRawIntuneData(intuneData);
-      
+
       // We still want to save the snapshot so the user has offline history of the raw data
       // We can just save the raw data instead of parsed fields!
       if (state._editProjectId) {
@@ -159,16 +159,16 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   const handleSyncPullField = useCallback((fieldPath, value) => {
     if (!syncGeneratedIntuneData) return;
-    
+
     // 1. Create a deep clone of the current generated Intune JSON
     const updatedExport = JSON.parse(JSON.stringify(syncGeneratedIntuneData));
-    
+
     // 2. Apply the pulled field using Lodash
     set(updatedExport, fieldPath, value);
-    
+
     // 3. Parse it back to Builder state properties
     const parsed = parseIntuneExport(updatedExport);
-    
+
     // 4. Update the state with ONLY the properties that actually changed
     for (const [key, parsedVal] of Object.entries(parsed.fields)) {
       if (!isEqual(state[key], parsedVal)) {
@@ -183,10 +183,10 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   const handleSyncPullAll = useCallback(() => {
     if (!syncRawIntuneData) return;
-    
+
     // When pulling all, we take the ENTIRE raw Intune object and parse it!
     const parsed = parseIntuneExport(syncRawIntuneData);
-    
+
     for (const [key, parsedVal] of Object.entries(parsed.fields)) {
       if (!isEqual(state[key], parsedVal)) {
         if (key === 'displayName') {
@@ -597,7 +597,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                   <FormField label="App Version" id="intuneAppVersion" hint="Synced from Basic Info — edit there to change.">
                     <input id="intuneAppVersion" type="text" readOnly value={state.version || ''} className="mono-input" style={{ opacity: 0.8 }} />
                   </FormField>
-                   <FormField label="Category" id="softwareCategory" hint="Synced from Basic Info — edit there to change.">
+                  <FormField label="Category" id="softwareCategory" hint="Synced from Basic Info — edit there to change.">
                     <input id="softwareCategory" type="text" readOnly value={PROJECT_CATEGORY_MAP[state.category] || state.softwareCategory || '— None —'} className="mono-input" style={{ opacity: 0.8 }} />
                   </FormField>
                   <div /> {/* spacer for grid alignment */}
@@ -1055,11 +1055,11 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                     value={state.supersedesAppId || ''} onChange={e => updateField('supersedesAppId', e.target.value)} />
                 </FormField>
                 <SelectField label="Uninstall previous version" id="supersedenceType" value={state.supersedenceType || 'replace'}
-                  hint="'Yes' = uninstall the old app. 'No' = keep both versions."
+                  hint="'Yes' = Remove the old app before installing the new one. 'No' = Installs the new version without removing the old one."
                   onChange={v => updateField('supersedenceType', v)}
                   options={[
-                    { value: 'update', label: 'Yes — uninstall previous version' },
-                    { value: 'replace', label: 'No — keep previous version' },
+                    { value: 'update', label: 'Yes' },
+                    { value: 'replace', label: 'No' },
                   ]}
                 />
               </div>
@@ -1151,9 +1151,9 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                   <div className="intune-sync-section__linked" style={{ marginBottom: 'var(--space-md)', padding: '8px 12px', background: 'var(--bg-card, rgba(255,255,255,0.02))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                     <span>Linked to: <code>{state.syncIntuneAppId}</code></span>
                     <button type="button" className="btn btn-ghost btn-xs" onClick={handleRemoveSyncApp} style={{ color: '#ef4444', marginLeft: 'auto' }}>✕ Unlink</button>
-                    {onRefresh => <button className="btn btn-ghost btn-xs" style={{marginLeft: 10}} onClick={() => runSyncCheck(state.syncIntuneAppId)}>↻ Refresh Live Data</button>}
+                    {onRefresh => <button className="btn btn-ghost btn-xs" style={{ marginLeft: 10 }} onClick={() => runSyncCheck(state.syncIntuneAppId)}>↻ Refresh Live Data</button>}
                   </div>
-                  
+
                   {syncLoading ? (
                     <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Fetching live Intune data...</div>
                   ) : syncError ? (
