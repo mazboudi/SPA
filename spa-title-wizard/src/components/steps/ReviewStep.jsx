@@ -462,11 +462,6 @@ export default function ReviewStep({ state, updateField }) {
             </div>
           )}
 
-          {/* DEBUG - remove after fix */}
-          <div style={{fontSize:'0.65rem', color:'#888', padding:'4px 12px', fontFamily:'monospace'}}>
-            🔍 pending={JSON.stringify(state.syncPendingFields)} | appId={(state.syncIntuneAppId||'').slice(0,8)} | diffs={pushDiffs?.length}
-          </div>
-
           {pushDiffs && pushDiffs.length === 0 && !pushSuccess && (
             <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
               ✅ No pushable metadata differences found. Builder and Intune are in sync.
@@ -482,8 +477,7 @@ export default function ReviewStep({ state, updateField }) {
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>Field</th>
-                    <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>Current (Intune)</th>
-                    <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>New (Builder)</th>
+                    <th style={{ textAlign: 'left', padding: '4px 12px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.68rem', textTransform: 'uppercase' }}>Value to Push</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -491,10 +485,9 @@ export default function ReviewStep({ state, updateField }) {
                     <tr key={d.field} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                       <td style={{ padding: '4px 12px', color: '#f59e0b', fontWeight: 500 }}>⚠️ {d.label}</td>
                       <td style={{ padding: '4px 12px' }}>
-                        <code style={{ fontSize: '0.7rem', color: '#ef4444' }}>{d.intuneDisplay || '(empty)'}</code>
-                      </td>
-                      <td style={{ padding: '4px 12px' }}>
-                        <code style={{ fontSize: '0.7rem', color: '#4ade80' }}>{d.builderDisplay || '(empty)'}</code>
+                        <code style={{ fontSize: '0.7rem', color: '#4ade80' }}>
+                          {d.value === null ? '(clear)' : d.value === '' ? '(empty)' : String(d.value)}
+                        </code>
                       </td>
                     </tr>
                   ))}

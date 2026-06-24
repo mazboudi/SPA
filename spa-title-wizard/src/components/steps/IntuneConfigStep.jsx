@@ -235,8 +235,9 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     const newPending = [...(state.syncPendingFields || [])];
     for (const compareKey of PULLABLE_COMPARE_FIELDS) {
       const intuneVal = intuneValues[compareKey];
-      if (intuneVal === undefined) continue;
-      const stateKey = FIELD_MAP[compareKey];
+      if (intuneVal === undefined || intuneVal === null || intuneVal === '') continue;
+      // displayName is a derived field — must be stored via _intuneAppNameOverride
+      const stateKey = compareKey === 'displayName' ? '_intuneAppNameOverride' : FIELD_MAP[compareKey];
       updateField(stateKey, intuneVal);
       if (!newPending.includes(compareKey)) newPending.push(compareKey);
     }
@@ -1230,7 +1231,9 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                           minProcessors:           'minLogicalProcessors',
                         };
                         // Update the builder field value
-                        updateField(FIELD_MAP[field] ?? field, val);
+                        // displayName must go through _intuneAppNameOverride (derived field)
+                        const stateKey = field === 'displayName' ? '_intuneAppNameOverride' : (FIELD_MAP[field] ?? field);
+                        updateField(stateKey, val);
                         // Track this field as "pending sync to Intune"
                         const current = state.syncPendingFields || [];
                         if (!current.includes(field)) {
