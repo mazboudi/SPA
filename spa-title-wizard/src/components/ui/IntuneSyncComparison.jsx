@@ -45,33 +45,13 @@ export default function IntuneSyncComparison({
   const totalDiffs = diffCount + (logoMatch ? 0 : 1);
   const showLogo = !filterDiffs || !logoMatch;
 
-  // Map compareIntuneState field keys → builder state field to pull into
-  const FIELD_TO_STATE_MAP = {
-    displayName:      (val) => onPullField('displayName', val),
-    description:      (val) => onPullField('appDescription', val),
-    publisher:        (val) => onPullField('publisher', val),
-    displayVersion:   (val) => onPullField('version', val),
-    owner:            (val) => onPullField('appOwner', val),
-    developer:        (val) => onPullField('appDeveloper', val),
-    informationUrl:   (val) => onPullField('informationUrl', val),
-    privacyUrl:       (val) => onPullField('privacyUrl', val),
-    notes:            (val) => onPullField('appNotes', val),
-    isFeatured:       (val) => onPullField('isFeatured', val),
-    allowAvailableUninstall: (val) => onPullField('allowAvailableUninstall', val),
-  };
-
-  const handlePull = (field, intuneVal) => {
-    if (FIELD_TO_STATE_MAP[field]) {
-      FIELD_TO_STATE_MAP[field](intuneVal);
-    } else {
-      // fallback: let parent decide via generic pull
-      onPullField(field, intuneVal);
-    }
-  };
-
-  const handlePullLogo = () => {
-    if (intuneLogo) onPullField('logoDataUrl', intuneLogo);
-  };
+  // Fields that cannot be meaningfully pulled back via a single field update
+  const NO_PULL = new Set([
+    'detectionRules', 'returnCodes', 'assignments',
+    'installCommandLine', 'uninstallCommandLine',
+    'applicableArchitectures', 'displayVersion',
+    'restartBehavior', 'maxInstallTime',
+  ]);
 
   const categoryOrder = ['Metadata', 'Commands', 'Install Experience', 'Requirements', 'Detection', 'Assignments', 'Relationships'];
 
@@ -128,7 +108,7 @@ export default function IntuneSyncComparison({
             </div>
             <div className="isync-col-action">
               {!logoMatch && intuneLogo && (
-                <button className="isync-pull-btn" onClick={handlePullLogo} title="Use Intune logo">
+                <button className="isync-pull-btn" onClick={() => onPullField('logoDataUrl', intuneLogo)} title="Use Intune logo">
                   ← Pull
                 </button>
               )}
@@ -153,10 +133,10 @@ export default function IntuneSyncComparison({
                 <FieldValue val={row.builder} />
               </div>
               <div className="isync-col-action">
-                {!row.match && (
+                {!row.match && !NO_PULL.has(row.field) && (
                   <button
                     className="isync-pull-btn"
-                    onClick={() => handlePull(row.field, row.intune)}
+                    onClick={() => onPullField(row.field, row.intune)}
                     title={`Pull "${row.label}" from Intune`}
                   >
                     ← Pull

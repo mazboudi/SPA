@@ -1165,22 +1165,26 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                       builderState={state}
                       rawIntuneData={syncRawIntuneData}
                       onPullField={(field, val) => {
-                        // Map compareIntuneState field keys back to wizard state keys
+                        // Single mapping: compareIntuneState field key → wizard state key
                         const FIELD_MAP = {
-                          displayName:   '_intuneAppNameOverride',
-                          description:   'appDescription',
-                          publisher:     'publisher',
-                          displayVersion: 'version',
-                          owner:         'appOwner',
-                          developer:     'appDeveloper',
-                          informationUrl: 'informationUrl',
-                          privacyUrl:    'privacyUrl',
-                          notes:         'appNotes',
-                          isFeatured:    'isFeatured',
+                          displayName:             'intuneAppName',
+                          description:             'appDescription',
+                          publisher:               'publisher',
+                          owner:                   'appOwner',
+                          developer:               'appDeveloper',
+                          informationUrl:          'informationUrl',
+                          privacyUrl:              'privacyUrl',
+                          notes:                   'appNotes',
+                          isFeatured:              'isFeatured',
                           allowAvailableUninstall: 'allowAvailableUninstall',
-                          logoDataUrl:   'logoDataUrl',
+                          logoDataUrl:             'logoDataUrl',
+                          minWinRelease:           'minWinRelease',
+                          minDiskSpaceMB:          'minDiskSpaceMB',
+                          minMemoryMB:             'minMemoryMB',
+                          minCpuSpeedMHz:          'minCpuSpeedMHz',
+                          minProcessors:           'minLogicalProcessors',
                         };
-                        updateField(FIELD_MAP[field] || field, val);
+                        updateField(FIELD_MAP[field] ?? field, val);
                       }}
                       onPullAll={handleSyncPullAll}
                     />

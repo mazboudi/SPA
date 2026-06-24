@@ -89,23 +89,27 @@ export default function ReviewStep({ state, updateField }) {
   const [pushConfirm, setPushConfirm] = useState(false);  // user confirmed
 
   // Map builder diff fields to Graph API property names
+  // flat fields → direct PATCH, nested fields handled separately in handlePushToIntune
   const GRAPH_FIELD_MAP = {
-    displayName: 'displayName',
-    description: 'description',
-    publisher: 'publisher',
-    displayVersion: 'displayVersion',
-    owner: 'owner',
-    developer: 'developer',
-    informationUrl: 'informationUrl',
-    privacyUrl: 'privacyInformationUrl',
-    notes: 'notes',
-    isFeatured: 'isFeatured',
+    displayName:             'displayName',
+    description:             'description',
+    publisher:               'publisher',
+    displayVersion:          'displayVersion',
+    owner:                   'owner',
+    developer:               'developer',
+    informationUrl:          'informationUrl',
+    privacyUrl:              'privacyInformationUrl',
+    notes:                   'notes',
+    isFeatured:              'isFeatured',
     allowAvailableUninstall: 'allowAvailableUninstall',
-    minWinRelease: 'minimumSupportedWindowsRelease',
-    minDiskSpaceMB: 'minimumFreeDiskSpaceInMB',
-    minMemoryMB: 'minimumMemoryInMB',
-    minCpuSpeedMHz: 'minimumCpuSpeedInMHz',
-    minProcessors: 'minimumNumberOfProcessors',
+    minWinRelease:           'minimumSupportedWindowsRelease',
+    minDiskSpaceMB:          'minimumFreeDiskSpaceInMB',
+    minMemoryMB:             'minimumMemoryInMB',
+    minCpuSpeedMHz:          'minimumCpuSpeedInMHz',
+    minProcessors:           'minimumNumberOfProcessors',
+    // installExperience nested — handled specially
+    restartBehavior:         '__installExperience.deviceRestartBehavior',
+    maxInstallTime:          '__installExperience.maxRunTimeInMinutes',
   };
 
   // Fields we never push from the builder
@@ -116,13 +120,17 @@ export default function ReviewStep({ state, updateField }) {
     'installCommandLine', 'uninstallCommandLine', // pipeline sets these
   ]);
 
-  // Fetch comparison for push preview when entering Review with a syncIntuneAppId
+  // Fetch push preview whenever wizard state changes (re-fetches on field changes)
   useEffect(() => {
     if (state.wizardMode !== 'edit') return;
     if (!state.syncIntuneAppId) return;
-    if (pushDiffs) return;
+    setPushDiffs(null);
     fetchPushPreview();
-  }, [state.wizardMode, state.syncIntuneAppId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.syncIntuneAppId, state.intuneAppName, state.appDescription, state.publisher,
+      state.appOwner, state.appDeveloper, state.informationUrl, state.privacyUrl,
+      state.appNotes, state.isFeatured, state.allowAvailableUninstall,
+      state.supersedesAppId, state.dependencies]);
 
   const fetchPushPreview = useCallback(async () => {
     setPushLoading(true);
@@ -154,10 +162,18 @@ export default function ReviewStep({ state, updateField }) {
     try {
       // Build single PATCH payload
       const updates = {};
+      const installExpUpdates = {};
       for (const d of pushDiffs) {
-        if (GRAPH_FIELD_MAP[d.field]) {
-          updates[GRAPH_FIELD_MAP[d.field]] = d.builder;
+        const graphKey = GRAPH_FIELD_MAP[d.field];
+        if (!graphKey) continue;
+        if (graphKey.startsWith('__installExperience.')) {
+          installExpUpdates[graphKey.replace('__installExperience.', '')] = d.builder;
+        } else {
+          updates[graphKey] = d.builder;
         }
+      }
+      if (Object.keys(installExpUpdates).length > 0) {
+        updates.installExperience = { ...installExpUpdates };
       }
       if (Object.keys(updates).length > 0) {
         await pushIntuneMetadata(state.syncIntuneAppId, updates);

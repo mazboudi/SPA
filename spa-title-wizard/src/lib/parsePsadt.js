@@ -1130,7 +1130,7 @@ function extractBlockActions(block) {
       const unAppMatch = t.match(/Uninstall-ADTApplication\s+-Name\s+['"]([^'"]+)['"]/i);
       if (unAppMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'uninstall_application', desc: `Uninstall by name: ${unAppMatch[1]}`, appName: unAppMatch[1], raw: t });
+        actions.push({ type: 'uninstall_application', desc: `Uninstall by name: ${unAppMatch[1]}`, name: unAppMatch[1], raw: t });
         matched = true;
       }
     }
@@ -1140,7 +1140,7 @@ function extractBlockActions(block) {
       const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
       if (rmMsiMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, appName: rmMsiMatch[1], raw: t });
+        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], raw: t });
         matched = true;
       }
     }
