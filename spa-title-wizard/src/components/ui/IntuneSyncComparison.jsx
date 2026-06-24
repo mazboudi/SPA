@@ -164,7 +164,7 @@ export default function IntuneSyncComparison({
                   <FieldValue val={row.builder} />
                 </div>
                 <div className="isync-col-action">
-                  {canPull && !isPulled && (
+                  {canPull && !isPulled && row.intune != null && row.intune !== '' && (
                     <button
                       className="isync-pull-btn"
                       onClick={() => onPullField(row.field, row.intune)}

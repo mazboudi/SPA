@@ -157,7 +157,7 @@ export default function ReviewStep({ state, updateField }) {
         value: state[FIELD_TO_STATE_KEY[field] ?? field],
         graphKey: GRAPH_FIELD_MAP[field],
       }))
-      .filter(item => item.value !== undefined && item.value !== null);
+      .filter(item => item.value !== undefined);
   }, [state.syncPendingFields, state.syncIntuneAppId,
       state.intuneAppName, state.appDescription, state.publisher,
       state.appOwner, state.appDeveloper, state.informationUrl, state.privacyUrl,
@@ -461,6 +461,11 @@ export default function ReviewStep({ state, updateField }) {
               <span>✅ Changes pushed to Intune and committed to GitLab successfully.</span>
             </div>
           )}
+
+          {/* DEBUG - remove after fix */}
+          <div style={{fontSize:'0.65rem', color:'#888', padding:'4px 12px', fontFamily:'monospace'}}>
+            🔍 pending={JSON.stringify(state.syncPendingFields)} | appId={(state.syncIntuneAppId||'').slice(0,8)} | diffs={pushDiffs?.length}
+          </div>
 
           {pushDiffs && pushDiffs.length === 0 && !pushSuccess && (
             <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
