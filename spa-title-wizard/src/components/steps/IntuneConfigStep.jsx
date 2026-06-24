@@ -3,7 +3,7 @@ import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
 import AssignmentsSection from '../ui/AssignmentsSection';
-import JsonDiffPicker from '../ui/JsonDiffPicker';
+import IntuneSyncComparison from '../ui/IntuneSyncComparison';
 import { parseIntuneExport } from '../../lib/parseIntuneExport';
 import { generateIntuneExport } from '../../lib/generateIntuneExport';
 import { fetchIntuneAppDetail, saveIntuneSnapshot } from '../../lib/intuneApi';
@@ -1161,13 +1161,28 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                   ) : syncError ? (
                     <div className="validation-banner">⚠️ {syncError}</div>
                   ) : syncRawIntuneData ? (
-                    <JsonDiffPicker
-                      targetObj={syncGeneratedIntuneData}
-                      sourceObj={syncRawIntuneData}
-                      onPullField={handleSyncPullField}
+                    <IntuneSyncComparison
+                      builderState={state}
+                      rawIntuneData={syncRawIntuneData}
+                      onPullField={(field, val) => {
+                        // Map compareIntuneState field keys back to wizard state keys
+                        const FIELD_MAP = {
+                          displayName:   '_intuneAppNameOverride',
+                          description:   'appDescription',
+                          publisher:     'publisher',
+                          displayVersion: 'version',
+                          owner:         'appOwner',
+                          developer:     'appDeveloper',
+                          informationUrl: 'informationUrl',
+                          privacyUrl:    'privacyUrl',
+                          notes:         'appNotes',
+                          isFeatured:    'isFeatured',
+                          allowAvailableUninstall: 'allowAvailableUninstall',
+                          logoDataUrl:   'logoDataUrl',
+                        };
+                        updateField(FIELD_MAP[field] || field, val);
+                      }}
                       onPullAll={handleSyncPullAll}
-                      titleLeft="Builder (app.json)"
-                      titleRight="Live (live_app.json)"
                     />
                   ) : null}
                 </div>
