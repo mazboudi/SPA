@@ -92,7 +92,7 @@ export default function generatePsadtScript(s, clean = false) {
           const namePart = appNameVal ? ` -Name '${appNameVal}'` : '';
           const nameMatchPart = (appNameVal && action.nameMatch && action.nameMatch !== 'Exact') ? ` -NameMatch '${action.nameMatch}'` : '';
           const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
-          const typePart = action.applicationType ? ` -ApplicationType '${action.applicationType}'` : '';
+          const typePart = (action.applicationType && action.applicationType !== 'All') ? ` -ApplicationType '${action.applicationType}'` : '';
           const filterScriptPart = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
           const argsPart = action.args ? ` -ArgumentList '${action.args}'` : '';
           const addlArgsPart = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';

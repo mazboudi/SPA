@@ -1127,10 +1127,26 @@ function extractBlockActions(block) {
 
     // Uninstall-ADTApplication (v4)
     if (!matched) {
-      const unAppMatch = t.match(/Uninstall-ADTApplication\s+-Name\s+['"]([^'"]+)['"]/i);
-      if (unAppMatch) {
+      if (/Uninstall-ADTApplication/i.test(t)) {
         flushCustomBuffer();
-        actions.push({ type: 'uninstall_application', desc: `Uninstall by name: ${unAppMatch[1]}`, name: unAppMatch[1], raw: t });
+        const appName    = extractPsParamValue(t, 'Name');
+        const appType    = extractPsParamValue(t, 'ApplicationType');
+        const nameMatch  = extractPsParamValue(t, 'NameMatch');
+        const productCode = extractPsParamValue(t, 'ProductCode');
+        const argList    = extractPsParamValue(t, 'ArgumentList');
+        const filterScr  = extractPsParamValue(t, 'FilterScript');
+        const actionObj  = {
+          type: 'uninstall_application',
+          desc: appName ? `Uninstall by name: ${appName}` : 'Uninstall-ADTApplication',
+          raw: t,
+        };
+        if (appName)     actionObj.name            = appName;
+        if (appType)     actionObj.applicationType  = appType;
+        if (nameMatch)   actionObj.nameMatch        = nameMatch;
+        if (productCode) actionObj.productCode      = productCode;
+        if (argList)     actionObj.args             = argList;
+        if (filterScr)   actionObj.filterScript     = filterScr;
+        actions.push(actionObj);
         matched = true;
       }
     }
@@ -1140,7 +1156,7 @@ function extractBlockActions(block) {
       const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
       if (rmMsiMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], raw: t });
+        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], applicationType: 'MSI', raw: t });
         matched = true;
       }
     }

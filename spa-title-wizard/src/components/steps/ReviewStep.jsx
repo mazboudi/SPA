@@ -4,7 +4,6 @@ import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
 import { fetchIntuneAppDetail, pushIntuneMetadata, pushIntuneRelationships } from '../../lib/intuneApi';
-import { compareIntuneState } from '../../lib/compareIntuneState';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
@@ -81,20 +80,56 @@ export default function ReviewStep({ state, updateField }) {
   const hasErrors = validationResults.some(r => !r.valid);
 
   // ── Push to Intune state ────────────────────────────────────────────────
-  const [pushDiffs, setPushDiffs] = useState(null);      // comparison result
-  const [pushLoading, setPushLoading] = useState(false);  // fetching comparison
-  const [pushPushing, setPushPushing] = useState(false);  // actively pushing
+  const [pushPushing, setPushPushing] = useState(false);
   const [pushError, setPushError] = useState(null);
   const [pushSuccess, setPushSuccess] = useState(false);
-  const [pushConfirm, setPushConfirm] = useState(false);  // user confirmed
+  const [pushConfirm, setPushConfirm] = useState(false);
 
-  // Map builder diff fields to Graph API property names
-  // flat fields → direct PATCH, nested fields handled separately in handlePushToIntune
+  // Maps compareIntuneState field key → wizard state key (for reading current builder value)
+  const FIELD_TO_STATE_KEY = {
+    displayName:             'intuneAppName',
+    description:             'appDescription',
+    publisher:               'publisher',
+    owner:                   'appOwner',
+    developer:               'appDeveloper',
+    informationUrl:          'informationUrl',
+    privacyUrl:              'privacyUrl',
+    notes:                   'appNotes',
+    isFeatured:              'isFeatured',
+    allowAvailableUninstall: 'allowAvailableUninstall',
+    logoDataUrl:             'logoDataUrl',
+    minWinRelease:           'minWinRelease',
+    minDiskSpaceMB:          'minDiskSpaceMB',
+    minMemoryMB:             'minMemoryMB',
+    minCpuSpeedMHz:          'minCpuSpeedMHz',
+    minProcessors:           'minLogicalProcessors',
+  };
+
+  // Maps compareIntuneState field key → human label
+  const FIELD_LABEL = {
+    displayName:             'Display Name',
+    description:             'Description',
+    publisher:               'Publisher',
+    owner:                   'Owner',
+    developer:               'Developer',
+    informationUrl:          'Information URL',
+    privacyUrl:              'Privacy URL',
+    notes:                   'Notes',
+    isFeatured:              'Featured',
+    allowAvailableUninstall: 'Allow Uninstall',
+    logoDataUrl:             'Logo',
+    minWinRelease:           'Min Windows Release',
+    minDiskSpaceMB:          'Min Disk Space (MB)',
+    minMemoryMB:             'Min Memory (MB)',
+    minCpuSpeedMHz:          'Min CPU Speed (MHz)',
+    minProcessors:           'Min Processors',
+  };
+
+  // Maps compareIntuneState field key → Graph API property (for PATCH payload)
   const GRAPH_FIELD_MAP = {
     displayName:             'displayName',
     description:             'description',
     publisher:               'publisher',
-    displayVersion:          'displayVersion',
     owner:                   'owner',
     developer:               'developer',
     informationUrl:          'informationUrl',
@@ -107,102 +142,50 @@ export default function ReviewStep({ state, updateField }) {
     minMemoryMB:             'minimumMemoryInMB',
     minCpuSpeedMHz:          'minimumCpuSpeedInMHz',
     minProcessors:           'minimumNumberOfProcessors',
-    // installExperience nested — handled specially
-    restartBehavior:         '__installExperience.deviceRestartBehavior',
-    maxInstallTime:          '__installExperience.maxRunTimeInMinutes',
   };
 
-  // Fields we never push from the builder
-  const BLOCKED_PUSH_FIELDS = new Set([
-    'assignments',       // too dangerous
-    'detectionRules',    // complex; pipeline handles this
-    'returnCodes',       // pipeline handles this
-    'installCommandLine', 'uninstallCommandLine', // pipeline sets these
-  ]);
-
-  // Fetch push preview whenever wizard state changes (re-fetches on field changes)
-  useEffect(() => {
-    if (state.wizardMode !== 'edit') return;
-    if (!state.syncIntuneAppId) return;
-    setPushDiffs(null);
-    fetchPushPreview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.syncIntuneAppId, state.intuneAppName, state.appDescription, state.publisher,
+  // Derive push preview from syncPendingFields (fields explicitly pulled in Sync tab)
+  // This is the ONLY source of truth for what gets pushed — NOT a re-comparison.
+  const pushDiffs = useMemo(() => {
+    const pending = state.syncPendingFields || [];
+    if (!state.syncIntuneAppId || pending.length === 0) return [];
+    return pending
+      .filter(field => GRAPH_FIELD_MAP[field] || field === 'logoDataUrl')
+      .map(field => ({
+        field,
+        label: FIELD_LABEL[field] || field,
+        value: state[FIELD_TO_STATE_KEY[field] ?? field],
+        graphKey: GRAPH_FIELD_MAP[field],
+      }))
+      .filter(item => item.value !== undefined && item.value !== null);
+  }, [state.syncPendingFields, state.syncIntuneAppId,
+      state.intuneAppName, state.appDescription, state.publisher,
       state.appOwner, state.appDeveloper, state.informationUrl, state.privacyUrl,
       state.appNotes, state.isFeatured, state.allowAvailableUninstall,
-      state.supersedesAppId, state.dependencies]);
+      state.logoDataUrl, state.minWinRelease, state.minDiskSpaceMB,
+      state.minMemoryMB, state.minCpuSpeedMHz, state.minLogicalProcessors]);
 
-  const fetchPushPreview = useCallback(async () => {
-    setPushLoading(true);
-    setPushError(null);
-    try {
-      const intuneData = await fetchIntuneAppDetail(state.syncIntuneAppId);
-      const result = compareIntuneState(state, intuneData);
-      // Filter to only pushable metadata diffs + relationship diffs
-      const RELATIONSHIP_FIELDS = new Set(['supersedence', 'dependencies']);
-      const pushable = result.diffs.filter(d =>
-        !d.match && (
-          (GRAPH_FIELD_MAP[d.field] && !BLOCKED_PUSH_FIELDS.has(d.field)) ||
-          RELATIONSHIP_FIELDS.has(d.field)
-        )
-      );
-      setPushDiffs(pushable);
-    } catch (err) {
-      setPushError(err.message);
-    } finally {
-      setPushLoading(false);
-    }
-  }, [state]);
-
-  const handlePushToIntune = useCallback(async () => {
+    const handlePushToIntune = useCallback(async () => {
     if (!pushDiffs || pushDiffs.length === 0) return;
     setPushPushing(true);
     setPushError(null);
     setPushSuccess(false);
     try {
-      // Build single PATCH payload
+      // Build PATCH payload from pulled fields
       const updates = {};
-      const installExpUpdates = {};
-      for (const d of pushDiffs) {
-        const graphKey = GRAPH_FIELD_MAP[d.field];
-        if (!graphKey) continue;
-        if (graphKey.startsWith('__installExperience.')) {
-          installExpUpdates[graphKey.replace('__installExperience.', '')] = d.builder;
-        } else {
-          updates[graphKey] = d.builder;
+      for (const item of pushDiffs) {
+        if (item.graphKey && item.field !== 'logoDataUrl') {
+          updates[item.graphKey] = item.value;
         }
-      }
-      if (Object.keys(installExpUpdates).length > 0) {
-        updates.installExperience = { ...installExpUpdates };
       }
       if (Object.keys(updates).length > 0) {
         await pushIntuneMetadata(state.syncIntuneAppId, updates);
       }
 
-      // Push relationships (supersedence + dependencies) if any changed
-      const hasRelDiff = pushDiffs.some(d => d.field === 'supersedence' || d.field === 'dependencies');
-      if (hasRelDiff) {
-        const relationships = [];
-        // Build supersedence relationship
-        if (state.supersedesAppId) {
-          relationships.push({
-            '@odata.type': '#microsoft.graph.mobileAppSupersedence',
-            targetId: state.supersedesAppId,
-            supersedenceType: state.supersedenceType === 'update' ? 'update' : 'replace',
-          });
-        }
-        // Build dependency relationships
-        for (const dep of (state.dependencies || [])) {
-          if (dep.appId) {
-            relationships.push({
-              '@odata.type': '#microsoft.graph.mobileAppDependency',
-              targetId: dep.appId,
-              dependencyType: dep.dependencyType || 'autoInstall',
-            });
-          }
-        }
-        await pushIntuneRelationships(state.syncIntuneAppId, relationships);
-      }
+      // After successful push, clear the pending fields
+      updateField('syncPendingFields', []);
+
+
 
       // Also commit files to GitLab WITHOUT triggering pipeline
       try {
@@ -465,11 +448,7 @@ export default function ReviewStep({ state, updateField }) {
             Also commits updated files to GitLab (without triggering the pipeline).
           </p>
 
-          {pushLoading && (
-            <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              ⏳ Loading comparison…
-            </div>
-          )}
+          
 
           {pushError && (
             <div className="publish-result publish-result--error">

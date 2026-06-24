@@ -84,6 +84,7 @@ const INITIAL_STATE = {
 
   // Intune Sync — the Intune app ID explicitly chosen by the user for syncing
   syncIntuneAppId: '',
+  syncPendingFields: [],  // array of compareIntuneState field keys pulled from Intune
 
   // Intune App Information
   softwareCategory: '',  // Intune Company Portal category (e.g. 'Productivity', 'Business')

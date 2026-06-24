@@ -186,19 +186,62 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
   const handleSyncPullAll = useCallback(() => {
     if (!syncRawIntuneData) return;
 
-    // When pulling all, we take the ENTIRE raw Intune object and parse it!
-    const parsed = parseIntuneExport(syncRawIntuneData);
+    // Map compareIntuneState field keys → wizard state keys (same as onPullField)
+    const FIELD_MAP = {
+      displayName:             'intuneAppName',
+      description:             'appDescription',
+      publisher:               'publisher',
+      owner:                   'appOwner',
+      developer:               'appDeveloper',
+      informationUrl:          'informationUrl',
+      privacyUrl:              'privacyUrl',
+      notes:                   'appNotes',
+      isFeatured:              'isFeatured',
+      allowAvailableUninstall: 'allowAvailableUninstall',
+      logoDataUrl:             'logoDataUrl',
+      minWinRelease:           'minWinRelease',
+      minDiskSpaceMB:          'minDiskSpaceMB',
+      minMemoryMB:             'minMemoryMB',
+      minCpuSpeedMHz:          'minCpuSpeedMHz',
+      minProcessors:           'minLogicalProcessors',
+    };
 
-    for (const [key, parsedVal] of Object.entries(parsed.fields)) {
-      if (!isEqual(state[key], parsedVal)) {
-        if (key === 'displayName') {
-          updateField('_intuneAppNameOverride', parsedVal);
-        } else {
-          updateField(key, parsedVal);
-        }
-      }
+    // Iterate all pullable compareIntuneState field keys
+    const PULLABLE_COMPARE_FIELDS = Object.keys(FIELD_MAP);
+    const app = syncRawIntuneData.app || {};
+    const intuneValues = {
+      displayName:             app.displayName,
+      description:             app.description,
+      publisher:               app.publisher,
+      owner:                   app.owner,
+      developer:               app.developer,
+      informationUrl:          app.informationUrl,
+      privacyUrl:              app.privacyInformationUrl,
+      notes:                   app.notes,
+      isFeatured:              app.isFeatured,
+      allowAvailableUninstall: app.allowAvailableUninstall,
+      logoDataUrl:             (() => {
+        const icon = syncRawIntuneData.app?.largeIcon;
+        if (!icon?.value) return undefined;
+        return `data:${icon.type || 'image/png'};base64,${icon.value}`;
+      })(),
+      minWinRelease:  app.minimumSupportedWindowsRelease,
+      minDiskSpaceMB: app.minimumFreeDiskSpaceInMB,
+      minMemoryMB:    app.minimumMemoryInMB,
+      minCpuSpeedMHz: app.minimumCpuSpeedInMHz,
+      minProcessors:  app.minimumNumberOfProcessors,
+    };
+
+    const newPending = [...(state.syncPendingFields || [])];
+    for (const compareKey of PULLABLE_COMPARE_FIELDS) {
+      const intuneVal = intuneValues[compareKey];
+      if (intuneVal === undefined) continue;
+      const stateKey = FIELD_MAP[compareKey];
+      updateField(stateKey, intuneVal);
+      if (!newPending.includes(compareKey)) newPending.push(compareKey);
     }
-  }, [syncRawIntuneData, state, updateField]);
+    updateField('syncPendingFields', newPending);
+  }, [syncRawIntuneData, state.syncPendingFields, updateField]);
 
   const handleSetSyncApp = useCallback((appId) => {
     updateField('syncIntuneAppId', appId);
@@ -209,6 +252,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   const handleRemoveSyncApp = useCallback(() => {
     updateField('syncIntuneAppId', '');
+    updateField('syncPendingFields', []);
     setSyncError(null);
     setSyncRawIntuneData(null);
   }, [updateField]);
@@ -1164,6 +1208,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                     <IntuneSyncComparison
                       builderState={state}
                       rawIntuneData={syncRawIntuneData}
+                      pendingFields={state.syncPendingFields || []}
                       onPullField={(field, val) => {
                         // Single mapping: compareIntuneState field key → wizard state key
                         const FIELD_MAP = {
@@ -1184,7 +1229,13 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                           minCpuSpeedMHz:          'minCpuSpeedMHz',
                           minProcessors:           'minLogicalProcessors',
                         };
+                        // Update the builder field value
                         updateField(FIELD_MAP[field] ?? field, val);
+                        // Track this field as "pending sync to Intune"
+                        const current = state.syncPendingFields || [];
+                        if (!current.includes(field)) {
+                          updateField('syncPendingFields', [...current, field]);
+                        }
                       }}
                       onPullAll={handleSyncPullAll}
                     />

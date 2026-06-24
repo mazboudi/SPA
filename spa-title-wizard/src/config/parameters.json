@@ -412,12 +412,11 @@
     "label": "Application Type (-ApplicationType)",
     "type": "select",
     "options": [
+      "All",
       "MSI",
-      "EXE",
-      "APPV",
-      "MSIX"
+      "EXE"
     ],
-    "default": "MSI"
+    "default": "All"
   },
   {
     "cmdlet": "uninstall_application",
