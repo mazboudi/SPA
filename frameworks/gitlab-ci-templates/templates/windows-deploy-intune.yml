@@ -106,6 +106,40 @@
         $publishArgs['RequirementRules'] = $requirementRules
       }
       & 'intune-modules/Publish-Win32App.ps1' @publishArgs
+
+      # ── App relationships: supersedence + dependencies ────────────────────
+      # Read the APP_ID that Publish-Win32App.ps1 just wrote to out/app.env
+      $publishedAppId = ''
+      if (Test-Path 'out/app.env') {
+        $appEnvLine = Get-Content 'out/app.env' | Where-Object { $_ -match '^APP_ID=' } | Select-Object -First 1
+        $publishedAppId = ($appEnvLine -replace '^APP_ID=','').Trim()
+      }
+
+      if ($publishedAppId -and $publishedAppId -ne 'DRY-RUN') {
+        # Set supersedence if configured
+        if (Test-Path 'windows/intune/supersedence.json') {
+          Write-Host "Setting supersedence relationships..."
+          & 'intune-modules/Set-Win32Supersedence.ps1' `
+            -AppId            $publishedAppId `
+            -SupersedencePath 'windows/intune/supersedence.json' `
+            -TenantId         $env:AZURE_TENANT_ID `
+            -ClientId         $env:AZURE_CLIENT_ID `
+            -ClientSecret     $env:AZURE_CLIENT_SECRET
+        }
+
+        # Set dependencies if configured
+        if (Test-Path 'windows/intune/dependencies.json') {
+          Write-Host "Setting dependency relationships..."
+          & 'intune-modules/Set-Win32Dependencies.ps1' `
+            -AppId            $publishedAppId `
+            -DependenciesPath 'windows/intune/dependencies.json' `
+            -TenantId         $env:AZURE_TENANT_ID `
+            -ClientId         $env:AZURE_CLIENT_ID `
+            -ClientSecret     $env:AZURE_CLIENT_SECRET
+        }
+      } else {
+        Write-Host "Dry run or no APP_ID — skipping supersedence/dependencies." -ForegroundColor DarkGray
+      }
   artifacts:
     when: always
     expire_in: 14 days
@@ -146,7 +180,10 @@
         -ClientSecret     $env:AZURE_CLIENT_SECRET `
         -DryRun:([bool]::Parse($env:INTUNE_DRY_RUN))
 
-      # Optional: set supersedence
+      # Supersedence + dependencies also run here for standalone assign invocations
+      # (e.g. when re-running just the assign stage without a fresh publish).
+      # If publish already ran them in this pipeline, Intune will treat the repeat
+      # call gracefully (relationships already exist).
       if (Test-Path 'windows/intune/supersedence.json') {
         & 'intune-modules/Set-Win32Supersedence.ps1' `
           -AppId              $env:APP_ID `
@@ -156,7 +193,6 @@
           -ClientSecret       $env:AZURE_CLIENT_SECRET
       }
 
-      # Optional: set dependencies
       if (Test-Path 'windows/intune/dependencies.json') {
         & 'intune-modules/Set-Win32Dependencies.ps1' `
           -AppId              $env:APP_ID `

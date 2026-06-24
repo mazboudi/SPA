@@ -276,9 +276,10 @@ ${optLines.join('\n')}
     }
     files['windows/intune/requirements.json'] = JSON.stringify(reqObj, null, 2);
 
-    // Intune supersedence.json
+    // Intune supersedence.json — strip any accidental {} braces from the GUID
+    const stripGuidBraces = (g) => (g || '').trim().replace(/^\{|\}$/g, '');
     files['windows/intune/supersedence.json'] = JSON.stringify({
-      supersededAppId: s.supersedesAppId || '',
+      supersededAppId: stripGuidBraces(s.supersedesAppId),
       supersedenceType: s.supersedenceType || 'update',
     }, null, 2);
 
@@ -286,7 +287,7 @@ ${optLines.join('\n')}
     if ((s.dependencies || []).length > 0) {
       files['windows/intune/dependencies.json'] = JSON.stringify(
         s.dependencies.map(d => ({
-          appId: d.appId,
+          appId: stripGuidBraces(d.appId),
           dependencyType: d.dependencyType || 'autoInstall',
         })),
         null, 2

@@ -393,8 +393,8 @@ export default function ReviewStep({ state, updateField }) {
                   if (isWin) {
                     options.push(
                       { value: 'build', label: '📦 Build', desc: 'Package .intunewin only' },
-                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package and upload to Intune', disabled: !intuneReady },
-                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — deploy to Intune with assignments', disabled: !intuneReady },
+                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !intuneReady },
+                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !intuneReady },
                     );
                   }
                   if (isMac && !isWin) {

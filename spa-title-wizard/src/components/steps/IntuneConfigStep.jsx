@@ -20,6 +20,8 @@ const isValidUrl = (v) => {
 
 const GUID_RE = /^\{?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}?$/i;
 const isValidGuid = (v) => !v || GUID_RE.test(v.trim());
+/** Strip optional curly braces from a GUID — the Graph API expects bare GUIDs. */
+const normalizeGuid = (v) => (v || '').trim().replace(/^\{|\}$/g, '');
 
 const REQ_FILE_DET_TYPES = [
   { value: 'exists', label: 'File or folder exists' },
@@ -234,7 +236,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     if (state.privacyUrl && !isValidUrl(state.privacyUrl))
       e.privacyUrl = 'Must be a valid URL starting with https://';
     if (state.supersedesAppId && !isValidGuid(state.supersedesAppId))
-      e.supersedesAppId = 'Must be a valid GUID — e.g. {12345678-abcd-1234-abcd-1234567890ab}';
+      e.supersedesAppId = 'Must be a valid GUID — e.g. 12345678-abcd-1234-abcd-1234567890ab (no curly braces needed)';
     // Validate dependencies
     (state.dependencies || []).forEach((d, i) => {
       if (d.appId && !isValidGuid(d.appId))
@@ -1020,9 +1022,9 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               {dependencies.map((dep, idx) => (
                 <div key={idx} className="dep-row" style={{ marginBottom: '8px' }}>
                   <FormField label="App ID (GUID)" id={`dep-appid-${idx}`} error={errors[`dep_${idx}_appId`]}>
-                    <input type="text" placeholder="{12345678-abcd-1234-abcd-1234567890ab}"
+                    <input type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                       className={errors[`dep_${idx}_appId`] ? 'input--error' : ''}
-                      value={dep.appId || ''} onChange={e => updateDependency(idx, 'appId', e.target.value)} />
+                      value={dep.appId || ''} onChange={e => updateDependency(idx, 'appId', normalizeGuid(e.target.value))} />
                   </FormField>
                   <SelectField label="Automatically install" id={`dep-type-${idx}`} value={dep.dependencyType || 'autoInstall'}
                     onChange={v => updateDependency(idx, 'dependencyType', v)}
@@ -1050,9 +1052,9 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               </p>
               <div className="form-grid">
                 <FormField label="Superseded App ID" id="supersedesAppId" hint="Intune app GUID of the app being replaced" error={errors.supersedesAppId}>
-                  <input id="supersedesAppId" type="text" placeholder="Leave empty if not superseding"
+                  <input id="supersedesAppId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (no curly braces)"
                     className={errors.supersedesAppId ? 'input--error' : ''}
-                    value={state.supersedesAppId || ''} onChange={e => updateField('supersedesAppId', e.target.value)} />
+                    value={state.supersedesAppId || ''} onChange={e => updateField('supersedesAppId', normalizeGuid(e.target.value))} />
                 </FormField>
                 <SelectField label="Uninstall previous version" id="supersedenceType" value={state.supersedenceType || 'replace'}
                   hint="'Yes' = Remove the old app before installing the new one. 'No' = Installs the new version without removing the old one."
