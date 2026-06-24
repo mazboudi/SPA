@@ -820,13 +820,79 @@ function extractTryCatchBlock(lines, startIdx) {
 function modernizeLegacyScriptParts(scriptText) {
   if (!scriptText) return '';
   return scriptText
-    .replace(/\bRemove-RegistryKey\b/g, 'Remove-ADTRegistryKey')
-    .replace(/\bSet-RegistryKey\b/g, 'Set-ADTRegistryKey')
+    // ── Core deployment commands ─────────────────────────────────────────
     .replace(/\bExecute-MSI\b/g, 'Start-ADTMsiProcess')
+    .replace(/\bExecute-MSP\b/g, 'Start-ADTMspProcess')
     .replace(/\bExecute-Process\b/g, 'Start-ADTProcess')
+    .replace(/\bExecute-ProcessAsUser\b/g, 'Start-ADTProcessAsUser')
+    .replace(/\bExit-Script\b/g, 'Close-ADTSession')
+    // ── Registry ─────────────────────────────────────────────────────────
+    .replace(/\bGet-RegistryKey\b/g, 'Get-ADTRegistryKey')
+    .replace(/\bSet-RegistryKey\b/g, 'Set-ADTRegistryKey')
+    .replace(/\bRemove-RegistryKey\b/g, 'Remove-ADTRegistryKey')
+    .replace(/\bTest-RegistryValue\b/g, 'Test-ADTRegistryValue')
+    .replace(/\bConvert-RegistryPath\b/g, 'Convert-ADTRegistryPath')
+    .replace(/\bInvoke-HKCURegistrySettingsForAllUsers\b/g, 'Invoke-ADTAllUsersRegistryAction')
+    // ── File and folder operations ────────────────────────────────────────
+    .replace(/\bCopy-File\b/g, 'Copy-ADTFile')
+    .replace(/\bCopy-FileToUserProfiles\b/g, 'Copy-ADTFileToUserProfiles')
+    .replace(/\bRemove-File\b/g, 'Remove-ADTFile')
+    .replace(/\bRemove-FileFromUserProfiles\b/g, 'Remove-ADTFileFromUserProfiles')
+    .replace(/\bRemove-Folder\b/g, 'Remove-ADTFolder')
+    .replace(/\bNew-Folder\b/g, 'New-ADTFolder')
+    .replace(/\bNew-ZipFile\b/g, 'New-ADTZipFile')
+    // ── Application management ────────────────────────────────────────────
+    .replace(/\bRemove-MSIApplications\b/g, 'Uninstall-ADTApplication')
+    .replace(/\bGet-InstalledApplication\b/g, 'Get-ADTApplication')
+    // ── INI file operations ───────────────────────────────────────────────
+    .replace(/\bSet-IniValue\b/g, 'Set-ADTIniValue')
+    .replace(/\bGet-IniValue\b/g, 'Get-ADTIniValue')
+    // ── Shortcuts ─────────────────────────────────────────────────────────
+    .replace(/\bNew-Shortcut\b/g, 'New-ADTShortcut')
+    .replace(/\bGet-Shortcut\b/g, 'Get-ADTShortcut')
+    .replace(/\bSet-Shortcut\b/g, 'Set-ADTShortcut')
+    // ── Services ─────────────────────────────────────────────────────────
+    .replace(/\bStart-ServiceAndDependencies\b/g, 'Start-ADTServiceAndDependencies')
+    .replace(/\bStop-ServiceAndDependencies\b/g, 'Stop-ADTServiceAndDependencies')
+    .replace(/\bGet-ServiceStartMode\b/g, 'Get-ADTServiceStartMode')
+    .replace(/\bSet-ServiceStartMode\b/g, 'Set-ADTServiceStartMode')
+    .replace(/\bTest-ServiceExists\b/g, 'Test-ADTServiceExists')
+    // ── UI/progress dialogs ───────────────────────────────────────────────
     .replace(/\bShow-InstallationWelcome\b/g, 'Show-ADTInstallationWelcome')
+    .replace(/\bShow-WelcomePrompt\b/g, 'Show-ADTInstallationWelcome')
     .replace(/\bShow-InstallationProgress\b/g, 'Show-ADTInstallationProgress')
+    .replace(/\bClose-InstallationProgress\b/g, 'Close-ADTInstallationProgress')
     .replace(/\bShow-InstallationPrompt\b/g, 'Show-ADTInstallationPrompt')
+    .replace(/\bShow-InstallationRestartPrompt\b/g, 'Show-ADTInstallationRestartPrompt')
+    .replace(/\bShow-BalloonTip\b/g, 'Show-ADTBalloonTip')
+    .replace(/\bShow-DialogBox\b/g, 'Show-ADTDialogBox')
+    // ── App execution blocking ────────────────────────────────────────────
+    .replace(/\bBlock-AppExecution\b/g, 'Block-ADTAppExecution')
+    .replace(/\bUnblock-AppExecution\b/g, 'Unblock-ADTAppExecution')
+    // ── Logging ───────────────────────────────────────────────────────────
+    .replace(/\bWrite-Log\b/g, 'Write-ADTLogEntry')
+    .replace(/\bResolve-Error\b/g, 'Resolve-ADTErrorRecord')
+    // ── User/environment helpers ──────────────────────────────────────────
+    .replace(/\bGet-UserProfiles\b/g, 'Get-ADTUserProfiles')
+    .replace(/\bGet-LoggedOnUser\b/g, 'Get-ADTLoggedOnUser')
+    .replace(/\bUpdate-Desktop\b/g, 'Update-ADTDesktop')
+    .replace(/\bUpdate-GroupPolicy\b/g, 'Update-ADTGroupPolicy')
+    .replace(/\bUpdate-SessionEnvironmentVariables\b/g, 'Update-ADTEnvironmentPsProvider')
+    // ── Disk/system info ─────────────────────────────────────────────────
+    .replace(/\bGet-FreeDiskSpace\b/g, 'Get-ADTFreeDiskSpace')
+    .replace(/\bGet-PendingReboot\b/g, 'Get-ADTPendingReboot')
+    .replace(/\bTest-Battery\b/g, 'Test-ADTBattery')
+    .replace(/\bTest-NetworkConnection\b/g, 'Test-ADTNetworkConnection')
+    .replace(/\bTest-PowerPoint\b/g, 'Test-ADTPowerPoint')
+    .replace(/\bGet-WindowTitle\b/g, 'Get-ADTWindowTitle')
+    // ── MSI helpers ───────────────────────────────────────────────────────
+    .replace(/\bGet-MsiExitCodeMessage\b/g, 'Get-ADTMsiExitCodeMessage')
+    .replace(/\bGet-MsiTableProperty\b/g, 'Get-ADTMsiTableProperty')
+    .replace(/\bNew-MsiTransform\b/g, 'New-ADTMsiTransform')
+    .replace(/\bSet-MsiProperty\b/g, 'Set-ADTMsiProperty')
+    .replace(/\bTest-MSUpdates\b/g, 'Test-ADTMSUpdates')
+    .replace(/\bInstall-MSUpdates\b/g, 'Install-ADTMSUpdates')
+    // ── Variable paths ────────────────────────────────────────────────────
     .replace(/\$dirFiles\b/g, '$($adtSession.DirFiles)')
     .replace(/\$dirSupportFiles\b/g, '$($adtSession.DirSupportFiles)');
 }
@@ -1005,16 +1071,28 @@ function extractBlockActions(block) {
     let matched = false;
 
     // Check for ADT cmdlet matches
-    // Execute-MSI
+    // Execute-MSI (v3) — convert to start_msi_process so the generator can render it
     const msiMatch = t.match(/Execute-MSI\s+.*-Action\s+['"]?(\w+)['"]?/i);
     if (msiMatch) {
       flushCustomBuffer();
-      const action = msiMatch[1];
+      const msiAction = msiMatch[1];
       const path = extractPsParamValue(t, 'Path') || '';
       const params = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList') || '';
+      const transform = extractPsParamValue(t, 'Transforms?') || extractPsParamValue(t, 'Transform') || '';
       const cleanPath = path ? path.replace(/.*[\\]/, '') : '';
       const cleanFile = stripDirPrefix(path) || cleanPath;
-      actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action}: ${cleanPath || 'default'}`, file: cleanFile, args: params, raw: t });
+      const productCode = path.match(/^\{?[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}?$/) ? path : '';
+      const actionObj = {
+        type: 'start_msi_process',
+        action: msiAction,
+        desc: `MSI ${msiAction}: ${cleanFile || productCode || 'default'}`,
+        file: productCode ? '' : cleanFile,
+        productCode,
+        args: params,
+        transform,
+        raw: t,
+      };
+      actions.push(actionObj);
       matched = true;
     }
 
@@ -1112,9 +1190,9 @@ function extractBlockActions(block) {
       }
     }
 
-    // Set-ADTIniSection
+    // Set-ADTIniValue / Set-IniValue (v3)
     if (!matched) {
-      const iniMatch = t.match(/Set-ADTIniSection\b/i);
+      const iniMatch = t.match(/(?:Set-ADTIniSection|Set-ADTIniValue|Set-IniValue)\b/i);
       if (iniMatch) {
         flushCustomBuffer();
         const fp = extractPsParamValue(t, 'FilePath');
@@ -1199,7 +1277,8 @@ function extractBlockActions(block) {
       const regSetMatch = t.match(/(?:Set-RegistryKey|Set-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"].*-Name\s+['"]([^'"]+)['"].*-Value\s+['"]?([^'"\s]+)/i);
       if (regSetMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], raw: t });
+        const regType = extractPsParamValue(t, 'Type') || 'String';
+        actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], regType, raw: t });
         matched = true;
       }
     }

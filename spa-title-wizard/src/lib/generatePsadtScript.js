@@ -82,14 +82,15 @@ export default function generatePsadtScript(s, clean = false) {
           const pt = action.passThru ? ' -PassThru' : '';
           let cmd = `Start-ADTProcess -FilePath '${action.file}'${args}${successCodes}${rebootCodes}${pt}`;
           if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\\$/, '')} = ${cmd}`;
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
           }
           actionLines.push(`        ${cmd}`);
           break;
         }
         case 'uninstall_application': {
-          const namePart = action.name ? ` -Name '${action.name}'` : '';
-          const nameMatchPart = (action.name && action.nameMatch && action.nameMatch !== 'Exact') ? ` -NameMatch '${action.nameMatch}'` : '';
+          const appNameVal = action.appName || action.name || '';
+          const namePart = appNameVal ? ` -Name '${appNameVal}'` : '';
+          const nameMatchPart = (appNameVal && action.nameMatch && action.nameMatch !== 'Exact') ? ` -NameMatch '${action.nameMatch}'` : '';
           const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
           const typePart = action.applicationType ? ` -ApplicationType '${action.applicationType}'` : '';
           const filterScriptPart = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
@@ -100,7 +101,7 @@ export default function generatePsadtScript(s, clean = false) {
           const pt = action.passThru ? ' -PassThru' : '';
           let cmd = `Uninstall-ADTApplication${namePart}${nameMatchPart}${pcPart}${typePart}${filterScriptPart}${argsPart}${addlArgsPart}${succCodes}${rebtCodes}${pt}`;
           if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\\$/, '')} = ${cmd}`;
+            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
           }
           actionLines.push(`        ${cmd}`);
           break;
@@ -341,7 +342,7 @@ export default function generatePsadtScript(s, clean = false) {
         }
 
         case 'set_ini': {
-          actionLines.push(`        Set-ADTIniSection -FilePath '${action.filePath || ''}' -Section '${action.section || ''}' -Key '${action.key || ''}' -Value '${action.value || ''}'`);
+          actionLines.push(`        Set-ADTIniValue -FilePath '${action.filePath || ''}' -Section '${action.section || ''}' -Key '${action.key || ''}' -Value '${action.value || ''}'`);
           break;
         }
 
