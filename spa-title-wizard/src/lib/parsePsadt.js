@@ -1080,7 +1080,15 @@ function extractBlockActions(block) {
 
 
     // Stop-ADTServiceAndDependencies
-    
+    if (!matched) {
+      const svcMatch = t.match(/Stop-ADTServiceAndDependencies\b.*-Name\s+['"]([^'"]+)['"]/i);
+      if (svcMatch) {
+        flushCustomBuffer();
+        const varMatch = t.match(/^\s*\$(\w+)\s*=/);
+        actions.push({ type: 'stop_service', desc: `Stop service: ${svcMatch[1]}`, name: svcMatch[1], passThruVar: varMatch ? varMatch[1] : '', raw: t });
+        matched = true;
+      }
+    }
 
     // Start-ADTMspProcess
     if (!matched) {
@@ -1095,7 +1103,14 @@ function extractBlockActions(block) {
     }
 
     // Write-ADTLogEntry
-    
+    if (!matched) {
+      const logMatch = t.match(/Write-ADTLogEntry\b.*-Message\s+['"]([^'"]*)['"](?:.*-Severity\s+(\d+))?/i);
+      if (logMatch) {
+        flushCustomBuffer();
+        actions.push({ type: 'write_log', desc: `Log: ${logMatch[1].slice(0, 40)}`, message: logMatch[1], severity: logMatch[2] || '1', raw: t });
+        matched = true;
+      }
+    }
 
     // Set-ADTIniSection
     if (!matched) {

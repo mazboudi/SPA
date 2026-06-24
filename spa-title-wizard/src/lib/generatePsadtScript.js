@@ -312,9 +312,57 @@ export default function generatePsadtScript(s, clean = false) {
           actionLines.push(`        Remove-ADTFileFromUserProfiles -Path '${action.path}'`);
           break;
         }
-        
-        
-        default:
+
+        case 'stop_service': {
+          const pt = action.passThru ? ' -PassThru' : '';
+          let svcCmd = `Stop-ADTServiceAndDependencies -Name '${action.name || ''}'${pt}`;
+          if (action.passThru && action.passThruVar) {
+            svcCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${svcCmd}`;
+          }
+          actionLines.push(`        ${svcCmd}`);
+          break;
+        }
+
+        case 'start_msp_process': {
+          const mspArgs = action.args ? ` -ArgumentList '${action.args}'` : '';
+          const mspPt = action.passThru ? ' -PassThru' : '';
+          let mspCmd = `Start-ADTMspProcess -FilePath '${action.file || ''}'${mspArgs}${mspPt}`;
+          if (action.passThru && action.passThruVar) {
+            mspCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${mspCmd}`;
+          }
+          actionLines.push(`        ${mspCmd}`);
+          break;
+        }
+
+        case 'write_log': {
+          const severity = action.severity || '1';
+          actionLines.push(`        Write-ADTLogEntry -Message '${(action.message || '').replace(/'/g, "''")}' -Severity ${severity}`);
+          break;
+        }
+
+        case 'set_ini': {
+          actionLines.push(`        Set-ADTIniSection -FilePath '${action.filePath || ''}' -Section '${action.section || ''}' -Key '${action.key || ''}' -Value '${action.value || ''}'`);
+          break;
+        }
+
+        case 'all_users_registry': {
+          const scriptBlock = (action.scriptBlock || '').trim();
+          if (scriptBlock) {
+            const indented = scriptBlock.split('\n').map(l => `            ${l}`).join('\n');
+            actionLines.push(`        Invoke-ADTAllUsersRegistryAction -ScriptBlock {\n${indented}\n        }`);
+          } else {
+            actionLines.push(`        Invoke-ADTAllUsersRegistryAction -ScriptBlock { }`);
+          }
+          break;
+        }
+
+        case 'get_registry_key': {
+          const regName = action.name ? ` -Name '${action.name}'` : '';
+          actionLines.push(`        Get-ADTRegistryKey -Key '${action.key || ''}'${regName}`);
+          break;
+        }
+
+default:
           break;
       }
 
