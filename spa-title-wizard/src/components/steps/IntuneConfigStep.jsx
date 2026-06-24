@@ -1230,11 +1230,15 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                           minCpuSpeedMHz:          'minCpuSpeedMHz',
                           minProcessors:           'minLogicalProcessors',
                         };
-                        // Update the builder field value
-                        // displayName must go through _intuneAppNameOverride (derived field)
-                        const stateKey = field === 'displayName' ? '_intuneAppNameOverride' : (FIELD_MAP[field] ?? field);
-                        updateField(stateKey, val);
-                        // Track this field as "pending sync to Intune"
+                        // val is the live Intune value.
+                        // If Intune has a real value → Pull: update builder with Intune value.
+                        // If Intune is null/empty → Push: keep builder value, just queue for push.
+                        if (val !== null && val !== undefined && val !== '') {
+                          // displayName is derived — must go through _intuneAppNameOverride
+                          const stateKey = field === 'displayName' ? '_intuneAppNameOverride' : (FIELD_MAP[field] ?? field);
+                          updateField(stateKey, val);
+                        }
+                        // In both cases: mark field as pending sync (queued for Review → Push)
                         const current = state.syncPendingFields || [];
                         if (!current.includes(field)) {
                           updateField('syncPendingFields', [...current, field]);

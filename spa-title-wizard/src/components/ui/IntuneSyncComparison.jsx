@@ -164,15 +164,22 @@ export default function IntuneSyncComparison({
                   <FieldValue val={row.builder} />
                 </div>
                 <div className="isync-col-action">
-                  {canPull && !isPulled && row.intune != null && row.intune !== '' && (
-                    <button
-                      className="isync-pull-btn"
-                      onClick={() => onPullField(row.field, row.intune)}
-                      title={`Pull "${row.label}" from Intune`}
-                    >
-                      ← Pull
-                    </button>
-                  )}
+                  {canPull && !isPulled && (() => {
+                    const intuneHasValue = row.intune != null && row.intune !== '';
+                    return (
+                      <button
+                        className={`isync-pull-btn${intuneHasValue ? '' : ' isync-pull-btn--push'}`}
+                        onClick={() => onPullField(row.field, row.intune)}
+                        title={
+                          intuneHasValue
+                            ? `Replace builder value with Intune value`
+                            : `Stage builder value to be pushed to Intune`
+                        }
+                      >
+                        {intuneHasValue ? '← Pull' : '→ Push'}
+                      </button>
+                    );
+                  })()}
                 </div>
                 <div className="isync-col-intune">
                   <FieldValue val={row.intune} />

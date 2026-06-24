@@ -220,3 +220,14 @@
   align-items: center;
   gap: var(--space-sm, 8px);
 }
+
+/* Push-direction button (builder → Intune): different color to signal direction */
+.isync-pull-btn--push {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.35);
+}
+.isync-pull-btn--push:hover {
+  background: rgba(99, 102, 241, 0.28);
+  color: #a5b4fc;
+}
