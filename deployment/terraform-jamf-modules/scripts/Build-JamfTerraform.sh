@@ -59,6 +59,14 @@ policy_recon=$(jq -r 'if .run_recon_after_install == false then "false" else "tr
 self_service_enabled=$(jq -r 'if .self_service_enabled == true then "true" else "false" end' "$POLICY_JSON")
 ss_display_name=$(jq -r '.self_service_display_name // ""' "$POLICY_JSON")
 ss_description=$(jq -r '.self_service_description // ""' "$POLICY_JSON")
+ss_category_id=$(jq -r '.self_service_category_id // -1' "$POLICY_JSON")
+
+# Triggers → HCL list
+triggers_hcl=$(jq -r '
+  (.triggers // ["checkin"]) |
+  "[" + (map("\"" + . + "\"") | join(", ")) + "]"
+' "$POLICY_JSON")
+custom_trigger=$(jq -r '.custom_trigger // ""' "$POLICY_JSON")
 
 # Scope group IDs → HCL list
 scope_groups_hcl=$(jq -r '
@@ -72,6 +80,31 @@ exclusion_groups_hcl=$(jq -r '
   if length == 0 then "[]"
   else "[" + (map(tostring) | join(", ")) + "]"
   end' "$SCOPE_JSON")
+
+# ── Read scripts-inputs.json (optional) ──────────────────────────────────────
+SCRIPTS_JSON="$JAMF_INPUT_DIR/scripts-inputs.json"
+has_preinstall=false
+has_postinstall=false
+pre_script_name=""
+pre_script_content=""
+post_script_name=""
+post_script_content=""
+
+if [[ -f "$SCRIPTS_JSON" ]]; then
+  has_preinstall=$(jq  -r 'if .preinstall.enabled == true then "true" else "false" end' "$SCRIPTS_JSON")
+  has_postinstall=$(jq -r 'if .postinstall.enabled == true then "true" else "false" end' "$SCRIPTS_JSON")
+  if [[ "$has_preinstall" == "true" ]]; then
+    pre_script_name=$(jq    -r '.preinstall.name // ""'    "$SCRIPTS_JSON")
+    pre_script_content=$(jq -r '.preinstall.content // ""' "$SCRIPTS_JSON")
+  fi
+  if [[ "$has_postinstall" == "true" ]]; then
+    post_script_name=$(jq    -r '.postinstall.name // ""'    "$SCRIPTS_JSON")
+    post_script_content=$(jq -r '.postinstall.content // ""' "$SCRIPTS_JSON")
+  fi
+  echo "  Scripts: preinstall=$has_preinstall  postinstall=$has_postinstall"
+else
+  echo "  ⚠ No scripts-inputs.json — skipping script modules."
+fi
 
 # ── Read receipt_id from package.yaml ────────────────────────────────────────
 receipt_id=""
@@ -142,6 +175,8 @@ module "policy" {
   category_id               = -1
   enabled                   = ${policy_enabled}
   frequency                 = "${policy_freq}"
+  triggers                  = ${triggers_hcl}
+  custom_trigger            = "${custom_trigger}"
   scope_group_ids           = ${scope_groups_hcl}
   exclusion_group_ids       = ${exclusion_groups_hcl}
   run_recon_after_install   = ${policy_recon}
@@ -149,6 +184,7 @@ module "policy" {
   self_service_enabled      = ${self_service_enabled}
   self_service_display_name = "${ss_display_name}"
   self_service_description  = "${ss_description}"
+  self_service_category_id  = ${ss_category_id}
 }
 
 # ── Outputs ──────────────────────────────────────────────────────────────────
@@ -182,6 +218,51 @@ else
   echo "  ⚠ No valid receipt_id — skipping extension attribute module."
 fi
 
+# ── Conditionally add Script modules ─────────────────────────────────────────
+if [[ "$has_preinstall" == "true" && -n "$pre_script_content" ]]; then
+  # Write content to a temp file so heredoc handles newlines cleanly
+  PRE_CONTENT_ESCAPED="${pre_script_content//\\/\\\\}"
+  PRE_CONTENT_ESCAPED="${PRE_CONTENT_ESCAPED//\"/\\\"}"
+  cat >> "$OUTPUT_DIR/main.tf" <<TFEOF
+
+# ── Pre-install Script ────────────────────────────────────────────────────────
+module "preinstall_script" {
+  source          = "${ABS_MODULES_DIR}/script"
+  script_name     = "${pre_script_name}"
+  script_contents = file("${JAMF_INPUT_DIR}/preinstall.sh")
+  priority        = "Before"
+  notes           = "Managed by SPA pipeline."
+}
+
+output "preinstall_script_id" {
+  value = module.preinstall_script.id
+}
+TFEOF
+  # Write the actual script file for Terraform to consume
+  echo "$pre_script_content" > "$JAMF_INPUT_DIR/preinstall.sh"
+  echo "  ✅ Pre-install script module included: ${pre_script_name}"
+fi
+
+if [[ "$has_postinstall" == "true" && -n "$post_script_content" ]]; then
+  cat >> "$OUTPUT_DIR/main.tf" <<TFEOF
+
+# ── Post-install Script ───────────────────────────────────────────────────────
+module "postinstall_script" {
+  source          = "${ABS_MODULES_DIR}/script"
+  script_name     = "${post_script_name}"
+  script_contents = file("${JAMF_INPUT_DIR}/postinstall.sh")
+  priority        = "After"
+  notes           = "Managed by SPA pipeline."
+}
+
+output "postinstall_script_id" {
+  value = module.postinstall_script.id
+}
+TFEOF
+  echo "$post_script_content" > "$JAMF_INPUT_DIR/postinstall.sh"
+  echo "  ✅ Post-install script module included: ${post_script_name}"
+fi
+
 # ── Generate variables.tf ────────────────────────────────────────────────────
 cat > "$OUTPUT_DIR/variables.tf" <<TFEOF
 variable "jamf_instance_url" {
@@ -208,5 +289,5 @@ variable "package_file_path" {
 TFEOF
 
 echo "✅ Generated Terraform config in: $OUTPUT_DIR/"
-echo "   main.tf      — package + policy modules"
+echo "   main.tf      — package + policy + script modules"
 echo "   variables.tf — provider credentials + package path"

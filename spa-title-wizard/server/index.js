@@ -16,6 +16,7 @@ import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { exec, execSync } from 'child_process';
 import { tmpdir, homedir } from 'os';
+import zlib from 'zlib';
 import multer from 'multer';
 import CFB from 'cfb';
 
@@ -1437,6 +1438,171 @@ app.post('/api/msi-info-path', express.json(), (req, res) => {
     res.status(500).json({ error: `Failed to parse MSI: ${err.message}` });
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  macOS .pkg (XAR archive) — pure Node.js parser, no pkgutil required
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Extract metadata from a flat macOS .pkg file (XAR format).
+ * XAR: 28-byte header → zlib-compressed TOC XML → heap of files.
+ */
+function extractPkgMetadata(filePath) {
+  const buf = readFileSync(filePath);
+  if (buf.length < 28) throw new Error('File too small to be a .pkg');
+
+  // 1. Validate XAR magic ('xar!' = 0x78617221)
+  const magic = buf.readUInt32BE(0);
+  if (magic !== 0x78617221) throw new Error('Not a valid .pkg file (expected XAR magic)');
+
+  const headerSize    = buf.readUInt16BE(4);
+  const tocSizeHigh   = buf.readUInt32BE(8);
+  const tocSizeLow    = buf.readUInt32BE(12);
+  const tocCompressed = tocSizeHigh * 0x100000000 + tocSizeLow;
+
+  // 2. Decompress the TOC (plain zlib deflate)
+  const tocBuf = buf.slice(headerSize, headerSize + tocCompressed);
+  let tocXml;
+  try { tocXml = zlib.inflateSync(tocBuf).toString('utf8'); }
+  catch { tocXml = zlib.gunzipSync(tocBuf).toString('utf8'); }
+
+  const heapStart = headerSize + tocCompressed;
+
+  // 3. Parse TOC to find Distribution or PackageInfo file entries
+  const fileBlocks = [];
+  const fileRe = /<file[^>]*>([\s\S]*?)<\/file>/g;
+  let fm;
+  while ((fm = fileRe.exec(tocXml)) !== null) {
+    const blk  = fm[1];
+    const nameM = blk.match(/<name>([^<]+)<\/name>/);
+    const offM  = blk.match(/<offset>(\d+)<\/offset>/);
+    const lenM  = blk.match(/<length>(\d+)<\/length>/);
+    const encM  = blk.match(/style="([^"]+)"/);
+    if (!nameM) continue;
+    fileBlocks.push({
+      name:     nameM[1].trim(),
+      offset:   offM ? parseInt(offM[1]) : 0,
+      length:   lenM ? parseInt(lenM[1]) : 0,
+      encoding: encM ? encM[1] : 'application/octet-stream',
+    });
+  }
+
+  const target =
+    fileBlocks.find(f => f.name === 'Distribution') ||
+    fileBlocks.find(f => f.name === 'PackageInfo')  ||
+    fileBlocks.find(f => f.name.toLowerCase().endsWith('.xml'));
+
+  if (!target) throw new Error('No Distribution or PackageInfo found inside .pkg');
+
+  // 4. Read and decompress the target file from the heap
+  const slice = buf.slice(heapStart + target.offset, heapStart + target.offset + target.length);
+  let xml;
+  try {
+    if (target.encoding === 'application/x-gzip')  xml = zlib.gunzipSync(slice).toString('utf8');
+    else if (target.encoding === 'application/zlib') xml = zlib.inflateSync(slice).toString('utf8');
+    else xml = slice.toString('utf8');
+  } catch { xml = slice.toString('utf8'); }
+
+  return parsePkgXml(xml);
+}
+
+/** Parse Distribution or PackageInfo XML to extract installer metadata */
+function parsePkgXml(xml) {
+  const result = {};
+
+  // <title>App Name</title>
+  const titleM = xml.match(/<title>([^<]+)<\/title>/i);
+  if (titleM) result.name = titleM[1].trim();
+
+  // <pkg-ref id="com.vendor.App" version="1.2.3">  (Distribution XML)
+  const pkgRefBoth = xml.match(/<pkg-ref[^>]+\bid="([^"]+)"[^>]+\bversion="([^"]+)"/);
+  if (pkgRefBoth) { result.bundleId = pkgRefBoth[1]; result.version = pkgRefBoth[2]; }
+  else {
+    const idM  = xml.match(/<pkg-ref[^>]+\bid="([^"]+)"/);
+    const verM = xml.match(/<pkg-ref[^>]+\bversion="([^"]+)"/);
+    if (idM)  result.bundleId = idM[1];
+    if (verM) result.version  = verM[1];
+  }
+
+  // <pkg-info identifier="..." version="...">  (PackageInfo XML)
+  const pkgInfoM = xml.match(/<pkg-info[^>]+\bidentifier="([^"]+)"[^>]*\bversion="([^"]+)"/);
+  if (pkgInfoM) {
+    result.bundleId = result.bundleId || pkgInfoM[1];
+    result.version  = result.version  || pkgInfoM[2];
+  }
+
+  // Fallback: CFBundle keys in embedded plist
+  if (!result.bundleId) {
+    const m = xml.match(/CFBundleIdentifier[\s\S]{0,40}?<string>([^<]+)<\/string>/i);
+    if (m) result.bundleId = m[1].trim();
+  }
+  if (!result.version) {
+    const m = xml.match(/CFBundleShortVersionString[\s\S]{0,40}?<string>([^<]+)<\/string>/i);
+    if (m) result.version = m[1].trim();
+  }
+
+  // receiptId == bundleId for pkgutil lookups
+  if (result.bundleId) result.receiptId = result.bundleId;
+  return result;
+}
+
+/** POST /api/pkg-info-path — extract macOS .pkg metadata from a local path (no pkgutil) */
+app.post('/api/pkg-info-path', express.json(), (req, res) => {
+  try {
+    const { path: filePath } = req.body || {};
+    if (!filePath) return res.status(400).json({ error: 'path is required' });
+    if (!existsSync(filePath)) return res.status(404).json({ error: `File not found: ${filePath}` });
+    const ext = filePath.split('.').pop().toLowerCase();
+    if (ext !== 'pkg' && ext !== 'mpkg') {
+      return res.status(400).json({ error: 'Only .pkg and .mpkg files are supported' });
+    }
+    const meta = extractPkgMetadata(filePath);
+    meta.fileName = filePath.split(/[/\\]/).pop();
+    res.json(meta);
+  } catch (err) {
+    console.error('PKG path parse error:', err);
+    res.status(500).json({ error: `Failed to parse PKG: ${err.message}` });
+  }
+});
+
+/**
+ * POST /api/read-local-file
+ * Reads a file at a server-local path and returns it as a base64 data URL.
+ * Used by MacInstallerStep to "stage" the installer binary for inclusion
+ * in the GitLab publish commit as macos/src/Files/<filename>.
+ *
+ * Body: { path: string }
+ * Returns: { dataUrl: string, fileName: string, sizeBytes: number }
+ */
+app.post('/api/read-local-file', express.json(), (req, res) => {
+  try {
+    const { path: filePath } = req.body || {};
+    if (!filePath) return res.status(400).json({ error: 'path is required' });
+    if (!existsSync(filePath)) return res.status(404).json({ error: `File not found: ${filePath}` });
+
+    const stat = statSync(filePath);
+    const MAX_BYTES = 500 * 1024 * 1024; // 500 MB guard
+    if (stat.size > MAX_BYTES) {
+      return res.status(413).json({ error: `File is too large (${(stat.size / 1024 / 1024).toFixed(0)} MB). Maximum is 500 MB.` });
+    }
+
+    const ext = filePath.split('.').pop().toLowerCase();
+    const mimeMap = { pkg: 'application/octet-stream', dmg: 'application/octet-stream', mpkg: 'application/octet-stream' };
+    const mime = mimeMap[ext] || 'application/octet-stream';
+
+    const buf = readFileSync(filePath);
+    const base64 = buf.toString('base64');
+    const dataUrl = `data:${mime};base64,${base64}`;
+    const fileName = filePath.split(/[/\\]/).pop();
+
+    console.log(`  📦 Staged installer: ${fileName} (${(stat.size / 1024 / 1024).toFixed(1)} MB)`);
+    res.json({ dataUrl, fileName, sizeBytes: stat.size });
+  } catch (err) {
+    console.error('read-local-file error:', err);
+    res.status(500).json({ error: `Failed to read file: ${err.message}` });
+  }
+});
+
 
 /** Parse winget installer yaml manifests to extract installer info */
 function parseWingetYaml(yamlText) {

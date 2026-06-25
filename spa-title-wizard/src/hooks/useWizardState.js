@@ -118,18 +118,54 @@ const INITIAL_STATE = {
   },
 
   // Step 3b: macOS Config
-  macInstallerType: 'pkg',
+  macSourceDir:  '',           // Directory portion of the runner path  e.g. '/ApplicationSource/Chrome'
+  macSourceFile: '',           // Filename e.g. 'googlechrome.pkg'
+  macInstallerType: 'pkg',     // Auto-derived from extension; kept for pipeline compatibility
+  macStagedInstaller: null,    // { dataUrl, fileName, sizeBytes } — set when user stages a local file for git upload
+  pkgProductVersion: '',       // Extracted from PKG metadata (informational)
   bundleId: '',
   receiptId: '',
   _receiptIdManual: false,
+
+  // Package configuration
+  macMinOs: '13.0',            // Minimum macOS version (Ventura default)
+  macPackageNotes: 'Deployed by SPA pipeline. Do not modify directly in Jamf.', // Package record notes
+  macRebootRequired: false,    // Reboot required after install
+
+  // Jamf category + scope
   jamfCategory: '',
   jamfCategoryId: '',
-  macSelfService: false,
   scopeGroupIds: '31',
   exclusionGroupIds: '',
+
+  // Policy configuration
+  macPolicyFrequency: 'Ongoing',          // Jamf policy frequency
+  macPolicyTriggers: ['checkin'],          // Array: checkin, enrollment, login, startup, custom
+  macPolicyCustomTrigger: '',              // Custom event name (when 'custom' is in triggers)
+
+  // Self Service
+  macSelfService: false,
   selfServiceCategoryId: '27',
+  macSelfServiceDescription: '',          // Description shown in Self Service
+
+  // Detection
   macAppPath: '',              // e.g. '/Applications/Google Chrome.app'
   macExtensionAttribute: false, // whether to generate the Jamf extension attribute script
+  macEaVersionKey: 'CFBundleShortVersionString', // plist key for version extraction
+
+  // Inline pre/post install scripts
+  macEnablePreInstall: false,
+  macPreInstallScript: '#!/usr/bin/env bash\n# preinstall — runs before the package installs\nset -euo pipefail\n\n# TODO: Add pre-install logic here\n\nexit 0\n',
+  macEnablePostInstall: false,
+  macPostInstallScript: '#!/usr/bin/env bash\n# postinstall — runs after the package installs\nset -euo pipefail\n\n# TODO: Add post-install logic here\n\nexit 0\n',
+
+  // SMB file share — installer source on a Windows share accessed by the Linux runner
+  macSmbEnabled:      false,   // toggle: pull installer from a Windows SMB share
+  macSmbShare:        '',      // e.g. //fileserver.corp.com/apps  (UNC-style, forward slashes)
+  macSmbPathInShare:  '',      // relative path within the share, e.g. Chrome/googlechrome.pkg
+  macSmbUserVar:      'MAC_SMB_USER',    // GitLab CI variable name holding the SMB username
+  macSmbPassVar:      'MAC_SMB_PASS',    // GitLab CI variable name holding the SMB password
+  macSmbDomainVar:    'MAC_SMB_DOMAIN',  // GitLab CI variable name holding the AD domain (optional)
 
   // Intune App Metadata
   intuneAppName: '',
@@ -410,7 +446,8 @@ export default function useWizardState() {
       base.push({ id: 'intune', label: 'Intune', icon: '☁️' });
     }
     if (state.platform === 'macos' || state.platform === 'both') {
-      base.push({ id: 'macos', label: 'macOS', icon: '🍎' });
+      base.push({ id: 'mac-installer', label: 'Mac Installer', icon: '📦' });
+      base.push({ id: 'macos',         label: 'macOS Config',  icon: '🍎' });
     }
     if (state.platform) {
       base.push({ id: 'review', label: 'Review & Export', icon: '🚀' });

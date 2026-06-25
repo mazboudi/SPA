@@ -5,6 +5,7 @@ import BasicInfoStep from './components/steps/BasicInfoStep';
 import PsadtLifecycleStep from './components/steps/PsadtLifecycleStep';
 import InstallerStep from './components/steps/InstallerStep';
 import IntuneConfigStep from './components/steps/IntuneConfigStep';
+import MacInstallerStep from './components/steps/MacInstallerStep';
 import MacConfigStep from './components/steps/MacConfigStep';
 import ReviewStep from './components/steps/ReviewStep';
 import IntuneExportPicker from './components/ui/IntuneExportPicker';
@@ -214,6 +215,8 @@ export default function App() {
         return <InstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
       case 'intune':
         return <IntuneConfigStep state={wizard.state} updateField={wizard.updateField} intuneCatalog={intuneCatalog} loadIntuneCatalog={loadIntuneCatalog} fetchAppDetail={fetchIntuneAppDetail} />;
+      case 'mac-installer':
+        return <MacInstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
       case 'macos':
         return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':

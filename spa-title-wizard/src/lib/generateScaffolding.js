@@ -42,7 +42,10 @@ export default function generateScaffolding(s, forPublish = false) {
 
   const stages = [];
   if (isWin) { stages.push('  - build', '  - publish', '  - assign'); }
-  if (isMac) { stages.push('  - deploy'); }
+  if (isMac) {
+    if (s.macSmbEnabled) stages.push('  - prepare');
+    stages.push('  - deploy');
+  }
   const uniqueStages = [...new Set(stages)];
 
   const vars = [];
@@ -61,12 +64,16 @@ export default function generateScaffolding(s, forPublish = false) {
   if (isMac) {
     vars.push('  MACOS_ENABLED: "true"');
     vars.push('  TF_JAMF_MODULES_REF: "main"');
+    if (s.macSmbEnabled && s.macSmbShare) {
+      vars.push(`  MAC_SMB_SHARE: '${s.macSmbShare}'`);
+      vars.push(`  # Set MAC_SMB_USER, MAC_SMB_PASS (masked), MAC_SMB_DOMAIN in GitLab CI/CD Variables`);
+    }
   }
   // Stage gating — set by SPA Workbench when triggering via Pipeline API
   vars.push('  SPA_STAGE_LIMIT: ""');
   const uniqueVars = [...new Set(vars)];
 
-  files['.gitlab-ci.yml'] = `include:
+  let ciYml = `include:
   - project: '${s.gitLabGroup}/spa-frameworks/gitlab-ci-templates'
     ref: 'main'
     file:
@@ -78,6 +85,81 @@ ${uniqueStages.join('\n')}
 variables:
 ${uniqueVars.join('\n')}
 `;
+
+  // ── Append fetch-mac-installer job when SMB is enabled ──────────────────
+  if (isMac && s.macSmbEnabled && s.macSmbShare && s.macSmbPathInShare) {
+    const fileName = s.macSourceFile || s.macSmbPathInShare.replace(/.*[/\\]/, '');
+    ciYml += `
+# ─────────────────────────────────────────────────────────────────────────────
+# fetch-mac-installer
+# Pulls the macOS installer binary from the Windows SMB file share.
+# Runs in the 'prepare' stage before the Jamf deploy stage.
+#
+# Required GitLab CI/CD Variables (Settings -> CI/CD -> Variables):
+#   MAC_SMB_USER   - SMB username
+#   MAC_SMB_PASS   - SMB password  (masked!)
+#   MAC_SMB_DOMAIN - Active Directory domain
+#
+# TESTING: set MAC_SMB_BYPASS to "true" when the SMB share is not yet reachable.
+#          The job will use the installer committed to macos/src/Files/ from git.
+#          Revert to "false" once the share is available.
+# ─────────────────────────────────────────────────────────────────────────────
+fetch-mac-installer:
+  stage: prepare
+  image: ubuntu:22.04
+  variables:
+    # GIT_STRATEGY: fetch is required so bypass mode can read committed files.
+    # When SMB is active the checkout is a small overhead but otherwise harmless.
+    GIT_STRATEGY: fetch
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq smbclient
+  script:
+    - mkdir -p macos/src/Files
+    - |
+      if [ "\${MAC_SMB_BYPASS:-false}" = "true" ]; then
+        echo "WARNING: MAC_SMB_BYPASS=true - using installer committed to git (macos/src/Files/)"
+        PKG_FILE=$(find macos/src/Files -type f \\( -name '*.pkg' -o -name '*.dmg' \\) | head -1)
+        if [ -z "$PKG_FILE" ]; then
+          echo "ERROR: No .pkg or .dmg found in macos/src/Files/ - commit the installer or set MAC_SMB_BYPASS=false"
+          exit 1
+        fi
+        echo "OK Using committed installer: $PKG_FILE"
+        ls -lh "$PKG_FILE"
+      else
+        echo "Fetching installer from SMB share: $MAC_SMB_SHARE"
+        smbclient "$MAC_SMB_SHARE" \\
+          -U "\${MAC_SMB_DOMAIN}\\\\\${MAC_SMB_USER}%\${MAC_SMB_PASS}" \\
+          --option='client min protocol=SMB2' \\
+          -c "get ${s.macSmbPathInShare} macos/src/Files/${fileName}"
+        echo "Downloaded: macos/src/Files/${fileName}"
+        ls -lh "macos/src/Files/${fileName}"
+      fi
+  artifacts:
+    name: mac-installer
+    paths:
+      - macos/src/Files/
+    expire_in: 2 hours
+  rules:
+    - if: '$MACOS_ENABLED == "true"'
+`;
+
+    // ── Critical: override the template's needs:[] so deploy waits for ───────
+    // ── fetch-mac-installer and downloads its artifact (the installer file). ──
+    ciYml += `
+# ─────────────────────────────────────────────────────────────────────────────
+# macos_deploy_jamf needs override
+# The shared template defines needs: [] so it can run without a build stage.
+# When using SMB, we override needs so the deploy job:
+#   1. Waits for fetch-mac-installer to complete
+#   2. Downloads its macos/src/Files/ artifact (the installer binary)
+# Without this the file would not be present and the deploy would fail at step 2.
+# ─────────────────────────────────────────────────────────────────────────────
+macos_deploy_jamf:
+  needs: [fetch-mac-installer]
+`;
+  }
+
+  files['.gitlab-ci.yml'] = ciYml;
 
   // ── .gitignore ──────────────────────────────────────────────────────────
   const gitignoreLines = [
@@ -376,35 +458,48 @@ if (Test-Path $appPath) {
   //  MACOS FILES
   // ══════════════════════════════════════════════════════════════════════════
   if (isMac) {
-    const macSourceFile = `TODO_INSTALLER.${s.macInstallerType}`;
+    // Use real filename if provided, otherwise fall back to a placeholder
+    const macSourceFile = s.macSourceFile || `TODO_INSTALLER.${s.macInstallerType}`;
+    const macSourceDir  = s.macSourceDir  || '';
     const bundlePlaceholder = s.bundleId || 'com.vendor.TODO';
     const receiptPlaceholder = s.receiptId || 'com.vendor.todo';
     const jamfCat = s.jamfCategory || 'No category';
+
+    const smbBlock = s.macSmbEnabled && s.macSmbShare
+      ? [
+          `smb_share: ${s.macSmbShare}`,
+          s.macSmbPathInShare ? `smb_path_in_share: ${s.macSmbPathInShare}` : '',
+          s.macSmbUserVar   !== 'MAC_SMB_USER'    ? `smb_user_var: ${s.macSmbUserVar}`   : '',
+          s.macSmbPassVar   !== 'MAC_SMB_PASS'    ? `smb_pass_var: ${s.macSmbPassVar}`   : '',
+          s.macSmbDomainVar !== 'MAC_SMB_DOMAIN'  ? `smb_domain_var: ${s.macSmbDomainVar}` : '',
+        ].filter(Boolean).join('\n') + '\n'
+      : '';
 
     files['macos/package.yaml'] = `# ${s.displayName} ${s.version} — macOS package definition
 vendor_version: "${s.version}"
 packaging_version: 1
 source_type: ${s.macInstallerType}
-source_filename: ${macSourceFile}
+source_filename: ${macSourceFile}${macSourceDir ? `\nsource_dir: ${macSourceDir}` : ''}
 receipt_id: ${receiptPlaceholder}
 bundle_id: ${bundlePlaceholder}
-minimum_os: "13.0"
+minimum_os: "${s.macMinOs || '13.0'}"
 architecture: universal
 jamf_category: ${jamfCat}
 post_install_script: postinstall.sh
-`;
+${smbBlock}`;
 
     // ── package-inputs.json — matches jamfpro_package resource ──────────
+    const minOsStr = s.macMinOs ? `macOS ${s.macMinOs}` : '';
     files['macos/jamf/package-inputs.json'] = JSON.stringify({
       package_name: `${s.displayName} ${s.version}`,
       category_id: s.jamfCategoryId || '-1',
       info: '',
-      notes: 'Deployed by SPA pipeline. Do not modify directly in Jamf.',
+      notes: s.macPackageNotes || 'Deployed by SPA pipeline. Do not modify directly in Jamf.',
       priority: 10,
-      reboot_required: false,
+      reboot_required: !!s.macRebootRequired,
       fill_user_template: false,
       fill_existing_users: false,
-      os_requirements: '',
+      os_requirements: minOsStr,
       suppress_updates: false,
       suppress_from_dock: false,
       suppress_eula: false,
@@ -414,18 +509,24 @@ post_install_script: postinstall.sh
 
     // ── policy-inputs.json — keys must match Build-JamfTerraform.sh jq queries ──
     const isSelfService = !!s.macSelfService;
+    const triggers = Array.isArray(s.macPolicyTriggers) && s.macPolicyTriggers.length
+      ? s.macPolicyTriggers
+      : ['checkin'];
     const policyInputs = {
       policy_name: `SPA - Install ${s.displayName}`,
       enabled: true,
-      frequency: 'Ongoing',
+      frequency: s.macPolicyFrequency || 'Ongoing',
+      triggers,
+      custom_trigger: triggers.includes('custom') ? (s.macPolicyCustomTrigger || '') : '',
       run_recon_after_install: true,
+      reboot_required: !!s.macRebootRequired,
       self_service_enabled: isSelfService,
       self_service_display_name: isSelfService ? s.displayName : '',
-      self_service_description: '',
+      self_service_description: isSelfService ? (s.macSelfServiceDescription || '') : '',
+      self_service_category_id: isSelfService && s.selfServiceCategoryId
+        ? parseInt(s.selfServiceCategoryId)
+        : -1,
     };
-    if (isSelfService && s.selfServiceCategoryId) {
-      policyInputs.self_service_category_id = parseInt(s.selfServiceCategoryId);
-    }
     files['macos/jamf/policy-inputs.json'] = JSON.stringify(policyInputs, null, 2);
 
     // ── scope-inputs.json — keys must match Build-JamfTerraform.sh jq queries ──
@@ -441,34 +542,16 @@ post_install_script: postinstall.sh
       exclusion_groups: { computer_groups: exclusionIds },
     }, null, 2);
 
-    // Pre/post install scripts
-    files['macos/src/scripts/preinstall'] = `#!/usr/bin/env bash
-# =============================================================================
-# preinstall — ${s.displayName} macOS pre-install
-# =============================================================================
-set -euo pipefail
+    // Pre/post install scripts — use wizard content if enabled, otherwise stubs
+    const preScript = s.macEnablePreInstall && s.macPreInstallScript
+      ? s.macPreInstallScript
+      : `#!/usr/bin/env bash\n# preinstall — ${s.displayName} macOS pre-install\nset -euo pipefail\n\n# TODO: Add pre-install logic here\n\nexit 0\n`;
+    const postScript = s.macEnablePostInstall && s.macPostInstallScript
+      ? s.macPostInstallScript
+      : `#!/usr/bin/env bash\n# postinstall — ${s.displayName} macOS post-install\nset -euo pipefail\n\n# TODO: Add post-install logic here\n\nexit 0\n`;
 
-echo "[preinstall] ${s.displayName} pre-install starting..."
-
-# TODO: Add pre-install logic here
-
-echo "[preinstall] ${s.displayName} pre-install complete."
-exit 0
-`;
-
-    files['macos/src/scripts/postinstall'] = `#!/usr/bin/env bash
-# =============================================================================
-# postinstall — ${s.displayName} macOS post-install
-# =============================================================================
-set -euo pipefail
-
-echo "[postinstall] ${s.displayName} post-install starting..."
-
-# TODO: Add post-install logic here
-
-echo "[postinstall] ${s.displayName} post-install complete."
-exit 0
-`;
+    files['macos/src/scripts/preinstall'] = preScript;
+    files['macos/src/scripts/postinstall'] = postScript;
 
     files['macos/src/postinstall.sh'] = `#!/usr/bin/env bash
 # =============================================================================
@@ -480,10 +563,40 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 bash "$SCRIPT_DIR/scripts/postinstall"
 `;
 
-    files['macos/src/Files/.gitkeep'] = `# Drop macOS installer binary here. Do NOT commit binaries to git.\n# Expected: ${macSourceFile}\n`;
+    // ── Installer binary: committed to git (git mode) or placeholder (SMB mode) ──
+    if (!s.macSmbEnabled && s.macStagedInstaller?.dataUrl) {
+      // User staged a local file — commit it directly to macos/src/Files/
+      files[`macos/src/Files/${s.macStagedInstaller.fileName}`] = s.macStagedInstaller.dataUrl;
+    } else {
+      // SMB mode or file not yet staged — use placeholder to keep the directory
+      files['macos/src/Files/.gitkeep'] = `# macOS installer binary staging area.\n# Expected: ${macSourceFile}${macSourceDir ? `\n# Source directory on runner: ${macSourceDir}` : ''}\n`;
+    }
+
+    // ── scripts-inputs.json — drives the Terraform script module blocks ────
+    if (s.macEnablePreInstall || s.macEnablePostInstall) {
+      const scriptsInputs = {};
+      if (s.macEnablePreInstall) {
+        scriptsInputs.preinstall = {
+          enabled: true,
+          name: `SPA - ${s.displayName} preinstall`,
+          priority: 'Before',
+          content: preScript,
+        };
+      }
+      if (s.macEnablePostInstall) {
+        scriptsInputs.postinstall = {
+          enabled: true,
+          name: `SPA - ${s.displayName} postinstall`,
+          priority: 'After',
+          content: postScript,
+        };
+      }
+      files['macos/jamf/scripts-inputs.json'] = JSON.stringify(scriptsInputs, null, 2);
+    }
 
     if (s.macExtensionAttribute) {
       const appPath = s.macAppPath || '/Applications/TODO.app';
+      const versionKey = s.macEaVersionKey || 'CFBundleShortVersionString';
       files['macos/detection/extension-attribute.sh'] = `#!/usr/bin/env bash
 # =============================================================================
 # extension-attribute.sh — Jamf Extension Attribute
@@ -491,7 +604,7 @@ bash "$SCRIPT_DIR/scripts/postinstall"
 # =============================================================================
 
 APP_PATH="${appPath}"
-PLIST_KEY="CFBundleShortVersionString"
+PLIST_KEY="${versionKey}"
 
 if [[ -d "$APP_PATH" ]]; then
     version=$(defaults read "$APP_PATH/Contents/Info" "$PLIST_KEY" 2>/dev/null)

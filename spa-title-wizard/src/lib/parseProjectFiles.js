@@ -271,9 +271,20 @@ export function parseProjectFiles(files) {
   // ── macOS files ─────────────────────────────────────────────────────────
   if (files['macos/package.yaml']) {
     const macPkg = parseSimpleYaml(files['macos/package.yaml']);
-    if (macPkg.installer_type) state.macInstallerType = macPkg.installer_type;
-    if (macPkg.bundle_id) state.bundleId = macPkg.bundle_id;
-    if (macPkg.receipt_id) state.receiptId = macPkg.receipt_id;
+    if (macPkg.installer_type || macPkg.source_type) state.macInstallerType = macPkg.installer_type || macPkg.source_type;
+    if (macPkg.bundle_id)    state.bundleId    = macPkg.bundle_id;
+    if (macPkg.receipt_id)   state.receiptId   = macPkg.receipt_id;
+    if (macPkg.source_dir)   state.macSourceDir  = macPkg.source_dir;
+    if (macPkg.source_filename) state.macSourceFile = macPkg.source_filename;
+    // SMB fields
+    if (macPkg.smb_share) {
+      state.macSmbEnabled     = true;
+      state.macSmbShare       = macPkg.smb_share;
+      state.macSmbPathInShare = macPkg.smb_path_in_share || '';
+      if (macPkg.smb_user_var)   state.macSmbUserVar   = macPkg.smb_user_var;
+      if (macPkg.smb_pass_var)   state.macSmbPassVar   = macPkg.smb_pass_var;
+      if (macPkg.smb_domain_var) state.macSmbDomainVar = macPkg.smb_domain_var;
+    }
   }
 
   if (files['macos/jamf/package-inputs.json']) {
@@ -281,25 +292,69 @@ export function parseProjectFiles(files) {
       const jamfPkg = JSON.parse(files['macos/jamf/package-inputs.json']);
       if (jamfPkg.category_id) state.jamfCategoryId = String(jamfPkg.category_id);
       if (jamfPkg.category_name) state.jamfCategory = jamfPkg.category_name;
+      if (jamfPkg.notes) state.macPackageNotes = jamfPkg.notes;
+      if (typeof jamfPkg.reboot_required === 'boolean') state.macRebootRequired = jamfPkg.reboot_required;
+      if (jamfPkg.os_requirements) {
+        // os_requirements is like 'macOS 13.0' — extract the version number
+        const match = jamfPkg.os_requirements.match(/([\d.]+)/);
+        if (match) state.macMinOs = match[1];
+      }
     } catch { /* skip */ }
   }
 
   if (files['macos/jamf/policy-inputs.json']) {
     try {
       const jamfPolicy = JSON.parse(files['macos/jamf/policy-inputs.json']);
-      state.macSelfService = !!(jamfPolicy.self_service?.use_for_self_service);
-      if (jamfPolicy.self_service?.self_service_category_id) {
-        state.selfServiceCategoryId = String(jamfPolicy.self_service.self_service_category_id);
+      if (typeof jamfPolicy.self_service_enabled === 'boolean') state.macSelfService = jamfPolicy.self_service_enabled;
+      if (jamfPolicy.self_service_category_id && jamfPolicy.self_service_category_id !== -1) {
+        state.selfServiceCategoryId = String(jamfPolicy.self_service_category_id);
       }
+      if (jamfPolicy.self_service_description) state.macSelfServiceDescription = jamfPolicy.self_service_description;
+      if (jamfPolicy.frequency) state.macPolicyFrequency = jamfPolicy.frequency;
+      if (Array.isArray(jamfPolicy.triggers)) state.macPolicyTriggers = jamfPolicy.triggers;
+      if (jamfPolicy.custom_trigger) state.macPolicyCustomTrigger = jamfPolicy.custom_trigger;
+      if (typeof jamfPolicy.reboot_required === 'boolean') state.macRebootRequired = jamfPolicy.reboot_required;
     } catch { /* skip */ }
   }
 
   if (files['macos/jamf/scope-inputs.json']) {
     try {
       const scope = JSON.parse(files['macos/jamf/scope-inputs.json']);
-      if (scope.computer_group_ids) state.scopeGroupIds = scope.computer_group_ids.join(',');
-      if (scope.exclusion_group_ids) state.exclusionGroupIds = scope.exclusion_group_ids.join(',');
+      const sg = scope.scope_groups?.computer_groups || scope.computer_group_ids || [];
+      const eg = scope.exclusion_groups?.computer_groups || scope.exclusion_group_ids || [];
+      if (sg.length) state.scopeGroupIds = sg.join(', ');
+      if (eg.length) state.exclusionGroupIds = eg.join(', ');
     } catch { /* skip */ }
+  }
+
+  if (files['macos/jamf/scripts-inputs.json']) {
+    try {
+      const scripts = JSON.parse(files['macos/jamf/scripts-inputs.json']);
+      if (scripts.preinstall?.enabled) {
+        state.macEnablePreInstall = true;
+        if (scripts.preinstall.content) state.macPreInstallScript = scripts.preinstall.content;
+      }
+      if (scripts.postinstall?.enabled) {
+        state.macEnablePostInstall = true;
+        if (scripts.postinstall.content) state.macPostInstallScript = scripts.postinstall.content;
+      }
+    } catch { /* skip */ }
+  }
+
+  // Fallback: read script files directly
+  if (!state.macEnablePreInstall && files['macos/src/scripts/preinstall']) {
+    const content = files['macos/src/scripts/preinstall'];
+    if (content && !content.includes('TODO: Add pre-install')) {
+      state.macEnablePreInstall = true;
+      state.macPreInstallScript = content;
+    }
+  }
+  if (!state.macEnablePostInstall && files['macos/src/scripts/postinstall']) {
+    const content = files['macos/src/scripts/postinstall'];
+    if (content && !content.includes('TODO: Add post-install')) {
+      state.macEnablePostInstall = true;
+      state.macPostInstallScript = content;
+    }
   }
 
   return { state, warnings };

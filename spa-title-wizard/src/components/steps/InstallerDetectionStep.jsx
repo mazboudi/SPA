@@ -72,13 +72,7 @@ export default function InstallerDetectionStep({ state, updateField }) {
             hint="Directory on the runner where installer files are staged.">
             <input id="installerSourceDir" type="text"
               value={state.installerSourceDir}
-              onChange={e => {
-                const dir = e.target.value;
-                updateField('installerSourceDir', dir);
-                if (!state.supportFilesSource || state.supportFilesSource === state.installerSourceDir) {
-                  updateField('supportFilesSource', dir);
-                }
-              }}
+              onChange={e => updateField('installerSourceDir', e.target.value)}
               placeholder={'C:\\files\\7-zip'}
             />
           </FormField>
@@ -90,14 +84,7 @@ export default function InstallerDetectionStep({ state, updateField }) {
               placeholder={state.installerType === 'msi' ? '7z2600-x64.msi' : 'Setup.exe'}
             />
           </FormField>
-          <FormField label="Support Files Source" id="supportFilesSource"
-            hint="Directory with additional files to include. Defaults to the install source.">
-            <input id="supportFilesSource" type="text"
-              value={state.supportFilesSource}
-              onChange={e => updateField('supportFilesSource', e.target.value)}
-              placeholder={state.installerSourceDir || 'C:\\files\\7-zip'}
-            />
-          </FormField>
+
         </div>
       </div>
 

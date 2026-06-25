@@ -1,139 +1,188 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import FormField from '../ui/FormField';
-import SelectField from '../ui/SelectField';
-import ToggleSwitch from '../ui/ToggleSwitch';
-import windowsOptions from '../../config/windowsOptions.json';
 import './windows-steps.css';
 
-export default function InstallerStep({ state, updateField, updateFields }) {
-  const [msiParsing, setMsiParsing]     = useState(false);
-  const [msiParseResult, setMsiParseResult] = useState(null);
-  const [msiManualEntry, setMsiManualEntry] = useState(false);
-  const [msiPathInput, setMsiPathInput]  = useState('');
+// ── Path parser ───────────────────────────────────────────────────────────────
+/**
+ * Split a full Windows or POSIX path into { dir, file, type }.
+ *   'C:\files\7z\7z2600-x64.msi' → { dir:'C:\files\7z', file:'7z2600-x64.msi', type:'msi' }
+ *   '/opt/files/setup.exe'       → { dir:'/opt/files',    file:'setup.exe',       type:'exe' }
+ */
+function parseInstallerPath(fullPath) {
+  const raw = fullPath.trim();
+  if (!raw) return { dir: '', file: '', type: '' };
+  // Find last separator (backslash or forward slash)
+  const lastBack  = raw.lastIndexOf('\\');
+  const lastSlash = raw.lastIndexOf('/');
+  const lastSep   = Math.max(lastBack, lastSlash);
+  const dir  = lastSep >= 0 ? raw.slice(0, lastSep) : '';
+  const file = lastSep >= 0 ? raw.slice(lastSep + 1) : raw;
+  const ext  = file.includes('.') ? file.split('.').pop().toLowerCase() : '';
+  const type = ext === 'msi' ? 'msi' : ext ? 'exe' : '';
+  return { dir, file, type };
+}
 
-  // WinGet Bootstrapper States
-  const [wingetInput, setWingetInput] = useState('');
+/** Build the display path from wizard state (used to initialise local input) */
+function buildPathFromState(state) {
+  if (state.installerSourceDir && state.installerSourceFile)
+    return `${state.installerSourceDir}\\${state.installerSourceFile}`;
+  return state.installerSourceFile || '';
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+export default function InstallerStep({ state, updateField, updateFields }) {
+  // ── Installer path local state (drives all 3 derived wizard fields) ──────
+  const [pathInput, setPathInput] = useState(() => buildPathFromState(state));
+  // Suppress the next useEffect sync when WE just updated the wizard state
+  const suppressSync = useRef(false);
+
+  const [msiParsing, setMsiParsing] = useState(false);
+  const [msiParseResult, setMsiParseResult] = useState(null);
+
+  // ── WinGet bootstrapper state ────────────────────────────────────────────
+  const [wingetInput, setWingetInput]   = useState('');
   const [wingetLoading, setWingetLoading] = useState(false);
-  const [wingetResult, setWingetResult] = useState(null);
-  const [downloading, setDownloading] = useState(false);
+  const [wingetResult, setWingetResult]  = useState(null);
+  const [downloading, setDownloading]    = useState(false);
   const [downloadStatus, setDownloadStatus] = useState(null);
 
-  /** Fetch installer details from WinGet repository */
+  // Sync pathInput when wizard state changes externally (e.g., WinGet "Apply")
+  useEffect(() => {
+    if (suppressSync.current) { suppressSync.current = false; return; }
+    const fromState = buildPathFromState(state);
+    if (fromState && fromState !== pathInput) setPathInput(fromState);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.installerSourceFile, state.installerSourceDir]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+  const handlePathChange = (raw) => {
+    setPathInput(raw);
+    setMsiParseResult(null);
+    suppressSync.current = true;
+
+    const { dir, file, type } = parseInstallerPath(raw);
+    const updates = {
+      installerSourceDir:   dir,
+      installerSourceFile:  file,
+      // Support files always mirrors the installer directory — no separate field
+      supportFilesSource:   dir,
+    };
+    if (type) updates.installerType = type;
+    if (updateFields) updateFields(updates);
+    else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
+  };
+
+  // Separate local path for MSI extraction — the runner path may not be accessible
+  // from the dev machine, so the user can point to a local copy just for extraction.
+  const [msiExtractPath, setMsiExtractPath] = useState('');
+
+  /** Extract MSI metadata. Uses msiExtractPath if provided, otherwise falls back to pathInput. */
+  const handleAutoExtract = async (forcePath) => {
+    const target = (forcePath || msiExtractPath.trim() || pathInput.trim());
+    if (state.installerType !== 'msi' || !target) return;
+    setMsiParsing(true);
+    setMsiParseResult(null);
+    try {
+      const res = await fetch('/api/msi-info-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: target }),
+      });
+      let meta = {};
+      const ct = res.headers.get('content-type');
+      if (ct && ct.includes('application/json')) meta = await res.json();
+      else throw new Error((await res.text()).slice(0, 120) || `Server error ${res.status}`);
+      if (!res.ok) throw new Error(meta.error || `Server error ${res.status}`);
+      setMsiParseResult(meta);
+      if (meta.productCode)    updateField('msiProductCode',    meta.productCode);
+      if (meta.productVersion) updateField('msiProductVersion', meta.productVersion);
+      if (meta.productName)    updateField('msiProductName',    meta.productName);
+      if (meta.manufacturer)   updateField('msiManufacturer',   meta.manufacturer);
+      if (meta.upgradeCode)    updateField('msiUpgradeCode',    meta.upgradeCode);
+      if (meta.fileName)       updateField('msiFileName',       meta.fileName);
+    } catch (err) {
+      setMsiParseResult({ error: err.message });
+    } finally {
+      setMsiParsing(false);
+    }
+  };
+
+  // ── WinGet: fetch package info ────────────────────────────────────────────
   const handleWingetFetch = async (targetVersion = null) => {
     const version = typeof targetVersion === 'string' ? targetVersion : null;
     const pkg = wingetInput.trim();
     if (!pkg) return;
     setWingetLoading(true);
     setDownloadStatus(null);
-    
-    // If fetching a specific version, keep the current wingetResult (especially the versions list)
-    // so the dropdown doesn't flicker/disappear, but clear any errors.
-    if (!version) {
-      setWingetResult(null);
-    } else {
-      setWingetResult(prev => prev ? { ...prev, error: null } : null);
-    }
-
+    if (!version) setWingetResult(null);
+    else setWingetResult(prev => prev ? { ...prev, error: null } : null);
     try {
       const res = await fetch('/api/winget-info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageId: pkg, version }),
       });
-      
       let data = {};
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await res.json();
-      } else {
-        const text = await res.text();
-        throw new Error(text.substring(0, 100) || `Server error ${res.status}`);
-      }
-
+      const ct = res.headers.get('content-type');
+      if (ct && ct.includes('application/json')) data = await res.json();
+      else throw new Error((await res.text()).slice(0, 100) || `Server error ${res.status}`);
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setWingetResult(data);
     } catch (err) {
-      // If we failed to load a specific version, preserve the versions list from previous result if possible
       setWingetResult(prev => ({
         ...(prev?.versions ? { versions: prev.versions, packageIdentifier: pkg } : {}),
-        error: err.message
+        error: err.message,
       }));
     } finally {
       setWingetLoading(false);
     }
   };
 
-  /** Apply parsed WinGet fields to standard form values */
+  // ── WinGet: apply fetched metadata to wizard state ────────────────────────
   const applyWingetMeta = () => {
     if (!wingetResult || wingetResult.error) return;
-    
-    // 1. Resolve installer type
     const type = wingetResult.installerType === 'msi' ? 'msi' : 'exe';
-
-    // 2. Resolve default file name from download URL
     const urlParts = wingetResult.installerUrl.split('/');
     let filename = urlParts[urlParts.length - 1].split('?')[0];
-    if (!filename || !filename.includes('.')) {
-      const ext = type;
-      filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${ext}`;
-    }
+    if (!filename || !filename.includes('.'))
+      filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${type}`;
 
-    // 3. Assemble atomic updates list
-    // Note: displayName and publisher are NOT set here — those are managed
-    // on the Project Info step and should not be overridden by WinGet metadata.
     const updates = {
-      installerType: type,
+      installerType:       type,
       installerSourceFile: filename,
-      version: wingetResult.packageVersion || '1.0.0'
+      version:             wingetResult.packageVersion || '1.0.0',
     };
-
-    // 4. Map installer-specific fields
     if (type === 'msi') {
-      updates.msiFileName = filename;
+      updates.msiFileName       = filename;
       updates.msiProductVersion = wingetResult.packageVersion;
-      updates.msiProductName = wingetResult.packageName || wingetResult.packageIdentifier;
-      updates.msiManufacturer = wingetResult.publisher || 'WinGet';
-      if (wingetResult.productCode) {
-        updates.msiProductCode = wingetResult.productCode;
-      }
+      updates.msiProductName    = wingetResult.packageName || wingetResult.packageIdentifier;
+      updates.msiManufacturer   = wingetResult.publisher || 'WinGet';
+      if (wingetResult.productCode) updates.msiProductCode = wingetResult.productCode;
     } else {
       updates.exeSourceFilename = filename;
-      if (wingetResult.silentArgs) {
-        updates.exeInstallArgs = wingetResult.silentArgs;
-      }
+      if (wingetResult.silentArgs) updates.exeInstallArgs = wingetResult.silentArgs;
     }
-
-    if (updateFields) {
-      updateFields(updates);
-    } else {
-      // Fallback if updateFields is not supplied
-      Object.entries(updates).forEach(([k, v]) => updateField(k, v));
-    }
+    if (updateFields) updateFields(updates);
+    else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
+    // pathInput will sync via useEffect
   };
 
-  /** Download installer file directly into staging folder */
+  // ── WinGet: download installer into staging folder ────────────────────────
   const handleWingetDownload = async () => {
     if (!wingetResult || !wingetResult.installerUrl || !state.installerSourceDir) return;
-    
     setDownloading(true);
     setDownloadStatus(null);
-
     const urlParts = wingetResult.installerUrl.split('/');
     let filename = urlParts[urlParts.length - 1].split('?')[0];
     if (!filename || !filename.includes('.')) {
       const ext = wingetResult.installerType === 'msi' ? 'msi' : 'exe';
       filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${ext}`;
     }
-
     try {
       const res = await fetch('/api/winget-download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: wingetResult.installerUrl,
-          filename,
-          targetDir: state.installerSourceDir
-        }),
+        body: JSON.stringify({ url: wingetResult.installerUrl, filename, targetDir: state.installerSourceDir }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
@@ -145,55 +194,16 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     }
   };
 
-  /** Apply extracted MSI metadata to wizard state */
-  const applyMsiMeta = (meta) => {
-    setMsiParseResult(meta);
-    if (meta.productCode)    updateField('msiProductCode',    meta.productCode);
-    if (meta.productVersion) updateField('msiProductVersion', meta.productVersion);
-    if (meta.productName)    updateField('msiProductName',    meta.productName);
-    if (meta.manufacturer)   updateField('msiManufacturer',   meta.manufacturer);
-    if (meta.upgradeCode)    updateField('msiUpgradeCode',    meta.upgradeCode);
-    if (meta.fileName)       updateField('msiFileName',       meta.fileName);
-  };
+  // ── Derived display values ────────────────────────────────────────────────
+  const isMsi = state.installerType === 'msi';
+  const isExe = state.installerType === 'exe';
 
-  /** Send the local file path to the server — no browser file picker, no CORS issues */
-  const handleMsiPath = async () => {
-    const p = msiPathInput.trim();
-    if (!p) return;
-    setMsiParsing(true);
-    setMsiParseResult(null);
-    try {
-      const res = await fetch('/api/msi-info-path', {   // relative URL → Vite proxy → localhost:3001
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: p }),
-      });
-      
-      let meta = {};
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        meta = await res.json();
-      } else {
-        const text = await res.text();
-        throw new Error(text.substring(0, 100) || `Server error ${res.status}`);
-      }
-
-      if (!res.ok) throw new Error(meta.error || `Server error ${res.status}`);
-      applyMsiMeta(meta);
-    } catch (err) {
-      setMsiParseResult({ error: err.message });
-    } finally {
-      setMsiParsing(false);
-    }
-  };
-
-
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="step-content animate-in">
       <div className="step-header">
-        <h2>📦 Installer & Behavior</h2>
-        <p>Configure the installer type, source metadata, and install behavior.</p>
+        <h2>📦 Installer &amp; Behavior</h2>
+        <p>Provide the path to your installer file — directory, filename, and type are derived automatically.</p>
       </div>
 
       {/* ═══ WINGET BOOTSTRAPPER ═══ */}
@@ -220,7 +230,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
             {wingetLoading ? '⏳ Fetching...' : 'Fetch Package'}
           </button>
         </div>
-        
+
         {wingetResult && (
           <div className="winget-result-box animate-in">
             {wingetResult.error && (
@@ -228,12 +238,9 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                 <span className="winget-status winget-status--err">❌ {wingetResult.error}</span>
               </div>
             )}
-            
             {wingetResult.versions && wingetResult.versions.length > 1 && (
               <div className="winget-version-selector">
-                <label className="winget-version-label" htmlFor="winget-version-dropdown">
-                  Select Version:
-                </label>
+                <label className="winget-version-label" htmlFor="winget-version-dropdown">Select Version:</label>
                 <div className="winget-version-select-container">
                   <select
                     id="winget-version-dropdown"
@@ -242,15 +249,12 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                     onChange={e => handleWingetFetch(e.target.value)}
                     disabled={wingetLoading}
                   >
-                    {wingetResult.versions.map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
+                    {wingetResult.versions.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                   {wingetLoading && <span className="winget-ver-spinner">⏳ Loading details...</span>}
                 </div>
               </div>
             )}
-
             {!wingetResult.error && wingetResult.installerUrl && (
               <div className="winget-details">
                 <div className="winget-details-grid" style={{ opacity: wingetLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
@@ -259,12 +263,16 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                   <div><strong>Version:</strong> {wingetResult.packageVersion || 'N/A'}</div>
                   <div><strong>Type:</strong> {wingetResult.installerType ? wingetResult.installerType.toUpperCase() : 'N/A'}</div>
                   <div className="col-span-2"><strong>Silent Switches:</strong> <code>{wingetResult.silentArgs || 'None'}</code></div>
-                  {wingetResult.productCode && <div className="col-span-2"><strong>Product Code (GUID):</strong> <code>{wingetResult.productCode}</code></div>}
+                  {wingetResult.productCode && (
+                    <div className="col-span-2"><strong>Product Code (GUID):</strong> <code>{wingetResult.productCode}</code></div>
+                  )}
                   <div className="col-span-2 url-field">
-                    <strong>Download URL:</strong> <a href={wingetResult.installerUrl} target="_blank" rel="noreferrer" className="winget-link">{wingetResult.installerUrl}</a>
+                    <strong>Download URL:</strong>{' '}
+                    <a href={wingetResult.installerUrl} target="_blank" rel="noreferrer" className="winget-link">
+                      {wingetResult.installerUrl}
+                    </a>
                   </div>
                 </div>
-                
                 <div className="winget-actions-row">
                   <button type="button" className="btn btn-primary" onClick={applyWingetMeta}>
                     ✓ Apply to Form
@@ -279,12 +287,14 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                       {downloading ? '⏳ Downloading...' : '📥 Download Installer File'}
                     </button>
                   ) : (
-                    <span className="download-hint">⚠️ Set "Install Source" directory to enable direct downloads.</span>
+                    <span className="download-hint">⚠️ Set the installer source path to enable direct downloads.</span>
                   )}
                 </div>
                 {downloadStatus && (
                   <div className={`download-status-msg ${downloadStatus.error ? 'err' : 'ok'}`}>
-                    {downloadStatus.error ? `❌ ${downloadStatus.error}` : `✅ Successfully downloaded to ${downloadStatus.path}!`}
+                    {downloadStatus.error
+                      ? `❌ ${downloadStatus.error}`
+                      : `✅ Successfully downloaded to ${downloadStatus.path}!`}
                   </div>
                 )}
               </div>
@@ -293,105 +303,117 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         )}
       </div>
 
-      {/* ═══ INSTALLER ═══ */}
+      {/* ═══ INSTALL SOURCE ═══ */}
       <div className="config-section">
-        <h3 className="section-title">Installer</h3>
-        <div className="form-grid">
-          <SelectField label="Installer Type" id="installerType" value={state.installerType}
-            onChange={v => updateField('installerType', v)}
-            options={[{ value: 'msi', label: 'MSI' }, { value: 'exe', label: 'EXE' }]}
-          />
-          <FormField label="Install Source (Runner Directory)" id="installerSourceDir" required
-            hint="Directory on the runner where installer files are staged.">
-            <input id="installerSourceDir" type="text"
-              value={state.installerSourceDir}
-              onChange={e => {
-                const dir = e.target.value;
-                updateField('installerSourceDir', dir);
-                // Auto-default support files to the same directory if not manually set
-                if (!state.supportFilesSource || state.supportFilesSource === state.installerSourceDir) {
-                  updateField('supportFilesSource', dir);
-                }
-              }}
-              placeholder={'C:\\files\\7-zip'}
+        <h3 className="section-title">Install Source</h3>
+
+        <FormField
+          label="Full path to installer file"
+          id="installerFullPath"
+          required
+          hint="Path on the GitLab runner. Directory, filename, and installer type are derived automatically from this path."
+        >
+          <div className="installer-path-row">
+            <input
+              id="installerFullPath"
+              type="text"
+              className="installer-path-input"
+              value={pathInput}
+              onChange={e => handlePathChange(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAutoExtract()}
+              onBlur={() => handleAutoExtract()}
+              placeholder={'C:\\ApplicationSource\\7-Zip\\7z2600-x64.msi'}
             />
-          </FormField>
-          <FormField label={`${state.installerType === 'msi' ? 'MSI' : 'EXE'} Filename`} id="installerSourceFile" required
-            hint="Name of the installer file within the source directory.">
-            <input id="installerSourceFile" type="text"
-              value={state.installerSourceFile}
-              onChange={e => updateField('installerSourceFile', e.target.value)}
-              placeholder={state.installerType === 'msi' ? '7z2600-x64.msi' : 'Setup.exe'}
-            />
-          </FormField>
-          <FormField label="Support Files Source" id="supportFilesSource"
-            hint="Directory with additional files to include. Defaults to the install source.">
-            <input id="supportFilesSource" type="text"
-              value={state.supportFilesSource}
-              onChange={e => updateField('supportFilesSource', e.target.value)}
-              placeholder={state.installerSourceDir || 'C:\\files\\7-zip'}
-            />
-          </FormField>
-        </div>
-        {state.installerSourceDir && state.installerSourceFile && (
-          <div className="installer-preview animate-in">
-            <span className="installer-preview__label">Full Path</span>
-            <code>{state.installerSourceDir.replace(/[\\/]+$/, '')}{'\\' + state.installerSourceFile}</code>
+            {isMsi && pathInput.trim() && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleAutoExtract}
+                disabled={msiParsing}
+                title="Extract product metadata from the MSI file"
+              >
+                {msiParsing ? '⏳ Extracting…' : '🔍 Extract MSI Info'}
+              </button>
+            )}
+          </div>
+        </FormField>
+
+        {/* Derived info badge */}
+        {state.installerSourceFile && (
+          <div className="installer-derived-info animate-in">
+            <span className={`inst-type-chip inst-type-chip--${state.installerType || 'unknown'}`}>
+              {state.installerType?.toUpperCase() || '?'}
+            </span>
+            {state.installerSourceDir && (
+              <span className="inst-dir">{state.installerSourceDir}\</span>
+            )}
+            <span className="inst-file">{state.installerSourceFile}</span>
           </div>
         )}
+
+        {/* MSI extract status */}
+        {msiParseResult && !msiParseResult.error && (
+          <div className="inst-extract-msg inst-extract-msg--ok animate-in">
+            ✅ MSI metadata extracted —{' '}
+            {Object.entries(msiParseResult).filter(([k, v]) => v && k !== 'error').length} fields populated
+          </div>
+        )}
+        {msiParseResult?.error && (
+          <div className="inst-extract-msg inst-extract-msg--err animate-in">
+            ❌ {msiParseResult.error}
+          </div>
+        )}
+
+        {/* Support files source is always the same as the installer directory — no separate input */}
       </div>
 
       {/* ═══ MSI METADATA ═══ */}
-      {state.installerType === 'msi' && (
+      {isMsi && (
         <div className="config-section animate-slide">
           <h3 className="section-title">MSI Metadata</h3>
-          {!msiManualEntry && (
-            <div className="msi-path-area">
-              <p className="msi-path-hint">
-                📁 Paste the full path to the <code>.msi</code> file — the server reads it directly and extracts the product metadata.
-              </p>
-              <div className="msi-path-row">
-                <input
-                  type="text"
-                  className="msi-path-input"
-                  placeholder="/Users/you/Downloads/installer.msi  or  C:\files\installer.msi"
-                  value={msiPathInput}
-                  onChange={e => setMsiPathInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleMsiPath()}
-                />
-                <button type="button" className="btn btn-secondary"
-                  onClick={handleMsiPath}
-                  disabled={msiParsing || !msiPathInput.trim()}>
-                  {msiParsing ? '⏳ Reading...' : '→ Extract'}
-                </button>
-              </div>
-              {msiParseResult && !msiParseResult.error && (
-                <span className="msi-status msi-status--ok">
-                  ✅ Extracted {Object.keys(msiParseResult).filter(k => k !== 'fileName' && msiParseResult[k]).length} fields
-                  {msiParseResult.fileName && <> from <code>{msiParseResult.fileName}</code></>}
-                </span>
-              )}
-              {msiParseResult?.error && (
-                <span className="msi-status msi-status--err">❌ {msiParseResult.error}</span>
-              )}
-              <button type="button" className="link-btn" onClick={() => setMsiManualEntry(true)}
-                style={{ marginTop: '4px', fontSize: '0.75rem' }}>
-                or enter manually
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+            Auto-extracted from the installer file. If the runner path isn't accessible from this machine,
+            enter a local path to the MSI below for extraction only — the runner path is unchanged.
+          </p>
+
+          {/* Local extraction path — for dev/test machines that can't reach the runner */}
+          <div className="msi-local-extract animate-in">
+            <div className="msi-extract-row">
+              <input
+                type="text"
+                className="msi-path-input"
+                placeholder="Local path to .msi for extraction, e.g. /Users/you/Downloads/installer.msi"
+                value={msiExtractPath}
+                onChange={e => setMsiExtractPath(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAutoExtract()}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleAutoExtract()}
+                disabled={msiParsing || (!msiExtractPath.trim() && !pathInput.trim())}
+              >
+                {msiParsing ? '⏳ Extracting…' : '🔍 Extract MSI Info'}
               </button>
             </div>
-          )}
-          {msiManualEntry && (
-            <div className="msi-manual-banner">
-              <span>✏️ Manual entry mode</span>
-              <button type="button" className="link-btn" onClick={() => setMsiManualEntry(false)}>Switch back to file upload</button>
-            </div>
-          )}
-          <div className="form-grid">
-            <FormField label="Product Code (GUID)" id="msiProductCode" hint={msiManualEntry ? 'Run: Get-AppLockerFileInformation .\\\\installer.msi | Select -Expand Publisher' : 'Auto-filled from MSI upload'}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+              Leave blank to extract from the runner path above (only works when runner is accessible).
+            </p>
+            {msiParseResult && !msiParseResult.error && (
+              <div className="inst-extract-msg inst-extract-msg--ok animate-in">
+                ✅ MSI metadata extracted —{' '}
+                {Object.entries(msiParseResult).filter(([k, v]) => v && k !== 'error').length} fields populated
+              </div>
+            )}
+            {msiParseResult?.error && (
+              <div className="inst-extract-msg inst-extract-msg--err animate-in">
+                ❌ {msiParseResult.error}
+              </div>
+            )}
+          </div>
+          <div className="form-grid" style={{ marginTop: 'var(--space-md)' }}>
+            <FormField label="Product Code (GUID)" id="msiProductCode">
               <input id="msiProductCode" type="text" placeholder="{GUID}" value={state.msiProductCode} onChange={e => updateField('msiProductCode', e.target.value)} />
-            </FormField>
-            <FormField label="Source Filename" id="msiFileName">
-              <input id="msiFileName" type="text" placeholder="installer.msi" value={state.msiFileName} onChange={e => updateField('msiFileName', e.target.value)} />
             </FormField>
             <FormField label="Product Version" id="msiProductVersion">
               <input id="msiProductVersion" type="text" value={state.msiProductVersion} onChange={e => updateField('msiProductVersion', e.target.value)} />
@@ -399,24 +421,24 @@ export default function InstallerStep({ state, updateField, updateFields }) {
             <FormField label="Product Name" id="msiProductName">
               <input id="msiProductName" type="text" value={state.msiProductName} onChange={e => updateField('msiProductName', e.target.value)} />
             </FormField>
+            <FormField label="Manufacturer" id="msiManufacturer">
+              <input id="msiManufacturer" type="text" value={state.msiManufacturer} onChange={e => updateField('msiManufacturer', e.target.value)} />
+            </FormField>
             <FormField label="Upgrade Code" id="msiUpgradeCode">
               <input id="msiUpgradeCode" type="text" value={state.msiUpgradeCode} onChange={e => updateField('msiUpgradeCode', e.target.value)} />
             </FormField>
-            <FormField label="Manufacturer" id="msiManufacturer">
-              <input id="msiManufacturer" type="text" value={state.msiManufacturer} onChange={e => updateField('msiManufacturer', e.target.value)} />
+            <FormField label="Source Filename" id="msiFileName">
+              <input id="msiFileName" type="text" placeholder="installer.msi" value={state.msiFileName} onChange={e => updateField('msiFileName', e.target.value)} />
             </FormField>
           </div>
         </div>
       )}
 
       {/* ═══ EXE DETAILS ═══ */}
-      {state.installerType === 'exe' && (
+      {isExe && (
         <div className="config-section animate-slide">
           <h3 className="section-title">EXE Installer Details</h3>
           <div className="form-grid">
-            <FormField label="Source Filename" id="exeSourceFilename" hint="e.g. Setup.exe">
-              <input id="exeSourceFilename" type="text" placeholder="Setup.exe" value={state.exeSourceFilename} onChange={e => updateField('exeSourceFilename', e.target.value)} />
-            </FormField>
             <FormField label="Install Arguments" id="exeInstallArgs">
               <input id="exeInstallArgs" type="text" value={state.exeInstallArgs} onChange={e => updateField('exeInstallArgs', e.target.value)} />
             </FormField>
@@ -431,28 +453,97 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       )}
 
       <style>{`
-        .installer-preview {
+        /* ── Installer path row ── */
+        .installer-path-row {
+          display: flex;
+          gap: var(--space-sm);
+          align-items: stretch;
+        }
+        .installer-path-input {
+          flex: 1;
+          min-width: 0;
+        }
+
+        /* ── Derived info badge ── */
+        .installer-derived-info {
           display: flex;
           align-items: center;
-          gap: var(--space-md);
-          padding: var(--space-sm) var(--space-md);
+          gap: 6px;
+          margin-top: 8px;
+          padding: 6px 10px;
           background: var(--bg-elevated);
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-sm);
-          margin-top: var(--space-md);
+          font-family: var(--font-mono);
+          font-size: 0.76rem;
+          flex-wrap: wrap;
         }
-        .installer-preview__label {
-          font-size: 0.7rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
+        .inst-type-chip {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 7px;
+          border-radius: 4px;
+          font-size: 0.65rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
           flex-shrink: 0;
         }
-        .installer-preview code {
-          font-family: var(--font-mono);
-          font-size: 0.78rem;
+        .inst-type-chip--msi {
+          background: rgba(139, 92, 246, 0.18);
+          color: #a78bfa;
+          border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .inst-type-chip--exe {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border: 1px solid rgba(245, 158, 11, 0.28);
+        }
+        .inst-type-chip--unknown {
+          background: rgba(100, 116, 139, 0.15);
+          color: var(--text-muted);
+          border: 1px solid var(--border-subtle);
+        }
+        .inst-dir {
+          color: var(--text-secondary);
+        }
+        .inst-file {
           color: var(--text-accent);
+          font-weight: 600;
+        }
+
+        /* ── Local extract block ── */
+        .msi-local-extract {
+          margin-bottom: var(--space-md);
+          padding: 12px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-sm);
+        }
+        .msi-extract-row {
+          display: flex;
+          gap: var(--space-sm);
+          align-items: stretch;
+        }
+        .msi-path-input {
+          flex: 1;
+          min-width: 0;
+        }
+        /* ── Extract status messages ── */
+        .inst-extract-msg {
+          margin-top: 8px;
+          padding: 6px 10px;
+          border-radius: var(--radius-sm);
+          font-size: 0.76rem;
+        }
+        .inst-extract-msg--ok {
+          background: rgba(74, 222, 128, 0.08);
+          color: #4ade80;
+          border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+        .inst-extract-msg--err {
+          background: rgba(239, 68, 68, 0.08);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.2);
         }
       `}</style>
     </div>

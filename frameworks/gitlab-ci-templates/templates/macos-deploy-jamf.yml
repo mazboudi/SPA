@@ -10,8 +10,22 @@
 ##   GITLAB_READ_TOKEN            — Token to clone terraform-jamf-modules
 ##   TF_JAMF_MODULES_REF          — ref/tag for terraform-jamf-modules (default: main)
 ##
-## No macOS runner required — runs on default GitLab runners.
-## No build stage dependency — uses pre-packaged .pkg/.dmg from macos/src/Files/.
+## Installer source options:
+##   Option A — file committed to git:
+##     The .pkg/.dmg is committed to macos/src/Files/ (legacy, not recommended for large files).
+##     No additional configuration needed. needs: [] is correct.
+##
+##   Option B — Windows SMB file share (recommended):
+##     The SPA Workbench generates a 'fetch-mac-installer' prepare-stage job that pulls
+##     the binary from an SMB share into macos/src/Files/ as a GitLab artifact.
+##     Titles using this approach MUST override 'needs' in their .gitlab-ci.yml:
+##
+##       macos_deploy_jamf:
+##         needs: [fetch-mac-installer]
+##
+##     The wizard generates this override automatically when SMB is configured.
+##
+## No macOS runner required — runs on default GitLab runners (hashicorp/terraform:1.7).
 ## Terraform state is managed by GitLab (HTTP backend).
 ##=============================================================================
 
@@ -20,7 +34,7 @@ macos_deploy_jamf:
   image:
     name: hashicorp/terraform:1.7
     entrypoint: [""]
-  needs: []
+  needs: []   # override to [fetch-mac-installer] in title's .gitlab-ci.yml when using SMB
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/ && $MACOS_ENABLED == "true"
       when: on_success

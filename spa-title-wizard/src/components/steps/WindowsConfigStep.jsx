@@ -150,13 +150,7 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
             hint="Directory on the runner where installer files are staged. Leave empty if committed to git.">
             <input id="installerSourceDir" type="text"
               value={state.installerSourceDir}
-              onChange={e => {
-                const dir = e.target.value;
-                updateField('installerSourceDir', dir);
-                if (!state.supportFilesSource || state.supportFilesSource === state.installerSourceDir) {
-                  updateField('supportFilesSource', dir);
-                }
-              }}
+              onChange={e => updateField('installerSourceDir', e.target.value)}
               placeholder={'C:\\files\\7-zip'}
             />
           </FormField>
@@ -168,14 +162,7 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
               placeholder={state.installerType === 'msi' ? '7z2600-x64.msi' : 'Setup.exe'}
             />
           </FormField>
-          <FormField label="Support Files Source" id="supportFilesSource"
-            hint="Directory with additional files to include. Defaults to the install source.">
-            <input id="supportFilesSource" type="text"
-              value={state.supportFilesSource}
-              onChange={e => updateField('supportFilesSource', e.target.value)}
-              placeholder={state.installerSourceDir || 'C:\\files\\7-zip'}
-            />
-          </FormField>
+
         </div>
       </div>
 

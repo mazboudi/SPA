@@ -81,3 +81,21 @@ variable "self_service_description" {
   default     = ""
   description = "Description shown in Self Service."
 }
+
+variable "self_service_category_id" {
+  type        = number
+  default     = -1
+  description = "Jamf category ID for Self Service display. -1 = inherited from policy category."
+}
+
+variable "triggers" {
+  type        = list(string)
+  default     = ["checkin"]
+  description = "List of policy triggers: checkin, enrollment, login, startup, custom."
+}
+
+variable "custom_trigger" {
+  type        = string
+  default     = ""
+  description = "Custom event name when 'custom' is included in triggers."
+}
