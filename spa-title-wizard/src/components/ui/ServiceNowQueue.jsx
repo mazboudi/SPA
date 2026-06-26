@@ -14,9 +14,9 @@ const PRIORITY_COLORS = {
  * from the ServiceNow intake queue. User picks one to pre-populate
  * wizard fields for a new title.
  *
- * @param {{ onSelect: (item: Object) => void, onClose: () => void }} props
+ * @param {{ onSelect: (item: Object) => void, onClose: () => void, platform?: string }} props
  */
-export default function ServiceNowQueue({ onSelect, onClose }) {
+export default function ServiceNowQueue({ onSelect, onClose, platform }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,13 +48,19 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
   }, [loading]);
 
   // ── Derived data ──────────────────────────────────────────────────────
+  // Platform-scoped base (when platform prop is provided)
+  const platformItems = useMemo(() => {
+    if (!platform) return items;
+    return items.filter(i => (i.Platform || '').toLowerCase() === platform.toLowerCase());
+  }, [items, platform]);
+
   const categories = useMemo(() => {
-    const cats = new Set(items.map(i => i.Category).filter(Boolean));
+    const cats = new Set(platformItems.map(i => i.Category).filter(Boolean));
     return [...cats].sort();
-  }, [items]);
+  }, [platformItems]);
 
   const filtered = useMemo(() => {
-    let result = items;
+    let result = platformItems;
     if (filterPriority !== 'all') {
       result = result.filter(i => i.Priority === filterPriority);
     }
@@ -78,7 +84,7 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
       if (pa !== pb) return pa - pb;
       return (a.RequestDate || '').localeCompare(b.RequestDate || '');
     });
-  }, [items, search, filterPriority, filterCategory]);
+  }, [platformItems, search, filterPriority, filterCategory]);
 
   // ── Claim a request ───────────────────────────────────────────────────
   const handleClaim = async (item) => {

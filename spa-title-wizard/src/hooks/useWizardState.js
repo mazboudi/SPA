@@ -28,11 +28,14 @@ const INITIAL_STATE = {
   version: '',
   category: '',
   gitLabGroup: 'euc/software-package-automation',
+  // Platform-specific GitLab groups (populated from server health response)
+  gitLabWinGroup: 'euc/software-package-automation',
+  gitLabMacGroup: 'euc/software-package-automation',
   existingProject: null,
   duplicateAcknowledge: false,
 
   // Step 2: Platform
-  platform: '', // 'windows' | 'macos' | 'both'
+  platform: '', // 'windows' | 'macos'
 
   // Step 3a: Windows Config
   installerType: 'msi',
@@ -325,6 +328,19 @@ export default function useWizardState() {
         next.existingProject = null;
         next.duplicateAcknowledge = false;
       }
+
+      // When platform changes, derive gitLabGroup from the platform-specific group
+      if (field === 'platform') {
+        if (value === 'windows') {
+          next.gitLabGroup = prev.gitLabWinGroup || prev.gitLabGroup;
+        } else if (value === 'macos') {
+          next.gitLabGroup = prev.gitLabMacGroup || prev.gitLabGroup;
+        }
+        // Reset existingProject since it belongs to the old platform's group
+        next.existingProject = null;
+        next.duplicateAcknowledge = false;
+      }
+
 
       // Auto-derive jamfCategory from category
       if (field === 'category') {

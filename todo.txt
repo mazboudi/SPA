@@ -1,50 +1,26 @@
-Visual Action Builder – Recommended Actions per Lifecycle Phase
-Variable Declaration
-Custom Variable — PowerShell variable assignment, e.g., $MyVariable = 'Value' (no dedicated PSADT command)
+I want to seperate WIndows packaging from MAC packaging.  
+Each package will have its own root repository in gitlab. currently we use  
+GITLAB_DEFAULT_GROUP=euc/software-package-automation for both.  The new repo:
+for Mac will be euc/software-package-automation/mac 
+for windows it will be euc/software-package-automation/win
 
-Pre-Installation/Uninstallation
-Show Installation Welcome — Show-ADTInstallationWelcome
-Show Installation Progress — Show-ADTInstallationProgress
-•	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTMsiProcess with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Uninstall-ADTApplication with the following parameters exposed in builder: -Name -NameMatch -ProductCode -ApplicationType -FilterScript -ArgumentList -AdditionalArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-Copy File / Folder — Copy-ADTFile with recommended builder parameters: -Path -Destination -Recurse -Flatten -ContinueFileCopyOnError -FileCopyMode -RobocopyParams -RobocopyAdditionalParams
-Copy File to User Profiles — Copy-ADTFileToUserProfiles
-Create Folder — New-ADTFolder
-•	Delete File(s) (Remove-ADTFile) with following parameters exposed in builder: -Path (accepts wildcards and an array of values) -LiteralPath (does not accept wildcards, will accept an array of values)
-•	Delete Folder(s) (Remove-ADTFolder) with -Path and -DisableRecursion parameters exposed in builder.
-•	Remove Registry Key / Value (Remove-ADTRegistryKey)
-•	Set Registry Key / Value (Set-ADTRegistryKey)
-Stop/Kill Process — PowerShell Stop-Process  -Name 
-Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
-Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
-•	Get-ADTPendingReboot “Is System Reboot Pending” by storing Boolean return value from (Get-ADTPendingReboot).IsSystemRebootPending in a specified variable.
+I want to redesign the workbench UI and navigation to use latest Material UI components and a dark mode
+- Login page - To be developed later
+- Home screen, Seletct Platform 
+    - MAC 
+    - Windows 
+Once a platform is selected, I want to use a collapsable side menu for navigation with the following sections:
+- Manage Queue (this will show the pending service requests for selected platfomrm )
+- New Package
+- Edit Packages
+- Settings
+
+depending on the selection on side menu then organize all the stages as menu Action:
+Installer, PSADT, Intune, Review & Export for Windows.  
+Mac Installer, macOS Config and Review & Export for Mac.  
+
+Leave the tab structure and corresponding functionality under each of the stages 
 
 
-Installation
-•	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTProcessAsUser with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTMsiProcess with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTMsiProcessAsUser with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-Uninstallation
-•	Start-ADTProcess with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTProcessAsUser with the following parameters exposed in builder: -FilePath -ArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTMsiProcess with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Start-ADTMsiProcessAsUser with the following parameters exposed in builder: -Action -FilePath -ProductCode -ArgumentList -AdditionalArgumentList -Transforms -Patches -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-•	Uninstall-ADTApplication with the following parameters exposed in builder: -Name -NameMatch -ProductCode -ApplicationType -FilterScript -ArgumentList -AdditionalArgumentList -SuccessExitCodes -RebootExitCodes -PassThru (if specified, expose variable to store result)
-Stop/Kill Process — Stop-ADTProcess
-Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
-Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
-Post-Installation/Uninstallation
-•	Show Completion Message (Show-ADTInstallationPrompt)
-•	Prompt for Restart (Show-ADTInstallationRestartPrompt)
-•	Create Shortcut (New-ADTShortcut) – only for Post-Installation
-Copy File / Folder — Copy-ADTFile with recommended builder parameters: -Path -Destination -Recurse -Flatten -ContinueFileCopyOnError -FileCopyMode -RobocopyParams -RobocopyAdditionalParams
-Remove File from User Profiles — Remove-ADTFileFromUserProfiles
-•	Delete File(s) (Remove-ADTFile) with following parameters exposed in builder: -Path (accepts wildcards and an array of values) -LiteralPath (does not accept wildcards, will accept an array of values)
-•	Delete Folder(s) (Remove-ADTFolder) with -Path and -DisableRecursion parameters exposed in builder.
-•	Remove Registry Key / Value (Remove-ADTRegistryKey)
-•	Set Registry Key / Value (Set-ADTRegistryKey)
-Stop/Kill Process — Stop-ADTProcess
-Wait/Delay — PowerShell Start-Sleep (no dedicated PSADT command)
-Custom PowerShell — Inline PowerShell script block or direct PowerShell statements (no dedicated PSADT command)
+The setting page should allow me to set all that is in the .env file and also 
+set the default windows size (Standard, Wide, Full)

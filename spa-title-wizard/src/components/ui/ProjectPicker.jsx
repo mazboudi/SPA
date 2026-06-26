@@ -5,9 +5,9 @@ import './ProjectPicker.css';
  * ProjectPicker — modal to browse and select an existing SPA project
  * from GitLab for editing in the workbench.
  *
- * @param {{ onSelect: (files: Object, projectMeta: Object) => void, onClose: () => void }} props
+ * @param {{ onSelect: Function, onClose: Function, groupPath?: string }} props
  */
-export default function ProjectPicker({ onSelect, onClose }) {
+export default function ProjectPicker({ onSelect, onClose, groupPath }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,9 +16,12 @@ export default function ProjectPicker({ onSelect, onClose }) {
   const [expandedProject, setExpandedProject] = useState(null);
   const searchRef = useRef(null);
 
-  // ── Load project list ─────────────────────────────────────────────────
+  // ── Load project list ───────────────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/projects')
+    const url = groupPath
+      ? `/api/projects?group=${encodeURIComponent(groupPath)}`
+      : '/api/projects';
+    fetch(url)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -31,7 +34,7 @@ export default function ProjectPicker({ onSelect, onClose }) {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [groupPath]);
 
   useEffect(() => {
     if (!loading && searchRef.current) searchRef.current.focus();
