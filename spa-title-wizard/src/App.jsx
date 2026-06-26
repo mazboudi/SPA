@@ -103,7 +103,7 @@ export default function App() {
         wizard.updateField('platform', platformId);
       }, 0);
     }
-    setView(VIEW.PACKAGE);
+    setView(VIEW.QUEUE);
     setPlatformSwitchDialog(false);
     setPendingPlatform(null);
   };
@@ -250,114 +250,121 @@ export default function App() {
     }
   };
 
-  // ── Refactor flow panel (inline view) ────────────────────────────────────
+  // ── Refactor flow panel (inline page) ────────────────────────────────────
   const renderRefactorFlow = () => {
     const intuneImported = wizard.state._intuneExportImported;
     const psadtImported = !!psadtResult;
     const canContinue = intuneImported || psadtImported;
     return (
-      <Box sx={{ maxWidth: 640, mx: 'auto', py: 4, px: 2 }}>
-        <div className="mode-selector">
-          <h2 className="mode-selector__title">Refactor Existing Package</h2>
-          <p className="mode-selector__subtitle">Import from Intune and upload a PSADT script to pre-populate the workbench.</p>
-          <div className="refactor-flow">
-            {/* Step 1: Intune Import */}
-            <div className={`refactor-step ${intuneImported ? 'refactor-step--done' : ''}`}>
-              <div className="refactor-step__header">
-                <span className="refactor-step__number">{intuneImported ? '✅' : '1'}</span>
-                <div>
-                  <h3 className="refactor-step__title">Import from Intune</h3>
-                  <p className="refactor-step__desc">Select an existing Win32 app from Intune to pre-populate the workbench fields.</p>
-                </div>
+      <>
+        {/* Page header — matches Queue/Edit style */}
+        <div className="snq-header" style={{ marginBottom: 'var(--space-lg)' }}>
+          <div>
+            <h2 className="snq-title">🔄 Refactor Existing Package</h2>
+            <p className="snq-subtitle">Import from Intune and upload a PSADT script to pre-populate the workbench.</p>
+          </div>
+          <button className="snq-close" onClick={() => setView(VIEW.QUEUE)} title="Back">← Back</button>
+        </div>
+
+        <div className="refactor-flow">
+          {/* Step 1: Intune Import */}
+          <div className={`refactor-step ${intuneImported ? 'refactor-step--done' : ''}`}>
+            <div className="refactor-step__header">
+              <span className="refactor-step__number">{intuneImported ? '✅' : '1'}</span>
+              <div>
+                <h3 className="refactor-step__title">Import from Intune</h3>
+                <p className="refactor-step__desc">Select an existing Win32 app from Intune to pre-populate the workbench fields.</p>
               </div>
-              <div className="refactor-step__folder">
-                {!intuneCatalog && !intuneCatalogLoading && !intuneCatalogError && (
-                  <button className="btn btn-secondary" onClick={() => loadIntuneCatalog()}>📡 Load Intune Catalog</button>
-                )}
-                {intuneCatalogLoading && (
-                  <div className="refactor-step__progress">
-                    <div className="progress-bar progress-bar--indeterminate" />
-                    <span className="refactor-step__folder-info">Loading Win32 apps from Intune...</span>
-                  </div>
-                )}
-                {intuneCatalogError && (
-                  <div className="refactor-step__error">
-                    <span>❌ {intuneCatalogError}</span>
-                    <button className="btn btn-secondary btn-sm" onClick={() => loadIntuneCatalog()}>Retry</button>
-                  </div>
-                )}
-                {intuneCatalog && !intuneCatalogLoading && (
-                  <span className="refactor-step__folder-info">
-                    📡 <strong>{intuneCatalog.length}</strong> Win32 app{intuneCatalog.length !== 1 ? 's' : ''} loaded
-                    <button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={() => loadIntuneCatalog(true)} disabled={intuneRefreshing}>
-                      {intuneRefreshing ? '⏳ Refreshing...' : '🔄 Refresh'}
-                    </button>
-                  </span>
-                )}
-              </div>
-              {intuneImported ? (
-                <div className="refactor-step__result">
-                  <span className="refactor-step__check">✅ Imported — {wizard.state.displayName}</span>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowIntunePicker(true)}>Change</button>
-                </div>
-              ) : intuneCatalog && intuneCatalog.length > 0 ? (
-                <button className="btn btn-secondary" onClick={() => setShowIntunePicker(true)}>
-                  📥 Browse Intune Catalog ({intuneCatalog.length} apps)
-                </button>
-              ) : null}
-              {!intuneImported && (
-                <div className="refactor-step__fallback">
-                  <span className="refactor-step__optional">
-                    or <label className="link-btn" style={{ cursor: 'pointer' }}>
-                      upload a JSON export
-                      <input type="file" accept=".json" style={{ display: 'none' }} onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          const text = await file.text();
-                          const data = JSON.parse(text);
-                          const { parseIntuneExport } = await import('./lib/parseIntuneExport');
-                          const { fields } = parseIntuneExport(data);
-                          handleIntuneImport(fields);
-                        } catch (err) { alert(`Failed to parse JSON: ${err.message}`); }
-                        e.target.value = '';
-                      }} />
-                    </label>
-                  </span>
-                </div>
-              )}
             </div>
-            {/* Step 2: PSADT Upload */}
-            <div className={`refactor-step ${psadtImported ? 'refactor-step--done' : ''}`}>
-              <div className="refactor-step__header">
-                <span className="refactor-step__number">{psadtImported ? '✅' : '2'}</span>
-                <div>
-                  <h3 className="refactor-step__title">Upload PSADT Script</h3>
-                  <p className="refactor-step__desc">Upload your <code>Deploy-Application.ps1</code> or <code>Invoke-AppDeployToolkit.ps1</code> to extract lifecycle actions.</p>
-                </div>
-              </div>
-              <button className="btn btn-secondary" onClick={() => refactorInputRef.current?.click()} disabled={psadtParsing}>
-                📄 {psadtParsing ? 'Analyzing script...' : 'Upload .ps1 Script'}
-              </button>
-              {psadtParsing && (
+            <div className="refactor-step__folder">
+              {!intuneCatalog && !intuneCatalogLoading && !intuneCatalogError && (
+                <button className="btn btn-secondary" onClick={() => loadIntuneCatalog()}>📡 Load Intune Catalog</button>
+              )}
+              {intuneCatalogLoading && (
                 <div className="refactor-step__progress">
                   <div className="progress-bar progress-bar--indeterminate" />
-                  <span className="refactor-step__folder-info">Parsing PSADT script...</span>
+                  <span className="refactor-step__folder-info">Loading Win32 apps from Intune...</span>
                 </div>
               )}
-              <input ref={refactorInputRef} type="file" accept=".ps1" onChange={handlePsadtUpload} style={{ display: 'none' }} />
-              {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
-              <span className="refactor-step__optional">Supported: v3 and v4 PSADT scripts</span>
+              {intuneCatalogError && (
+                <div className="refactor-step__error">
+                  <span>❌ {intuneCatalogError}</span>
+                  <button className="btn btn-secondary btn-sm" onClick={() => loadIntuneCatalog()}>Retry</button>
+                </div>
+              )}
+              {intuneCatalog && !intuneCatalogLoading && (
+                <span className="refactor-step__folder-info">
+                  📡 <strong>{intuneCatalog.length}</strong> Win32 app{intuneCatalog.length !== 1 ? 's' : ''} loaded
+                  <button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={() => loadIntuneCatalog(true)} disabled={intuneRefreshing}>
+                    {intuneRefreshing ? '⏳ Refreshing...' : '🔄 Refresh'}
+                  </button>
+                </span>
+              )}
             </div>
-          </div>
-          <div className="refactor-flow__actions">
-            {canContinue && (
-              <button className="btn btn-primary" onClick={() => setView(VIEW.PACKAGE)}>Continue to Wizard →</button>
+            {intuneImported ? (
+              <div className="refactor-step__result">
+                <span className="refactor-step__check">✅ Imported — {wizard.state.displayName}</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowIntunePicker(true)}>Change</button>
+              </div>
+            ) : intuneCatalog && intuneCatalog.length > 0 ? (
+              <button className="btn btn-secondary" onClick={() => setShowIntunePicker(true)}>
+                📥 Browse Intune Catalog ({intuneCatalog.length} apps)
+              </button>
+            ) : null}
+            {!intuneImported && (
+              <div className="refactor-step__fallback">
+                <span className="refactor-step__optional">
+                  or <label className="link-btn" style={{ cursor: 'pointer' }}>
+                    upload a JSON export
+                    <input type="file" accept=".json" style={{ display: 'none' }} onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        const data = JSON.parse(text);
+                        const { parseIntuneExport } = await import('./lib/parseIntuneExport');
+                        const { fields } = parseIntuneExport(data);
+                        handleIntuneImport(fields);
+                      } catch (err) { alert(`Failed to parse JSON: ${err.message}`); }
+                      e.target.value = '';
+                    }} />
+                  </label>
+                </span>
+              </div>
             )}
-            <button className="link-btn" onClick={() => setView(VIEW.PACKAGE)}>← Back</button>
+          </div>
+
+          {/* Step 2: PSADT Upload */}
+          <div className={`refactor-step ${psadtImported ? 'refactor-step--done' : ''}`}>
+            <div className="refactor-step__header">
+              <span className="refactor-step__number">{psadtImported ? '✅' : '2'}</span>
+              <div>
+                <h3 className="refactor-step__title">Upload PSADT Script</h3>
+                <p className="refactor-step__desc">Upload your <code>Deploy-Application.ps1</code> or <code>Invoke-AppDeployToolkit.ps1</code> to extract lifecycle actions.</p>
+              </div>
+            </div>
+            <button className="btn btn-secondary" onClick={() => refactorInputRef.current?.click()} disabled={psadtParsing}>
+              📄 {psadtParsing ? 'Analyzing script...' : 'Upload .ps1 Script'}
+            </button>
+            {psadtParsing && (
+              <div className="refactor-step__progress">
+                <div className="progress-bar progress-bar--indeterminate" />
+                <span className="refactor-step__folder-info">Parsing PSADT script...</span>
+              </div>
+            )}
+            <input ref={refactorInputRef} type="file" accept=".ps1" onChange={handlePsadtUpload} style={{ display: 'none' }} />
+            {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
+            <span className="refactor-step__optional">Supported: v3 and v4 PSADT scripts</span>
           </div>
         </div>
-      </Box>
+
+        {/* Continue action */}
+        {canContinue && (
+          <div style={{ marginTop: 'var(--space-lg)' }}>
+            <button className="btn btn-primary" onClick={() => setView(VIEW.PACKAGE)}>Continue to Wizard →</button>
+          </div>
+        )}
+      </>
     );
   };
 
@@ -482,8 +489,7 @@ export default function App() {
               <div className="app-nav">
                 <button
                   className="btn btn-secondary"
-                  onClick={wizard.prevStep}
-                  disabled={wizard.currentStep === 0}
+                  onClick={wizard.currentStep === 0 ? () => setView(VIEW.QUEUE) : wizard.prevStep}
                 >
                   ← Back
                 </button>

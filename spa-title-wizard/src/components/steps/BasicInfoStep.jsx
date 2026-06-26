@@ -397,37 +397,6 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
             className="input-disabled"
           />
         </FormField>
-
-        <FormField 
-          label="Target Platform" 
-          required 
-          id="platform" 
-          hint="Select the target platform. This determines which configuration pages and pipelines are generated."
-          style={{ gridColumn: 'span 2', marginTop: 'var(--space-md)' }}
-        >
-          <div className="platform-selector-group">
-            {[
-              { value: 'windows', icon: '🪟', label: 'Windows', desc: 'Intune + PSADT deployment' },
-              { value: 'macos', icon: '🍎', label: 'macOS', desc: 'Jamf Pro + Terraform' },
-              { value: 'both', icon: '🔀', label: 'Both Platforms', desc: 'Unified dual-platform' }
-            ].map(p => (
-              <button
-                key={p.value}
-                type="button"
-                className={`platform-btn ${state.platform === p.value ? 'platform-btn--selected' : ''} ${isEditMode ? 'platform-btn--disabled' : ''}`}
-                onClick={() => !isEditMode && updateField('platform', p.value)}
-                disabled={isEditMode}
-              >
-                <span className="platform-btn__icon">{p.icon}</span>
-                <div className="platform-btn__info">
-                  <span className="platform-btn__label">{p.label}</span>
-                  <span className="platform-btn__desc">{p.desc}</span>
-                </div>
-                {state.platform === p.value && <span className="platform-btn__check">✓</span>}
-              </button>
-            ))}
-          </div>
-        </FormField>
       </div>
 
       {state.displayName && state.category && (
@@ -586,82 +555,6 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
         .import-banner__stale-warning code {
           background: rgba(245,158,11,0.12);
           color: #fbbf24;
-        }
-
-        /* ── Platform Selector Segmented Control ── */
-        .platform-selector-group {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: var(--space-md);
-          margin-top: var(--space-xs);
-          width: 100%;
-        }
-        @media (max-width: 640px) {
-          .platform-selector-group {
-            grid-template-columns: 1fr;
-          }
-        }
-        .platform-btn {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: var(--space-md);
-          padding: var(--space-md) var(--space-lg);
-          background: var(--bg-card, rgba(255,255,255,0.02));
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-md, 8px);
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-align: left;
-          color: var(--text-primary);
-          font-family: inherit;
-        }
-        .platform-btn:hover {
-          border-color: var(--text-accent, #7c8aff);
-          background: var(--bg-hover, rgba(255,255,255,0.05));
-          transform: translateY(-1px);
-        }
-        .platform-btn--selected {
-          border-color: var(--accent-primary, #3b82f6);
-          background: rgba(59, 130, 246, 0.08);
-          box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
-        }
-        .platform-btn__icon {
-          font-size: 1.6rem;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        }
-        .platform-btn__info {
-          display: flex;
-          flex-direction: column;
-        }
-        .platform-btn__label {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-        .platform-btn__desc {
-          font-size: 0.72rem;
-          color: var(--text-muted);
-          margin-top: 1px;
-        }
-        .platform-btn__check {
-          margin-left: auto;
-          font-size: 0.85rem;
-          font-weight: bold;
-          color: var(--accent-primary, #3b82f6);
-          background: rgba(59, 130, 246, 0.1);
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .platform-btn--disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
-          pointer-events: none;
         }
 
         /* ── Duplicate Alert Card ── */
