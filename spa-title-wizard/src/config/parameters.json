@@ -669,5 +669,168 @@
     "type": "textarea",
     "required": true,
     "placeholder": "Set-ADTRegistryKey -LiteralPath 'HKCU\\\\Software\\\\MyApp' -Name 'Config' -Value 1 -Type DWord"
+  },
+  { "_comment": "── msi_process_as_user ──────────────────────────────────────────────" },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "action",
+    "label": "Action",
+    "type": "select",
+    "options": ["Install", "Uninstall", "Patch", "Repair"],
+    "default": "Install",
+    "required": true
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "file",
+    "label": "MSI File Path (-FilePath)",
+    "type": "text",
+    "placeholder": "app.msi"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "productCode",
+    "label": "Product Code GUID (-ProductCode)",
+    "type": "text",
+    "placeholder": "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "args",
+    "label": "Arguments (-ArgumentList)",
+    "type": "text",
+    "placeholder": "/QN /norestart"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "additionalArgs",
+    "label": "Additional Arguments (-AdditionalArgumentList)",
+    "type": "text",
+    "placeholder": "PROPERTY=Value"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "transform",
+    "label": "Transform File (.mst) (-Transforms)",
+    "type": "text",
+    "placeholder": "transform.mst"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "patches",
+    "label": "Patch Files (.msp) (-Patches)",
+    "type": "text",
+    "placeholder": "patch1.msp"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "successExitCodes",
+    "label": "Success Exit Codes",
+    "type": "text",
+    "placeholder": "0,3010"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "rebootExitCodes",
+    "label": "Reboot Exit Codes",
+    "type": "text",
+    "placeholder": "1641,3010"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
+    "type": "boolean",
+    "default": false
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "passThruVar",
+    "label": "Store Result In Variable",
+    "type": "text",
+    "placeholder": "msiResult"
+  },
+  { "_comment": "── restart_prompt ───────────────────────────────────────────────────" },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "countdownSeconds",
+    "label": "Countdown (seconds)",
+    "type": "number",
+    "default": 600,
+    "required": true
+  },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "countdownNoHideSeconds",
+    "label": "No-Hide Countdown (seconds)",
+    "type": "number",
+    "default": 0
+  },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "silentRestart",
+    "label": "Silent Restart (-SilentRestart)",
+    "type": "boolean",
+    "default": false
+  },
+  { "_comment": "── sleep ────────────────────────────────────────────────────────────" },
+  {
+    "cmdlet": "sleep",
+    "parameter": "seconds",
+    "label": "Seconds (-Seconds)",
+    "type": "number",
+    "default": 5,
+    "required": true
+  },
+  { "_comment": "── stop_process ─────────────────────────────────────────────────────" },
+  {
+    "cmdlet": "stop_process",
+    "parameter": "processName",
+    "label": "Process Name(s) (-Name) [comma-separated]",
+    "type": "text",
+    "placeholder": "notepad, chrome",
+    "required": true
+  },
+  {
+    "cmdlet": "stop_process",
+    "parameter": "force",
+    "label": "Force (-Force)",
+    "type": "boolean",
+    "default": true
+  },
+  { "_comment": "── pending_reboot ───────────────────────────────────────────────────" },
+  {
+    "cmdlet": "pending_reboot",
+    "parameter": "varName",
+    "label": "Store Result In Variable",
+    "type": "text",
+    "placeholder": "isRebootPending",
+    "required": true
+  },
+  { "_comment": "── copy_file_to_user_profiles ───────────────────────────────────────" },
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "source",
+    "label": "Source File/Folder (relative to Files\\\\)",
+    "type": "text",
+    "placeholder": "config.ini",
+    "required": true
+  },
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "destination",
+    "label": "Destination Path (relative to user profile)",
+    "type": "text",
+    "placeholder": "AppData\\\\Roaming\\\\MyApp",
+    "required": true
+  },
+  { "_comment": "── remove_file_from_profiles ────────────────────────────────────────" },
+  {
+    "cmdlet": "remove_file_from_profiles",
+    "parameter": "path",
+    "label": "Path to Remove (relative to user profile) (-Path)",
+    "type": "text",
+    "placeholder": "AppData\\\\Roaming\\\\MyApp\\\\config.ini",
+    "required": true
   }
 ]

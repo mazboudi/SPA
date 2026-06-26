@@ -114,7 +114,10 @@ export default function generatePsadtScript(s, clean = false) {
           const contErr = action.continueOnError ? ' -ContinueFileCopyOnError' : '';
           const rbcParams = action.robocopyParams ? ` -RobocopyParams '${action.robocopyParams}'` : '';
           const rbcAdd = action.robocopyAdditionalParams ? ` -RobocopyAdditionalParams '${action.robocopyAdditionalParams}'` : '';
-          actionLines.push(`        Copy-ADTFile -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.dest}'${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}`);
+          // Support both old field names (source/dest) and new field names (path/destination) for backwards compat
+          const srcPath = action.path || action.source || '';
+          const destPath = action.destination || action.dest || '';
+          actionLines.push(`        Copy-ADTFile -Path '${srcPath}' -Destination '${destPath}'${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}`);
           break;
         }
         case 'file_remove': {

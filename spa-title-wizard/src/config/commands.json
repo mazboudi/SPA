@@ -39,7 +39,10 @@
     "supportedPhases": [
       "preInstall",
       "install",
-      "uninstall"
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
     ]
   },
   {
@@ -62,8 +65,8 @@
     "psadtCmdlet": "Uninstall-ADTApplication",
     "supportedPhases": [
       "preInstall",
-      "uninstall",
-      "preUninstall"
+      "preUninstall",
+      "uninstall"
     ]
   },
   {
@@ -78,15 +81,40 @@
     ]
   },
   {
+    "name": "msi_process_as_user",
+    "label": "Run MSI as User (Start-ADTMsiProcessAsUser)",
+    "icon": "👤",
+    "category": "Installer",
+    "psadtCmdlet": "Start-ADTMsiProcessAsUser",
+    "supportedPhases": [
+      "install",
+      "uninstall"
+    ]
+  },
+  {
     "name": "file_copy",
     "label": "Copy File / Folder (Copy-ADTFile)",
     "icon": "📋",
     "category": "File Operations",
     "psadtCmdlet": "Copy-ADTFile",
     "supportedPhases": [
+      "preInstall",
       "install",
       "postInstall",
-      "preUninstall"
+      "preUninstall",
+      "postUninstall"
+    ]
+  },
+  {
+    "name": "copy_file_to_user_profiles",
+    "label": "Copy to User Profiles (Copy-ADTFileToUserProfiles)",
+    "icon": "👥",
+    "category": "File Operations",
+    "psadtCmdlet": "Copy-ADTFileToUserProfiles",
+    "supportedPhases": [
+      "preInstall",
+      "postInstall",
+      "postUninstall"
     ]
   },
   {
@@ -96,7 +124,11 @@
     "category": "File Operations",
     "psadtCmdlet": "New-ADTFolder",
     "supportedPhases": [
-      "install"
+      "preInstall",
+      "install",
+      "postInstall",
+      "preUninstall",
+      "postUninstall"
     ]
   },
   {
@@ -108,6 +140,7 @@
     "supportedPhases": [
       "preInstall",
       "postInstall",
+      "preUninstall",
       "uninstall",
       "postUninstall"
     ]
@@ -119,6 +152,22 @@
     "category": "File Operations",
     "psadtCmdlet": "Remove-ADTFolder",
     "supportedPhases": [
+      "preInstall",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
+    ]
+  },
+  {
+    "name": "remove_file_from_profiles",
+    "label": "Remove from User Profiles (Remove-ADTFileFromUserProfiles)",
+    "icon": "👥",
+    "category": "File Operations",
+    "psadtCmdlet": "Remove-ADTFileFromUserProfiles",
+    "supportedPhases": [
+      "postInstall",
+      "preUninstall",
       "uninstall",
       "postUninstall"
     ]
@@ -150,6 +199,57 @@
     ]
   },
   {
+    "name": "stop_process",
+    "label": "Kill Process (Stop-Process)",
+    "icon": "⛔",
+    "category": "Process",
+    "psadtCmdlet": "Stop-Process",
+    "supportedPhases": [
+      "preInstall",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
+    ]
+  },
+  {
+    "name": "stop_service",
+    "label": "Stop Service (Stop-ADTServiceAndDependencies)",
+    "icon": "🛑",
+    "category": "System",
+    "psadtCmdlet": "Stop-ADTServiceAndDependencies",
+    "supportedPhases": [
+      "preInstall",
+      "preUninstall"
+    ]
+  },
+  {
+    "name": "sleep",
+    "label": "Wait / Delay (Start-Sleep)",
+    "icon": "⏱️",
+    "category": "System",
+    "psadtCmdlet": "Start-Sleep",
+    "supportedPhases": [
+      "preInstall",
+      "install",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
+    ]
+  },
+  {
+    "name": "pending_reboot",
+    "label": "Check Pending Reboot (Get-ADTPendingReboot)",
+    "icon": "🔄",
+    "category": "System",
+    "psadtCmdlet": "Get-ADTPendingReboot",
+    "supportedPhases": [
+      "preInstall",
+      "preUninstall"
+    ]
+  },
+  {
     "name": "custom_script",
     "label": "Custom PowerShell",
     "icon": "📜",
@@ -165,10 +265,21 @@
   },
   {
     "name": "show_completion",
-    "label": "Show Completion Message",
+    "label": "Show Completion Message (Show-ADTInstallationPrompt)",
     "icon": "🎉",
     "category": "UI Prompts",
     "psadtCmdlet": "Show-ADTInstallationPrompt",
+    "supportedPhases": [
+      "postInstall",
+      "postUninstall"
+    ]
+  },
+  {
+    "name": "restart_prompt",
+    "label": "Prompt for Restart (Show-ADTInstallationRestartPrompt)",
+    "icon": "🔁",
+    "category": "UI Prompts",
+    "psadtCmdlet": "Show-ADTInstallationRestartPrompt",
     "supportedPhases": [
       "postInstall",
       "postUninstall"
@@ -185,19 +296,8 @@
     ]
   },
   {
-    "name": "stop_service",
-    "label": "Stop Service (Stop-ADTServiceAndDependencies)",
-    "icon": "⛔",
-    "category": "System",
-    "psadtCmdlet": "Stop-ADTServiceAndDependencies",
-    "supportedPhases": [
-      "preInstall",
-      "preUninstall"
-    ]
-  },
-  {
     "name": "start_msp_process",
-    "label": "Run MSP Process (Start-ADTMspProcess)",
+    "label": "Run MSP Patch (Start-ADTMspProcess)",
     "icon": "🩹",
     "category": "Installer",
     "psadtCmdlet": "Start-ADTMspProcess",
@@ -247,6 +347,7 @@
     "category": "Registry",
     "psadtCmdlet": "Get-ADTRegistryKey",
     "supportedPhases": [
+      "preInstall",
       "preUninstall"
     ]
   },
