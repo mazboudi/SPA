@@ -227,10 +227,21 @@ export default function Sidebar({
           />
         </NavSection>
 
-        {/* ── Stage navigation (only when a package is active) ── */}
+        <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
+
+        {/* ── Edit Packages ── */}
+        <NavSection
+          icon={<EditIcon sx={{ fontSize: 18 }} />}
+          label="Edit Packages"
+          selected={activeView === 'edit'}
+          onClick={onEditPackages}
+          sidebarOpen={sidebarOpen}
+        />
+
+        {/* ── Stage navigation — appears below all menu items when a package is active ── */}
         {inPackage && (
           <>
-            <Divider sx={{ my: 0.5, mx: 2, borderColor: 'divider' }} />
+            <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
             {sidebarOpen && (
               <Typography variant="caption" sx={{ px: 2, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', pt: 1, pb: 0.5 }}>
                 Stages
@@ -255,18 +266,8 @@ export default function Sidebar({
           </>
         )}
 
-        <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
-
-        {/* ── Edit Packages ── */}
-        <NavSection
-          icon={<EditIcon sx={{ fontSize: 18 }} />}
-          label="Edit Packages"
-          selected={activeView === 'edit'}
-          onClick={onEditPackages}
-          sidebarOpen={sidebarOpen}
-        />
-
       </List>
+
 
       {/* Settings pinned to bottom */}
       <Box sx={{ mt: 'auto', borderTop: '1px solid', borderColor: 'divider' }}>
