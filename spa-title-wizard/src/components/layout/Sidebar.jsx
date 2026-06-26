@@ -64,11 +64,15 @@ function NavSection({ icon, label, selected, onClick, children, chip, open: open
             <>
               <ListItemText
                 primary={label}
-                primaryTypographyProps={{
-                  fontSize: '0.82rem',
-                  fontWeight: selected ? 600 : 400,
-                  color: selected ? 'primary.main' : 'text.primary',
+                slotProps={{
+                  primary: {
+                    style: {
+                      fontSize: '0.82rem',
+                      fontWeight: selected ? 600 : 400,
+                    },
+                  },
                 }}
+                sx={{ '& .MuiListItemText-primary': { color: selected ? 'primary.main' : 'text.primary' } }}
               />
               {chip && <Chip label={chip} size="small" sx={{ height: 18, fontSize: '0.65rem', mr: 0.5 }} />}
               {hasChildren && (open ? <ExpandLessIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 16, color: 'text.disabled' }} />)}
@@ -114,11 +118,15 @@ function StageItem({ icon, label, active, completed, onClick, sidebarOpen }) {
         {sidebarOpen && (
           <ListItemText
             primary={label}
-            primaryTypographyProps={{
-              fontSize: '0.78rem',
-              fontWeight: active ? 600 : 400,
-              color: active ? 'primary.main' : completed ? 'success.main' : 'text.secondary',
+            slotProps={{
+              primary: {
+                style: {
+                  fontSize: '0.78rem',
+                  fontWeight: active ? 600 : 400,
+                },
+              },
             }}
+            sx={{ '& .MuiListItemText-primary': { color: active ? 'primary.main' : completed ? 'success.main' : 'text.secondary' } }}
           />
         )}
       </ListItemButton>

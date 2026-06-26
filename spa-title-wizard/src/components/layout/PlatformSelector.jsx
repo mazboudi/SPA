@@ -61,9 +61,9 @@ export default function PlatformSelector({ onSelect }) {
       </Box>
 
       {/* Platform cards */}
-      <Grid container spacing={3} justifyContent="center" sx={{ maxWidth: 720 }}>
+      <Grid container spacing={3} sx={{ maxWidth: 720, justifyContent: 'center' }}>
         {PLATFORMS.map((p) => (
-          <Grid item xs={12} sm={6} key={p.id}>
+          <Grid key={p.id} size={{ xs: 12, sm: 6 }}>
             <Card
               sx={{
                 background: p.gradient,
