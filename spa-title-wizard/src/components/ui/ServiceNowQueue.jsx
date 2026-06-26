@@ -122,23 +122,17 @@ export default function ServiceNowQueue({ onSelect, onClose, platform }) {
     }
   };
 
-  // ── Close on Escape ───────────────────────────────────────────────────
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  // No Escape listener needed — navigation handled by parent view state
 
   return (
-    <div className="snq-overlay" onClick={onClose}>
-      <div className="snq-modal" onClick={e => e.stopPropagation()}>
-        <div className="snq-header">
-          <div>
-            <h2 className="snq-title">📋 ServiceNow Packaging Queue</h2>
-            <p className="snq-subtitle">Pick a request to begin packaging</p>
-          </div>
-          <button className="snq-close" onClick={onClose} title="Close">✕</button>
+    <div className="snq-page">
+      <div className="snq-header">
+        <div>
+          <h2 className="snq-title">📋 ServiceNow Packaging Queue</h2>
+          <p className="snq-subtitle">Pick a request to begin packaging</p>
         </div>
+        <button className="snq-close" onClick={onClose} title="Back">← Back</button>
+      </div>
 
         {/* Filters */}
         <div className="snq-filters">
@@ -173,7 +167,7 @@ export default function ServiceNowQueue({ onSelect, onClose, platform }) {
 
         {/* Results info */}
         <div className="snq-info">
-          {loading ? 'Loading queue...' : error ? `Error: ${error}` : `${filtered.length} of ${items.length} requests`}
+          {loading ? 'Loading queue...' : error ? `Error: ${error}` : `${filtered.length} of ${platformItems.length} requests`}
         </div>
 
         {/* Request List */}
@@ -216,7 +210,6 @@ export default function ServiceNowQueue({ onSelect, onClose, platform }) {
             </button>
           ))}
         </div>
-      </div>
     </div>
   );
 }

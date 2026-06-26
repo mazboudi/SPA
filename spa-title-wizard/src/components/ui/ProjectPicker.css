@@ -1,33 +1,24 @@
-/* ── Project Picker Modal ── */
-.pp-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.65);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
-  animation: fadeIn 0.2s ease;
-}
-.pp-modal {
-  background: var(--bg-surface, #0d0f1a);
-  border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
-  border-radius: var(--radius-lg, 12px);
-  width: min(720px, 92vw);
-  max-height: 85vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-  animation: slideUp 0.25s ease;
+/* ── Project Picker — Inline Page ── */
+.pp-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  animation: fadeIn 0.15s ease;
 }
 
 /* Header */
 .pp-header {
   display: flex; align-items: flex-start; justify-content: space-between;
-  padding: var(--space-lg, 20px) var(--space-lg, 20px) var(--space-sm, 8px);
+  padding: 0 0 var(--space-md, 16px);
+  border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+  margin-bottom: var(--space-md, 16px);
 }
 .pp-title { font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-primary); }
 .pp-subtitle { font-size: 0.78rem; color: var(--text-muted); margin: 4px 0 0; }
 .pp-close {
-  background: none; border: none; font-size: 1rem; cursor: pointer;
-  color: var(--text-muted); padding: 4px 8px; border-radius: 4px;
+  background: none; border: none; font-size: 0.82rem; cursor: pointer;
+  color: var(--text-muted); padding: 4px 10px; border-radius: 4px;
+  font-family: inherit; white-space: nowrap;
 }
 .pp-close:hover { background: var(--bg-hover); color: var(--text-primary); }
 
@@ -38,7 +29,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm, 6px);
   padding: 6px 10px;
-  margin: var(--space-sm, 8px) var(--space-lg, 20px);
+  margin: var(--space-md, 16px) 0 var(--space-sm, 8px);
 }
 .pp-search__icon { font-size: 0.85rem; flex-shrink: 0; }
 .pp-search__input {
@@ -53,15 +44,16 @@
 
 /* Info bar */
 .pp-info {
-  padding: 4px var(--space-lg, 20px);
+  padding: 4px 0;
   font-size: 0.72rem;
   color: var(--text-muted);
 }
 
 /* List */
 .pp-list {
-  flex: 1; overflow-y: auto;
-  padding: 0 var(--space-lg, 20px) var(--space-lg, 20px);
+  overflow-y: auto;
+  max-height: 60vh;
+  padding: var(--space-sm, 8px) 0;
   display: flex; flex-direction: column; gap: 6px;
 }
 .pp-empty {

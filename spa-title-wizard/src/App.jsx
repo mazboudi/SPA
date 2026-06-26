@@ -28,8 +28,8 @@ import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from '
 const VIEW = {
   HOME: 'home',         // Platform selector (no platform chosen yet)
   PACKAGE: 'package',  // Active package wizard
-  QUEUE: 'queue',      // ServiceNow queue modal
-  EDIT: 'edit',        // Project picker modal
+  QUEUE: 'queue',      // ServiceNow queue — inline page
+  EDIT: 'edit',        // Edit existing — inline page
   SETTINGS: 'settings',
   REFACTOR: 'refactor',
 };
@@ -54,9 +54,8 @@ export default function App() {
   const [platformSwitchDialog, setPlatformSwitchDialog] = useState(false);
 
   // ── Modals ────────────────────────────────────────────────────────────────
+  // IntuneExportPicker remains a modal (it's triggered from within the wizard step)
   const [showIntunePicker, setShowIntunePicker] = useState(false);
-  const [showServiceNowQueue, setShowServiceNowQueue] = useState(false);
-  const [showProjectPicker, setShowProjectPicker] = useState(false);
 
   // ── Intune catalog ────────────────────────────────────────────────────────
   const [intuneCatalog, setIntuneCatalog] = useState(null);
@@ -126,7 +125,8 @@ export default function App() {
   };
 
   const handleNewFromQueue = () => {
-    setShowServiceNowQueue(true);
+    if (!wizard.state.platform) { setView(VIEW.HOME); return; }
+    setView(VIEW.QUEUE);
   };
 
   const handleRefactor = () => {
@@ -134,7 +134,7 @@ export default function App() {
   };
 
   const handleEditPackages = () => {
-    setShowProjectPicker(true);
+    setView(VIEW.EDIT);
   };
 
   // ── ServiceNow queue ──────────────────────────────────────────────────────
@@ -142,14 +142,12 @@ export default function App() {
     Object.entries(fields).forEach(([key, value]) => {
       if (value !== undefined && value !== '') wizard.updateField(key, value);
     });
-    setShowServiceNowQueue(false);
     setView(VIEW.PACKAGE);
   };
 
   // ── Edit existing ─────────────────────────────────────────────────────────
   const handleProjectSelect = (files, projectMeta) => {
     wizard.importProjectForEdit(files, projectMeta);
-    setShowProjectPicker(false);
     setView(VIEW.PACKAGE);
   };
 
@@ -400,7 +398,7 @@ export default function App() {
         onGoToStep={wizard.goToStep}
         onQueueOpen={() => {
           if (!wizard.state.platform) { alert('Please select a platform first.'); return; }
-          setShowServiceNowQueue(true);
+          setView(VIEW.QUEUE);
         }}
         onNewBlank={() => {
           if (!wizard.state.platform) { setView(VIEW.HOME); return; }
@@ -455,7 +453,24 @@ export default function App() {
           {/* ── REFACTOR FLOW ── */}
           {view === VIEW.REFACTOR && renderRefactorFlow()}
 
-          {/* ── PACKAGE WIZARD ── */}
+          {/* ── QUEUE: ServiceNow inline page ── */}
+          {view === VIEW.QUEUE && (
+            <ServiceNowQueue
+              onSelect={handleQueueSelect}
+              onClose={() => setView(wizard.state.platform ? VIEW.PACKAGE : VIEW.HOME)}
+              platform={wizard.state.platform}
+            />
+          )}
+
+          {/* ── EDIT: Project picker inline page ── */}
+          {view === VIEW.EDIT && (
+            <ProjectPicker
+              onSelect={handleProjectSelect}
+              onClose={() => setView(wizard.state.platform ? VIEW.PACKAGE : VIEW.HOME)}
+              groupPath={activeProjectGroup}
+            />
+          )}
+
           {view === VIEW.PACKAGE && (
             <>
               {/* Main step content */}
@@ -516,20 +531,7 @@ export default function App() {
           fetchDetail={fetchIntuneAppDetail}
         />
       )}
-      {showServiceNowQueue && (
-        <ServiceNowQueue
-          onSelect={handleQueueSelect}
-          onClose={() => setShowServiceNowQueue(false)}
-          platform={wizard.state.platform}
-        />
-      )}
-      {showProjectPicker && (
-        <ProjectPicker
-          onSelect={handleProjectSelect}
-          onClose={() => setShowProjectPicker(false)}
-          groupPath={activeProjectGroup}
-        />
-      )}
+
 
       {/* ── Legacy CSS (for existing step components) ── */}
       <style>{`
