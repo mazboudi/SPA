@@ -120,6 +120,14 @@ body::before {
   border-radius: var(--radius-lg);
 }
 
+/* ── Step wrapper — consistent padding across all wizard stages ───────────── */
+.step-content {
+  padding: 0 var(--space-xl) var(--space-xl);
+}
+.step-header {
+  margin-bottom: var(--space-xl);
+}
+
 /* ── Form Elements ────────────────────────────────────────────────────────── */
 input[type="text"],
 input[type="number"],

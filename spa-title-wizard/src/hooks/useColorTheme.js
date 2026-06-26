@@ -29,18 +29,22 @@ export const COLOR_THEMES = [
   {
     id: 'graphite',
     label: 'Graphite',
-    description: 'Warm charcoal tones',
-    swatch: ['#111315', '#2A2D30', '#4A4F55', '#B8BDC3', '#F4F5F7'],
+    description: 'Moody dark · Neon accent',
+    swatch: ['#0E1013', '#1F242B', '#3E4652', '#A0A9B5', '#39FF14'],
     vars: {
-      '--bg-base':       '#111315',
-      '--bg-surface':    '#2A2D30',
-      '--bg-card':       'rgba(255,255,255,0.03)',
-      '--bg-elevated':   '#3A3F45',
-      '--bg-hover':      'rgba(255,255,255,0.06)',
-      '--border-subtle': 'rgba(255,255,255,0.10)',
-      '--text-primary':  '#F4F5F7',
-      '--text-secondary':'#B8BDC3',
-      '--text-muted':    '#4A4F55',
+      '--bg-base':        '#0E1013',
+      '--bg-surface':     '#1F242B',
+      '--bg-card':        'rgba(255,255,255,0.03)',
+      '--bg-elevated':    '#2A3040',
+      '--bg-hover':       'rgba(255,255,255,0.06)',
+      '--border-subtle':  '#3E4652',
+      '--border-default': '#3E4652',
+      '--text-primary':   '#E9EDF2',
+      '--text-secondary': '#A0A9B5',
+      '--text-muted':     '#5A6370',
+      '--accent-primary': '#39FF14',
+      '--accent-gradient':'linear-gradient(135deg, #39FF14 0%, #00cc0e 100%)',
+      '--color-accent':   '#39FF14',
     },
   },
 ];
@@ -49,6 +53,11 @@ const STORAGE_KEY = 'spa-workbench-color-theme';
 
 function applyTheme(theme) {
   const root = document.documentElement;
+  // Reset every var from every theme first to avoid leakage between palettes
+  COLOR_THEMES.forEach(t => {
+    Object.keys(t.vars).forEach(prop => root.style.removeProperty(prop));
+  });
+  // Apply selected theme
   Object.entries(theme.vars).forEach(([prop, value]) => {
     root.style.setProperty(prop, value);
   });
