@@ -188,48 +188,48 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
     // Map compareIntuneState field keys → wizard state keys (same as onPullField)
     const FIELD_MAP = {
-      displayName:             'intuneAppName',
-      description:             'appDescription',
-      publisher:               'publisher',
-      owner:                   'appOwner',
-      developer:               'appDeveloper',
-      informationUrl:          'informationUrl',
-      privacyUrl:              'privacyUrl',
-      notes:                   'appNotes',
-      isFeatured:              'isFeatured',
+      displayName: 'intuneAppName',
+      description: 'appDescription',
+      publisher: 'publisher',
+      owner: 'appOwner',
+      developer: 'appDeveloper',
+      informationUrl: 'informationUrl',
+      privacyUrl: 'privacyUrl',
+      notes: 'appNotes',
+      isFeatured: 'isFeatured',
       allowAvailableUninstall: 'allowAvailableUninstall',
-      logoDataUrl:             'logoDataUrl',
-      minWinRelease:           'minWinRelease',
-      minDiskSpaceMB:          'minDiskSpaceMB',
-      minMemoryMB:             'minMemoryMB',
-      minCpuSpeedMHz:          'minCpuSpeedMHz',
-      minProcessors:           'minLogicalProcessors',
+      logoDataUrl: 'logoDataUrl',
+      minWinRelease: 'minWinRelease',
+      minDiskSpaceMB: 'minDiskSpaceMB',
+      minMemoryMB: 'minMemoryMB',
+      minCpuSpeedMHz: 'minCpuSpeedMHz',
+      minProcessors: 'minLogicalProcessors',
     };
 
     // Iterate all pullable compareIntuneState field keys
     const PULLABLE_COMPARE_FIELDS = Object.keys(FIELD_MAP);
     const app = syncRawIntuneData.app || {};
     const intuneValues = {
-      displayName:             app.displayName,
-      description:             app.description,
-      publisher:               app.publisher,
-      owner:                   app.owner,
-      developer:               app.developer,
-      informationUrl:          app.informationUrl,
-      privacyUrl:              app.privacyInformationUrl,
-      notes:                   app.notes,
-      isFeatured:              app.isFeatured,
+      displayName: app.displayName,
+      description: app.description,
+      publisher: app.publisher,
+      owner: app.owner,
+      developer: app.developer,
+      informationUrl: app.informationUrl,
+      privacyUrl: app.privacyInformationUrl,
+      notes: app.notes,
+      isFeatured: app.isFeatured,
       allowAvailableUninstall: app.allowAvailableUninstall,
-      logoDataUrl:             (() => {
+      logoDataUrl: (() => {
         const icon = syncRawIntuneData.app?.largeIcon;
         if (!icon?.value) return undefined;
         return `data:${icon.type || 'image/png'};base64,${icon.value}`;
       })(),
-      minWinRelease:  app.minimumSupportedWindowsRelease,
+      minWinRelease: app.minimumSupportedWindowsRelease,
       minDiskSpaceMB: app.minimumFreeDiskSpaceInMB,
-      minMemoryMB:    app.minimumMemoryInMB,
+      minMemoryMB: app.minimumMemoryInMB,
       minCpuSpeedMHz: app.minimumCpuSpeedInMHz,
-      minProcessors:  app.minimumNumberOfProcessors,
+      minProcessors: app.minimumNumberOfProcessors,
     };
 
     const newPending = [...(state.syncPendingFields || [])];
@@ -280,8 +280,11 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
       e.informationUrl = 'Must be a valid URL starting with https://';
     if (state.privacyUrl && !isValidUrl(state.privacyUrl))
       e.privacyUrl = 'Must be a valid URL starting with https://';
-    if (state.supersedesAppId && !isValidGuid(state.supersedesAppId))
-      e.supersedesAppId = 'Must be a valid GUID — e.g. 12345678-abcd-1234-abcd-1234567890ab (no curly braces needed)';
+    // Validate supersedences
+    (state.supersedences || []).forEach((sup, i) => {
+      if (sup.appId && !isValidGuid(sup.appId))
+        e[`sup_${i}_appId`] = 'Must be a valid Intune app GUID (no curly braces)';
+    });
     // Validate dependencies
     (state.dependencies || []).forEach((d, i) => {
       if (d.appId && !isValidGuid(d.appId))
@@ -295,7 +298,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         e[`assignment_${i}_filterId`] = 'Must be a valid filter GUID';
     });
     return e;
-  }, [state.informationUrl, state.privacyUrl, state.supersedesAppId, state.assignments, state.dependencies]);
+  }, [state.informationUrl, state.privacyUrl, state.supersedences, state.assignments, state.dependencies]);
 
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -332,6 +335,20 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
   };
   const removeReturnCode = (idx) => {
     updateField('returnCodes', returnCodes.filter((_, i) => i !== idx));
+  };
+
+  // ── Supersedences CRUD ───────────────────────────────────────────────
+  const supersedences = state.supersedences || [];
+  const addSupersedence = () => {
+    if (supersedences.length >= 10) return; // Intune hard limit
+    updateField('supersedences', [...supersedences, { appId: '', supersedenceType: 'replace' }]);
+  };
+  const updateSupersedence = (idx, field, value) => {
+    const updated = supersedences.map((s, i) => i === idx ? { ...s, [field]: value } : s);
+    updateField('supersedences', updated);
+  };
+  const removeSupersedence = (idx) => {
+    updateField('supersedences', supersedences.filter((_, i) => i !== idx));
   };
 
   // ── Dependencies CRUD ────────────────────────────────────────────────
@@ -1091,28 +1108,76 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         {activeTab === 'supersedence' && (
           <div className="animate-in">
             <div className="config-section">
-              <h3 className="section-title">Supersedence <span className="section-optional">Optional</span></h3>
+              <h3 className="section-title">
+                Supersedence{' '}
+                <span className="section-optional">
+                  Optional &bull; {supersedences.length} entr{supersedences.length === 1 ? 'y' : 'ies'} / 10 max
+                </span>
+              </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-                Define which existing Intune app this new package will update or replace (uninstall).
+                Specify which existing Intune apps this package supersedes (replaces or updates). Intune supports up to 10 supersedence relationships per app.
               </p>
-              <div className="form-grid">
-                <FormField label="Superseded App ID" id="supersedesAppId" hint="Intune app GUID of the app being replaced" error={errors.supersedesAppId}>
-                  <input id="supersedesAppId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (no curly braces)"
-                    className={errors.supersedesAppId ? 'input--error' : ''}
-                    value={state.supersedesAppId || ''} onChange={e => updateField('supersedesAppId', normalizeGuid(e.target.value))} />
-                </FormField>
-                <SelectField label="Uninstall previous version" id="supersedenceType" value={state.supersedenceType || 'replace'}
-                  hint="'Yes' = Remove the old app before installing the new one. 'No' = Installs the new version without removing the old one."
-                  onChange={v => updateField('supersedenceType', v)}
-                  options={[
-                    { value: 'update', label: 'Yes' },
-                    { value: 'replace', label: 'No' },
-                  ]}
-                />
-              </div>
+
+              {supersedences.length === 0 && (
+                <p className="phase-empty" style={{ marginBottom: 'var(--space-md)' }}>No supersedence configured. This app will not supersede any existing Intune app.</p>
+              )}
+
+              {supersedences.map((sup, idx) => (
+                <div key={idx} className="dep-row" style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'flex-end', marginBottom: 'var(--space-sm)' }}>
+                  <FormField
+                    label={`Superseded App ID #${idx + 1}`}
+                    id={`sup-id-${idx}`}
+                    hint="Intune GUID of the app being superseded"
+                    error={errors[`sup_${idx}_appId`]}
+                    style={{ flex: 2 }}
+                  >
+                    <input
+                      id={`sup-id-${idx}`}
+                      type="text"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      className={errors[`sup_${idx}_appId`] ? 'input--error' : ''}
+                      value={sup.appId || ''}
+                      onChange={e => updateSupersedence(idx, 'appId', normalizeGuid(e.target.value))}
+                    />
+                  </FormField>
+                  <SelectField
+                    label="Uninstall previous"
+                    id={`sup-type-${idx}`}
+                    value={sup.supersedenceType || 'replace'}
+                    hint="'Yes' = remove old before installing. 'No' = in-place update."
+                    onChange={v => updateSupersedence(idx, 'supersedenceType', v)}
+                    options={[
+                      { value: 'replace', label: 'No' },
+                      { value: 'update', label: 'Yes' },
+                    ]}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="action-btn action-btn--del"
+                    onClick={() => removeSupersedence(idx)}
+                    title="Remove supersedence entry"
+                  >✕</button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className="add-action__btn"
+                onClick={addSupersedence}
+                disabled={supersedences.length >= 10}
+              >
+                + Add Supersedence
+              </button>
+              {supersedences.length >= 10 && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-warning, #f59e0b)', marginTop: 'var(--space-xs)' }}>
+                  Maximum of 10 supersedence relationships reached (Intune limit).
+                </p>
+              )}
             </div>
           </div>
         )}
+
 
         {/* ==========================================
             TAB: ASSIGNMENTS
@@ -1213,22 +1278,22 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                       onPullField={(field, val) => {
                         // Single mapping: compareIntuneState field key → wizard state key
                         const FIELD_MAP = {
-                          displayName:             'intuneAppName',
-                          description:             'appDescription',
-                          publisher:               'publisher',
-                          owner:                   'appOwner',
-                          developer:               'appDeveloper',
-                          informationUrl:          'informationUrl',
-                          privacyUrl:              'privacyUrl',
-                          notes:                   'appNotes',
-                          isFeatured:              'isFeatured',
+                          displayName: 'intuneAppName',
+                          description: 'appDescription',
+                          publisher: 'publisher',
+                          owner: 'appOwner',
+                          developer: 'appDeveloper',
+                          informationUrl: 'informationUrl',
+                          privacyUrl: 'privacyUrl',
+                          notes: 'appNotes',
+                          isFeatured: 'isFeatured',
                           allowAvailableUninstall: 'allowAvailableUninstall',
-                          logoDataUrl:             'logoDataUrl',
-                          minWinRelease:           'minWinRelease',
-                          minDiskSpaceMB:          'minDiskSpaceMB',
-                          minMemoryMB:             'minMemoryMB',
-                          minCpuSpeedMHz:          'minCpuSpeedMHz',
-                          minProcessors:           'minLogicalProcessors',
+                          logoDataUrl: 'logoDataUrl',
+                          minWinRelease: 'minWinRelease',
+                          minDiskSpaceMB: 'minDiskSpaceMB',
+                          minMemoryMB: 'minMemoryMB',
+                          minCpuSpeedMHz: 'minCpuSpeedMHz',
+                          minProcessors: 'minLogicalProcessors',
                         };
                         // val is the live Intune value.
                         // If Intune has a real value → Pull: update builder with Intune value.
@@ -1378,8 +1443,11 @@ function IntuneMetaSummary({ state }) {
 
   const relationshipsRows = [
     { label: 'Dependencies', value: state.dependencies?.length ? state.dependencies.map(d => `${d.appId} (${d.dependencyType})`).join(', ') : '' },
-    { label: 'Supersedes App ID', value: state.supersedesAppId },
-    { label: 'Supersedence Type', value: state.supersedesAppId && state.supersedenceType ? (state.supersedenceType === 'update' ? 'Yes — Uninstall previous' : 'No — Keep previous') : '' },
+    {
+      label: 'Supersedence', value: (state.supersedences || []).filter(s => s.appId).length
+        ? (state.supersedences).filter(s => s.appId).map(s => `${s.appId} (${s.supersedenceType === 'update' ? 'Uninstall prev.' : 'Keep prev.'})`).join(', ')
+        : ''
+    },
     { label: 'Assignments', value: state.assignments?.length ? `${state.assignments.length} group(s)` : '' },
     { label: 'Sync Intune App ID', value: state.syncIntuneAppId, mono: true },
     { label: 'Import Source App ID', value: !state.syncIntuneAppId && state._intuneAppId ? state._intuneAppId : '', mono: true },

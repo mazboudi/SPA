@@ -457,21 +457,12 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
         onChange={v => updateField('assignments', v)}
       />
 
-      {/* ═══ SUPERSEDENCE ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">Supersedence <span className="section-optional">Optional</span></h3>
-        <div className="form-grid">
-          <FormField label="Superseded App ID" id="supersedesAppId" hint="Intune app GUID of the app being replaced">
-            <input id="supersedesAppId" type="text" placeholder="Leave empty if not superseding" value={state.supersedesAppId} onChange={e => updateField('supersedesAppId', e.target.value)} />
-          </FormField>
-          <SelectField label="Supersedence Type" id="supersedenceType" value={state.supersedenceType}
-            onChange={v => updateField('supersedenceType', v)}
-            options={[
-              { value: 'update', label: 'Update (replace + uninstall old)' },
-              { value: 'replace', label: 'Replace (side-by-side)' },
-            ]}
-          />
-        </div>
+      {/* ═══ SUPERSEDENCE — managed in Intune Config step ═══ */}
+      <div className="config-section" style={{ opacity: 0.7 }}>
+        <h3 className="section-title">Supersedence <span className="section-optional">Manage in Intune Config step</span></h3>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          Supersedence (up to 10 entries) is configured in the <strong>Intune Config</strong> step under the Supersedence tab.
+        </p>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════ */}

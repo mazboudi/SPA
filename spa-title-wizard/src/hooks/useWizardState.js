@@ -75,9 +75,9 @@ const INITIAL_STATE = {
     { intent: 'available', groupId: '', filterMode: 'none', filterId: '', notifications: 'showAll', deliveryOptPriority: 'notConfigured' },
   ],
 
-  // Supersedence
-  supersedesAppId: '',
-  supersedenceType: 'replace', // 'replace' = No (keep previous), 'update' = Yes (uninstall previous)
+  // Supersedences (up to 10, matching Intune Graph API limit)
+  // Each entry: { appId: string, supersedenceType: 'replace' | 'update' }
+  supersedences: [],
 
   // Dependencies
   dependencies: [],  // [{ appId: '', dependencyType: 'autoInstall' }]  — 'autoInstall' | 'detect'

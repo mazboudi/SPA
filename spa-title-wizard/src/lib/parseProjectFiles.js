@@ -204,12 +204,19 @@ export function parseProjectFiles(files) {
   // ── windows/intune/supersedence.json ────────────────────────────────────
   if (files['windows/intune/supersedence.json']) {
     try {
-      const sup = JSON.parse(files['windows/intune/supersedence.json']);
-      // camelCase (current schema) with snake_case fallback (legacy)
-      const appId = sup.supersededAppId || sup.supersedes_app_id;
-      const supType = sup.supersedenceType || sup.supersedence_type;
-      if (appId) state.supersedesAppId = appId;
-      if (supType) state.supersedenceType = supType;
+      const raw = JSON.parse(files['windows/intune/supersedence.json']);
+      // Support three formats:
+      //   1. New: array of { supersededAppId, supersedenceType }
+      //   2. Old single-object: { supersededAppId, supersedenceType }
+      //   3. Legacy snake_case: { supersedes_app_id, supersedence_type }
+      const entries = Array.isArray(raw) ? raw : [raw];
+      const parsed = entries
+        .map(s => ({
+          appId: (s.supersededAppId || s.supersedes_app_id || s.targetId || '').trim().replace(/^\{|\}$/g, ''),
+          supersedenceType: s.supersedenceType || s.supersedence_type || 'replace',
+        }))
+        .filter(s => s.appId);
+      if (parsed.length > 0) state.supersedences = parsed;
     } catch (e) {
       warnings.push(`Failed to parse supersedence.json: ${e.message}`);
     }

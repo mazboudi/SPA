@@ -89,9 +89,12 @@ export function compareIntuneState(builderState, intuneData) {
   cmp('assignments', 'Assignments', 'Assignments', builderAssign, intuneAssign);
 
   // ── Supersedence ──────────────────────────────────────────────────────
-  const builderSup = s.supersedesAppId ? `${s.supersedesAppId} (${s.supersedenceType || 'update'})` : '(none)';
+  const builderSupList = (s.supersedences || []).filter(x => x.appId);
+  const builderSup = builderSupList.length > 0
+    ? builderSupList.map(x => `${x.appId} (${x.supersedenceType || 'replace'})`).sort().join(', ')
+    : '(none)';
   const intuneSup = (intuneData.supersedence || []).length > 0
-    ? intuneData.supersedence.map(r => `${r.supersededAppId} (${r.supersedenceType})`).join(', ')
+    ? intuneData.supersedence.map(r => `${r.supersededAppId} (${r.supersedenceType})`).sort().join(', ')
     : '(none)';
   cmp('supersedence', 'Supersedence', 'Relationships', builderSup, intuneSup);
 
