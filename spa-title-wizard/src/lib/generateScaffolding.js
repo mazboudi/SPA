@@ -358,12 +358,16 @@ ${optLines.join('\n')}
     }
     files['windows/intune/requirements.json'] = JSON.stringify(reqObj, null, 2);
 
-    // Intune supersedence.json — strip any accidental {} braces from the GUID
+    // Intune supersedence.json — only write when a superseded app GUID is configured.
+    // Writing an empty file causes the pipeline to call Set-Win32Supersedence.ps1 unnecessarily.
     const stripGuidBraces = (g) => (g || '').trim().replace(/^\{|\}$/g, '');
-    files['windows/intune/supersedence.json'] = JSON.stringify({
-      supersededAppId: stripGuidBraces(s.supersedesAppId),
-      supersedenceType: s.supersedenceType || 'update',
-    }, null, 2);
+    const cleanSupersededId = stripGuidBraces(s.supersedesAppId);
+    if (cleanSupersededId) {
+      files['windows/intune/supersedence.json'] = JSON.stringify({
+        supersededAppId: cleanSupersededId,
+        supersedenceType: s.supersedenceType || 'replace',
+      }, null, 2);
+    }
 
     // Intune dependencies.json
     if ((s.dependencies || []).length > 0) {
