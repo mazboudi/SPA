@@ -218,13 +218,15 @@ export default function Sidebar({
             onClick={onNewFromQueue}
             sidebarOpen={sidebarOpen}
           />
-          <StageItem
-            icon={<SyncAltIcon sx={{ fontSize: 16 }} />}
-            label="Refactor Existing"
-            active={false}
-            onClick={onRefactor}
-            sidebarOpen={sidebarOpen}
-          />
+          {platform !== 'macos' && (
+            <StageItem
+              icon={<SyncAltIcon sx={{ fontSize: 16 }} />}
+              label="Refactor Existing"
+              active={false}
+              onClick={onRefactor}
+              sidebarOpen={sidebarOpen}
+            />
+          )}
         </NavSection>
 
         <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
