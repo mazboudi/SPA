@@ -410,23 +410,30 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
 /* ── Premium Tab Bar & Buttons ── */
 .psadt-tab-bar {
   display: flex;
-  gap: var(--space-md, 12px);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 0;
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: var(--space-xl);
   padding-bottom: 2px;
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE/Edge */
 }
+.psadt-tab-bar::-webkit-scrollbar { display: none; }
 .psadt-tab-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-shrink: 0;
+  gap: 6px;
   background: transparent;
   border: none;
-  padding: 12px 20px;
+  padding: 10px 16px;
   cursor: pointer;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  white-space: nowrap;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border-bottom: 3px solid transparent;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;

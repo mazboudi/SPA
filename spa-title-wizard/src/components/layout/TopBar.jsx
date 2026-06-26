@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import {
   AppBar, Toolbar, Typography, IconButton, Chip, Box,
-  Tooltip, ButtonGroup, Button,
+  Tooltip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import WindowsIcon from '@mui/icons-material/Window';
 import AppleIcon from '@mui/icons-material/Apple';
-import ViewSidebarIcon from '@mui/icons-material/ViewSidebar';
-import AspectRatioIcon from '@mui/icons-material/AspectRatio';
-import OpenInFullIcon from '@mui/icons-material/OpenInFull';
-import FitScreenIcon from '@mui/icons-material/FitScreen';
 
 const PLATFORM_ICON = {
   windows: <WindowsIcon sx={{ fontSize: 14 }} />,
@@ -111,29 +107,6 @@ export default function TopBar({
         )}
 
         <Box sx={{ flex: 1 }} />
-
-        {/* Width controller */}
-        <Tooltip title="Workbench width">
-          <ButtonGroup size="small" variant="text" sx={{ '& .MuiButton-root': { minWidth: 36, px: 0.5 } }}>
-            {[
-              { key: 'standard', icon: <ViewSidebarIcon sx={{ fontSize: 16 }} />, title: 'Standard (1100px)' },
-              { key: 'wide', icon: <AspectRatioIcon sx={{ fontSize: 16 }} />, title: 'Wide (1500px)' },
-              { key: 'full', icon: <OpenInFullIcon sx={{ fontSize: 16 }} />, title: 'Full width' },
-            ].map(({ key, icon, title }) => (
-              <Tooltip title={title} key={key}>
-                <Button
-                  onClick={() => onWidthChange(key)}
-                  sx={{
-                    color: workbenchWidth === key ? 'primary.main' : 'text.disabled',
-                    backgroundColor: workbenchWidth === key ? 'rgba(99,140,255,0.1)' : 'transparent',
-                  }}
-                >
-                  {icon}
-                </Button>
-              </Tooltip>
-            ))}
-          </ButtonGroup>
-        </Tooltip>
 
         {/* Home */}
         {onGoHome && (
