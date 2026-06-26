@@ -1,5 +1,7 @@
+terraform_fmt_check
+
 Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-20-16-3-3-d46cf8444-6r6vj tGLU-sFh, system ID: r_z19rKjCFQART
+  on gitlab-runner-generic-20-16-3-3-d46cf8444-gjsmx Q6oyNk-5, system ID: r_wXbdq1AC34CJ
 Resolving secrets
 00:00
 Preparing the "kubernetes" executor
@@ -8,71 +10,169 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image hashicorp/terraform:1.7 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:07
-Waiting for pod gitlab-prod/runner-tglu-sfh-project-86264-concurrent-0-56e9scl0 to be running, status is Pending
-Waiting for pod gitlab-prod/runner-tglu-sfh-project-86264-concurrent-0-56e9scl0 to be running, status is Pending
-	ContainersNotReady: "containers with unready status: [build helper]"
-	ContainersNotReady: "containers with unready status: [build helper]"
-Running on runner-tglu-sfh-project-86264-concurrent-0-56e9scl0 via gitlab-runner-generic-20-16-3-3-d46cf8444-6r6vj...
+00:04
+Waiting for pod gitlab-prod/runner-q6oynk-5-project-86264-concurrent-0-2k41l7sc to be running, status is Pending
+Running on runner-q6oynk-5-project-86264-concurrent-0-2k41l7sc via gitlab-runner-generic-20-16-3-3-d46cf8444-gjsmx...
 Getting source from Git repository
 00:01
 Fetching changes with git depth set to 1...
 Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
 Created fresh repository.
-Checking out 43bc0e56 as detached HEAD (ref is main)...
+Checking out 32dc1b83 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
-02:06
+00:01
+$ set -euo pipefail # collapsed multi-line command
+modules/policy/main.tf
+--- old/modules/policy/main.tf
++++ new/modules/policy/main.tf
+@@ -13,16 +13,16 @@
+ }
+ 
+ resource "jamfpro_policy" "this" {
+-  name            = var.policy_name
+-  enabled         = var.enabled
+-  trigger_checkin   = contains(var.triggers, "checkin")
++  name               = var.policy_name
++  enabled            = var.enabled
++  trigger_checkin    = contains(var.triggers, "checkin")
+   trigger_enrollment = contains(var.triggers, "enrollment")
+-  trigger_login     = contains(var.triggers, "login")
+-  trigger_startup   = contains(var.triggers, "startup")
+-  trigger_other     = contains(var.triggers, "custom") ? var.custom_trigger : ""
+-  frequency       = var.frequency
+-  category_id     = var.category_id
+-  site_id         = -1
++  trigger_login      = contains(var.triggers, "login")
++  trigger_startup    = contains(var.triggers, "startup")
++  trigger_other      = contains(var.triggers, "custom") ? var.custom_trigger : ""
++  frequency          = var.frequency
++  category_id        = var.category_id
++  site_id            = -1
+ 
+   # Scope — target computer groups
+   scope {
+@@ -87,9 +87,9 @@
+     force_users_to_view_description = false
+     feature_on_main_page            = false
+     self_service_category {
+-      id          = var.self_service_category_id
+-      display_in  = var.self_service_enabled
+-      feature_in  = false
++      id         = var.self_service_category_id
++      display_in = var.self_service_enabled
++      feature_in = false
+     }
+   }
+ }
+modules/script/main.tf
+--- old/modules/script/main.tf
++++ new/modules/script/main.tf
+@@ -14,13 +14,13 @@
+ }
+ 
+ resource "jamfpro_script" "this" {
+-  name              = var.script_name
+-  script_contents   = var.script_contents
+-  os_requirements   = var.os_requirements
+-  priority          = var.priority
+-  info              = var.info
+-  notes             = var.notes
+-  category_id       = var.category_id
++  name            = var.script_name
++  script_contents = var.script_contents
++  os_requirements = var.os_requirements
++  priority        = var.priority
++  info            = var.info
++  notes           = var.notes
++  category_id     = var.category_id
+ }
+ 
+ output "id" {
+❌ Terraform files are not formatted.
+Run 'terraform fmt -recursive' to fix.
+Cleaning up project directory and file based variables
+00:00
+ERROR: Job failed: command terminated with exit code 1
+
+terraform_validate
+
+Running with gitlab-runner 16.3.3 (ed9cebb1)
+  on gitlab-runner-generic-20-16-3-3-d46cf8444-7rlr5 P_mwh8n_, system ID: r_nvxT2OnxKPya
+Resolving secrets
+00:00
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab-prod
+Using Kubernetes executor with image hashicorp/terraform:1.7 ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:04
+Waiting for pod gitlab-prod/runner-pmwh8n-project-86264-concurrent-0-ld4k5b9g to be running, status is Pending
+Running on runner-pmwh8n-project-86264-concurrent-0-ld4k5b9g via gitlab-runner-generic-20-16-3-3-d46cf8444-7rlr5...
+Getting source from Git repository
+00:01
+Fetching changes with git depth set to 1...
+Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
+Created fresh repository.
+Checking out 32dc1b83 as detached HEAD (ref is main)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:23
 $ set -euo pipefail # collapsed multi-line command
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
-(1/2) Installing readline (8.2.1-r2)
-(2/2) Installing bash (5.2.21-r0)
+(1/5) Installing readline (8.2.1-r2)
+(2/5) Installing bash (5.2.21-r0)
 Executing bash-5.2.21-r0.post-install
+(3/5) Installing libpsl (0.21.5-r0)
+(4/5) Upgrading libcurl (8.5.0-r0 -> 8.14.1-r2)
+(5/5) Installing curl (8.14.1-r2)
 Executing busybox-1.36.1-r15.trigger
-OK: 27 MiB in 37 packages
+OK: 27 MiB in 39 packages
+Checking connectivity to registry.terraform.io...
+✅ Registry is reachable.
 Validating module: category
-│ net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-╵
-Error: Missing required provider
-This configuration requires provider
-registry.terraform.io/deploymenttheory/jamfpro, but that provider isn't
-available. You may be able to install it automatically by running:
-  terraform init
-  ✗ category failed validation
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ category
 Validating module: extension-attribute
-│ net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-╵
-Error: Missing required provider
-This configuration requires provider
-registry.terraform.io/deploymenttheory/jamfpro, but that provider isn't
-available. You may be able to install it automatically by running:
-  terraform init
-  ✗ extension-attribute failed validation
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ extension-attribute
 Validating module: package
-│ net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-╵
-Error: Missing required provider
-This configuration requires provider
-registry.terraform.io/deploymenttheory/jamfpro, but that provider isn't
-available. You may be able to install it automatically by running:
-  terraform init
-  ✗ package failed validation
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Success! The configuration is valid.
+  ✓ package
 Validating module: policy
-│ net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-╵
-Error: Missing required provider
-This configuration requires provider
-registry.terraform.io/deploymenttheory/jamfpro, but that provider isn't
-available. You may be able to install it automatically by running:
-  terraform init
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+Terraform has been successfully initialized!
+Error: Unsupported argument
+  on main.tf line 19, in resource "jamfpro_policy" "this":
+  19:   trigger_enrollment = contains(var.triggers, "enrollment")
+An argument named "trigger_enrollment" is not expected here.
   ✗ policy failed validation
 Validating module: script
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.
 Terraform has been successfully initialized!
 Success! The configuration is valid.
   ✓ script
 Validating module: smart-group
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.
 Terraform has been successfully initialized!
 Success! The configuration is valid.
@@ -82,7 +182,72 @@ you run "terraform init" in the future.
 Terraform has been successfully initialized!
 Success! The configuration is valid.
   ✓ root
-❌ 4 module(s) failed Terraform validation.
+❌ 1 module(s) failed Terraform validation.
 Cleaning up project directory and file based variables
 00:01
 ERROR: Job failed: command terminated with exit code 1
+
+create_release
+
+Running with gitlab-runner 16.3.3 (ed9cebb1)
+  on gitlab-runner-generic-20-16-3-3-d46cf8444-gjsmx Q6oyNk-5, system ID: r_wXbdq1AC34CJ
+Resolving secrets
+00:00
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab-prod
+Using Kubernetes executor with image alpine:3.19 ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:07
+Waiting for pod gitlab-prod/runner-q6oynk-5-project-86264-concurrent-0-9vk3ao66 to be running, status is Pending
+Waiting for pod gitlab-prod/runner-q6oynk-5-project-86264-concurrent-0-9vk3ao66 to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper]"
+	ContainersNotReady: "containers with unready status: [build helper]"
+Running on runner-q6oynk-5-project-86264-concurrent-0-9vk3ao66 via gitlab-runner-generic-20-16-3-3-d46cf8444-gjsmx...
+Getting source from Git repository
+00:01
+Fetching changes with git depth set to 1...
+Initialized empty Git repository in /builds/euc/software-package-automation/spa-deployment/terraform-jamf-modules/.git/
+Created fresh repository.
+Checking out 32dc1b83 as detached HEAD (ref is main)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:03
+$ apk add --no-cache curl python3
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
+(1/26) Installing ca-certificates (20250911-r0)
+(2/26) Installing brotli-libs (1.1.0-r1)
+(3/26) Installing c-ares (1.27.0-r0)
+(4/26) Installing libunistring (1.1-r2)
+(5/26) Installing libidn2 (2.3.4-r4)
+(6/26) Installing nghttp2-libs (1.58.0-r0)
+(7/26) Installing libpsl (0.21.5-r0)
+(8/26) Installing libcurl (8.14.1-r2)
+(9/26) Installing curl (8.14.1-r2)
+(10/26) Installing libexpat (2.7.3-r0)
+(11/26) Installing libbz2 (1.0.8-r6)
+(12/26) Installing libffi (3.4.4-r3)
+(13/26) Installing gdbm (1.23-r1)
+(14/26) Installing xz-libs (5.4.5-r1)
+(15/26) Installing libgcc (13.2.1_git20231014-r0)
+(16/26) Installing libstdc++ (13.2.1_git20231014-r0)
+(17/26) Installing mpdecimal (2.5.1-r2)
+(18/26) Installing ncurses-terminfo-base (6.4_p20231125-r0)
+(19/26) Installing libncursesw (6.4_p20231125-r0)
+(20/26) Installing libpanelw (6.4_p20231125-r0)
+(21/26) Installing readline (8.2.1-r2)
+(22/26) Installing sqlite-libs (3.44.2-r2)
+(23/26) Installing python3 (3.11.14-r0)
+(24/26) Installing python3-pycache-pyc0 (3.11.14-r0)
+(25/26) Installing pyc (3.11.14-r0)
+(26/26) Installing python3-pyc (3.11.14-r0)
+Executing busybox-1.36.1-r20.trigger
+Executing ca-certificates-20250911-r0.trigger
+OK: 56 MiB in 41 packages
+$ set -euo pipefail # collapsed multi-line command
+⚠ No git tag — skipping release creation (branch push).
+Cleaning up project directory and file based variables
+00:01
+Job succeeded
