@@ -110,3 +110,15 @@ macos_deploy_jamf:
       echo "═══════════════════════════════════════════════════════"
       echo "  ✅ macOS deployment complete!"
       echo "═══════════════════════════════════════════════════════"
+
+  artifacts:
+    name: "jamf-terraform-$CI_COMMIT_SHORT_SHA"
+    when: always          # preserve on failure too — useful for debugging
+    expire_in: 7 days
+    paths:
+      - tf-deploy/**/*.tf         # all generated HCL files
+      - tf-deploy/tfplan          # the saved terraform plan
+      - tf-deploy/*.tfvars        # any variable files
+      - tf-deploy/*.json          # any JSON inputs copied into the deploy dir
+    exclude:
+      - tf-deploy/.terraform/**   # provider binaries — large and not useful to store
