@@ -113,7 +113,7 @@ function SecretField({ fieldKey, label, hint, placeholder, value, onChange }) {
 }
 
 // ── Main Settings Page ────────────────────────────────────────────────────
-export default function SettingsPage({ workbenchWidth, onWidthChange }) {
+export default function SettingsPage({ workbenchWidth, onWidthChange, colorThemeId, colorThemes, onColorThemeChange }) {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -198,7 +198,8 @@ export default function SettingsPage({ workbenchWidth, onWidthChange }) {
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Appearance</Typography>
           <Chip label="No restart needed" size="small" color="success" sx={{ fontSize: '0.65rem', height: 18 }} />
         </Box>
-        <Box>
+        {/* Workbench Width */}
+        <Box sx={{ mb: 3 }}>
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>Workbench Width</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             {[
@@ -221,6 +222,49 @@ export default function SettingsPage({ workbenchWidth, onWidthChange }) {
             ))}
           </Box>
         </Box>
+
+        {/* Colour Theme */}
+        {colorThemes && (
+          <Box>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>Colour Theme</Typography>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              {colorThemes.map((theme) => {
+                const isSelected = colorThemeId === theme.id;
+                return (
+                  <Box
+                    key={theme.id}
+                    onClick={() => onColorThemeChange(theme.id)}
+                    sx={{
+                      cursor: 'pointer',
+                      borderRadius: 2,
+                      border: '2px solid',
+                      borderColor: isSelected ? 'primary.main' : 'divider',
+                      p: 1.5,
+                      minWidth: 140,
+                      transition: 'all 0.2s',
+                      background: isSelected ? 'rgba(99,140,255,0.06)' : 'transparent',
+                      '&:hover': { borderColor: 'primary.light', background: 'rgba(99,140,255,0.04)' },
+                    }}
+                  >
+                    {/* Swatch strip */}
+                    <Box sx={{ display: 'flex', gap: 0.5, mb: 1, borderRadius: 1, overflow: 'hidden', height: 20 }}>
+                      {theme.swatch.map((color) => (
+                        <Box key={color} sx={{ flex: 1, backgroundColor: color, borderRadius: 0.5 }} />
+                      ))}
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: isSelected ? 700 : 500, color: isSelected ? 'primary.main' : 'text.primary', display: 'block' }}>
+                      {theme.label}
+                      {isSelected && ' ✓'}
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.disabled' }}>
+                      {theme.description}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+        )}
       </Paper>
 
       {/* ── Server config groups ── */}

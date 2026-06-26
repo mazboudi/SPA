@@ -9,6 +9,7 @@ import PlatformSelector from './components/layout/PlatformSelector';
 import SettingsPage from './components/pages/SettingsPage';
 
 import useWizardState from './hooks/useWizardState';
+import { useColorTheme } from './hooks/useColorTheme';
 import BasicInfoStep from './components/steps/BasicInfoStep';
 import PsadtLifecycleStep from './components/steps/PsadtLifecycleStep';
 import InstallerStep from './components/steps/InstallerStep';
@@ -36,6 +37,9 @@ const VIEW = {
 
 export default function App() {
   const wizard = useWizardState();
+
+  // ── Color theme ────────────────────────────────────────────────
+  const { themeId, selectTheme, themes } = useColorTheme();
 
   // ── Layout state ─────────────────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -454,7 +458,13 @@ export default function App() {
 
           {/* ── SETTINGS ── */}
           {view === VIEW.SETTINGS && (
-            <SettingsPage workbenchWidth={workbenchWidth} onWidthChange={handleWidthChange} />
+            <SettingsPage
+              workbenchWidth={workbenchWidth}
+              onWidthChange={handleWidthChange}
+              colorThemeId={themeId}
+              colorThemes={themes}
+              onColorThemeChange={selectTheme}
+            />
           )}
 
           {/* ── REFACTOR FLOW ── */}
