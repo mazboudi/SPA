@@ -13,16 +13,16 @@ terraform {
 }
 
 resource "jamfpro_policy" "this" {
-  name            = var.policy_name
-  enabled         = var.enabled
-  trigger_checkin   = contains(var.triggers, "checkin")
-  trigger_enrollment = contains(var.triggers, "enrollment")
-  trigger_login     = contains(var.triggers, "login")
-  trigger_startup   = contains(var.triggers, "startup")
-  trigger_other     = contains(var.triggers, "custom") ? var.custom_trigger : ""
-  frequency       = var.frequency
-  category_id     = var.category_id
-  site_id         = -1
+  name                        = var.policy_name
+  enabled                     = var.enabled
+  trigger_checkin             = contains(var.triggers, "checkin")
+  trigger_enrollment_complete = contains(var.triggers, "enrollment")
+  trigger_login               = contains(var.triggers, "login")
+  trigger_startup             = contains(var.triggers, "startup")
+  trigger_other               = contains(var.triggers, "custom") ? var.custom_trigger : ""
+  frequency                   = var.frequency
+  category_id                 = var.category_id
+  site_id                     = -1
 
   # Scope — target computer groups
   scope {
@@ -87,9 +87,9 @@ resource "jamfpro_policy" "this" {
     force_users_to_view_description = false
     feature_on_main_page            = false
     self_service_category {
-      id          = var.self_service_category_id
-      display_in  = var.self_service_enabled
-      feature_in  = false
+      id         = var.self_service_category_id
+      display_in = var.self_service_enabled
+      feature_in = false
     }
   }
 }

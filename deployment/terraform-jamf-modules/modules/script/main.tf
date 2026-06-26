@@ -14,13 +14,13 @@ terraform {
 }
 
 resource "jamfpro_script" "this" {
-  name              = var.script_name
-  script_contents   = var.script_contents
-  os_requirements   = var.os_requirements
-  priority          = var.priority
-  info              = var.info
-  notes             = var.notes
-  category_id       = var.category_id
+  name            = var.script_name
+  script_contents = var.script_contents
+  os_requirements = var.os_requirements
+  priority        = var.priority
+  info            = var.info
+  notes           = var.notes
+  category_id     = var.category_id
 }
 
 output "id" {
