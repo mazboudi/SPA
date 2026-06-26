@@ -54,8 +54,10 @@ if (!(Test-Path $SupersedencePath)) {
 
 $raw = Get-Content $SupersedencePath -Raw | ConvertFrom-Json
 
-# Normalize: support both single object and array format
-$supersedences = @(if ($raw -is [System.Array]) { $raw } else { $raw })
+# Normalize: support both single object and array format from ConvertFrom-Json.
+# @($raw) correctly wraps a single PSCustomObject into a one-element array,
+# and leaves an existing array unchanged.
+$supersedences = @($raw)
 
 # Filter out entries with empty/missing target IDs
 $valid = @($supersedences | Where-Object {
