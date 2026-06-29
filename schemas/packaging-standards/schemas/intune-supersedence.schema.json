@@ -2,19 +2,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://packaging-standards/schemas/intune-supersedence.schema.json",
   "title": "Intune App Supersedence",
-  "description": "Intune Win32 app supersedence configuration. Located at windows/intune/supersedence.json in each title repo.",
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "supersededAppId": {
-      "type": "string",
-      "description": "Intune App ID (GUID) of the application being superseded. Empty string if not superseding any app."
-    },
-    "supersedenceType": {
-      "type": "string",
-      "enum": ["update", "replace"],
-      "default": "update",
-      "description": "'update' uninstalls the previous version before installing this one. 'replace' keeps both versions side-by-side."
+  "description": "Intune Win32 app supersedence configuration. Array of up to 10 supersedence relationships (Graph API limit). Located at windows/intune/supersedence.json in each title repo.",
+  "type": "array",
+  "maxItems": 10,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["supersededAppId", "supersedenceType"],
+    "properties": {
+      "supersededAppId": {
+        "type": "string",
+        "description": "Intune App ID (GUID) of the application being superseded."
+      },
+      "supersedenceType": {
+        "type": "string",
+        "enum": ["update", "replace"],
+        "default": "update",
+        "description": "'update' uninstalls the previous version before installing. 'replace' keeps both versions side-by-side."
+      }
     }
   }
 }
