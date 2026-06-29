@@ -108,6 +108,12 @@ body::before {
 /* Light mode — no gradient overlay */
 :root[data-theme="light"] body::before { display: none; }
 
+/* Graphite mode — replace blue/purple glow with subtle warm grey */
+:root[data-theme="graphite"] body::before {
+  background: radial-gradient(ellipse at 30% 20%, rgba(80, 90, 100, 0.12) 0%, transparent 55%),
+              radial-gradient(ellipse at 70% 70%, rgba(60, 70, 80, 0.08) 0%, transparent 50%);
+}
+
 /* ── Light mode: code preview & script developer overrides ───────────────────
  * CodePreview, DiffPreview, and PsadtLifecycleStep use hardcoded dark rgba
  * values that can't be reached via CSS vars alone. We override them here.
