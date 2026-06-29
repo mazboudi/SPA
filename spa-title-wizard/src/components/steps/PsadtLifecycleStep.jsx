@@ -48,10 +48,10 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
         <div className="action-card__controls" onClick={e => e.stopPropagation()}>
           <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
           <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
-          <button 
+          <button
             type="button"
-            className={`action-btn action-btn--toggle ${action.enabled ? 'action-btn--active' : 'action-btn--inactive'}`} 
-            onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })} 
+            className={`action-btn action-btn--toggle ${action.enabled ? 'action-btn--active' : 'action-btn--inactive'}`}
+            onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })}
             title={action.enabled ? 'Disable (Exclude from Script)' : 'Enable (Include in Script)'}
           >
             {action.enabled ? '🟢' : '🔴'}
@@ -167,10 +167,10 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
         <div className="action-card__controls" onClick={e => e.stopPropagation()}>
           <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
           <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
-          <button 
+          <button
             type="button"
-            className={`action-btn action-btn--toggle ${action.enabled ? 'action-btn--active' : 'action-btn--inactive'}`} 
-            onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })} 
+            className={`action-btn action-btn--toggle ${action.enabled ? 'action-btn--active' : 'action-btn--inactive'}`}
+            onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })}
             title={action.enabled ? 'Disable (Exclude from Script)' : 'Enable (Include in Script)'}
           >
             {action.enabled ? '🟢' : '🔴'}
@@ -625,7 +625,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     try {
       // Always write to the correct output filename (v4 standard name for converted scripts)
       const relPath = `windows/src/${resolvedScriptName}`;
-      
+
       const res = await fetch('/api/open-vscode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -750,7 +750,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       </>
                     )}
                     {conversionStats.customScriptCount === 0 && conversionStats.rawPsCount === 0 && (
-                      <> All actions mapped to known types — ready to configure.</>  
+                      <> All actions mapped to known types — ready to configure.</>
                     )}
                   </div>
                 </div>
@@ -785,7 +785,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
             {/* Phase Panels */}
             <div className="config-section">
               <h3 className="section-title">
-                Lifecycle Phases 
+                Lifecycle Phases
                 <span className="section-optional">
                   {PHASE_KEYS.length} phases active
                 </span>
@@ -861,22 +861,22 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '300px' }}>
                   <h3 className="section-title" style={{ margin: 0 }}>
-                    {hasLegacyScript ? '🔍 Original vs. Converted Script Comparison' : '📜 Converted PowerShell Script'}
+                    {hasLegacyScript ? '🔍 Original vs. Converted Script Comparison' : '📜 Generated PowerShell Script'}
                   </h3>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                    {hasLegacyScript 
+                    {hasLegacyScript
                       ? 'Compare the original legacy PowerShell script with the newly compiled and structured script. Use this view to verify successful conversion.'
                       : 'View the generated PowerShell script. Customize it in VS Code to make manual edits.'
                     }
                   </p>
                 </div>
-                
+
                 {/* Unified Toolbar containing VS Code Actions, Badges, Layout Selector, and Pristine Code Toggle */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className="badge badge--sync" style={{ padding: '4px 10px', height: 'fit-content' }}>
                     🔒 Form-Synchronized
                   </span>
-                  
+
                   {/* Layout Selector (only visible if there is a legacy script) */}
                   {hasLegacyScript && (
                     <div className="layout-selector" style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)', padding: '2px' }}>
@@ -978,7 +978,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
                 </div>
               </div>
-              
+
               {/* Modernization Report */}
               {compatReport && hasLegacyScript && (
                 <div className="compat-report-card" style={{ marginBottom: 'var(--space-md)', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
@@ -986,7 +986,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.1rem' }}>{compatReport.summary.manualReview > 0 ? '⚠️' : '✅'}</span>
                       <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                        {compatReport.summary.manualReview > 0 
+                        {compatReport.summary.manualReview > 0
                           ? `Modernization Report: ${compatReport.summary.manualReview} items require verification`
                           : 'Modernization Report: All actions successfully converted to standard v4 structure!'}
                       </strong>
@@ -1002,7 +1002,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       <span>Line numbers in the report correspond to the <strong>Original Legacy Script (left pane / top pane)</strong>. Use them to locate exact legacy context before conversion.</span>
                     </div>
                   )}
-                  
+
                   {compatReport.manualFindings.length > 0 && (
                     <details style={{ marginTop: '8px' }}>
                       <summary style={{ fontSize: '0.75rem', color: 'var(--text-accent)', cursor: 'pointer', outline: 'none', userSelect: 'none' }}>
@@ -1107,7 +1107,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', marginTop: 'var(--space-lg)' }}>
-                
+
                 <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-md)' }}>
                   <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 1: Download & Extract PsExec</h4>
                   <p style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Run this clean PowerShell command on your Windows test system to download Sysinternals PSTools automatically:</p>
@@ -1115,9 +1115,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#a7f3d0', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                       {`Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile "$env:TEMP\\PSTools.zip"; Expand-Archive -Path "$env:TEMP\\PSTools.zip" -DestinationPath "$env:ProgramFiles\\PSTools" -Force`}
                     </code>
-                    <button 
+                    <button
                       type="button"
-                      className="btn btn-ghost" 
+                      className="btn btn-ghost"
                       style={{ padding: '6px 12px', fontSize: '0.72rem', flexShrink: 0 }}
                       onClick={() => copyToClipboard(`Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile "$env:TEMP\\PSTools.zip"; Expand-Archive -Path "$env:TEMP\\PSTools.zip" -DestinationPath "$env:ProgramFiles\\PSTools" -Force`, 'dl-pstools')}
                     >
@@ -1136,7 +1136,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 <div>
                   <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 3: Run PSADT under SYSTEM Context</h4>
                   <p style={{ margin: '0 0 12px 0', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Open an <strong>Elevated Command Prompt (Run as Administrator)</strong> on your Windows machine, navigate to your PSTools folder or ensure psexec is in your PATH, and run one of the following commands:</p>
-                  
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
                     <div style={{ background: 'rgba(255,255,255,0.01)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontWeight: 600, color: '#60a5fa', marginBottom: '6px', fontSize: '0.8rem' }}>🟢 Test Install Phase (Interactive, full UI progress bar visible):</div>
@@ -1144,9 +1144,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                           {`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Interactive`}
                         </code>
-                        <button 
+                        <button
                           type="button"
-                          className="btn btn-ghost" 
+                          className="btn btn-ghost"
                           style={{ padding: '6px 12px', fontSize: '0.72rem', flexShrink: 0 }}
                           onClick={() => copyToClipboard(`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Interactive`, 'run-install')}
                         >
@@ -1161,9 +1161,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                           {`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Uninstall -DeployMode Interactive`}
                         </code>
-                        <button 
+                        <button
                           type="button"
-                          className="btn btn-ghost" 
+                          className="btn btn-ghost"
                           style={{ padding: '6px 12px', fontSize: '0.72rem', flexShrink: 0 }}
                           onClick={() => copyToClipboard(`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Uninstall -DeployMode Interactive`, 'run-uninstall')}
                         >
@@ -1178,9 +1178,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                           {`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Repair -DeployMode Interactive`}
                         </code>
-                        <button 
+                        <button
                           type="button"
-                          className="btn btn-ghost" 
+                          className="btn btn-ghost"
                           style={{ padding: '6px 12px', fontSize: '0.72rem', flexShrink: 0 }}
                           onClick={() => copyToClipboard(`psexec.exe -i -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Repair -DeployMode Interactive`, 'run-repair')}
                         >
@@ -1195,9 +1195,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         <code style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', color: '#93c5fd', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                           {`psexec.exe -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Silent`}
                         </code>
-                        <button 
+                        <button
                           type="button"
-                          className="btn btn-ghost" 
+                          className="btn btn-ghost"
                           style={{ padding: '6px 12px', fontSize: '0.72rem', flexShrink: 0 }}
                           onClick={() => copyToClipboard(`psexec.exe -s powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\\SPA_Test\\Invoke-AppDeployToolkit.ps1" -DeploymentType Install -DeployMode Silent`, 'run-silent')}
                         >
