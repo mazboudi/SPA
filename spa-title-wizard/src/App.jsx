@@ -73,19 +73,33 @@ export default function App() {
   const [psadtResult, setPsadtResult] = useState(null);
   const refactorInputRef = useRef(null);
 
+  // ── Server config (survives wizard resets) ────────────────────────────────
+  const serverConfig = useRef({});
+
   // ── Load server config on mount (platform groups + gitLabGroup) ───────────
   useEffect(() => {
     fetch('/api/health')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
-        // Populate platform group vars in state so gitLabGroup derives correctly on platform select
-        if (data.gitLabWinGroup) wizard.updateField('gitLabWinGroup', data.gitLabWinGroup);
-        if (data.gitLabMacGroup) wizard.updateField('gitLabMacGroup', data.gitLabMacGroup);
-        // Legacy fallback group
-        if (data.gitLabGroup && !data.gitLabWinGroup) wizard.updateField('gitLabGroup', data.gitLabGroup);
+        // Store in ref so values survive wizard.reset() calls
+        serverConfig.current = {
+          gitLabWinGroup: data.gitLabWinGroup || '',
+          gitLabMacGroup: data.gitLabMacGroup || '',
+          gitLabGroup:    data.gitLabGroup    || '',
+        };
+        // Apply to wizard state
+        applyServerGroups();
       })
       .catch(err => console.warn('Failed to load server config:', err));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-apply server group fields into wizard state (call after every reset)
+  const applyServerGroups = () => {
+    const cfg = serverConfig.current;
+    if (cfg.gitLabWinGroup) wizard.updateField('gitLabWinGroup', cfg.gitLabWinGroup);
+    if (cfg.gitLabMacGroup) wizard.updateField('gitLabMacGroup', cfg.gitLabMacGroup);
+    if (cfg.gitLabGroup && !cfg.gitLabWinGroup) wizard.updateField('gitLabGroup', cfg.gitLabGroup);
+  };
 
   // ── Platform selection ────────────────────────────────────────────────────
   const handleSelectPlatform = (platformId) => {
@@ -102,8 +116,9 @@ export default function App() {
   const applyPlatformSelect = (platformId) => {
     if (wizard.state.platform !== platformId) {
       wizard.reset();
-      // reset() resets platform too — set it after
+      // reset() resets platform and group fields — restore from server config and set platform
       setTimeout(() => {
+        applyServerGroups();
         wizard.updateField('platform', platformId);
       }, 0);
     }
@@ -124,7 +139,11 @@ export default function App() {
   const handleNewBlank = () => {
     const platform = wizard.state.platform;
     wizard.reset();
-    if (platform) wizard.updateField('platform', platform);
+    // Restore server group paths after reset, then re-apply platform
+    setTimeout(() => {
+      applyServerGroups();
+      if (platform) wizard.updateField('platform', platform);
+    }, 0);
     setView(VIEW.PACKAGE);
   };
 
