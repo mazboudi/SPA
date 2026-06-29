@@ -105,6 +105,9 @@ body::before {
   to { transform: translate(-2%, -1%) rotate(2deg); }
 }
 
+/* Light mode — no gradient overlay */
+:root[data-theme="light"] body::before { display: none; }
+
 #root {
   min-height: 100vh;
   display: flex;

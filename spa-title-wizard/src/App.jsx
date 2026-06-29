@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Alert } from '@mui/material';
 
-import darkTheme from './theme/darkTheme';
+
 import TopBar, { } from './components/layout/TopBar';
 import Sidebar, { DRAWER_WIDTH, DRAWER_COLLAPSED_WIDTH } from './components/layout/Sidebar';
 import PlatformSelector from './components/layout/PlatformSelector';
@@ -39,7 +39,7 @@ export default function App() {
   const wizard = useWizardState();
 
   // ── Color theme ────────────────────────────────────────────────
-  const { themeId, selectTheme, themes } = useColorTheme();
+  const { themeId, muiTheme, selectTheme, themes } = useColorTheme();
 
   // ── Layout state ─────────────────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -384,7 +384,8 @@ export default function App() {
       : undefined;
 
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={muiTheme}>
+
       <CssBaseline />
 
       {/* ── Top Bar ── */}
