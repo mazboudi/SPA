@@ -108,6 +108,90 @@ body::before {
 /* Light mode — no gradient overlay */
 :root[data-theme="light"] body::before { display: none; }
 
+/* ── Light mode: code preview & script developer overrides ───────────────────
+ * CodePreview, DiffPreview, and PsadtLifecycleStep use hardcoded dark rgba
+ * values that can't be reached via CSS vars alone. We override them here.
+ * ─────────────────────────────────────────────────────────────────────────── */
+:root[data-theme="light"] .code-preview {
+  background: #F0F4F8 !important;
+}
+:root[data-theme="light"] .code-preview__gutter {
+  background: #E2E8F0 !important;
+  color: #718096 !important;
+  border-right-color: #CBD5E0 !important;
+}
+:root[data-theme="light"] .code-preview__code {
+  color: #1A202C !important;
+}
+:root[data-theme="light"] .cp-key   { color: #2b6cb0 !important; }  /* JSON keys — blue */
+:root[data-theme="light"] .cp-str   { color: #276749 !important; }  /* strings — green */
+:root[data-theme="light"] .cp-bool  { color: #6b46c1 !important; }  /* booleans — purple */
+:root[data-theme="light"] .cp-num   { color: #c05621 !important; }  /* numbers — orange */
+:root[data-theme="light"] .cp-kw    { color: #6b46c1 !important; font-weight: 600; }
+:root[data-theme="light"] .cp-comment { color: #718096 !important; }
+
+:root[data-theme="light"] .cp-block--locked {
+  background: rgba(59, 130, 246, 0.06) !important;
+}
+:root[data-theme="light"] .cp-block--locked .cp-block__header {
+  background: rgba(59, 130, 246, 0.08) !important;
+  color: #2b6cb0 !important;
+  border-bottom-color: rgba(59, 130, 246, 0.15) !important;
+}
+:root[data-theme="light"] .cp-block--locked .cp-block__badge {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #2b6cb0 !important;
+}
+:root[data-theme="light"] .cp-block--manual .cp-block__header {
+  background: rgba(217, 119, 6, 0.08) !important;
+  color: #92400e !important;
+  border-bottom-color: rgba(217, 119, 6, 0.15) !important;
+}
+:root[data-theme="light"] .cp-block--manual .cp-block__badge {
+  background: rgba(217, 119, 6, 0.12) !important;
+  color: #92400e !important;
+}
+
+/* PSADT Script Developer — inline code areas */
+:root[data-theme="light"] .psadt-script-view,
+:root[data-theme="light"] .psadt-workspace-tab-content pre,
+:root[data-theme="light"] .psadt-workspace-tab-content code {
+  background: #F0F4F8 !important;
+  color: #1A202C !important;
+}
+
+/* DiffPreview panes */
+:root[data-theme="light"] .diff-preview__code {
+  background: #F0F4F8 !important;
+  color: #2D3748 !important;
+}
+
+/* Inline psexec/copy command code blocks in PSADT Testing tab */
+:root[data-theme="light"] .psadt-workspace-tab-content [style*="rgba(0,0,0,0.3)"],
+:root[data-theme="light"] .psadt-workspace-tab-content [style*="rgba(0, 0, 0, 0.3)"] {
+  background: #E2E8F0 !important;
+  color: #1A202C !important;
+  border-color: #CBD5E0 !important;
+}
+
+/* Layout selector in compare tab */
+:root[data-theme="light"] .layout-selector {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
+
+/* Pristine toggle pill */
+:root[data-theme="light"] .pristine-toggle {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
+
+/* Compat report table rows */
+:root[data-theme="light"] .compat-report-card tr {
+  border-color: rgba(0,0,0,0.06) !important;
+  background: transparent !important;
+}
+
 #root {
   min-height: 100vh;
   display: flex;
