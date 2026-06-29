@@ -5,9 +5,9 @@ import './ProjectPicker.css';
  * ProjectPicker — modal to browse and select an existing SPA project
  * from GitLab for editing in the workbench.
  *
- * @param {{ onSelect: (files: Object, projectMeta: Object) => void, onClose: () => void }} props
+ * @param {{ onSelect: Function, onClose: Function, groupPath?: string }} props
  */
-export default function ProjectPicker({ onSelect, onClose }) {
+export default function ProjectPicker({ onSelect, onClose, groupPath }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,9 +16,12 @@ export default function ProjectPicker({ onSelect, onClose }) {
   const [expandedProject, setExpandedProject] = useState(null);
   const searchRef = useRef(null);
 
-  // ── Load project list ─────────────────────────────────────────────────
+  // ── Load project list ───────────────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/projects')
+    const url = groupPath
+      ? `/api/projects?group=${encodeURIComponent(groupPath)}`
+      : '/api/projects';
+    fetch(url)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -31,7 +34,7 @@ export default function ProjectPicker({ onSelect, onClose }) {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [groupPath]);
 
   useEffect(() => {
     if (!loading && searchRef.current) searchRef.current.focus();
@@ -80,12 +83,6 @@ export default function ProjectPicker({ onSelect, onClose }) {
     }
   };
 
-  // ── Close on Escape ───────────────────────────────────────────────────
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
 
   const formatDate = (iso) => {
     if (!iso) return '';
@@ -97,107 +94,105 @@ export default function ProjectPicker({ onSelect, onClose }) {
   };
 
   return (
-    <div className="pp-overlay" onClick={onClose}>
-      <div className="pp-modal" onClick={e => e.stopPropagation()}>
-        <div className="pp-header">
-          <div>
-            <h2 className="pp-title">✏️ Edit Existing Package</h2>
-            <p className="pp-subtitle">Select a project from GitLab to load into the workbench</p>
-          </div>
-          <button className="pp-close" onClick={onClose} title="Close">✕</button>
+    <div className="pp-page">
+      <div className="pp-header">
+        <div>
+          <h2 className="pp-title">✏️ Edit Existing Package</h2>
+          <p className="pp-subtitle">Select a project from GitLab to load into the workbench</p>
         </div>
+        <button className="pp-close" onClick={onClose} title="Back">← Back</button>
+      </div>
 
-        {/* Search */}
-        <div className="pp-search-bar">
-          <span className="pp-search__icon">🔍</span>
-          <input
-            ref={searchRef}
-            className="pp-search__input"
-            type="text"
-            placeholder="Search by name or description..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          {search && (
-            <button className="pp-search__clear" onClick={() => setSearch('')}>✕</button>
-          )}
-        </div>
+      {/* Search */}
+      <div className="pp-search-bar">
+        <span className="pp-search__icon">🔍</span>
+        <input
+          ref={searchRef}
+          className="pp-search__input"
+          type="text"
+          placeholder="Search by name or description..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && (
+          <button className="pp-search__clear" onClick={() => setSearch('')}>✕</button>
+        )}
+      </div>
 
-        {/* Results info */}
-        <div className="pp-info">
-          {loading ? 'Loading projects...' : error ? `Error: ${error}` : `${filtered.length} of ${projects.length} projects`}
-        </div>
+      {/* Results info */}
+      <div className="pp-info">
+        {loading ? 'Loading projects...' : error ? `Error: ${error}` : `${filtered.length} of ${projects.length} projects`}
+      </div>
 
-        {/* Project List */}
-        <div className="pp-list">
-          {loading && <div className="pp-empty">⏳ Loading projects from GitLab...</div>}
-          {error && <div className="pp-empty pp-empty--error">❌ {error}</div>}
-          {!loading && !error && filtered.length === 0 && (
-            <div className="pp-empty">No projects match your search</div>
-          )}
-          {filtered.map(project => (
-            <div key={project.id} className="pp-item-wrapper">
-              <button
-                className={`pp-item ${loadingProject === project.id ? 'pp-item--loading' : ''} ${expandedProject === project.id ? 'pp-item--expanded' : ''}`}
-                onClick={() => handleItemClick(project)}
-                disabled={!!loadingProject}
-              >
-                <div className="pp-item__icon">📦</div>
-                <div className="pp-item__main">
-                  <div className="pp-item__top">
-                    <span className="pp-item__name">{project.name}</span>
-                    {project.tags?.length > 0 && (
-                      <span className="pp-item__tag-badge">{project.tags[0].name}</span>
-                    )}
-                  </div>
-                  <div className="pp-item__bottom">
-                    <span className="pp-item__path">{project.path_with_namespace}</span>
-                    <span className="pp-item__dot">•</span>
-                    <span className="pp-item__date">Updated {formatDate(project.updated_at)}</span>
-                    {project.tags?.length > 1 && (
-                      <>
-                        <span className="pp-item__dot">•</span>
-                        <span className="pp-item__versions">{project.tags.length} versions</span>
-                      </>
-                    )}
-                  </div>
-                  {project.description && (
-                    <p className="pp-item__desc">{project.description}</p>
+      {/* Project List */}
+      <div className="pp-list">
+        {loading && <div className="pp-empty">⏳ Loading projects from GitLab...</div>}
+        {error && <div className="pp-empty pp-empty--error">❌ {error}</div>}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="pp-empty">No projects match your search</div>
+        )}
+        {filtered.map(project => (
+          <div key={project.id} className="pp-item-wrapper">
+            <button
+              className={`pp-item ${loadingProject === project.id ? 'pp-item--loading' : ''} ${expandedProject === project.id ? 'pp-item--expanded' : ''}`}
+              onClick={() => handleItemClick(project)}
+              disabled={!!loadingProject}
+            >
+              <div className="pp-item__icon">📦</div>
+              <div className="pp-item__main">
+                <div className="pp-item__top">
+                  <span className="pp-item__name">{project.name}</span>
+                  {project.tags?.length > 0 && (
+                    <span className="pp-item__tag-badge">{project.tags[0].name}</span>
                   )}
                 </div>
-                <div className="pp-item__action">
-                  {loadingProject === project.id ? '⏳' : project.tags?.length > 0 ? '▾' : '→'}
+                <div className="pp-item__bottom">
+                  <span className="pp-item__path">{project.path_with_namespace}</span>
+                  <span className="pp-item__dot">•</span>
+                  <span className="pp-item__date">Updated {formatDate(project.updated_at)}</span>
+                  {project.tags?.length > 1 && (
+                    <>
+                      <span className="pp-item__dot">•</span>
+                      <span className="pp-item__versions">{project.tags.length} versions</span>
+                    </>
+                  )}
                 </div>
-              </button>
+                {project.description && (
+                  <p className="pp-item__desc">{project.description}</p>
+                )}
+              </div>
+              <div className="pp-item__action">
+                {loadingProject === project.id ? '⏳' : project.tags?.length > 0 ? '▾' : '→'}
+              </div>
+            </button>
 
-              {/* Version selector — expanded */}
-              {expandedProject === project.id && project.tags?.length > 0 && (
-                <div className="pp-versions">
-                  <div className="pp-versions__header">Select version to load:</div>
+            {/* Version selector — expanded */}
+            {expandedProject === project.id && project.tags?.length > 0 && (
+              <div className="pp-versions">
+                <div className="pp-versions__header">Select version to load:</div>
+                <button
+                  className="pp-version-btn pp-version-btn--latest"
+                  onClick={() => handleLoad(project, null)}
+                  disabled={!!loadingProject}
+                >
+                  <span className="pp-version-btn__name">📌 Latest ({project.default_branch})</span>
+                  <span className="pp-version-btn__hint">Head of default branch</span>
+                </button>
+                {project.tags.map(tag => (
                   <button
-                    className="pp-version-btn pp-version-btn--latest"
-                    onClick={() => handleLoad(project, null)}
+                    key={tag.name}
+                    className="pp-version-btn"
+                    onClick={() => handleLoad(project, tag.name)}
                     disabled={!!loadingProject}
                   >
-                    <span className="pp-version-btn__name">📌 Latest ({project.default_branch})</span>
-                    <span className="pp-version-btn__hint">Head of default branch</span>
+                    <span className="pp-version-btn__name">🏷️ {tag.name}</span>
+                    {tag.message && <span className="pp-version-btn__hint">{tag.message.split('\n')[0]}</span>}
                   </button>
-                  {project.tags.map(tag => (
-                    <button
-                      key={tag.name}
-                      className="pp-version-btn"
-                      onClick={() => handleLoad(project, tag.name)}
-                      disabled={!!loadingProject}
-                    >
-                      <span className="pp-version-btn__name">🏷️ {tag.name}</span>
-                      {tag.message && <span className="pp-version-btn__hint">{tag.message.split('\n')[0]}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

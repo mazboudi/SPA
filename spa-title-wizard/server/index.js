@@ -33,6 +33,9 @@ const GITLAB_URL = process.env.GITLAB_URL || 'https://gitlab.onefiserv.net';
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || '';
 const PORT = Number(process.env.PORT) || 3001;
 const GITLAB_DEFAULT_GROUP = process.env.GITLAB_DEFAULT_GROUP || 'euc/software-package-automation';
+// Platform-specific GitLab groups (fall back to legacy GITLAB_DEFAULT_GROUP for testing)
+const GITLAB_WIN_GROUP = process.env.GITLAB_WIN_GROUP || GITLAB_DEFAULT_GROUP;
+const GITLAB_MAC_GROUP = process.env.GITLAB_MAC_GROUP || GITLAB_DEFAULT_GROUP;
 
 // Azure / Microsoft Graph (Intune)
 const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '';
@@ -1289,7 +1292,103 @@ app.get('/api/health', (req, res) => {
     hasToken: !!GITLAB_TOKEN,
     intune: graphConfigured,
     gitLabGroup: GITLAB_DEFAULT_GROUP,
+    gitLabWinGroup: GITLAB_WIN_GROUP,
+    gitLabMacGroup: GITLAB_MAC_GROUP,
   });
+});
+
+// ── Settings API ─────────────────────────────────────────────────────────────
+const ENV_PATH = join(__dirname, '.env');
+const SENSITIVE_KEYS = new Set(['GITLAB_TOKEN', 'AZURE_CLIENT_SECRET']);
+const ALLOWED_KEYS = new Set([
+  'GITLAB_URL', 'GITLAB_TOKEN', 'GITLAB_DEFAULT_GROUP',
+  'GITLAB_WIN_GROUP', 'GITLAB_MAC_GROUP',
+  'AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET',
+  'PORT',
+]);
+
+/** Read .env file and parse into key/value map */
+function readEnvFile() {
+  if (!existsSync(ENV_PATH)) return {};
+  const lines = readFileSync(ENV_PATH, 'utf8').split('\n');
+  const result = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim();
+    result[key] = val;
+  }
+  return result;
+}
+
+/** Write key/value map back to .env file, preserving comments */
+function writeEnvFile(updates) {
+  const existing = existsSync(ENV_PATH) ? readFileSync(ENV_PATH, 'utf8') : '';
+  const lines = existing.split('\n');
+  const written = new Set();
+
+  const newLines = lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return line;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 1) return line;
+    const key = trimmed.slice(0, eqIdx).trim();
+    if (key in updates) {
+      written.add(key);
+      return `${key}=${updates[key]}`;
+    }
+    return line;
+  });
+
+  // Append any new keys not previously in file
+  for (const [key, val] of Object.entries(updates)) {
+    if (!written.has(key)) {
+      newLines.push(`${key}=${val}`);
+    }
+  }
+
+  writeFileSync(ENV_PATH, newLines.join('\n'), 'utf8');
+}
+
+/** GET /api/settings — return current config values (secrets masked) */
+app.get('/api/settings', (req, res) => {
+  try {
+    const envVals = readEnvFile();
+    const result = {};
+    for (const key of ALLOWED_KEYS) {
+      if (SENSITIVE_KEYS.has(key)) {
+        // Return a sentinel so the UI knows it is set, without exposing value
+        result[key] = envVals[key] ? '__SET__' : '';
+      } else {
+        result[key] = envVals[key] || process.env[key] || '';
+      }
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: `Failed to read settings: ${err.message}` });
+  }
+});
+
+/** POST /api/settings — update .env file with provided key/value pairs */
+app.post('/api/settings', (req, res) => {
+  try {
+    const body = req.body || {};
+    const updates = {};
+    for (const [key, val] of Object.entries(body)) {
+      if (!ALLOWED_KEYS.has(key)) continue; // ignore unknown keys
+      // Skip sentinel values — those mean the user didn't change the secret
+      if (val === '__SET__') continue;
+      updates[key] = String(val);
+    }
+    writeEnvFile(updates);
+    console.log('⚙️  Settings updated via API. Restart server to apply.');
+    res.json({ ok: true, message: 'Settings saved. Server restart required for changes to take effect.', restartRequired: true });
+  } catch (err) {
+    res.status(500).json({ message: `Failed to write settings: ${err.message}` });
+  }
 });
 
 // ── MSI Metadata Extraction ─────────────────────────────────────────────────

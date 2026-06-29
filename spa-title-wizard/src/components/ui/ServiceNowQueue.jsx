@@ -14,9 +14,9 @@ const PRIORITY_COLORS = {
  * from the ServiceNow intake queue. User picks one to pre-populate
  * wizard fields for a new title.
  *
- * @param {{ onSelect: (item: Object) => void, onClose: () => void }} props
+ * @param {{ onSelect: (item: Object) => void, onClose: () => void, platform?: string }} props
  */
-export default function ServiceNowQueue({ onSelect, onClose }) {
+export default function ServiceNowQueue({ onSelect, onClose, platform }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -48,13 +48,19 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
   }, [loading]);
 
   // ── Derived data ──────────────────────────────────────────────────────
+  // Platform-scoped base (when platform prop is provided)
+  const platformItems = useMemo(() => {
+    if (!platform) return items;
+    return items.filter(i => (i.Platform || '').toLowerCase() === platform.toLowerCase());
+  }, [items, platform]);
+
   const categories = useMemo(() => {
-    const cats = new Set(items.map(i => i.Category).filter(Boolean));
+    const cats = new Set(platformItems.map(i => i.Category).filter(Boolean));
     return [...cats].sort();
-  }, [items]);
+  }, [platformItems]);
 
   const filtered = useMemo(() => {
-    let result = items;
+    let result = platformItems;
     if (filterPriority !== 'all') {
       result = result.filter(i => i.Priority === filterPriority);
     }
@@ -78,7 +84,7 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
       if (pa !== pb) return pa - pb;
       return (a.RequestDate || '').localeCompare(b.RequestDate || '');
     });
-  }, [items, search, filterPriority, filterCategory]);
+  }, [platformItems, search, filterPriority, filterCategory]);
 
   // ── Claim a request ───────────────────────────────────────────────────
   const handleClaim = async (item) => {
@@ -116,23 +122,17 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
     }
   };
 
-  // ── Close on Escape ───────────────────────────────────────────────────
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  // No Escape listener needed — navigation handled by parent view state
 
   return (
-    <div className="snq-overlay" onClick={onClose}>
-      <div className="snq-modal" onClick={e => e.stopPropagation()}>
-        <div className="snq-header">
-          <div>
-            <h2 className="snq-title">📋 ServiceNow Packaging Queue</h2>
-            <p className="snq-subtitle">Pick a request to begin packaging</p>
-          </div>
-          <button className="snq-close" onClick={onClose} title="Close">✕</button>
+    <div className="snq-page">
+      <div className="snq-header">
+        <div>
+          <h2 className="snq-title">📋 ServiceNow Packaging Queue</h2>
+          <p className="snq-subtitle">Pick a request to begin packaging</p>
         </div>
+        <button className="snq-close" onClick={onClose} title="Back">← Back</button>
+      </div>
 
         {/* Filters */}
         <div className="snq-filters">
@@ -167,7 +167,7 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
 
         {/* Results info */}
         <div className="snq-info">
-          {loading ? 'Loading queue...' : error ? `Error: ${error}` : `${filtered.length} of ${items.length} requests`}
+          {loading ? 'Loading queue...' : error ? `Error: ${error}` : `${filtered.length} of ${platformItems.length} requests`}
         </div>
 
         {/* Request List */}
@@ -210,7 +210,6 @@ export default function ServiceNowQueue({ onSelect, onClose }) {
             </button>
           ))}
         </div>
-      </div>
     </div>
   );
 }

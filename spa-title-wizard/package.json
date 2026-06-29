@@ -13,6 +13,10 @@
     "fetch-jamf-categories": "node scripts/fetch-jamf-categories.js"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.1.1",
+    "@mui/material": "^9.1.2",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "cfb": "^1.2.2",
