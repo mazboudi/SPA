@@ -183,12 +183,13 @@ export function parseProjectFiles(files) {
       if (Array.isArray(assignments) && assignments.length > 0) {
         state.assignments = assignments.map(a => ({
           intent: a.intent || 'required',
-          target: a.target || '',
           groupId: a.target?.groupId || a.groupId || '',
           groupName: a.groupName || a.target?.groupName || '',
-          filterType: a.filterType || 'none',
+          // Normalise: on-disk may say filterMode OR filterType
+          filterMode: a.filterMode || a.filterType || 'none',
           filterId: a.filterId || '',
-          notifications: a.settings?.notifications || 'showAll',
+          notifications: a.settings?.notifications || a.notifications || 'showAll',
+          deliveryOptPriority: a.deliveryOptimizationPriority || a.deliveryOptPriority || 'notConfigured',
           restartGracePeriod: a.settings?.restartGracePeriod || 1440,
           restartCountDown: a.settings?.restartCountDown || 30,
           restartSnooze: a.settings?.restartSnooze || 240,

@@ -317,15 +317,15 @@ ${optLines.join('\n')}
     files['windows/intune/app.json'] = JSON.stringify(intuneAppObj, null, 2);
 
     // Intune assignments.json — use wizard assignments
-    const assignArr = s.assignments.map(a => {
+    const assignArr = (s.assignments || []).map(a => {
       const entry = {
         intent: a.intent,
         groupId: a.groupId || 'TODO-ENTRA-ID-GROUP-OBJECT-ID',
-        filterMode: a.filterMode,
-        notifications: a.notifications,
-        deliveryOptimizationPriority: a.deliveryOptPriority,
+        filterMode: a.filterMode || a.filterType || 'none',
+        notifications: a.notifications || 'showAll',
+        deliveryOptimizationPriority: a.deliveryOptPriority || 'notConfigured',
       };
-      if (a.filterMode !== 'none' && a.filterId) entry.filterId = a.filterId;
+      if ((entry.filterMode !== 'none') && a.filterId) entry.filterId = a.filterId;
       return entry;
     });
     files['windows/intune/assignments.json'] = JSON.stringify(assignArr, null, 2);
