@@ -57,6 +57,10 @@ export default function App() {
   const [pendingPlatform, setPendingPlatform] = useState(null);
   const [platformSwitchDialog, setPlatformSwitchDialog] = useState(false);
 
+  // ── Load-project warning (discard unsaved work?) ──────────────────────────
+  const [loadWarningDialog, setLoadWarningDialog] = useState(false);
+  const [pendingProjectLoad, setPendingProjectLoad] = useState(null); // { type: 'queue'|'edit', args }
+
   // ── Modals ────────────────────────────────────────────────────────────────
   // IntuneExportPicker remains a modal (it's triggered from within the wizard step)
   const [showIntunePicker, setShowIntunePicker] = useState(false);
@@ -160,18 +164,54 @@ export default function App() {
     setView(VIEW.EDIT);
   };
 
+  // ── Detect unsaved in-progress work ──────────────────────────────────────
+  // A project is "in progress" when there's a displayName/packageId but it hasn't
+  // been published to GitLab yet (no _editProjectId) OR it's an edit whose local
+  // state may have changed since the last publish.
+  const hasUnsavedWork = () => !!(wizard.state.displayName || wizard.state.packageId);
+
+  // ── Internal: actually execute a project load (queue or edit) ────────────
+  const executeProjectLoad = ({ type, args }) => {
+    const platform = wizard.state.platform;
+    if (type === 'queue') {
+      const [fields] = args;
+      wizard.reset();
+      setTimeout(() => {
+        applyServerGroups();
+        if (platform) wizard.updateField('platform', platform);
+        Object.entries(fields).forEach(([key, value]) => {
+          if (value !== undefined && value !== '') wizard.updateField(key, value);
+        });
+        wizard.goToStep(0);
+      }, 0);
+    } else if (type === 'edit') {
+      const [files, projectMeta] = args;
+      wizard.importProjectForEdit(files, projectMeta);
+      wizard.goToStep(0);
+    }
+    setView(VIEW.PACKAGE);
+    setLoadWarningDialog(false);
+    setPendingProjectLoad(null);
+  };
+
   // ── ServiceNow queue ──────────────────────────────────────────────────────
   const handleQueueSelect = (fields) => {
-    Object.entries(fields).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') wizard.updateField(key, value);
-    });
-    setView(VIEW.PACKAGE);
+    if (hasUnsavedWork()) {
+      setPendingProjectLoad({ type: 'queue', args: [fields] });
+      setLoadWarningDialog(true);
+      return;
+    }
+    executeProjectLoad({ type: 'queue', args: [fields] });
   };
 
   // ── Edit existing ─────────────────────────────────────────────────────────
   const handleProjectSelect = (files, projectMeta) => {
-    wizard.importProjectForEdit(files, projectMeta);
-    setView(VIEW.PACKAGE);
+    if (hasUnsavedWork()) {
+      setPendingProjectLoad({ type: 'edit', args: [files, projectMeta] });
+      setLoadWarningDialog(true);
+      return;
+    }
+    executeProjectLoad({ type: 'edit', args: [files, projectMeta] });
   };
 
   const handleLoadExistingProject = async (projectPath) => {
@@ -554,7 +594,31 @@ export default function App() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setPlatformSwitchDialog(false)} variant="outlined" size="small">Cancel</Button>
-          <Button onClick={confirmPlatformSwitch} variant="contained" color="warning" size="small">Switch & Reset</Button>
+          <Button onClick={confirmPlatformSwitch} variant="contained" color="warning" size="small">Switch &amp; Reset</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Unsaved Work Warning Dialog ── */}
+      <Dialog open={loadWarningDialog} onClose={() => setLoadWarningDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Load New Project?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have an active package —{' '}
+            <strong>{wizard.state.displayName || wizard.state.packageId || 'Unnamed package'}</strong>
+            {' '}— that has not been published to GitLab.
+          </DialogContentText>
+          <Alert severity="warning" sx={{ mt: 2, fontSize: '0.8rem' }}>
+            Loading a new project will discard any unpublished changes to the current package.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => { setLoadWarningDialog(false); setPendingProjectLoad(null); }} variant="outlined" size="small">Cancel</Button>
+          <Button
+            onClick={() => pendingProjectLoad && executeProjectLoad(pendingProjectLoad)}
+            variant="contained" color="warning" size="small"
+          >
+            Discard &amp; Load
+          </Button>
         </DialogActions>
       </Dialog>
 
