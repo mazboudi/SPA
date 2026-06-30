@@ -46,6 +46,28 @@ export default function generatePsadtScript(s, clean = false) {
   }
 
 
+  // ── Installer subfolder helper ──────────────────────────────────────────
+  // When installerSubfolder is set, the primary installer lives in a subdirectory
+  // of Files/ (e.g. Files\Bin\setup.exe). Prefix its path with the PS variable
+  // expression so PSADT resolves it correctly at deploy time.
+  const _installerSubfolder = (s.installerSubfolder || '').replace(/^[/\\]+|[/\\]+$/g, '');
+  const _primaryInstallerFile = s.installerType === 'msi'
+    ? (s.msiFileName || s.installerSourceFile || '')
+    : (s.exeSourceFilename || s.installerSourceFile || '');
+
+  // Returns the correctly-prefixed FilePath for an installer action.
+  // Bare filenames that match the primary installer get the DirFiles prefix;
+  // everything else (uninstall paths, support tools) is returned as-is.
+  function resolveFilePath(file) {
+    if (!file || !_installerSubfolder) return file;
+    // Only prefix if this is the primary installer filename (no path separators present)
+    if (file === _primaryInstallerFile || file === _primaryInstallerFile.split(/[\\/]/).pop()) {
+      const sub = _installerSubfolder.replace(/\//g, '\\');
+      return `"$($adtSession.DirFiles)\\${sub}\\${file}"`;
+    }
+    return file;
+  }
+
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
   function convertToActionLines(actions) {
     const lines = [];
@@ -58,7 +80,8 @@ export default function generatePsadtScript(s, clean = false) {
       switch (action.type) {
         case 'start_msi_process': {
           const msiAction = action.action || 'Install';
-          const filePart = action.file ? ` -FilePath '${action.file}'` : '';
+          const resolvedFile = resolveFilePath(action.file);
+          const filePart = resolvedFile ? ` -FilePath '${resolvedFile}'` : '';
           const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
           const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
@@ -80,7 +103,8 @@ export default function generatePsadtScript(s, clean = false) {
           const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
           const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
           const pt = action.passThru ? ' -PassThru' : '';
-          let cmd = `Start-ADTProcess -FilePath '${action.file}'${args}${successCodes}${rebootCodes}${pt}`;
+          const resolvedFile = resolveFilePath(action.file);
+          let cmd = `Start-ADTProcess -FilePath '${resolvedFile}'${args}${successCodes}${rebootCodes}${pt}`;
           if (action.passThru && action.passThruVar) {
             cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
           }

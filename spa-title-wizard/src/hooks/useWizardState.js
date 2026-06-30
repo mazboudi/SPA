@@ -572,21 +572,15 @@ export default function useWizardState() {
       mkPhase('variableDeclaration', [...stdVarActions, ...systemVarActions]);
 
       // ── 2. Install / Uninstall actions ────────────────────────────────
-      const srcFile  = prev.installerSourceFile || '';
-      // Build the $adtSession.DirFiles path prefix when a subfolder is configured
-      const subDir   = (prev.installerSubfolder || '').replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\');
-      const dirPrefix = subDir
-        ? `"$($adtSession.DirFiles)\\${subDir}\\`   // path inside double-quoted PS string
-        : '';
-      // Helper: produces either a bare filename or a full DirFiles-prefixed path
-      const mkFilePath = (filename) => subDir
-        ? `${dirPrefix}${filename}"`                // closes the opening double-quote
-        : filename;
+      // Note: action.file stores the bare filename (e.g. 'setup.exe').
+      // The installer subfolder prefix ($adtSession.DirFiles\Bin\) is applied
+      // at script generation time in generatePsadtScript.js.
+      const srcFile = prev.installerSourceFile || '';
 
       if (prev.installerType === 'msi') {
         const msiFile = prev.msiFileName || srcFile || 'installer.msi';
         mkPhase('install', [
-          { type: 'start_msi_process', enabled: true, file: mkFilePath(msiFile), args: '/QN /norestart' },
+          { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart' },
         ]);
         mkPhase('uninstall', [
           { type: 'uninstall_application', enabled: true, name: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
@@ -594,7 +588,7 @@ export default function useWizardState() {
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
         mkPhase('install', [
-          { type: 'start_process', enabled: true, file: mkFilePath(exeFile), args: prev.exeInstallArgs || '/S' },
+          { type: 'start_process', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
         ]);
         mkPhase('uninstall', [
           { type: 'start_process', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
