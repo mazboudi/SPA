@@ -57,6 +57,11 @@ export default function generateScaffolding(s, forPublish = false) {
       const dir = s.installerSourceDir.replace(/[\\/]+$/, '');  // strip trailing slash
       vars.push(`  WINDOWS_INSTALLER_SOURCE: '${dir}\\${s.installerSourceFile}'`);
     }
+    // Optional subfolder within Files/ where the installer will be placed on the runner
+    if (s.installerSubfolder) {
+      const subDir = s.installerSubfolder.replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\');
+      vars.push(`  WINDOWS_INSTALLER_SUBFOLDER: '${subDir}'`);
+    }
     if (s.supportFilesSource) {
       vars.push(`  WINDOWS_SUPPORT_FILES_SOURCE: '${s.supportFilesSource}'`);
     }
@@ -260,7 +265,7 @@ display_name: "${s.displayName}"
 version: "${s.version}"
 packaging_version: "1"
 installer_type: ${s.installerType}
-source_filename: ${sourceFile}
+source_filename: ${sourceFile}${s.installerSubfolder ? `\ninstaller_subfolder: ${s.installerSubfolder.replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\')}` : ''}
 max_install_time: ${s.maxInstallTime}
 
 install_command: '${installCmd}'

@@ -191,6 +191,7 @@ const INITIAL_STATE = {
   // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
   installerSourceDir: '',            // e.g. 'C:\\files\\7-zip'
   installerSourceFile: '',           // e.g. '7z2600-x64.msi'
+  installerSubfolder: '',            // optional subfolder within Files/ e.g. 'Bin' or 'x64\\Setup'
   supportFilesSource: '',            // e.g. 'C:\\files\\7-zip' (defaults to installerSourceDir)
 };
 
@@ -571,12 +572,21 @@ export default function useWizardState() {
       mkPhase('variableDeclaration', [...stdVarActions, ...systemVarActions]);
 
       // ── 2. Install / Uninstall actions ────────────────────────────────
-      const srcFile = prev.installerSourceFile || '';
+      const srcFile  = prev.installerSourceFile || '';
+      // Build the $adtSession.DirFiles path prefix when a subfolder is configured
+      const subDir   = (prev.installerSubfolder || '').replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\');
+      const dirPrefix = subDir
+        ? `"$($adtSession.DirFiles)\\${subDir}\\`   // path inside double-quoted PS string
+        : '';
+      // Helper: produces either a bare filename or a full DirFiles-prefixed path
+      const mkFilePath = (filename) => subDir
+        ? `${dirPrefix}${filename}"`                // closes the opening double-quote
+        : filename;
 
       if (prev.installerType === 'msi') {
         const msiFile = prev.msiFileName || srcFile || 'installer.msi';
         mkPhase('install', [
-          { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart' },
+          { type: 'start_msi_process', enabled: true, file: mkFilePath(msiFile), args: '/QN /norestart' },
         ]);
         mkPhase('uninstall', [
           { type: 'uninstall_application', enabled: true, name: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
@@ -584,12 +594,13 @@ export default function useWizardState() {
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
         mkPhase('install', [
-          { type: 'start_process', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
+          { type: 'start_process', enabled: true, file: mkFilePath(exeFile), args: prev.exeInstallArgs || '/S' },
         ]);
         mkPhase('uninstall', [
           { type: 'start_process', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
         ]);
       }
+
 
       // ── 3. Pre-Install / Pre-Uninstall / Pre-Repair welcome + progress ─
       const defaultWelcome = {

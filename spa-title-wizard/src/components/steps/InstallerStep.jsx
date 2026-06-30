@@ -364,6 +364,29 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           </div>
         )}
 
+        {/* Subfolder within Files/ */}
+        <FormField
+          label="Installer subfolder within Files/ (optional)"
+          id="installerSubfolder"
+          hint={`Leave blank when the installer sits directly in Files/. Enter a relative path (e.g. "Bin" or "x64\\Setup") if the installer lives in a subfolder.`}
+        >
+          <input
+            id="installerSubfolder"
+            type="text"
+            value={state.installerSubfolder || ''}
+            onChange={e => updateField('installerSubfolder', e.target.value)}
+            placeholder={`e.g. Bin  or  x64\\Setup`}
+          />
+        </FormField>
+        {state.installerSubfolder && state.installerSourceFile && (
+          <div className="installer-derived-info animate-in" style={{ gap: 4, flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 2 }}>Generated PSADT path:</span>
+            <code style={{ fontSize: '0.78rem', color: 'var(--text-accent, #7c8aff)' }}>
+              {`"$($adtSession.DirFiles)\\${state.installerSubfolder.replace(/^[/\\]+|[/\\]+$/g,'').replace(/\//g,'\\')}\\${state.installerSourceFile}"`}
+            </code>
+          </div>
+        )}
+
         {/* Support files source is always the same as the installer directory — no separate input */}
       </div>
 
