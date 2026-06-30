@@ -270,9 +270,12 @@
       # Copy installer from runner VM if WINDOWS_INSTALLER_SOURCE is set
       # Use this when the installer is pre-staged on the runner (e.g. C:\files\7-zip\7z2408-x64.msi)
       # rather than committed to git in windows/src/Files/
+      # If WINDOWS_INSTALLER_SUBFOLDER is set (e.g. 'Bin' or 'x64\Setup'), the installer is placed
+      # in that subfolder under Files/ — matching "$($adtSession.DirFiles)\Bin\setup.exe" in PSADT.
       if ($env:WINDOWS_INSTALLER_SOURCE) {
-        $filesDir = 'windows\src\Files'
-        if (!(Test-Path $filesDir)) { New-Item -ItemType Directory -Path $filesDir | Out-Null }
+        $subDir   = if ($env:WINDOWS_INSTALLER_SUBFOLDER) { $env:WINDOWS_INSTALLER_SUBFOLDER.Trim('\').Trim('/') } else { '' }
+        $filesDir = if ($subDir) { Join-Path 'windows\src\Files' $subDir } else { 'windows\src\Files' }
+        if (!(Test-Path $filesDir)) { New-Item -ItemType Directory -Path $filesDir -Force | Out-Null }
         if (Test-Path $env:WINDOWS_INSTALLER_SOURCE) {
           Write-Host "Copying installer from: $($env:WINDOWS_INSTALLER_SOURCE) -> $filesDir"
           Copy-Item -Path $env:WINDOWS_INSTALLER_SOURCE -Destination $filesDir -Force
