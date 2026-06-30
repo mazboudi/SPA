@@ -107,7 +107,22 @@ function CmdPreview({ cmd }) {
 }
 
 /** Inline action card — editable, deletable, reorderable */
-function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand }) {
+function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand, installerCtx }) {
+  // Resolve the file path for the CmdPreview — applies the same subfolder prefix
+  // that generatePsadtScript uses so builder and output stay in sync.
+  function resolvePreviewFilePath(file) {
+    if (!file || !installerCtx?.installerSubfolder) return file;
+    const sub = installerCtx.installerSubfolder.replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\');
+    if (!sub) return file;
+    const primary = installerCtx.installerType === 'msi'
+      ? (installerCtx.msiFileName || installerCtx.installerSourceFile || '')
+      : (installerCtx.exeSourceFilename || installerCtx.installerSourceFile || '');
+    if (file === primary || file === primary.split(/[\\/]/).pop()) {
+      return `"$($adtSession.DirFiles)\\${sub}\\${file}"`;
+    }
+    return file;
+  }
+
   const [expanded, setExpanded] = useState(false);
 
   // Sync with parent "Expand All" / "Collapse All" toggle
@@ -215,7 +230,8 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
             let v4Cmd = '';
             switch (action.type) {
               case 'start_process': {
-                const fp = action.file ? ` -FilePath '${action.file}'` : '';
+                const resolvedFile = resolvePreviewFilePath(action.file);
+                const fp = resolvedFile ? ` -FilePath '${resolvedFile}'` : '';
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
                 const win = action.windowStyle && action.windowStyle !== 'Normal' ? ` -WindowStyle '${action.windowStyle}'` : '';
                 const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
@@ -228,7 +244,8 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
               }
               case 'start_msi_process': {
                 const msiAction = action.action || 'Install';
-                const fp = action.file ? ` -FilePath '${action.file}'` : '';
+                const resolvedFile = resolvePreviewFilePath(action.file);
+                const fp = resolvedFile ? ` -FilePath '${resolvedFile}'` : '';
                 const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
                 const t = action.transform ? ` -Transforms '${action.transform}'` : '';
@@ -842,7 +859,14 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                           {actions.map((action, i) => (
                             <ActionCard key={i} action={action} index={i} total={actions.length} phaseKey={phaseKey}
                               onUpdate={handleUpdateAction} onRemove={handleRemoveAction} onMove={handleMoveAction}
-                              forceExpand={expandAllCards[phaseKey]} />
+                              forceExpand={expandAllCards[phaseKey]}
+                              installerCtx={{
+                                installerSubfolder:   state.installerSubfolder,
+                                installerType:        state.installerType,
+                                msiFileName:          state.msiFileName,
+                                exeSourceFilename:    state.exeSourceFilename,
+                                installerSourceFile:  state.installerSourceFile,
+                              }} />
                           ))}
                           <AddActionPicker phaseKey={phaseKey} onAdd={handleAddAction} />
                         </div>
