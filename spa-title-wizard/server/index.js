@@ -36,6 +36,8 @@ const GITLAB_DEFAULT_GROUP = process.env.GITLAB_DEFAULT_GROUP || 'euc/software-p
 // Platform-specific GitLab groups (fall back to legacy GITLAB_DEFAULT_GROUP for testing)
 const GITLAB_WIN_GROUP = process.env.GITLAB_WIN_GROUP || GITLAB_DEFAULT_GROUP;
 const GITLAB_MAC_GROUP = process.env.GITLAB_MAC_GROUP || GITLAB_DEFAULT_GROUP;
+// Full project path for the shared CI templates repo (used for pipeline access checks)
+const GITLAB_CI_TEMPLATES_PROJECT = process.env.GITLAB_CI_TEMPLATES_PROJECT || '';
 
 // Azure / Microsoft Graph (Intune)
 const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '';
@@ -61,14 +63,15 @@ if (GITLAB_TOKEN) {
         const info = await res.json();
         console.log(`🔑 GitLab token: name="${info.name}", scopes=[${info.scopes?.join(', ')}], expires=${info.expires_at || 'never'}`);
       }
-      // Also check access to CI templates project
-      const tplPath = `${GITLAB_DEFAULT_GROUP}/spa-frameworks/gitlab-ci-templates`;
-      const tplRes = await fetch(`${API}/projects/${encodeURIComponent(tplPath)}`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN } });
-      if (!tplRes.ok) {
-        console.warn(`⚠️  Token cannot access CI templates project: ${tplPath} (HTTP ${tplRes.status}). Pipeline triggers will fail.`);
-        console.warn(`   → Ensure GITLAB_TOKEN has read access to this project, or use a group-level token.`);
-      } else {
-        console.log(`✅ CI templates project accessible: ${tplPath}`);
+      // Also check access to CI templates project (only if path is configured)
+      if (GITLAB_CI_TEMPLATES_PROJECT) {
+        const tplRes = await fetch(`${API}/projects/${encodeURIComponent(GITLAB_CI_TEMPLATES_PROJECT)}`, { headers: { 'PRIVATE-TOKEN': GITLAB_TOKEN } });
+        if (!tplRes.ok) {
+          console.warn(`⚠️  Token cannot access CI templates project: ${GITLAB_CI_TEMPLATES_PROJECT} (HTTP ${tplRes.status}). Pipeline triggers will fail.`);
+          console.warn(`   → Ensure GITLAB_TOKEN has read access, or set GITLAB_CI_TEMPLATES_PROJECT correctly in server/.env`);
+        } else {
+          console.log(`✅ CI templates project accessible: ${GITLAB_CI_TEMPLATES_PROJECT}`);
+        }
       }
     } catch (e) {
       console.warn(`⚠️  Token diagnostic check failed: ${e.message}`);
