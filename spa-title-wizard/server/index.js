@@ -823,38 +823,45 @@ app.get('/api/projects/check', async (req, res) => {
     const namespace = parts.join('/');
 
     try {
-      // Strategy 1: look up the group by path, then find the project by slug within it.
-      // This avoids sending %2F in the URL path segment.
+      // Strategy: use /projects with search + namespace as QUERY PARAMS only.
+      // This means zero %2F in the URL path segment — completely proxy-safe on Windows.
+      //
+      // GitLab API: GET /projects?search=slug&search_namespaces=true
+      // Then filter client-side by path_with_namespace to get an exact match.
       let project = null;
 
-      // GET /groups/:namespace/projects?search=slug&per_page=10
-      // namespace is passed as a query param (no %2F in path), making it proxy-safe.
+      // Primary: search by slug within the exact namespace (query params only)
       try {
-        const groupSearchUrl = `/groups/${encPath(namespace)}/projects?search=${encodeURIComponent(slug)}&per_page=10&simple=true`;
-        const groupProjects = await gitlab('GET', groupSearchUrl);
-        if (Array.isArray(groupProjects)) {
-          project = groupProjects.find(p =>
-            p.path === slug ||
-            p.path_with_namespace === normalizedPath
-          ) || null;
+        const qs = new URLSearchParams({
+          search: slug,
+          search_namespaces: 'false',  // search project names/paths only
+          per_page: '20',
+          simple: 'true',
+        });
+        const searchResults = await gitlab('GET', `/projects?${qs}`);
+        if (Array.isArray(searchResults)) {
+          // Exact match on full path
+          project = searchResults.find(p => p.path_with_namespace === normalizedPath) || null;
         }
-      } catch (groupErr) {
-        // If groups API fails (e.g. the group itself doesn't exist), fall through
-        if (groupErr.status !== 404) {
-          console.warn(`  ⚠️ Group search failed (${groupErr.status}): ${groupErr.message}`);
-        }
+      } catch (searchErr) {
+        console.warn(`  ⚠️ Project search failed: ${searchErr.message}`);
       }
 
-      // Strategy 2 (fallback): use /projects?search=slug and filter by path_with_namespace.
-      // This works even when the group path lookup fails (e.g. nested subgroups).
+      // Fallback: broader search with search_namespaces=true in case slug alone didn't surface it
       if (!project) {
         try {
-          const searchResults = await gitlab('GET', `/projects?search=${encodeURIComponent(slug)}&per_page=20&simple=true`);
-          if (Array.isArray(searchResults)) {
-            project = searchResults.find(p => p.path_with_namespace === normalizedPath) || null;
+          const qs2 = new URLSearchParams({
+            search: slug,
+            search_namespaces: 'true',
+            per_page: '50',
+            simple: 'true',
+          });
+          const broadResults = await gitlab('GET', `/projects?${qs2}`);
+          if (Array.isArray(broadResults)) {
+            project = broadResults.find(p => p.path_with_namespace === normalizedPath) || null;
           }
-        } catch (searchErr) {
-          console.warn(`  ⚠️ Project search fallback failed: ${searchErr.message}`);
+        } catch (broadErr) {
+          console.warn(`  ⚠️ Broad project search fallback failed: ${broadErr.message}`);
         }
       }
 
