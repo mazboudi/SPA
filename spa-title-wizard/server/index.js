@@ -390,6 +390,7 @@ app.post('/api/publish', async (req, res) => {
       // Optionally trigger pipeline via API
       let pipelineUrl = null;
       let pipelineError = null;
+      let pipelineId = null;
       if (triggerPipeline) {
         try {
           // Small delay to let GitLab process the push before triggering
@@ -400,6 +401,7 @@ app.post('/api/publish', async (req, res) => {
             variables: pipelineVars,
           });
           pipelineUrl = pipeline.web_url || `${existing.web_url}/-/pipelines/${pipeline.id}`;
+          pipelineId = pipeline.id;
           console.log(`  🚀 Pipeline triggered: ${pipelineUrl} (SPA_STAGE_LIMIT=${pipelineAction})`);
         } catch (pipeErr) {
           pipelineError = pipeErr.message;
@@ -412,9 +414,11 @@ app.post('/api/publish', async (req, res) => {
       return res.json({
         action: 'updated',
         projectUrl: existing.web_url,
+        projectId: existing.id,
         tagName,
         tagUrl,
         pipelineUrl,
+        pipelineId,
         pipelineAction: pipelineAction || 'none',
         pipelineError,
         localPath: repoDir,
@@ -476,6 +480,7 @@ app.post('/api/publish', async (req, res) => {
       // Optionally trigger pipeline via API
       let pipelineUrl = null;
       let pipelineError = null;
+      let pipelineId = null;
       if (triggerPipeline) {
         try {
           // Small delay to let GitLab process the commit before triggering
@@ -486,6 +491,7 @@ app.post('/api/publish', async (req, res) => {
             variables: pipelineVars,
           });
           pipelineUrl = pipeline.web_url || `${project.web_url}/-/pipelines/${pipeline.id}`;
+          pipelineId = pipeline.id;
           console.log(`  🚀 Pipeline triggered: ${pipelineUrl} (SPA_STAGE_LIMIT=${pipelineAction})`);
         } catch (pipeErr) {
           pipelineError = pipeErr.message;
@@ -512,6 +518,90 @@ app.post('/api/publish', async (req, res) => {
     console.error('❌ Publish failed:', err.message);
     const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
     res.status(status).json({ message: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ██  Pipeline Status & Artifact Endpoints
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GET /api/pipeline/:projectId/:pipelineId/status
+// Returns the overall pipeline status and a flat list of its jobs grouped by stage.
+app.get('/api/pipeline/:projectId/:pipelineId/status', async (req, res) => {
+  const { projectId, pipelineId } = req.params;
+  try {
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty') {
+      // Offline mock — simulate stages progressing
+      const now = Date.now();
+      const age = now - Number(pipelineId.slice(-6));  // crude age from id suffix
+      const mockStatus = age > 30000 ? 'success' : age > 10000 ? 'running' : 'pending';
+      return res.json({
+        id: pipelineId,
+        status: mockStatus,
+        webUrl: `https://gitlab.example.com/group/project/-/pipelines/${pipelineId}`,
+        jobs: [
+          { id: 1, name: 'build-intunewin', stage: 'build', status: mockStatus === 'pending' ? 'pending' : 'success', webUrl: null, allowFailure: false, artifactsAvailable: mockStatus === 'success' },
+          { id: 2, name: 'publish-intune',  stage: 'publish', status: mockStatus === 'success' ? 'success' : 'pending', webUrl: null, allowFailure: false, artifactsAvailable: false },
+        ],
+      });
+    }
+
+    const [pipeline, jobs] = await Promise.all([
+      gitlab('GET', `/projects/${projectId}/pipelines/${pipelineId}`),
+      gitlab('GET', `/projects/${projectId}/pipelines/${pipelineId}/jobs?per_page=50`),
+    ]);
+
+    res.json({
+      id: pipeline.id,
+      status: pipeline.status,
+      duration: pipeline.duration,
+      webUrl: pipeline.web_url,
+      ref: pipeline.ref,
+      jobs: (jobs || []).map(j => ({
+        id: j.id,
+        name: j.name,
+        stage: j.stage,
+        status: j.status,
+        duration: j.duration,
+        webUrl: j.web_url,
+        allowFailure: j.allow_failure,
+        // artifacts_file is present when the job produced downloadable artifacts
+        artifactsAvailable: !!(j.artifacts_file && j.artifacts_file.filename),
+        artifactsExpireAt: j.artifacts_expire_at || null,
+      })),
+    });
+  } catch (err) {
+    console.error(`❌ Pipeline status fetch failed: ${err.message}`);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// GET /api/pipeline/:projectId/:pipelineId/artifacts?jobName=build-intunewin
+// Proxies a GitLab artifact archive download for a specific job.
+// Returns a redirect to the GitLab artifact download URL (the browser handles the download).
+app.get('/api/pipeline/:projectId/:pipelineId/artifacts', async (req, res) => {
+  const { projectId, pipelineId } = req.params;
+  const jobName = req.query.jobName || '';
+  try {
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty') {
+      return res.status(503).json({ message: 'Artifact download not available in offline/mock mode.' });
+    }
+    // GitLab API: GET /projects/:id/jobs/artifacts/:ref/download?job=<name>
+    // We use the pipeline jobs endpoint to find the job id, then redirect.
+    const jobs = await gitlab('GET', `/projects/${projectId}/pipelines/${pipelineId}/jobs?per_page=50`);
+    const job = jobName
+      ? (jobs || []).find(j => j.name === jobName)
+      : (jobs || []).find(j => j.artifacts_file && j.artifacts_file.filename);
+
+    if (!job) return res.status(404).json({ message: `No matching job found (jobName=${jobName})` });
+
+    // Redirect the browser to GitLab's artifact download endpoint (with auth token in header is not possible via redirect).
+    // Instead return the URL so the frontend can open it.
+    const artifactUrl = `${GITLAB_URL}/api/v4/projects/${projectId}/jobs/${job.id}/artifacts?private_token=${GITLAB_TOKEN}`;
+    res.json({ url: artifactUrl, jobId: job.id, jobName: job.name, filename: job.artifacts_file?.filename || 'artifacts.zip' });
+  } catch (err) {
+    console.error(`❌ Artifact URL fetch failed: ${err.message}`);
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 

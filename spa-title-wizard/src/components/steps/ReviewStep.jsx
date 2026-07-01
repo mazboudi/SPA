@@ -1,18 +1,122 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import generateScaffolding from '../../lib/generateScaffolding';
-import { downloadAsZip, exportToFolder } from '../../lib/downloadZip';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
 import { pushIntuneMetadata } from '../../lib/intuneApi';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
+// ── Pipeline Tracker Component ────────────────────────────────────────────
+const JOB_STATUS_META = {
+  created:  { icon: '⬜', color: 'var(--text-muted)',  label: 'Created'  },
+  pending:  { icon: '🟡', color: '#f59e0b',             label: 'Pending'  },
+  running:  { icon: '🔵', color: '#60a5fa',             label: 'Running'  },
+  success:  { icon: '🟢', color: '#34d399',             label: 'Success'  },
+  failed:   { icon: '🔴', color: '#f87171',             label: 'Failed'   },
+  canceled: { icon: '⚫', color: 'var(--text-muted)',   label: 'Canceled' },
+  skipped:  { icon: '⬜', color: 'var(--text-muted)',   label: 'Skipped'  },
+  manual:   { icon: '⚙️', color: '#a78bfa',             label: 'Manual'   },
+};
+
+const PIPELINE_STATUS_META = {
+  pending:  { icon: '🟡', label: 'Pending',   color: '#f59e0b' },
+  running:  { icon: '⏳', label: 'Running',   color: '#60a5fa' },
+  success:  { icon: '✅', label: 'Succeeded', color: '#34d399' },
+  failed:   { icon: '❌', label: 'Failed',    color: '#f87171' },
+  canceled: { icon: '⛔', label: 'Canceled',  color: '#9ca3af' },
+};
+
+function PipelineTracker({ pipelineStatus, polling, pipelineUrl, projectId, pipelineId, onDownloadArtifact }) {
+  const overall = PIPELINE_STATUS_META[pipelineStatus?.status] || PIPELINE_STATUS_META.pending;
+
+  // Group jobs by stage for display
+  const stages = useMemo(() => {
+    if (!pipelineStatus?.jobs) return [];
+    const map = {};
+    for (const job of pipelineStatus.jobs) {
+      if (!map[job.stage]) map[job.stage] = [];
+      map[job.stage].push(job);
+    }
+    return Object.entries(map).map(([stage, jobs]) => ({ stage, jobs }));
+  }, [pipelineStatus?.jobs]);
+
+  return (
+    <div className="pipeline-tracker">
+      <div className="pipeline-tracker__header">
+        <span className="pipeline-tracker__status-icon">{overall.icon}</span>
+        <span className="pipeline-tracker__label" style={{ color: overall.color }}>
+          Pipeline {overall.label}
+        </span>
+        {polling && (
+          <span className="pipeline-tracker__polling">
+            <span className="pipeline-spinner" /> Live
+          </span>
+        )}
+        {pipelineUrl && (
+          <a href={pipelineUrl} target="_blank" rel="noreferrer" className="pipeline-tracker__link">
+            Open in GitLab →
+          </a>
+        )}
+      </div>
+
+      {/* Stage grid */}
+      {stages.length > 0 ? (
+        <div className="pipeline-stages">
+          {stages.map(({ stage, jobs }) => (
+            <div key={stage} className="pipeline-stage">
+              <div className="pipeline-stage__name">{stage}</div>
+              <div className="pipeline-stage__jobs">
+                {jobs.map(job => {
+                  const meta = JOB_STATUS_META[job.status] || JOB_STATUS_META.created;
+                  return (
+                    <div key={job.id} className={`pipeline-job pipeline-job--${job.status}`} title={`${job.name}: ${meta.label}`}>
+                      <span className="pipeline-job__icon">{meta.icon}</span>
+                      <span className="pipeline-job__name">{job.name}</span>
+                      <span className="pipeline-job__status">{meta.label}</span>
+                      {job.artifactsAvailable && job.status === 'success' && (
+                        <button
+                          className="pipeline-job__download"
+                          onClick={() => onDownloadArtifact(projectId, pipelineId, job.name)}
+                          title={`Download artifacts for ${job.name}`}
+                        >
+                          ⬇️ Download
+                        </button>
+                      )}
+                      {job.webUrl && (
+                        <a href={job.webUrl} target="_blank" rel="noreferrer" className="pipeline-job__link">
+                          View log →
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="pipeline-tracker__placeholder">
+          {polling ? 'Fetching pipeline stages…' : 'Waiting for jobs to appear…'}
+        </div>
+      )}
+
+      {/* Download all artifacts button — shown when at least one job has artifacts */}
+      {pipelineStatus?.jobs?.some(j => j.artifactsAvailable && j.status === 'success') && (
+        <button
+          className="btn btn-secondary btn-sm pipeline-tracker__dl-all"
+          onClick={() => onDownloadArtifact(projectId, pipelineId, null)}
+        >
+          ⬇️ Download Build Artifacts
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ReviewStep({ state, updateField, allStepsValid = true }) {
   const files = useMemo(() => generateScaffolding(state), [state]);
   const filePaths = Object.keys(files).sort();
   const [selectedFile, setSelectedFile] = useState(filePaths[0] || '');
-  const [exporting, setExporting] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState('');
 
   // Publish state
   const [publishing, setPublishing] = useState(false);
@@ -20,6 +124,11 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
   const [publishError, setPublishError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(null);
   const [pipelineAction, setPipelineAction] = useState('none');
+
+  // Live pipeline tracking state
+  const [pipelineStatus, setPipelineStatus] = useState(null);  // { status, jobs, webUrl }
+  const [pipelinePolling, setPipelinePolling] = useState(false);
+  const pipelineTimerRef = useRef(null);
 
   // Intune mandatory field validation — blocks Build+Publish and Build+Publish+Assign
   const intuneReady = useMemo(() => {
@@ -59,6 +168,9 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
     setPublishing(true);
     setPublishError(null);
     setPublishResult(null);
+    setPipelineStatus(null);
+    // Clear any active polling
+    if (pipelineTimerRef.current) clearInterval(pipelineTimerRef.current);
     try {
       setPublishPhase('Checking project...');
       const result = await publishToGitLab({
@@ -71,6 +183,10 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
         pipelineAction,
       });
       setPublishResult(result);
+      // If a pipeline was triggered, start polling for status
+      if (result.pipelineId && result.projectId) {
+        startPipelinePolling(result.projectId, result.pipelineId);
+      }
     } catch (err) {
       setPublishError(err.message);
     } finally {
@@ -78,6 +194,60 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
       setPublishPhase('');
     }
   };
+
+  // ── Pipeline status polling ─────────────────────────────────────────────
+  const TERMINAL_STATUSES = new Set(['success', 'failed', 'canceled', 'skipped']);
+
+  const fetchPipelineStatus = useCallback(async (projectId, pipelineId) => {
+    try {
+      const res = await fetch(`/api/pipeline/${projectId}/${pipelineId}/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setPipelineStatus(data);
+      return data.status;
+    } catch (e) {
+      console.warn('[PipelinePoller] fetch failed:', e);
+    }
+  }, []);
+
+  const startPipelinePolling = useCallback((projectId, pipelineId) => {
+    setPipelinePolling(true);
+    // Immediate first fetch
+    fetchPipelineStatus(projectId, pipelineId);
+    // Then poll every 8 seconds
+    pipelineTimerRef.current = setInterval(async () => {
+      const status = await fetchPipelineStatus(projectId, pipelineId);
+      if (TERMINAL_STATUSES.has(status)) {
+        clearInterval(pipelineTimerRef.current);
+        setPipelinePolling(false);
+      }
+    }, 8000);
+  }, [fetchPipelineStatus]);
+
+  // Cleanup polling on unmount
+  useEffect(() => () => { if (pipelineTimerRef.current) clearInterval(pipelineTimerRef.current); }, []);
+
+  // Resume polling if navigating back to review with an in-flight pipeline
+  useEffect(() => {
+    const result = state._lastPublishResult;
+    if (result?.pipelineId && result?.projectId && !pipelineStatus && !pipelinePolling) {
+      startPipelinePolling(result.projectId, result.pipelineId);
+    }
+  }, []); // run once on mount
+
+  const handleDownloadArtifact = async (projectId, pipelineId, jobName) => {
+    try {
+      const params = jobName ? `?jobName=${encodeURIComponent(jobName)}` : '';
+      const res = await fetch(`/api/pipeline/${projectId}/${pipelineId}/artifacts${params}`);
+      const data = await res.json();
+      if (!res.ok) { alert(`Artifact download error: ${data.message}`); return; }
+      // Open the artifact URL in a new tab — browser triggers the download
+      window.open(data.url, '_blank', 'noopener');
+    } catch (e) {
+      alert(`Failed to fetch artifact URL: ${e.message}`);
+    }
+  };
+
 
   // Schema validation
   const validationResults = useMemo(() => validateGeneratedFiles(files), [files]);
@@ -92,61 +262,61 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
 
   // Maps compareIntuneState field key → wizard state key (for reading current builder value)
   const FIELD_TO_STATE_KEY = {
-    displayName:             'intuneAppName',
-    description:             'appDescription',
-    publisher:               'publisher',
-    owner:                   'appOwner',
-    developer:               'appDeveloper',
-    informationUrl:          'informationUrl',
-    privacyUrl:              'privacyUrl',
-    notes:                   'appNotes',
-    isFeatured:              'isFeatured',
+    displayName: 'intuneAppName',
+    description: 'appDescription',
+    publisher: 'publisher',
+    owner: 'appOwner',
+    developer: 'appDeveloper',
+    informationUrl: 'informationUrl',
+    privacyUrl: 'privacyUrl',
+    notes: 'appNotes',
+    isFeatured: 'isFeatured',
     allowAvailableUninstall: 'allowAvailableUninstall',
-    logoDataUrl:             'logoDataUrl',
-    minWinRelease:           'minWinRelease',
-    minDiskSpaceMB:          'minDiskSpaceMB',
-    minMemoryMB:             'minMemoryMB',
-    minCpuSpeedMHz:          'minCpuSpeedMHz',
-    minProcessors:           'minLogicalProcessors',
+    logoDataUrl: 'logoDataUrl',
+    minWinRelease: 'minWinRelease',
+    minDiskSpaceMB: 'minDiskSpaceMB',
+    minMemoryMB: 'minMemoryMB',
+    minCpuSpeedMHz: 'minCpuSpeedMHz',
+    minProcessors: 'minLogicalProcessors',
   };
 
   // Maps compareIntuneState field key → human label
   const FIELD_LABEL = {
-    displayName:             'Display Name',
-    description:             'Description',
-    publisher:               'Publisher',
-    owner:                   'Owner',
-    developer:               'Developer',
-    informationUrl:          'Information URL',
-    privacyUrl:              'Privacy URL',
-    notes:                   'Notes',
-    isFeatured:              'Featured',
+    displayName: 'Display Name',
+    description: 'Description',
+    publisher: 'Publisher',
+    owner: 'Owner',
+    developer: 'Developer',
+    informationUrl: 'Information URL',
+    privacyUrl: 'Privacy URL',
+    notes: 'Notes',
+    isFeatured: 'Featured',
     allowAvailableUninstall: 'Allow Uninstall',
-    logoDataUrl:             'Logo',
-    minWinRelease:           'Min Windows Release',
-    minDiskSpaceMB:          'Min Disk Space (MB)',
-    minMemoryMB:             'Min Memory (MB)',
-    minCpuSpeedMHz:          'Min CPU Speed (MHz)',
-    minProcessors:           'Min Processors',
+    logoDataUrl: 'Logo',
+    minWinRelease: 'Min Windows Release',
+    minDiskSpaceMB: 'Min Disk Space (MB)',
+    minMemoryMB: 'Min Memory (MB)',
+    minCpuSpeedMHz: 'Min CPU Speed (MHz)',
+    minProcessors: 'Min Processors',
   };
 
   // Maps compareIntuneState field key → Graph API property (for PATCH payload)
   const GRAPH_FIELD_MAP = {
-    displayName:             'displayName',
-    description:             'description',
-    publisher:               'publisher',
-    owner:                   'owner',
-    developer:               'developer',
-    informationUrl:          'informationUrl',
-    privacyUrl:              'privacyInformationUrl',
-    notes:                   'notes',
-    isFeatured:              'isFeatured',
+    displayName: 'displayName',
+    description: 'description',
+    publisher: 'publisher',
+    owner: 'owner',
+    developer: 'developer',
+    informationUrl: 'informationUrl',
+    privacyUrl: 'privacyInformationUrl',
+    notes: 'notes',
+    isFeatured: 'isFeatured',
     allowAvailableUninstall: 'allowAvailableUninstall',
-    minWinRelease:           'minimumSupportedWindowsRelease',
-    minDiskSpaceMB:          'minimumFreeDiskSpaceInMB',
-    minMemoryMB:             'minimumMemoryInMB',
-    minCpuSpeedMHz:          'minimumCpuSpeedInMHz',
-    minProcessors:           'minimumNumberOfProcessors',
+    minWinRelease: 'minimumSupportedWindowsRelease',
+    minDiskSpaceMB: 'minimumFreeDiskSpaceInMB',
+    minMemoryMB: 'minimumMemoryInMB',
+    minCpuSpeedMHz: 'minimumCpuSpeedInMHz',
+    minProcessors: 'minimumNumberOfProcessors',
   };
 
   // Derive push preview from syncPendingFields (fields explicitly pulled in Sync tab)
@@ -164,13 +334,13 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
       }))
       .filter(item => item.value !== undefined);
   }, [state.syncPendingFields, state.syncIntuneAppId,
-      state.intuneAppName, state.appDescription, state.publisher,
-      state.appOwner, state.appDeveloper, state.informationUrl, state.privacyUrl,
-      state.appNotes, state.isFeatured, state.allowAvailableUninstall,
-      state.logoDataUrl, state.minWinRelease, state.minDiskSpaceMB,
-      state.minMemoryMB, state.minCpuSpeedMHz, state.minLogicalProcessors]);
+  state.intuneAppName, state.appDescription, state.publisher,
+  state.appOwner, state.appDeveloper, state.informationUrl, state.privacyUrl,
+  state.appNotes, state.isFeatured, state.allowAvailableUninstall,
+  state.logoDataUrl, state.minWinRelease, state.minDiskSpaceMB,
+  state.minMemoryMB, state.minCpuSpeedMHz, state.minLogicalProcessors]);
 
-    const handlePushToIntune = useCallback(async () => {
+  const handlePushToIntune = useCallback(async () => {
     if (!pushDiffs || pushDiffs.length === 0) return;
     setPushPushing(true);
     setPushError(null);
@@ -219,31 +389,6 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
     }
   }, [pushDiffs, state, files, updateField]);
 
-  const handleDownloadZip = async () => {
-    setExporting(true);
-    try {
-      await downloadAsZip(files, state.packageId);
-      setExportSuccess('zip');
-      setTimeout(() => setExportSuccess(''), 3000);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportFolder = async () => {
-    setExporting(true);
-    try {
-      const ok = await exportToFolder(files, state.packageId);
-      if (ok) {
-        setExportSuccess('folder');
-        setTimeout(() => setExportSuccess(''), 3000);
-      } else if (!('showDirectoryPicker' in window)) {
-        alert('Folder export requires Chrome or Edge (File System Access API). Use the ZIP option instead.');
-      }
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div className="step-content animate-in">
@@ -284,21 +429,6 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
         </div>
       </div>
 
-      {/* Export buttons */}
-      <div className="review-actions">
-        <button className="btn btn-secondary" onClick={handleDownloadZip} disabled={exporting}>
-          {exporting ? '⏳ Exporting...' : '📦 Download ZIP'}
-        </button>
-        <button className="btn btn-secondary" onClick={handleExportFolder} disabled={exporting}>
-          📂 Export to Folder
-        </button>
-        {exportSuccess === 'zip' && (
-          <span className="export-success animate-in">✅ ZIP downloaded!</span>
-        )}
-        {exportSuccess === 'folder' && (
-          <span className="export-success animate-in">✅ Exported to folder!</span>
-        )}
-      </div>
 
       {/* Publish to GitLab */}
       <div className="publish-section">
@@ -330,24 +460,23 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
               <strong>{publishResult.action === 'created' ? 'Project Created' : 'Project Updated'}</strong>
               {publishResult.tagName && <code className="publish-tag">🏷️ {publishResult.tagName}</code>}
             </div>
-            {publishResult.pipelineUrl && (
-              <div className="publish-result__pipeline">
-                🚀 Pipeline triggered ({publishResult.pipelineAction}):{' '}
-                <a href={publishResult.pipelineUrl} target="_blank" rel="noreferrer">
-                  View Pipeline →
-                </a>
-              </div>
-            )}
-            {!publishResult.pipelineUrl && publishResult.pipelineError && (
-              <div className="publish-result__pipeline publish-result__pipeline--error">
-                ⚠️ Pipeline trigger failed: {publishResult.pipelineError}
-              </div>
-            )}
-            {publishResult.pipelineAction === 'none' && (
+
+            {/* Pipeline tracker — shown whenever a pipeline was triggered */}
+            {publishResult.pipelineId ? (
+              <PipelineTracker
+                pipelineStatus={pipelineStatus}
+                polling={pipelinePolling}
+                pipelineUrl={publishResult.pipelineUrl}
+                projectId={publishResult.projectId}
+                pipelineId={publishResult.pipelineId}
+                onDownloadArtifact={handleDownloadArtifact}
+              />
+            ) : (
               <div className="publish-result__pipeline publish-result__pipeline--skip">
-                ⏸️ Pipeline not triggered — commit only
+                ⏸️ Committed to GitLab — no pipeline triggered
               </div>
             )}
+
             <div className="publish-result__links">
               <a href={publishResult.projectUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🔗 Open Project</a>
               {publishResult.tagUrl && <a href={publishResult.tagUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">🏷️ View Tag</a>}
@@ -364,12 +493,10 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
                     })
                   });
                   const data = await resp.json();
-                  // If CLI failed, server returns protocol URL — open it in browser
                   if (data.method === 'protocol' && data.url) {
                     window.location.href = data.url;
                   }
                 } catch {
-                  // Network error — build vscode:// URL from local path as fallback
                   const fallbackPath = (state._localRepoPath || '').replace(/\\/g, '/');
                   const prefix = fallbackPath.startsWith('/') ? '' : '/';
                   window.location.href = `vscode://file${prefix}${fallbackPath}`;
@@ -398,12 +525,12 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
                   const isWin = state.platform === 'windows' || state.platform === 'both';
                   const isMac = state.platform === 'macos' || state.platform === 'both';
                   // 'none' = commit only — always available
-                  const options = [{ value: 'none', label: "⏸️ Don't trigger", desc: 'Commit only — no pipeline' }];
+                  const options = [{ value: 'none', label: "⏸️ Commit Project", desc: 'Commit only — no pipeline' }];
                   if (isWin) {
                     options.push(
-                      { value: 'build',   label: '📦 Build',                    desc: 'Package .intunewin only',                                                              disabled: !allStepsValid },
-                      { value: 'publish', label: '📦 Build + Publish',           desc: 'Package, upload to Intune, and apply supersedence/dependencies',  disabled: !allStepsValid || !intuneReady },
-                      { value: 'assign',  label: '📦 Build + Publish + Assign',  desc: 'Full pipeline — includes group assignments',                       disabled: !allStepsValid || !intuneReady },
+                      { value: 'build', label: '📦 Build PSADT', desc: 'Package .intunewin only', disabled: !allStepsValid },
+                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
+                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady },
                     );
                   }
                   if (isMac && !isWin) {
@@ -418,13 +545,13 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
                   }
 
                   return options.map(opt => {
-                    const isDisabledBySteps   = opt.value !== 'none' && !allStepsValid;
-                    const isDisabledByIntune   = (opt.value === 'publish' || opt.value === 'assign') && !intuneReady;
+                    const isDisabledBySteps = opt.value !== 'none' && !allStepsValid;
+                    const isDisabledByIntune = (opt.value === 'publish' || opt.value === 'assign') && !intuneReady;
                     const tooltip = isDisabledBySteps
                       ? 'Complete all required fields across all stages first'
                       : isDisabledByIntune
-                      ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)'
-                      : '';
+                        ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)'
+                        : '';
                     return (
                       <label
                         key={opt.value}
@@ -442,7 +569,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
                         <span className="pipeline-option__label">{opt.label}</span>
                         <span className="pipeline-option__desc">
                           {opt.desc}
-                          {isDisabledBySteps  ? ' ⚠️ Required fields missing' : ''}
+                          {isDisabledBySteps ? ' ⚠️ Required fields missing' : ''}
                           {!isDisabledBySteps && isDisabledByIntune ? ' ⚠️ Intune fields incomplete' : ''}
                         </span>
                       </label>
@@ -474,7 +601,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
             Also commits updated files to GitLab (without triggering the pipeline).
           </p>
 
-          
+
 
           {pushError && (
             <div className="publish-result publish-result--error">
@@ -932,6 +1059,120 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
         }
         .pipeline-incomplete-banner strong {
           color: #fbbf24;
+        }
+
+        /* ── Pipeline Tracker ── */
+        .pipeline-tracker {
+          margin: var(--space-md) 0 var(--space-sm);
+          padding: var(--space-md);
+          background: rgba(255,255,255,0.02);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+        }
+        .pipeline-tracker__header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: var(--space-md);
+          flex-wrap: wrap;
+        }
+        .pipeline-tracker__status-icon { font-size: 1.1rem; }
+        .pipeline-tracker__label {
+          font-size: 0.85rem;
+          font-weight: 700;
+        }
+        .pipeline-tracker__polling {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.72rem;
+          color: #60a5fa;
+          margin-left: auto;
+        }
+        .pipeline-spinner {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #60a5fa;
+          animation: pulse-dot 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.3; transform: scale(0.7); }
+        }
+        .pipeline-tracker__link {
+          font-size: 0.75rem;
+          color: var(--text-accent);
+          text-decoration: none;
+          margin-left: auto;
+        }
+        .pipeline-tracker__link:hover { text-decoration: underline; }
+        .pipeline-tracker__placeholder {
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          font-style: italic;
+          padding: var(--space-sm) 0;
+        }
+        .pipeline-stages {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-bottom: var(--space-sm);
+        }
+        .pipeline-stage {
+          flex: 1;
+          min-width: 140px;
+        }
+        .pipeline-stage__name {
+          font-size: 0.68rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-muted);
+          margin-bottom: 6px;
+          padding-bottom: 4px;
+          border-bottom: 1px solid var(--border-subtle);
+        }
+        .pipeline-stage__jobs { display: flex; flex-direction: column; gap: 6px; }
+        .pipeline-job {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 8px;
+          border-radius: var(--radius-sm);
+          background: rgba(255,255,255,0.02);
+          border: 1px solid var(--border-subtle);
+          flex-wrap: wrap;
+          min-width: 0;
+        }
+        .pipeline-job--running  { border-color: rgba(96,165,250,0.35); background: rgba(96,165,250,0.06); }
+        .pipeline-job--success  { border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.04); }
+        .pipeline-job--failed   { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.04); }
+        .pipeline-job__icon     { font-size: 0.85rem; flex-shrink: 0; }
+        .pipeline-job__name     { font-size: 0.78rem; font-weight: 600; color: var(--text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .pipeline-job__status   { font-size: 0.68rem; color: var(--text-muted); }
+        .pipeline-job__download {
+          font-size: 0.7rem;
+          padding: 2px 8px;
+          border-radius: 99px;
+          background: rgba(52,211,153,0.12);
+          border: 1px solid rgba(52,211,153,0.35);
+          color: #34d399;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .pipeline-job__download:hover { background: rgba(52,211,153,0.2); }
+        .pipeline-job__link {
+          font-size: 0.68rem;
+          color: var(--text-accent);
+          text-decoration: none;
+        }
+        .pipeline-job__link:hover { text-decoration: underline; }
+        .pipeline-tracker__dl-all {
+          margin-top: var(--space-sm);
+          width: 100%;
+          justify-content: center;
         }
 
         /* ── Script Editor CSS ── */
