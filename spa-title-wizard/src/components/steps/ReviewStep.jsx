@@ -7,7 +7,7 @@ import { pushIntuneMetadata } from '../../lib/intuneApi';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
-export default function ReviewStep({ state, updateField }) {
+export default function ReviewStep({ state, updateField, allStepsValid = true }) {
   const files = useMemo(() => generateScaffolding(state), [state]);
   const filePaths = Object.keys(files).sort();
   const [selectedFile, setSelectedFile] = useState(filePaths[0] || '');
@@ -38,10 +38,15 @@ export default function ReviewStep({ state, updateField }) {
 
   // Auto-reset pipeline action if the current selection is no longer valid
   useEffect(() => {
+    // If intune fields are missing, drop back from publish/assign to build
     if (!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign')) {
       setPipelineAction('build');
     }
-  }, [intuneReady, pipelineAction]);
+    // If required fields across ALL steps are missing, drop any pipeline action back to 'none'
+    if (!allStepsValid && pipelineAction !== 'none') {
+      setPipelineAction('none');
+    }
+  }, [intuneReady, allStepsValid, pipelineAction]);
 
   // Persist publish result in wizard state so it survives navigation
   const publishResult = state._lastPublishResult || null;
@@ -383,44 +388,66 @@ export default function ReviewStep({ state, updateField }) {
             {/* Pipeline control */}
             <div className="pipeline-control">
               <div className="pipeline-control__label">Pipeline Action</div>
+              {!allStepsValid && (
+                <div className="pipeline-incomplete-banner">
+                  ⚠️ <strong>Required fields are missing.</strong> Complete all highlighted steps to enable Build and Publish actions. Commit Only is still available.
+                </div>
+              )}
               <div className="pipeline-control__options">
                 {(() => {
                   const isWin = state.platform === 'windows' || state.platform === 'both';
                   const isMac = state.platform === 'macos' || state.platform === 'both';
-                  const options = [{ value: 'none', label: '⏸️ Don\'t trigger', desc: 'Commit only — no pipeline' }];
+                  // 'none' = commit only — always available
+                  const options = [{ value: 'none', label: "⏸️ Don't trigger", desc: 'Commit only — no pipeline' }];
                   if (isWin) {
                     options.push(
-                      { value: 'build', label: '📦 Build', desc: 'Package .intunewin only' },
-                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !intuneReady },
-                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !intuneReady },
+                      { value: 'build',   label: '📦 Build',                    desc: 'Package .intunewin only',                                                              disabled: !allStepsValid },
+                      { value: 'publish', label: '📦 Build + Publish',           desc: 'Package, upload to Intune, and apply supersedence/dependencies',  disabled: !allStepsValid || !intuneReady },
+                      { value: 'assign',  label: '📦 Build + Publish + Assign',  desc: 'Full pipeline — includes group assignments',                       disabled: !allStepsValid || !intuneReady },
                     );
                   }
                   if (isMac && !isWin) {
                     options.push(
-                      { value: 'deploy', label: '🍎 Deploy', desc: 'Terraform apply to Jamf' },
+                      { value: 'deploy', label: '🍎 Deploy', desc: 'Terraform apply to Jamf', disabled: !allStepsValid },
                     );
                   }
                   if (isMac && isWin) {
                     options.push(
-                      { value: 'deploy', label: '🍎 macOS Deploy', desc: 'Also triggers Jamf Terraform deploy' },
+                      { value: 'deploy', label: '🍎 macOS Deploy', desc: 'Also triggers Jamf Terraform deploy', disabled: !allStepsValid },
                     );
                   }
-                  return options.map(opt => (
-                    <label key={opt.value} className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''} ${opt.disabled ? 'pipeline-option--disabled' : ''}`}
-                      title={opt.disabled ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)' : ''}
-                    >
-                      <input
-                        type="radio"
-                        name="pipelineAction"
-                        value={opt.value}
-                        checked={pipelineAction === opt.value}
-                        onChange={() => setPipelineAction(opt.value)}
-                        disabled={opt.disabled}
-                      />
-                      <span className="pipeline-option__label">{opt.label}</span>
-                      <span className="pipeline-option__desc">{opt.desc}{opt.disabled ? ' ⚠️ Intune fields incomplete' : ''}</span>
-                    </label>
-                  ));
+
+                  return options.map(opt => {
+                    const isDisabledBySteps   = opt.value !== 'none' && !allStepsValid;
+                    const isDisabledByIntune   = (opt.value === 'publish' || opt.value === 'assign') && !intuneReady;
+                    const tooltip = isDisabledBySteps
+                      ? 'Complete all required fields across all stages first'
+                      : isDisabledByIntune
+                      ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)'
+                      : '';
+                    return (
+                      <label
+                        key={opt.value}
+                        className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''} ${opt.disabled ? 'pipeline-option--disabled' : ''}`}
+                        title={tooltip}
+                      >
+                        <input
+                          type="radio"
+                          name="pipelineAction"
+                          value={opt.value}
+                          checked={pipelineAction === opt.value}
+                          onChange={() => setPipelineAction(opt.value)}
+                          disabled={opt.disabled}
+                        />
+                        <span className="pipeline-option__label">{opt.label}</span>
+                        <span className="pipeline-option__desc">
+                          {opt.desc}
+                          {isDisabledBySteps  ? ' ⚠️ Required fields missing' : ''}
+                          {!isDisabledBySteps && isDisabledByIntune ? ' ⚠️ Intune fields incomplete' : ''}
+                        </span>
+                      </label>
+                    );
+                  });
                 })()}
               </div>
             </div>
@@ -889,6 +916,22 @@ export default function ReviewStep({ state, updateField }) {
           cursor: not-allowed;
           pointer-events: none;
           border-color: rgba(239, 68, 68, 0.2);
+        }
+        .pipeline-incomplete-banner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          margin-bottom: 10px;
+          background: rgba(245, 158, 11, 0.08);
+          border: 1px solid rgba(245, 158, 11, 0.35);
+          border-radius: var(--radius-sm);
+          font-size: 0.78rem;
+          color: #f59e0b;
+          line-height: 1.4;
+        }
+        .pipeline-incomplete-banner strong {
+          color: #fbbf24;
         }
 
         /* ── Script Editor CSS ── */

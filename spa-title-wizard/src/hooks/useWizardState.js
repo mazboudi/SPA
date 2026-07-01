@@ -579,6 +579,13 @@ export default function useWizardState() {
     return isStepValid(step.id);
   }, [steps, currentStep, isStepValid]);
 
+  // True when every step in the current wizard flow passes validation.
+  // Used by ReviewStep to gate Build / Build+Publish / Build+Publish+Assign.
+  const allStepsValid = useMemo(
+    () => (steps || []).every(s => isStepValid(s.id)),
+    [steps, isStepValid]
+  );
+
   // ── Auto-seed default lifecycle actions for new titles ─────────────────
   const seedDefaultLifecycleActions = useCallback((targetStepId) => {
     if (targetStepId !== 'psadt') return;
@@ -959,6 +966,7 @@ export default function useWizardState() {
     steps,
     canProceed,
     stepValidation,
+    allStepsValid,
     updateField,
     updateFields,
     addAction,

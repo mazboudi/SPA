@@ -294,7 +294,7 @@ export default function App() {
       case 'macos':
         return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':
-        return <ReviewStep state={wizard.state} updateField={wizard.updateField} />;
+        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} />;
       default:
         return null;
     }
@@ -563,7 +563,6 @@ export default function App() {
                   <button
                     className="btn btn-primary"
                     onClick={wizard.nextStep}
-                    disabled={!wizard.canProceed}
                   >
                     Next →
                   </button>
