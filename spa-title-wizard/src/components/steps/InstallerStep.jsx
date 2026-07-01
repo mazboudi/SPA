@@ -2,83 +2,144 @@ import { useState, useEffect, useRef } from 'react';
 import FormField from '../ui/FormField';
 import './windows-steps.css';
 
-// ── Path parser ───────────────────────────────────────────────────────────────
-/**
- * Split a full Windows or POSIX path into { dir, file, type }.
- *   'C:\files\7z\7z2600-x64.msi' → { dir:'C:\files\7z', file:'7z2600-x64.msi', type:'msi' }
- *   '/opt/files/setup.exe'       → { dir:'/opt/files',    file:'setup.exe',       type:'exe' }
- */
-function parseInstallerPath(fullPath) {
-  const raw = fullPath.trim();
-  if (!raw) return { dir: '', file: '', type: '' };
-  // Find last separator (backslash or forward slash)
-  const lastBack  = raw.lastIndexOf('\\');
-  const lastSlash = raw.lastIndexOf('/');
-  const lastSep   = Math.max(lastBack, lastSlash);
-  const dir  = lastSep >= 0 ? raw.slice(0, lastSep) : '';
-  const file = lastSep >= 0 ? raw.slice(lastSep + 1) : raw;
-  const ext  = file.includes('.') ? file.split('.').pop().toLowerCase() : '';
-  const type = ext === 'msi' ? 'msi' : ext ? 'exe' : '';
-  return { dir, file, type };
+// ─────────────────────────────────────────────────────────────────────────────
+// parseInstallerFullPath
+//
+// Takes a full runner path like:
+//   C:\AppSource\AppName\Files\setup.msi
+//   C:\AppSource\AppName\Files\Bin\setup.exe
+//   \\server\share\AppName\Files\setup.msi
+//
+// Returns:
+//   dir           — full directory portion (no trailing slash)
+//   file          — filename with extension
+//   installerType — 'msi' | 'exe' | ''
+//   subfolder     — relative path between \Files\ and filename ('' if at root)
+//   pathError     — validation message if \Files\ not present, null if valid
+// ─────────────────────────────────────────────────────────────────────────────
+function parseInstallerFullPath(raw) {
+  const input = (raw || '').trim();
+  if (!input) return { dir: '', file: '', installerType: '', subfolder: '', pathError: null };
+
+  // Normalise slashes
+  const norm = input.replace(/\//g, '\\');
+
+  // Split filename (last segment)
+  const lastSep = norm.lastIndexOf('\\');
+  const dir  = lastSep >= 0 ? norm.slice(0, lastSep) : '';
+  const file = lastSep >= 0 ? norm.slice(lastSep + 1) : norm;
+
+  // Installer type — only from fully-recognized extensions to avoid mid-edit flipping
+  const ext = file.includes('.') ? file.split('.').pop().toLowerCase() : '';
+  const knownMsi = ['msi'];
+  const knownExe = ['exe', 'msp', 'cmd', 'bat', 'ps1'];
+  const installerType = knownMsi.includes(ext) ? 'msi'
+    : knownExe.includes(ext) ? 'exe'
+    : '';   // '' = partial/unknown extension → don't change current type
+
+  // Find \Files\ in the directory portion (case-insensitive, last occurrence)
+  const dirLower = dir.toLowerCase();
+  const filesToken = '\\files\\';
+  const filesIdx = dirLower.lastIndexOf(filesToken);
+
+  // Also accept path that ends with \Files (file sits directly in Files\)
+  const endsWithFiles = dirLower.endsWith('\\files') || dirLower.toLowerCase() === 'files';
+
+  let subfolder = '';
+  let pathError = null;
+
+  if (filesIdx >= 0) {
+    // Everything between \Files\ and the filename is the subfolder
+    subfolder = dir.slice(filesIdx + filesToken.length).replace(/^\\+|\\+$/g, '');
+  } else if (endsWithFiles) {
+    subfolder = '';
+  } else {
+    pathError = 'Path must include \\Files\\ — e.g. C:\\AppSource\\AppName\\Files\\setup.msi';
+  }
+
+  return { dir, file, installerType, subfolder, pathError };
 }
 
-/** Build the display path from wizard state (used to initialise local input) */
-function buildPathFromState(state) {
-  if (state.installerSourceDir && state.installerSourceFile)
-    return `${state.installerSourceDir}\\${state.installerSourceFile}`;
-  return state.installerSourceFile || '';
+// Reconstruct a display path from wizard state (used to initialise the text input)
+function buildFullPathFromState(state) {
+  const dir  = (state.installerSourceDir || '').replace(/\\+$/, '');
+  const file = state.installerSourceFile || '';
+  if (!dir && !file) return '';
+  if (!dir) return file;
+  if (!file) return dir;
+  return `${dir}\\${file}`;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────────────────────────
 export default function InstallerStep({ state, updateField, updateFields }) {
-  // ── Installer path local state (drives all 3 derived wizard fields) ──────
-  const [pathInput, setPathInput] = useState(() => buildPathFromState(state));
-  // Suppress the next useEffect sync when WE just updated the wizard state
+
+  // ── MSI extract state ───────────────────────────────────────────────────
+  const [msiParsing,     setMsiParsing]     = useState(false);
+  const [msiParseResult, setMsiParseResult] = useState(null);
+  const [msiExtractPath, setMsiExtractPath] = useState('');
+
+  // ── Single full-path input (drives all derived wizard fields) ───────────
+  const [pathInput, setPathInput] = useState(() => buildFullPathFromState(state));
   const suppressSync = useRef(false);
 
-  const [msiParsing, setMsiParsing] = useState(false);
-  const [msiParseResult, setMsiParseResult] = useState(null);
-
-  // ── WinGet bootstrapper state ────────────────────────────────────────────
-  const [wingetInput, setWingetInput]   = useState('');
-  const [wingetLoading, setWingetLoading] = useState(false);
-  const [wingetResult, setWingetResult]  = useState(null);
-  const [downloading, setDownloading]    = useState(false);
-  const [downloadStatus, setDownloadStatus] = useState(null);
-
-  // Sync pathInput when wizard state changes externally (e.g., WinGet "Apply")
+  // Re-sync when wizard state is loaded externally (Queue / Edit)
   useEffect(() => {
     if (suppressSync.current) { suppressSync.current = false; return; }
-    const fromState = buildPathFromState(state);
+    const fromState = buildFullPathFromState(state);
     if (fromState && fromState !== pathInput) setPathInput(fromState);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.installerSourceFile, state.installerSourceDir]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // ── WinGet state ────────────────────────────────────────────────────────
+  const [wingetInput,     setWingetInput]     = useState('');
+  const [wingetLoading,   setWingetLoading]   = useState(false);
+  const [wingetResult,    setWingetResult]    = useState(null);
+  const [downloading,     setDownloading]     = useState(false);
+  const [downloadStatus,  setDownloadStatus]  = useState(null);
+
+  // ── Derived ─────────────────────────────────────────────────────────────
+  const isMsi = state.installerType === 'msi';
+  const isExe = state.installerType === 'exe';
+
+  const parsed = parseInstallerFullPath(pathInput);
+
+  // Primary installer filename for PSADT path
+  const primaryFile = isMsi
+    ? (state.msiFileName || state.installerSourceFile || '')
+    : (state.exeSourceFilename || state.installerSourceFile || '');
+
+  // Live PSADT -FilePath value
+  const psadtPath = (() => {
+    if (!primaryFile) return '';
+    const sub = (state.installerSubfolder || '').replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\');
+    if (sub) return `"$($adtSession.DirFiles)\\${sub}\\${primaryFile}"`;
+    return `"$($adtSession.DirFiles)\\${primaryFile}"`;
+  })();
+
+  // ── Handlers ────────────────────────────────────────────────────────────
+
   const handlePathChange = (raw) => {
     setPathInput(raw);
     setMsiParseResult(null);
     suppressSync.current = true;
 
-    const { dir, file, type } = parseInstallerPath(raw);
+    const { dir, file, installerType, subfolder } = parseInstallerFullPath(raw);
     const updates = {
-      installerSourceDir:   dir,
-      installerSourceFile:  file,
-      // Support files always mirrors the installer directory — no separate field
-      supportFilesSource:   dir,
+      installerSourceDir:  dir,
+      installerSourceFile: file,
+      installerSubfolder:  subfolder,
+      supportFilesSource:  dir,   // always mirrors source dir
     };
-    if (type) updates.installerType = type;
+    if (installerType) updates.installerType = installerType;
     if (updateFields) updateFields(updates);
     else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
   };
 
-  // Separate local path for MSI extraction — the runner path may not be accessible
-  // from the dev machine, so the user can point to a local copy just for extraction.
-  const [msiExtractPath, setMsiExtractPath] = useState('');
+  const handleTypeToggle = (t) => updateField('installerType', t);
 
-  /** Extract MSI metadata. Uses msiExtractPath if provided, otherwise falls back to pathInput. */
-  const handleAutoExtract = async (forcePath) => {
-    const target = (forcePath || msiExtractPath.trim() || pathInput.trim());
+  // ── MSI auto-extract ────────────────────────────────────────────────────
+  const handleAutoExtract = async () => {
+    const target = msiExtractPath.trim() || pathInput.trim();
     if (state.installerType !== 'msi' || !target) return;
     setMsiParsing(true);
     setMsiParseResult(null);
@@ -107,7 +168,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     }
   };
 
-  // ── WinGet: fetch package info ────────────────────────────────────────────
+  // ── WinGet: fetch package info ───────────────────────────────────────────
   const handleWingetFetch = async (targetVersion = null) => {
     const version = typeof targetVersion === 'string' ? targetVersion : null;
     const pkg = wingetInput.trim();
@@ -115,7 +176,6 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     setWingetLoading(true);
     setDownloadStatus(null);
     if (!version) setWingetResult(null);
-    else setWingetResult(prev => prev ? { ...prev, error: null } : null);
     try {
       const res = await fetch('/api/winget-info', {
         method: 'POST',
@@ -138,7 +198,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     }
   };
 
-  // ── WinGet: apply fetched metadata to wizard state ────────────────────────
+  // ── WinGet: apply filename + metadata to wizard state ────────────────────
   const applyWingetMeta = () => {
     if (!wingetResult || wingetResult.error) return;
     const type = wingetResult.installerType === 'msi' ? 'msi' : 'exe';
@@ -147,10 +207,14 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     if (!filename || !filename.includes('.'))
       filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${type}`;
 
+    // Rebuild the path input with the new filename
+    const dirPart = (state.installerSourceDir || '').replace(/\\+$/, '');
+    const newFullPath = dirPart ? `${dirPart}\\${filename}` : filename;
+    handlePathChange(newFullPath);
+
     const updates = {
-      installerType:       type,
-      installerSourceFile: filename,
-      version:             wingetResult.packageVersion || '1.0.0',
+      installerType:  type,
+      version:        wingetResult.packageVersion || '1.0.0',
     };
     if (type === 'msi') {
       updates.msiFileName       = filename;
@@ -164,10 +228,9 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     }
     if (updateFields) updateFields(updates);
     else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
-    // pathInput will sync via useEffect
   };
 
-  // ── WinGet: download installer into staging folder ────────────────────────
+  // ── WinGet: download to runner directory ────────────────────────────────
   const handleWingetDownload = async () => {
     if (!wingetResult || !wingetResult.installerUrl || !state.installerSourceDir) return;
     setDownloading(true);
@@ -194,23 +257,19 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     }
   };
 
-  // ── Derived display values ────────────────────────────────────────────────
-  const isMsi = state.installerType === 'msi';
-  const isExe = state.installerType === 'exe';
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="step-content animate-in">
       <div className="step-header">
         <h2>📦 Installer &amp; Behavior</h2>
-        <p>Provide the path to your installer file — directory, filename, and type are derived automatically.</p>
+        <p>Provide the full path to the installer file. Everything else is derived automatically.</p>
       </div>
 
       {/* ═══ WINGET BOOTSTRAPPER ═══ */}
       <div className="config-section winget-section animate-slide">
         <h3 className="section-title">🚀 WinGet Package Bootstrapper</h3>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-          Enter a public WinGet Package ID (e.g. <code>Google.Chrome</code>, <code>Zoom.Zoom</code>, <code>Git.Git</code>) to automatically resolve installer files, silent arguments, version numbers, and product detection keys!
+          Enter a public WinGet Package ID to automatically resolve installer filename, silent arguments, version, and product detection keys.
         </p>
         <div className="winget-row">
           <input
@@ -275,7 +334,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                 </div>
                 <div className="winget-actions-row">
                   <button type="button" className="btn btn-primary" onClick={applyWingetMeta}>
-                    ✓ Apply to Form
+                    ✓ Apply Filename &amp; Metadata
                   </button>
                   {state.installerSourceDir ? (
                     <button
@@ -287,7 +346,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                       {downloading ? '⏳ Downloading...' : '📥 Download Installer File'}
                     </button>
                   ) : (
-                    <span className="download-hint">⚠️ Set the installer source path to enable direct downloads.</span>
+                    <span className="download-hint">⚠️ Set the source path below to enable direct downloads.</span>
                   )}
                 </div>
                 {downloadStatus && (
@@ -303,109 +362,101 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         )}
       </div>
 
-      {/* ═══ INSTALL SOURCE ═══ */}
+      {/* ═══ INSTALLER SOURCE ═══ */}
       <div className="config-section">
-        <h3 className="section-title">Install Source</h3>
+        <h3 className="section-title">📂 Installer Source <span className="section-subtitle">(Runner / File Share)</span></h3>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+          Enter the <strong>full path</strong> to the installer file on the GitLab runner.
+          The path must include <code>\Files\</code> — the pipeline copies the installer into the PSADT{' '}
+          <code>Files\</code> directory. Any subfolder after <code>\Files\</code> is derived automatically.
+          Supports local paths (<code>C:\...</code>), UNC shares (<code>\\server\share\...</code>), and mapped drives.
+        </p>
 
         <FormField
           label="Full path to installer file"
           id="installerFullPath"
           required
-          hint="Path on the GitLab runner. Directory, filename, and installer type are derived automatically from this path."
+          hint={`Must contain \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files\\setup.msi   or   C:\\AppSource\\AppName\\Files\\Bin\\setup.exe`}
         >
-          <div className="installer-path-row">
+          <div className="inst-fullpath-row">
             <input
               id="installerFullPath"
               type="text"
-              className="installer-path-input"
+              className={`inst-fullpath-input${parsed.pathError && pathInput.trim() ? ' inst-fullpath-input--error' : ''}`}
               value={pathInput}
               onChange={e => handlePathChange(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAutoExtract()}
-              onBlur={() => handleAutoExtract()}
-              placeholder={'C:\\ApplicationSource\\7-Zip\\7z2600-x64.msi'}
+              onBlur={() => isMsi && !parsed.pathError && pathInput.trim() && handleAutoExtract()}
+              placeholder={String.raw`C:\AppSource\AppName\Files\setup.msi`}
+              spellCheck={false}
             />
-            {isMsi && pathInput.trim() && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={handleAutoExtract}
-                disabled={msiParsing}
-                title="Extract product metadata from the MSI file"
-              >
-                {msiParsing ? '⏳ Extracting…' : '🔍 Extract MSI Info'}
-              </button>
+            {/* Type override chips — shown once a file is detected */}
+            {state.installerSourceFile && (
+              <div className="inst-type-toggle">
+                {['msi', 'exe'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`inst-type-btn${state.installerType === t ? ' inst-type-btn--active' : ''}`}
+                    onClick={() => handleTypeToggle(t)}
+                  >
+                    {t.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </FormField>
 
-        {/* Derived info badge */}
-        {state.installerSourceFile && (
-          <div className="installer-derived-info animate-in">
-            <span className={`inst-type-chip inst-type-chip--${state.installerType || 'unknown'}`}>
-              {state.installerType?.toUpperCase() || '?'}
-            </span>
-            {state.installerSourceDir && (
-              <span className="inst-dir">{state.installerSourceDir}\</span>
-            )}
-            <span className="inst-file">{state.installerSourceFile}</span>
+        {/* Validation error */}
+        {parsed.pathError && pathInput.trim() && (
+          <div className="inst-msg inst-msg--err animate-in" style={{ marginTop: 8 }}>
+            ⚠️ {parsed.pathError}
           </div>
         )}
 
-        {/* MSI extract status */}
-        {msiParseResult && !msiParseResult.error && (
-          <div className="inst-extract-msg inst-extract-msg--ok animate-in">
-            ✅ MSI metadata extracted —{' '}
-            {Object.entries(msiParseResult).filter(([k, v]) => v && k !== 'error').length} fields populated
-          </div>
-        )}
-        {msiParseResult?.error && (
-          <div className="inst-extract-msg inst-extract-msg--err animate-in">
-            ❌ {msiParseResult.error}
-          </div>
-        )}
-
-        {/* Subfolder within Files/ */}
-        <FormField
-          label="Installer subfolder within Files/ (optional)"
-          id="installerSubfolder"
-          hint={`Leave blank when the installer sits directly in Files/. Enter a relative path (e.g. "Bin" or "x64\\Setup") if the installer lives in a subfolder.`}
-        >
-          <input
-            id="installerSubfolder"
-            type="text"
-            value={state.installerSubfolder || ''}
-            onChange={e => updateField('installerSubfolder', e.target.value)}
-            placeholder={`e.g. Bin  or  x64\\Setup`}
-          />
-        </FormField>
-        {state.installerSubfolder && state.installerSourceFile && (
-          <div className="installer-derived-info animate-in" style={{ gap: 4, flexDirection: 'column', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 2 }}>Generated PSADT path:</span>
-            <code style={{ fontSize: '0.78rem', color: 'var(--text-accent, #7c8aff)' }}>
-              {`"$($adtSession.DirFiles)\\${state.installerSubfolder.replace(/^[/\\]+|[/\\]+$/g,'').replace(/\//g,'\\')}\\${state.installerSourceFile}"`}
-            </code>
+        {/* Derived breakdown — shown when path is valid and a filename exists */}
+        {!parsed.pathError && state.installerSourceFile && (
+          <div className="inst-derived-grid animate-in">
+            <div className="inst-derived-row">
+              <span className="inst-derived-label">Source directory</span>
+              <code className="inst-derived-value">{state.installerSourceDir || '—'}</code>
+            </div>
+            <div className="inst-derived-row">
+              <span className="inst-derived-label">Installer file</span>
+              <code className="inst-derived-value inst-derived-value--file">{state.installerSourceFile}</code>
+              {state.installerType && (
+                <span className={`inst-type-chip inst-type-chip--${state.installerType}`}>
+                  {state.installerType.toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="inst-derived-row">
+              <span className="inst-derived-label">PSADT subfolder</span>
+              <code className="inst-derived-value">
+                {state.installerSubfolder
+                  ? `Files\\${state.installerSubfolder}\\`
+                  : 'Files\\ (root)'}
+              </code>
+            </div>
+            <div className="inst-derived-row">
+              <span className="inst-derived-label">PSADT -FilePath</span>
+              <code className="inst-derived-value inst-derived-value--psadt">{psadtPath}</code>
+            </div>
           </div>
         )}
 
-        {/* Support files source is always the same as the installer directory — no separate input */}
-      </div>
-
-      {/* ═══ MSI METADATA ═══ */}
-      {isMsi && (
-        <div className="config-section animate-slide">
-          <h3 className="section-title">MSI Metadata</h3>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-            Auto-extracted from the installer file. If the runner path isn't accessible from this machine,
-            enter a local path to the MSI below for extraction only — the runner path is unchanged.
-          </p>
-
-          {/* Local extraction path — for dev/test machines that can't reach the runner */}
-          <div className="msi-local-extract animate-in">
+        {/* MSI local extraction */}
+        {isMsi && !parsed.pathError && (
+          <div className="msi-local-extract animate-in" style={{ marginTop: 'var(--space-md)' }}>
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0 0 8px 0' }}>
+              <strong>MSI Info Extraction</strong> — optionally provide a local path to the MSI if the runner
+              path isn't accessible from this machine. Leave blank to auto-extract on blur.
+            </p>
             <div className="msi-extract-row">
               <input
                 type="text"
                 className="msi-path-input"
-                placeholder="Local path to .msi for extraction, e.g. /Users/you/Downloads/installer.msi"
+                placeholder="Local path to .msi, e.g. /Users/you/Downloads/installer.msi"
                 value={msiExtractPath}
                 onChange={e => setMsiExtractPath(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAutoExtract()}
@@ -413,28 +464,32 @@ export default function InstallerStep({ state, updateField, updateFields }) {
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => handleAutoExtract()}
+                onClick={handleAutoExtract}
                 disabled={msiParsing || (!msiExtractPath.trim() && !pathInput.trim())}
               >
                 {msiParsing ? '⏳ Extracting…' : '🔍 Extract MSI Info'}
               </button>
             </div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
-              Leave blank to extract from the runner path above (only works when runner is accessible).
-            </p>
             {msiParseResult && !msiParseResult.error && (
-              <div className="inst-extract-msg inst-extract-msg--ok animate-in">
-                ✅ MSI metadata extracted —{' '}
-                {Object.entries(msiParseResult).filter(([k, v]) => v && k !== 'error').length} fields populated
+              <div className="inst-msg inst-msg--ok animate-in">
+                ✅ MSI metadata extracted — {Object.entries(msiParseResult).filter(([k, v]) => v && k !== 'error').length} fields populated
               </div>
             )}
             {msiParseResult?.error && (
-              <div className="inst-extract-msg inst-extract-msg--err animate-in">
-                ❌ {msiParseResult.error}
-              </div>
+              <div className="inst-msg inst-msg--err animate-in">❌ {msiParseResult.error}</div>
             )}
           </div>
-          <div className="form-grid" style={{ marginTop: 'var(--space-md)' }}>
+        )}
+      </div>
+
+      {/* ═══ MSI METADATA ═══ */}
+      {isMsi && (
+        <div className="config-section animate-slide">
+          <h3 className="section-title">🗃 MSI Metadata</h3>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+            Auto-extracted from the installer above. Used for product detection in Intune.
+          </p>
+          <div className="form-grid">
             <FormField label="Product Code (GUID)" id="msiProductCode">
               <input id="msiProductCode" type="text" placeholder="{GUID}" value={state.msiProductCode} onChange={e => updateField('msiProductCode', e.target.value)} />
             </FormField>
@@ -457,13 +512,13 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         </div>
       )}
 
-      {/* ═══ EXE DETAILS ═══ */}
+      {/* ═══ EXE INSTALLER DETAILS ═══ */}
       {isExe && (
         <div className="config-section animate-slide">
-          <h3 className="section-title">EXE Installer Details</h3>
+          <h3 className="section-title">⚙️ EXE Installer Details</h3>
           <div className="form-grid">
             <FormField label="Install Arguments" id="exeInstallArgs">
-              <input id="exeInstallArgs" type="text" value={state.exeInstallArgs} onChange={e => updateField('exeInstallArgs', e.target.value)} />
+              <input id="exeInstallArgs" type="text" value={state.exeInstallArgs} onChange={e => updateField('exeInstallArgs', e.target.value)} placeholder="/S /qn" />
             </FormField>
             <FormField label="Uninstall Path" id="exeUninstallPath">
               <input id="exeUninstallPath" type="text" placeholder="C:\Program Files\App\uninstall.exe" value={state.exeUninstallPath} onChange={e => updateField('exeUninstallPath', e.target.value)} />
@@ -476,31 +531,92 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       )}
 
       <style>{`
-        /* ── Installer path row ── */
-        .installer-path-row {
+        /* ── Full-path input row ── */
+        .inst-fullpath-row {
           display: flex;
           gap: var(--space-sm);
           align-items: stretch;
         }
-        .installer-path-input {
+        .inst-fullpath-input {
           flex: 1;
           min-width: 0;
+          font-family: var(--font-mono);
+          font-size: 0.82rem;
+          transition: border-color 0.15s;
+        }
+        .inst-fullpath-input--error {
+          border-color: #f87171 !important;
         }
 
-        /* ── Derived info badge ── */
-        .installer-derived-info {
+        /* ── Type chips (next to filename) ── */
+        .inst-type-toggle {
           display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-top: 8px;
-          padding: 6px 10px;
+          gap: 2px;
+          flex-shrink: 0;
+        }
+        .inst-type-btn {
+          padding: 4px 10px;
+          border-radius: 4px;
+          border: 1px solid var(--border-default);
           background: var(--bg-elevated);
+          color: var(--text-secondary);
+          font-size: 0.7rem;
+          font-weight: 700;
+          cursor: pointer;
+          letter-spacing: 0.05em;
+          transition: all 0.1s;
+        }
+        .inst-type-btn:hover { border-color: var(--accent-primary); }
+        .inst-type-btn--active {
+          background: var(--accent-primary);
+          border-color: var(--accent-primary);
+          color: #fff;
+        }
+
+        /* ── Derived breakdown grid ── */
+        .inst-derived-grid {
+          margin-top: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-sm);
-          font-family: var(--font-mono);
-          font-size: 0.76rem;
+          overflow: hidden;
+        }
+        .inst-derived-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 7px 12px;
+          border-bottom: 1px solid var(--border-subtle);
           flex-wrap: wrap;
         }
+        .inst-derived-row:last-child { border-bottom: none; }
+        .inst-derived-label {
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          min-width: 110px;
+          flex-shrink: 0;
+        }
+        .inst-derived-value {
+          font-family: var(--font-mono);
+          font-size: 0.78rem;
+          color: var(--text-secondary);
+          word-break: break-all;
+          flex: 1;
+        }
+        .inst-derived-value--file {
+          color: var(--text-primary);
+          font-weight: 600;
+        }
+        .inst-derived-value--psadt {
+          color: var(--text-accent, var(--accent-primary));
+        }
+
+        /* ── Installer type chip ── */
         .inst-type-chip {
           display: inline-flex;
           align-items: center;
@@ -512,31 +628,28 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           flex-shrink: 0;
         }
         .inst-type-chip--msi {
-          background: rgba(139, 92, 246, 0.18);
+          background: rgba(139,92,246,0.18);
           color: #a78bfa;
-          border: 1px solid rgba(139, 92, 246, 0.3);
+          border: 1px solid rgba(139,92,246,0.3);
         }
         .inst-type-chip--exe {
-          background: rgba(245, 158, 11, 0.15);
+          background: rgba(245,158,11,0.15);
           color: #fbbf24;
-          border: 1px solid rgba(245, 158, 11, 0.28);
-        }
-        .inst-type-chip--unknown {
-          background: rgba(100, 116, 139, 0.15);
-          color: var(--text-muted);
-          border: 1px solid var(--border-subtle);
-        }
-        .inst-dir {
-          color: var(--text-secondary);
-        }
-        .inst-file {
-          color: var(--text-accent);
-          font-weight: 600;
+          border: 1px solid rgba(245,158,11,0.28);
         }
 
-        /* ── Local extract block ── */
+        /* ── Section subtitle ── */
+        .section-subtitle {
+          font-size: 0.72rem;
+          font-weight: 400;
+          color: var(--text-muted);
+          margin-left: 6px;
+          text-transform: none;
+          letter-spacing: 0;
+        }
+
+        /* ── MSI local extract ── */
         .msi-local-extract {
-          margin-bottom: var(--space-md);
           padding: 12px;
           background: var(--bg-elevated);
           border: 1px solid var(--border-subtle);
@@ -547,26 +660,24 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           gap: var(--space-sm);
           align-items: stretch;
         }
-        .msi-path-input {
-          flex: 1;
-          min-width: 0;
-        }
-        /* ── Extract status messages ── */
-        .inst-extract-msg {
+        .msi-path-input { flex: 1; min-width: 0; }
+
+        /* ── Status / validation messages ── */
+        .inst-msg {
           margin-top: 8px;
           padding: 6px 10px;
           border-radius: var(--radius-sm);
           font-size: 0.76rem;
         }
-        .inst-extract-msg--ok {
-          background: rgba(74, 222, 128, 0.08);
+        .inst-msg--ok {
+          background: rgba(74,222,128,0.08);
           color: #4ade80;
-          border: 1px solid rgba(74, 222, 128, 0.2);
+          border: 1px solid rgba(74,222,128,0.2);
         }
-        .inst-extract-msg--err {
-          background: rgba(239, 68, 68, 0.08);
+        .inst-msg--err {
+          background: rgba(239,68,68,0.08);
           color: #f87171;
-          border: 1px solid rgba(239, 68, 68, 0.2);
+          border: 1px solid rgba(239,68,68,0.2);
         }
       `}</style>
     </div>

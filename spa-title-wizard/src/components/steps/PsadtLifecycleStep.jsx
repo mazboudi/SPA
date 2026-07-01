@@ -123,6 +123,13 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
     return file;
   }
 
+  /** Same quoting logic as filePathParam() in generatePsadtScript.js */
+  function filePathPreviewParam(resolved) {
+    if (!resolved) return '';
+    if (resolved.startsWith('"')) return ` -FilePath ${resolved}`;
+    return ` -FilePath '${resolved}'`;
+  }
+
   const [expanded, setExpanded] = useState(false);
 
   // Sync with parent "Expand All" / "Collapse All" toggle
@@ -231,7 +238,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
             switch (action.type) {
               case 'start_process': {
                 const resolvedFile = resolvePreviewFilePath(action.file);
-                const fp = resolvedFile ? ` -FilePath '${resolvedFile}'` : '';
+                const fp = filePathPreviewParam(resolvedFile);
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
                 const win = action.windowStyle && action.windowStyle !== 'Normal' ? ` -WindowStyle '${action.windowStyle}'` : '';
                 const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
@@ -245,7 +252,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
               case 'start_msi_process': {
                 const msiAction = action.action || 'Install';
                 const resolvedFile = resolvePreviewFilePath(action.file);
-                const fp = resolvedFile ? ` -FilePath '${resolvedFile}'` : '';
+                const fp = filePathPreviewParam(resolvedFile);
                 const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
                 const a = action.args ? ` -ArgumentList '${action.args}'` : '';
                 const t = action.transform ? ` -Transforms '${action.transform}'` : '';

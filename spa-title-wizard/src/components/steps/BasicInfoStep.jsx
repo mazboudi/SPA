@@ -68,6 +68,8 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
   }, [state.gitLabGroup, state.wizardMode]);
 
   // Check if current Package ID exists in GitLab
+  // Tries the active gitLabGroup first; if not found, falls back to the base group
+  // (handles projects created before platform-specific subgroups were introduced).
   useEffect(() => {
     if (!state.packageId || !state.gitLabGroup) {
       setExistingProject(null);
@@ -80,27 +82,46 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
       setExistingProject(null);
       updateField('existingProject', null);
       try {
-        const fullPath = `${state.gitLabGroup}/software-titles/${state.packageId}`;
-        const res = await fetch(`/api/projects/check?path=${encodeURIComponent(fullPath)}`);
-        if (res.ok) {
+        const primaryPath = `${state.gitLabGroup}/software-titles/${state.packageId}`;
+
+        // Helper to check a single path
+        const checkPath = async (fullPath) => {
+          const res = await fetch(`/api/projects/check?path=${encodeURIComponent(fullPath)}`);
+          if (!res.ok) return null;
           const data = await res.json();
-          if (data.exists) {
-            setExistingProject(data.project);
-            updateField('existingProject', data.project);
-          } else {
-            setExistingProject(null);
-            updateField('existingProject', null);
+          return data.exists ? data.project : null;
+        };
+
+        let project = await checkPath(primaryPath);
+
+        // Fallback: if the primary group has a platform segment (/win or /mac)
+        // and the project wasn't found there, also try the base group.
+        // This handles projects created before platform-specific subgroups.
+        if (!project) {
+          const baseGroup = state.gitLabGroup.replace(/\/(?:win|mac)$/, '');
+          if (baseGroup && baseGroup !== state.gitLabGroup) {
+            console.log(`[ProjectCheck] Not found at ${primaryPath} — trying base: ${baseGroup}/software-titles/${state.packageId}`);
+            project = await checkPath(`${baseGroup}/software-titles/${state.packageId}`);
           }
         }
+
+
+        if (project) {
+          setExistingProject(project);
+          updateField('existingProject', project);
+        } else {
+          setExistingProject(null);
+          updateField('existingProject', null);
+        }
       } catch (e) {
-        console.warn('Failed to check project existence:', e);
+        console.warn('[ProjectCheck] Failed to check project existence:', e);
       } finally {
         setCheckingProject(false);
       }
     }, 600); // 600ms debounce
 
     return () => clearTimeout(timer);
-  }, [state.packageId, state.gitLabGroup, state.wizardMode]);
+  }, [state.packageId, state.gitLabGroup]);
   return (
     <div className="step-content animate-in">
       {/* Refactor import banner */}

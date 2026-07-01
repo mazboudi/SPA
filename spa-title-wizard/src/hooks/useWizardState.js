@@ -238,6 +238,32 @@ export function validatePackageId(slug) {
   return null;
 }
 
+/**
+ * Walks all lifecycle action cards and updates any 'file' field that matches
+ * the old installer filename. This keeps Start-ADTProcess / Start-ADTMsiProcess
+ * cards in sync as the user types the full path without requiring the
+ * installerType to change.
+ */
+function syncActionFileReferences(next, oldFile) {
+  if (!oldFile) return next;
+  const newFile = next.installerSourceFile || '';
+  const oldBase = oldFile.split(/[\\/]/).pop(); // basename only
+  const newBase = newFile.split(/[\\/]/).pop();
+  const phases = { ...next.lifecycle.phases };
+  Object.keys(phases).forEach(phaseKey => {
+    phases[phaseKey] = {
+      ...phases[phaseKey],
+      actions: (phases[phaseKey].actions || []).map(action => {
+        if (action.file === oldFile || action.file === oldBase) {
+          return { ...action, file: newBase || newFile };
+        }
+        return action;
+      }),
+    };
+  });
+  return { ...next, lifecycle: { ...next.lifecycle, phases } };
+}
+
 /** Synchronizes visual action cards whenever the installerType changes (e.g. MSI <-> EXE) */
 function syncInstallerActions(next, prevInstallerType) {
   if (next.installerType === prevInstallerType) return next;
@@ -369,6 +395,11 @@ export default function useWizardState() {
         return syncInstallerActions(next, prev.installerType);
       }
 
+      // Keep action card file references in sync as the user edits the installer filename
+      if (field === 'installerSourceFile' && value !== prev.installerSourceFile) {
+        return syncActionFileReferences(next, prev.installerSourceFile || '');
+      }
+
       return next;
     });
   }, []);
@@ -388,6 +419,12 @@ export default function useWizardState() {
       if (fields.hasOwnProperty('installerType')) {
         return syncInstallerActions(next, prev.installerType);
       }
+
+      // Keep action card file references in sync as the user edits the installer filename
+      if (fields.hasOwnProperty('installerSourceFile') && fields.installerSourceFile !== prev.installerSourceFile) {
+        return syncActionFileReferences(next, prev.installerSourceFile || '');
+      }
+
       return next;
     });
   }, []);

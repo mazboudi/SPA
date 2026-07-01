@@ -68,6 +68,18 @@ export default function generatePsadtScript(s, clean = false) {
     return file;
   }
 
+  /**
+   * Wrap a resolved file path in the correct PS quote style:
+   *  - PS expressions like "$($adtSession.DirFiles)\..." stay double-quoted
+   *  - Plain strings use single quotes
+   * Returns the full -FilePath 'x' or -FilePath "x" fragment.
+   */
+  function filePathParam(resolved) {
+    if (!resolved) return '';
+    if (resolved.startsWith('"')) return ` -FilePath ${resolved}`;
+    return ` -FilePath '${resolved}'`;
+  }
+
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
   function convertToActionLines(actions) {
     const lines = [];
@@ -81,7 +93,7 @@ export default function generatePsadtScript(s, clean = false) {
         case 'start_msi_process': {
           const msiAction = action.action || 'Install';
           const resolvedFile = resolveFilePath(action.file);
-          const filePart = resolvedFile ? ` -FilePath '${resolvedFile}'` : '';
+          const filePart = filePathParam(resolvedFile);
           const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
           const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
@@ -104,7 +116,8 @@ export default function generatePsadtScript(s, clean = false) {
           const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
           const pt = action.passThru ? ' -PassThru' : '';
           const resolvedFile = resolveFilePath(action.file);
-          let cmd = `Start-ADTProcess -FilePath '${resolvedFile}'${args}${successCodes}${rebootCodes}${pt}`;
+          const fp = filePathParam(resolvedFile);
+          let cmd = `Start-ADTProcess${fp}${args}${successCodes}${rebootCodes}${pt}`;
           if (action.passThru && action.passThruVar) {
             cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
           }
