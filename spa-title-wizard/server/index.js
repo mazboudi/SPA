@@ -793,17 +793,20 @@ app.get('/api/projects', async (req, res) => {
 });
 
 // ── GET /api/projects/check — check if a project path already exists in GitLab ──
+// Uses group + project slug lookup to avoid %2F encoding issues across environments.
 app.get('/api/projects/check', async (req, res) => {
   try {
     const { path } = req.query;
     if (!path) return res.status(400).json({ error: 'path is required' });
 
-    console.log(`\n🔍 Checking if GitLab project exists: ${path}`);
+    // Normalise: strip any accidental %2F that came through double-encoded
+    const normalizedPath = path.replace(/%2F/gi, '/');
+    console.log(`\n🔍 Checking if GitLab project exists: ${normalizedPath}`);
 
     // Offline / Mock fallback if token is not set
     if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty') {
       console.log('  ⚠️ Using MOCK check because GITLAB_TOKEN is not configured');
-      const slug = path.split('/').pop();
+      const slug = normalizedPath.split('/').pop();
       const mockProj = getMockProjects().projects.find(p => p.path === slug);
       if (mockProj) {
         return res.json({ exists: true, project: mockProj });
@@ -811,10 +814,56 @@ app.get('/api/projects/check', async (req, res) => {
       return res.json({ exists: false });
     }
 
+    // Split path into namespace group + project slug
+    // e.g. 'euc/software-package-automation/software-titles/google-chrome'
+    //   → namespace = 'euc/software-package-automation/software-titles'
+    //   → slug      = 'google-chrome'
+    const parts = normalizedPath.split('/');
+    const slug = parts.pop();
+    const namespace = parts.join('/');
+
     try {
-      const project = await gitlab('GET', `/projects/${encPath(path)}`);
-      
-      // Fetch tags/versions for enriched metadata
+      // Strategy 1: look up the group by path, then find the project by slug within it.
+      // This avoids sending %2F in the URL path segment.
+      let project = null;
+
+      // GET /groups/:namespace/projects?search=slug&per_page=10
+      // namespace is passed as a query param (no %2F in path), making it proxy-safe.
+      try {
+        const groupSearchUrl = `/groups/${encPath(namespace)}/projects?search=${encodeURIComponent(slug)}&per_page=10&simple=true`;
+        const groupProjects = await gitlab('GET', groupSearchUrl);
+        if (Array.isArray(groupProjects)) {
+          project = groupProjects.find(p =>
+            p.path === slug ||
+            p.path_with_namespace === normalizedPath
+          ) || null;
+        }
+      } catch (groupErr) {
+        // If groups API fails (e.g. the group itself doesn't exist), fall through
+        if (groupErr.status !== 404) {
+          console.warn(`  ⚠️ Group search failed (${groupErr.status}): ${groupErr.message}`);
+        }
+      }
+
+      // Strategy 2 (fallback): use /projects?search=slug and filter by path_with_namespace.
+      // This works even when the group path lookup fails (e.g. nested subgroups).
+      if (!project) {
+        try {
+          const searchResults = await gitlab('GET', `/projects?search=${encodeURIComponent(slug)}&per_page=20&simple=true`);
+          if (Array.isArray(searchResults)) {
+            project = searchResults.find(p => p.path_with_namespace === normalizedPath) || null;
+          }
+        } catch (searchErr) {
+          console.warn(`  ⚠️ Project search fallback failed: ${searchErr.message}`);
+        }
+      }
+
+      if (!project) {
+        console.log(`  ℹ️  Project not found: ${normalizedPath}`);
+        return res.json({ exists: false });
+      }
+
+      // Enrich with tags (non-critical — swallow errors)
       let tags = [];
       try {
         const tagData = await gitlab('GET', `/projects/${project.id}/repository/tags?per_page=20&order_by=version`);
@@ -840,8 +889,8 @@ app.get('/api/projects/check', async (req, res) => {
       // Graceful fallback to mock check on network errors/unreachable GitLab host
       if (err.status === 502 || err.message.includes('Cannot reach GitLab') || err.message.includes('fetch failed')) {
         console.log('  ⚠️ Unreachable GitLab for project check. Returning mock check.');
-        const slug = path.split('/').pop();
-        const mockProj = getMockProjects().projects.find(p => p.path === slug);
+        const slug2 = normalizedPath.split('/').pop();
+        const mockProj = getMockProjects().projects.find(p => p.path === slug2);
         if (mockProj) {
           return res.json({ exists: true, project: mockProj });
         }
