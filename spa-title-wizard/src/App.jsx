@@ -6,6 +6,7 @@ import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActio
 import TopBar, { } from './components/layout/TopBar';
 import Sidebar, { DRAWER_WIDTH, DRAWER_COLLAPSED_WIDTH } from './components/layout/Sidebar';
 import PlatformSelector from './components/layout/PlatformSelector';
+import PlatformLandingPage from './components/ui/PlatformLandingPage';
 import SettingsPage from './components/pages/SettingsPage';
 
 import useWizardState from './hooks/useWizardState';
@@ -27,10 +28,11 @@ import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from '
 
 // ── Views ─────────────────────────────────────────────────────────────────────
 const VIEW = {
-  HOME: 'home',         // Platform selector (no platform chosen yet)
+  HOME:    'home',     // Platform selector (no platform chosen yet)
+  LANDING: 'landing',  // Per-platform landing page (shown after platform selection)
   PACKAGE: 'package',  // Active package wizard
-  QUEUE: 'queue',      // ServiceNow queue — inline page
-  EDIT: 'edit',        // Edit existing — inline page
+  QUEUE:   'queue',    // ServiceNow queue — inline page
+  EDIT:    'edit',     // Edit existing — inline page
   SETTINGS: 'settings',
   REFACTOR: 'refactor',
 };
@@ -89,7 +91,7 @@ export default function App() {
         serverConfig.current = {
           gitLabWinGroup: data.gitLabWinGroup || '',
           gitLabMacGroup: data.gitLabMacGroup || '',
-          gitLabGroup:    data.gitLabGroup    || '',
+          gitLabGroup: data.gitLabGroup || '',
         };
         // Apply to wizard state
         applyServerGroups();
@@ -126,7 +128,7 @@ export default function App() {
         wizard.updateField('platform', platformId);
       }, 0);
     }
-    setView(VIEW.QUEUE);
+    setView(VIEW.LANDING);
     setPlatformSwitchDialog(false);
     setPendingPlatform(null);
   };
@@ -255,7 +257,7 @@ export default function App() {
         ? wizardFields.displayName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase()
         : (wizard.state.packageId || '');
       if (derivedPackageId) {
-        try { await fetch(`/api/scaffold/${encodeURIComponent(derivedPackageId)}`, { method: 'DELETE' }); } catch {}
+        try { await fetch(`/api/scaffold/${encodeURIComponent(derivedPackageId)}`, { method: 'DELETE' }); } catch { }
       }
       const intuneDisplayName = wizard.state.displayName;
       const psadtDisplayName = fullParsed.fields?.displayName || '';
@@ -409,7 +411,7 @@ export default function App() {
         {/* Continue action */}
         {canContinue && (
           <div style={{ marginTop: 'var(--space-lg)' }}>
-            <button className="btn btn-primary" onClick={() => setView(VIEW.PACKAGE)}>Continue to Wizard →</button>
+            <button className="btn btn-primary" onClick={() => setView(VIEW.PACKAGE)}>Continue →</button>
           </div>
         )}
       </>
@@ -451,6 +453,7 @@ export default function App() {
         activeStepId={currentStepId}
         steps={wizard.steps}
         currentStep={wizard.currentStep}
+        stepValidation={wizard.stepValidation}
         onGoToStep={wizard.goToStep}
         onQueueOpen={() => setView(VIEW.QUEUE)}
         onNewBlank={() => {
@@ -506,6 +509,17 @@ export default function App() {
             />
           )}
 
+          {/* ── PLATFORM LANDING ── */}
+          {view === VIEW.LANDING && (
+            <PlatformLandingPage
+              platform={wizard.state.platform}
+              onQueue={() => setView(VIEW.QUEUE)}
+              onBlank={handleNewBlank}
+              onEdit={handleEditPackages}
+              onRefactor={handleRefactor}
+            />
+          )}
+
           {/* ── REFACTOR FLOW ── */}
           {view === VIEW.REFACTOR && renderRefactorFlow()}
 
@@ -513,7 +527,7 @@ export default function App() {
           {view === VIEW.QUEUE && (
             <ServiceNowQueue
               onSelect={handleQueueSelect}
-              onClose={() => setView(wizard.state.platform ? VIEW.PACKAGE : VIEW.HOME)}
+              onClose={() => setView(wizard.state.displayName || wizard.state.packageId ? VIEW.PACKAGE : wizard.state.platform ? VIEW.LANDING : VIEW.HOME)}
               platform={wizard.state.platform}
             />
           )}
@@ -522,7 +536,7 @@ export default function App() {
           {view === VIEW.EDIT && (
             <ProjectPicker
               onSelect={handleProjectSelect}
-              onClose={() => setView(wizard.state.platform ? VIEW.PACKAGE : VIEW.HOME)}
+              onClose={() => setView(wizard.state.displayName || wizard.state.packageId ? VIEW.PACKAGE : wizard.state.platform ? VIEW.LANDING : VIEW.HOME)}
               groupPath={activeProjectGroup}
             />
           )}
@@ -538,7 +552,7 @@ export default function App() {
               <div className="app-nav">
                 <button
                   className="btn btn-secondary"
-                  onClick={wizard.currentStep === 0 ? () => setView(VIEW.QUEUE) : wizard.prevStep}
+                  onClick={wizard.currentStep === 0 ? () => setView(VIEW.LANDING) : wizard.prevStep}
                 >
                   ← Back
                 </button>

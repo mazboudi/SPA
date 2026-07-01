@@ -473,31 +473,32 @@ export default function useWizardState() {
     return base;
   }, [state.platform, state.wizardMode]);
 
-  const canProceed = useMemo(() => {
-    const step = steps[currentStep];
-    if (!step) return false;
+  // ── Per-step required-field validation ─────────────────────────────────
+  // Called for ANY step (not just current), so the sidebar can show red/green.
+  const isStepValid = useCallback((stepId) => {
+    switch (stepId) {
 
-    switch (step.id) {
       case 'basic': {
         const hasRequired = !!(state.displayName.trim() && state.version.trim() && state.category && state.platform);
         if (!hasRequired) return false;
         if (validatePackageId(state.packageId) !== null) return false;
-        if (state.existingProject && state.wizardMode !== 'edit' && !state.duplicateAcknowledge) {
-          return false;
-        }
+        if (state.existingProject && state.wizardMode !== 'edit' && !state.duplicateAcknowledge) return false;
         return true;
       }
+
       case 'psadt':
+        // PSADT lifecycle is pre-seeded; no user-facing required field gates it
         return true;
+
       case 'installer':
-        return true; // Installer source is optional guidance, not a blocker
+        // The installer source file path is the only required field (marked "required" in the UI)
+        return !!(state.installerSourceFile || '').trim();
+
       case 'intune': {
-        // Mandatory Intune fields
         const intuneAppName = state.intuneAppName || `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
         if (!intuneAppName) return false;
         if (!(state.appDescription || '').trim()) return false;
         if (!(state.publisher || '').trim()) return false;
-        // Detection rules: at least 1 manual rule, or a detection script
         const detRules = state.detectionRules || [];
         if (state.detectionMethod === 'script') {
           if (!(state.scriptContent || '').trim()) return false;
@@ -506,14 +507,40 @@ export default function useWizardState() {
         }
         return true;
       }
+
+      case 'mac-installer': {
+        if (state.macSmbEnabled) {
+          // SMB mode: share URL and path within share are both required
+          return !!(state.macSmbShare || '').trim() && !!(state.macSmbPathInShare || '').trim();
+        }
+        // Local/NFS mode: source file path required
+        return !!(state.macSourceFile || '').trim();
+      }
+
       case 'macos':
-        return true;
+        // Application Path (.app bundle) is the only required field
+        return !!(state.macAppPath || '').trim();
+
       case 'review':
         return true;
+
       default:
-        return false;
+        return true;
     }
-  }, [steps, currentStep, state]);
+  }, [state]);
+
+  // Per-step validation map exposed to consumers (e.g. Sidebar)
+  const stepValidation = useMemo(() => {
+    const map = {};
+    (steps || []).forEach(s => { map[s.id] = isStepValid(s.id); });
+    return map;
+  }, [steps, isStepValid]);
+
+  const canProceed = useMemo(() => {
+    const step = steps[currentStep];
+    if (!step) return false;
+    return isStepValid(step.id);
+  }, [steps, currentStep, isStepValid]);
 
   // ── Auto-seed default lifecycle actions for new titles ─────────────────
   const seedDefaultLifecycleActions = useCallback((targetStepId) => {
@@ -894,6 +921,7 @@ export default function useWizardState() {
     currentStep,
     steps,
     canProceed,
+    stepValidation,
     updateField,
     updateFields,
     addAction,

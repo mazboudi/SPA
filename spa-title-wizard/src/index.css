@@ -418,3 +418,166 @@ button.mode-card:disabled {
   font-weight: 600;
   letter-spacing: 0.02em;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Platform Landing Page
+   ═══════════════════════════════════════════════════════════════ */
+.platform-landing {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-xl) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  animation: fadeSlideIn 0.3s ease;
+}
+
+.platform-landing__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.platform-landing__badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(99,102,241,0.12);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.platform-landing__badge-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.platform-landing__badge-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+
+.platform-landing__title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: var(--text-primary);
+}
+
+.platform-landing__subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.platform-landing__section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Action cards ── */
+.platform-landing__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-md);
+}
+
+.platform-landing__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.platform-landing__card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.18);
+  transform: translateY(-2px);
+}
+
+.platform-landing__card--primary {
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+}
+
+.platform-landing__card-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.platform-landing__card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.platform-landing__card-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+  flex: 1;
+}
+
+.platform-landing__card-cta {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-top: 4px;
+}
+
+/* ── Tips panel ── */
+.platform-landing__tips {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.platform-landing__tips-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-md) 0;
+  color: var(--text-primary);
+}
+
+.platform-landing__tips-list {
+  margin: 0;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.platform-landing__tips-list li {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.platform-landing__tips-list li strong {
+  color: var(--text-primary);
+}

@@ -104,8 +104,31 @@ function NavSection({ icon, label, selected, onClick, children, chip, open: open
   );
 }
 
-// ── Stage sub-item ─────────────────────────────────────────────────────────
-function StageItem({ icon, label, active, completed, onClick, sidebarOpen }) {
+// ── Stage sub-item ───────────────────────────────────────────────────────────────────
+function StageItem({ icon, label, active, completed, hasError, onClick, sidebarOpen }) {
+  // Determine icon and colour:
+  // - active step: primary colour, uses icon
+  // - completed + valid: success green ✓
+  // - completed + invalid (has required fields missing): error red ✗
+  // - future step: muted, uses icon
+  const iconColor = active
+    ? 'primary.main'
+    : hasError
+      ? 'error.main'
+      : completed
+        ? 'success.main'
+        : 'text.disabled';
+
+  const textColor = active
+    ? 'primary.main'
+    : hasError
+      ? 'error.main'
+      : completed
+        ? 'success.main'
+        : 'text.secondary';
+
+  const statusIcon = hasError ? '✗' : (completed && !active ? '✓' : icon);
+
   return (
     <Tooltip title={!sidebarOpen ? label : ''} placement="right">
       <ListItemButton
@@ -120,13 +143,8 @@ function StageItem({ icon, label, active, completed, onClick, sidebarOpen }) {
           borderRadius: '0 6px 6px 0',
         }}
       >
-        <ListItemIcon
-          sx={{
-            minWidth: 30,
-            color: active ? 'primary.main' : completed ? 'success.main' : 'text.disabled',
-          }}
-        >
-          {completed && !active ? '✓' : icon}
+        <ListItemIcon sx={{ minWidth: 30, color: iconColor }}>
+          {statusIcon}
         </ListItemIcon>
         {sidebarOpen && (
           <ListItemText
@@ -139,7 +157,7 @@ function StageItem({ icon, label, active, completed, onClick, sidebarOpen }) {
                 },
               },
             }}
-            sx={{ '& .MuiListItemText-primary': { color: active ? 'primary.main' : completed ? 'success.main' : 'text.secondary' } }}
+            sx={{ '& .MuiListItemText-primary': { color: textColor } }}
           />
         )}
       </ListItemButton>
@@ -155,6 +173,7 @@ export default function Sidebar({
   activeStepId,        // current wizard step ID
   steps,               // wizard steps array from useWizardState
   currentStep,         // index
+  stepValidation,      // { [stepId]: boolean } — true = valid, false = has errors
   onGoToStep,          // (idx) => void
   onQueueOpen,
   onNewBlank,
@@ -268,6 +287,10 @@ export default function Sidebar({
               const stageIdx = stepIdxMap[stage.stepId];
               const isActive = stage.stepId === activeStepId;
               const isCompleted = stageIdx !== undefined && stageIdx < currentStep;
+              // Show error indicator for visited (completed) steps that still have
+              // missing required fields — so user knows they need to go back and fix.
+              const isValid = stepValidation ? stepValidation[stage.stepId] !== false : true;
+              const hasError = isCompleted && !isValid;
               return (
                 <StageItem
                   key={stage.stepId}
@@ -275,6 +298,7 @@ export default function Sidebar({
                   label={stage.label}
                   active={isActive}
                   completed={isCompleted}
+                  hasError={hasError}
                   onClick={() => stageIdx !== undefined && onGoToStep(stageIdx)}
                   sidebarOpen={sidebarOpen}
                 />
