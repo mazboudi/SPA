@@ -97,7 +97,7 @@ export default function ProjectPicker({ onSelect, onClose, groupPath }) {
     <div className="pp-page">
       <div className="pp-header">
         <div>
-          <h2 className="pp-title">✏️ Edit Existing Package</h2>
+          <h2 className="pp-title">✏️ Edit / Update Existing Package</h2>
           <p className="pp-subtitle">Select a project from GitLab to load into the workbench</p>
         </div>
         <button className="pp-close" onClick={onClose} title="Back">← Back</button>

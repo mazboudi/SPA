@@ -59,7 +59,7 @@ export default function App() {
 
   // ── Load-project warning (discard unsaved work?) ──────────────────────────
   const [loadWarningDialog, setLoadWarningDialog] = useState(false);
-  const [pendingProjectLoad, setPendingProjectLoad] = useState(null); // { type: 'queue'|'edit', args }
+  const [pendingProjectLoad, setPendingProjectLoad] = useState(null); // raw callback fn
 
   // ── Modals ────────────────────────────────────────────────────────────────
   // IntuneExportPicker remains a modal (it's triggered from within the wizard step)
@@ -140,79 +140,64 @@ export default function App() {
     setView(VIEW.HOME);
   };
 
-  const handleNewBlank = () => {
+  // ── Unsaved-work guard ────────────────────────────────────────────────────
+  // Wraps any navigation/load action. If there is an active in-progress package
+  // (displayName or packageId set), shows a warning dialog first.
+  // The callback is stored and executed only if the user confirms.
+  const hasUnsavedWork = () => !!(wizard.state.displayName || wizard.state.packageId);
+
+  const withUnsavedWorkGuard = (action) => {
+    if (hasUnsavedWork()) {
+      // Wrap in object — if we passed the fn directly, React's useState would
+      // treat it as an updater function and execute it immediately, losing data.
+      setPendingProjectLoad({ fn: action });
+      setLoadWarningDialog(true);
+    } else {
+      action();
+    }
+  };
+
+  // ── New blank package ─────────────────────────────────────────────────────
+  const handleNewBlank = () => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
-    // Restore server group paths after reset, then re-apply platform
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
     }, 0);
     setView(VIEW.PACKAGE);
-  };
+  });
 
-  const handleNewFromQueue = () => {
-    if (!wizard.state.platform) { setView(VIEW.HOME); return; }
-    setView(VIEW.QUEUE);
-  };
+  // ── New from queue ────────────────────────────────────────────────────────
+  const handleNewFromQueue = () => withUnsavedWorkGuard(() => setView(VIEW.QUEUE));
 
-  const handleRefactor = () => {
-    setView(VIEW.REFACTOR);
-  };
+  // ── Refactor ──────────────────────────────────────────────────────────────
+  const handleRefactor = () => withUnsavedWorkGuard(() => setView(VIEW.REFACTOR));
 
-  const handleEditPackages = () => {
-    setView(VIEW.EDIT);
-  };
+  // ── Edit packages ─────────────────────────────────────────────────────────
+  const handleEditPackages = () => withUnsavedWorkGuard(() => setView(VIEW.EDIT));
 
-  // ── Detect unsaved in-progress work ──────────────────────────────────────
-  // A project is "in progress" when there's a displayName/packageId but it hasn't
-  // been published to GitLab yet (no _editProjectId) OR it's an edit whose local
-  // state may have changed since the last publish.
-  const hasUnsavedWork = () => !!(wizard.state.displayName || wizard.state.packageId);
-
-  // ── Internal: actually execute a project load (queue or edit) ────────────
-  const executeProjectLoad = ({ type, args }) => {
+  // ── ServiceNow queue item selected ────────────────────────────────────────
+  const handleQueueSelect = (fields) => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
-    if (type === 'queue') {
-      const [fields] = args;
-      wizard.reset();
-      setTimeout(() => {
-        applyServerGroups();
-        if (platform) wizard.updateField('platform', platform);
-        Object.entries(fields).forEach(([key, value]) => {
-          if (value !== undefined && value !== '') wizard.updateField(key, value);
-        });
-        wizard.goToStep(0);
-      }, 0);
-    } else if (type === 'edit') {
-      const [files, projectMeta] = args;
-      wizard.importProjectForEdit(files, projectMeta);
+    wizard.reset();
+    setTimeout(() => {
+      applyServerGroups();
+      if (platform) wizard.updateField('platform', platform);
+      Object.entries(fields).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') wizard.updateField(key, value);
+      });
       wizard.goToStep(0);
-    }
+    }, 0);
     setView(VIEW.PACKAGE);
-    setLoadWarningDialog(false);
-    setPendingProjectLoad(null);
-  };
+  });
 
-  // ── ServiceNow queue ──────────────────────────────────────────────────────
-  const handleQueueSelect = (fields) => {
-    if (hasUnsavedWork()) {
-      setPendingProjectLoad({ type: 'queue', args: [fields] });
-      setLoadWarningDialog(true);
-      return;
-    }
-    executeProjectLoad({ type: 'queue', args: [fields] });
-  };
-
-  // ── Edit existing ─────────────────────────────────────────────────────────
-  const handleProjectSelect = (files, projectMeta) => {
-    if (hasUnsavedWork()) {
-      setPendingProjectLoad({ type: 'edit', args: [files, projectMeta] });
-      setLoadWarningDialog(true);
-      return;
-    }
-    executeProjectLoad({ type: 'edit', args: [files, projectMeta] });
-  };
+  // ── Edit existing project selected ────────────────────────────────────────
+  const handleProjectSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
+    wizard.importProjectForEdit(files, projectMeta);
+    wizard.goToStep(0);
+    setView(VIEW.PACKAGE);
+  });
 
   const handleLoadExistingProject = async (projectPath) => {
     try {
@@ -467,18 +452,12 @@ export default function App() {
         steps={wizard.steps}
         currentStep={wizard.currentStep}
         onGoToStep={wizard.goToStep}
-        onQueueOpen={() => {
-          if (!wizard.state.platform) { alert('Please select a platform first.'); return; }
-          setView(VIEW.QUEUE);
-        }}
+        onQueueOpen={() => setView(VIEW.QUEUE)}
         onNewBlank={() => {
           if (!wizard.state.platform) { setView(VIEW.HOME); return; }
           handleNewBlank();
         }}
-        onNewFromQueue={() => {
-          if (!wizard.state.platform) { setView(VIEW.HOME); return; }
-          handleNewFromQueue();
-        }}
+        onNewFromQueue={handleNewFromQueue}
         onRefactor={() => {
           if (!wizard.state.platform) { setView(VIEW.HOME); return; }
           handleRefactor();
@@ -599,25 +578,37 @@ export default function App() {
       </Dialog>
 
       {/* ── Unsaved Work Warning Dialog ── */}
-      <Dialog open={loadWarningDialog} onClose={() => setLoadWarningDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Load New Project?</DialogTitle>
+      <Dialog open={loadWarningDialog} onClose={() => { setLoadWarningDialog(false); setPendingProjectLoad(null); }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Unsaved Progress</DialogTitle>
         <DialogContent>
           <DialogContentText>
             You have an active package —{' '}
             <strong>{wizard.state.displayName || wizard.state.packageId || 'Unnamed package'}</strong>
-            {' '}— that has not been published to GitLab.
+            {' '}— with unpublished changes.
           </DialogContentText>
           <Alert severity="warning" sx={{ mt: 2, fontSize: '0.8rem' }}>
-            Loading a new project will discard any unpublished changes to the current package.
+            This action will discard all unsaved progress. Continue?
           </Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setLoadWarningDialog(false); setPendingProjectLoad(null); }} variant="outlined" size="small">Cancel</Button>
           <Button
-            onClick={() => pendingProjectLoad && executeProjectLoad(pendingProjectLoad)}
+            onClick={() => { setLoadWarningDialog(false); setPendingProjectLoad(null); }}
+            variant="outlined" size="small"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (pendingProjectLoad?.fn) {
+                const fn = pendingProjectLoad.fn;
+                setLoadWarningDialog(false);
+                setPendingProjectLoad(null);
+                fn();
+              }
+            }}
             variant="contained" color="warning" size="small"
           >
-            Discard &amp; Load
+            Discard &amp; Continue
           </Button>
         </DialogActions>
       </Dialog>

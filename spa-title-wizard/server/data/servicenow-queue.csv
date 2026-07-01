@@ -18,4 +18,4 @@ REQ0010016,KeePass,Dominik Reichl,2.57.1,windows,Security,security-team@fiserv.c
 REQ0010017,7-Zip,Igor Pavlov,24.09,windows,Utilities,desktop-eng@fiserv.com,2026-05-10,Low,File archiver with high compression ratio,msi,
 REQ0010018,Python,Python Software Foundation,3.12.8,windows,Developer Tools,data-eng@fiserv.com,2026-05-10,High,Python programming language runtime and package manager,exe,
 REQ0010019,Node.js,OpenJS Foundation,22.12.0,windows,Developer Tools,web-platform@fiserv.com,2026-05-11,High,JavaScript runtime for server-side development,msi,
-REQ0010020,Terraform,HashiCorp,1.10.3,windows,Developer Tools,infra-team@fiserv.com,2026-05-11,Critical,Infrastructure-as-Code tool for cloud provisioning,exe,
+REQ0010020,Terraform,HashiCorp,1.10.3,macOS,Developer Tools,infra-team@fiserv.com,2026-05-11,Critical,Infrastructure-as-Code tool for cloud provisioning,exe,

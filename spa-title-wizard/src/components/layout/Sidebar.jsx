@@ -235,7 +235,7 @@ export default function Sidebar({
           {platform !== 'macos' && (
             <StageItem
               icon={<SyncAltIcon sx={{ fontSize: 16 }} />}
-              label="Refactor Existing"
+              label="Intune Import"
               active={false}
               onClick={onRefactor}
               sidebarOpen={sidebarOpen}
@@ -248,7 +248,7 @@ export default function Sidebar({
         {/* ── Edit Packages ── */}
         <NavSection
           icon={<EditIcon sx={{ fontSize: 18 }} />}
-          label="Edit Packages"
+          label="Edit / Update"
           selected={activeView === 'edit'}
           onClick={onEditPackages}
           disabled={!platform}
