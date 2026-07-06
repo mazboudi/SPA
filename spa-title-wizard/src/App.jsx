@@ -142,11 +142,11 @@ export default function App() {
   const applyPlatformSelect = (platformId) => {
     if (wizard.state.platform !== platformId) {
       wizard.reset();
-      resetDirtyTracking();
       // reset() resets platform and group fields — restore from server config and set platform
       setTimeout(() => {
         applyServerGroups();
         wizard.updateField('platform', platformId);
+        saveBaseline();
       }, 0);
     }
     setView(VIEW.LANDING);
