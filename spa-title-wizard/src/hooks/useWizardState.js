@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { parseProjectFiles } from '../lib/parseProjectFiles';
 import parsePsadtBlocks from '../lib/parsePsadtBlocks';
 import { deriveState } from './deriveState';
@@ -328,12 +328,36 @@ export default function useWizardState() {
   const state = useMemo(() => deriveState(rawState), [rawState]);
   const [currentStep, setCurrentStep] = useState(0);
 
+  // ── Dirty tracking ──────────────────────────────────────────────────────
+  // isDirtyRef is true only when the user has made real edits after a load/reset.
+  // We use a ref so toggling it doesn't cause extra re-renders.
+  const isDirtyRef = useRef(false);
+
+  // Fields set automatically by the system (server config, lookups, etc.).
+  // Writes to these fields alone do NOT count as user edits.
+  const SYSTEM_FIELDS = new Set([
+    'gitLabGroup', 'gitLabWinGroup', 'gitLabMacGroup',
+    'existingProject', 'duplicateAcknowledge',
+    'vsCodeOpened', 'syncPendingFields',
+    // internal edit-mode tracking set during load
+    '_editProjectId', '_editProjectPath', '_editProjectUrl',
+    '_editLoadedRef', '_editProjectTags', '_localRepoPath',
+  ]);
+
+  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
+  const markClean = useCallback(() => { isDirtyRef.current = false; }, []);
+
   // All internal writes go to setRawState, consumers read from `state` (derived)
   const setState = setRawState;
 
   const updateField = useCallback((field, value) => {
     setState(prev => {
       const next = { ...prev, [field]: value };
+
+      // Mark dirty for real user edits (skip system-managed fields)
+      if (!SYSTEM_FIELDS.has(field)) {
+        markDirty();
+      }
 
       // Auto-derive packageId from displayName
       if (field === 'displayName') {
@@ -405,6 +429,10 @@ export default function useWizardState() {
   }, []);
 
   const updateFields = useCallback((fields) => {
+    // Mark dirty if any non-system field is being updated
+    if (Object.keys(fields).some(k => !SYSTEM_FIELDS.has(k))) {
+      markDirty();
+    }
     setState(prev => {
       const next = { ...prev, ...fields };
 
@@ -431,6 +459,7 @@ export default function useWizardState() {
 
   // ── Lifecycle action CRUD ──────────────────────────────────────────────
   const addAction = useCallback((phaseKey, action) => {
+    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       phases[phaseKey] = { ...phases[phaseKey], actions: [...(phases[phaseKey]?.actions || []), action] };
@@ -439,6 +468,7 @@ export default function useWizardState() {
   }, []);
 
   const removeAction = useCallback((phaseKey, index) => {
+    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       const actions = [...(phases[phaseKey]?.actions || [])];
@@ -449,6 +479,7 @@ export default function useWizardState() {
   }, []);
 
   const updateAction = useCallback((phaseKey, index, updates) => {
+    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       const actions = [...(phases[phaseKey]?.actions || [])];
@@ -459,6 +490,7 @@ export default function useWizardState() {
   }, []);
 
   const moveAction = useCallback((phaseKey, fromIndex, toIndex) => {
+    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       const actions = [...(phases[phaseKey]?.actions || [])];
@@ -714,7 +746,8 @@ export default function useWizardState() {
   const reset = useCallback(() => {
     setState(INITIAL_STATE);
     setCurrentStep(0);
-  }, []);
+    markClean();
+  }, [markClean]);
 
   /**
    * Import parsed PSADT fields into wizard state.
@@ -896,6 +929,8 @@ export default function useWizardState() {
           vsCodeOpened: false,
         }));
         setCurrentStep(0);
+        // Mark clean immediately after load — no user edits yet
+        markClean();
         console.log(`✅ Loaded project from snapshot (${Object.keys(files).length} files, PS1: ${ps1Path || 'none'})`);
         return;
       } catch (e) {
@@ -958,7 +993,9 @@ export default function useWizardState() {
       return next;
     });
     setCurrentStep(0);
-  }, []);
+    // Mark clean — project just loaded, no user changes yet
+    markClean();
+  }, [markClean]);
 
   return {
     state,
@@ -967,6 +1004,8 @@ export default function useWizardState() {
     canProceed,
     stepValidation,
     allStepsValid,
+    isDirty: isDirtyRef.current,
+    markClean,
     updateField,
     updateFields,
     addAction,

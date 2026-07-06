@@ -113,7 +113,7 @@ function PipelineTracker({ pipelineStatus, polling, pipelineUrl, projectId, pipe
   );
 }
 
-export default function ReviewStep({ state, updateField, allStepsValid = true }) {
+export default function ReviewStep({ state, updateField, allStepsValid = true, markClean }) {
   const files = useMemo(() => generateScaffolding(state), [state]);
   const filePaths = Object.keys(files).sort();
   const [selectedFile, setSelectedFile] = useState(filePaths[0] || '');
@@ -183,6 +183,8 @@ export default function ReviewStep({ state, updateField, allStepsValid = true })
         pipelineAction,
       });
       setPublishResult(result);
+      // Clear dirty flag — changes are now committed to GitLab
+      if (markClean) markClean();
       // If a pipeline was triggered, start polling for status
       if (result.pipelineId && result.projectId) {
         startPipelinePolling(result.projectId, result.pipelineId);

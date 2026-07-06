@@ -143,10 +143,11 @@ export default function App() {
   };
 
   // ── Unsaved-work guard ────────────────────────────────────────────────────
-  // Wraps any navigation/load action. If there is an active in-progress package
-  // (displayName or packageId set), shows a warning dialog first.
-  // The callback is stored and executed only if the user confirms.
-  const hasUnsavedWork = () => !!(wizard.state.displayName || wizard.state.packageId);
+  // Wraps any navigation/load action. Shows a warning only when the user has
+  // actually edited something since the last load/reset (wizard.isDirty).
+  // wizard.isDirty is a ref-based flag: false on load/reset, true on any real
+  // user edit. System-managed fields (group config, lookups) do NOT set it.
+  const hasUnsavedWork = () => wizard.isDirty;
 
   const withUnsavedWorkGuard = (action) => {
     if (hasUnsavedWork()) {
@@ -294,7 +295,7 @@ export default function App() {
       case 'macos':
         return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':
-        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} />;
+        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} markClean={wizard.markClean} />;
       default:
         return null;
     }
