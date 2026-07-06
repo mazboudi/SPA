@@ -63,6 +63,23 @@ export default function App() {
   const [loadWarningDialog, setLoadWarningDialog] = useState(false);
   const [pendingProjectLoad, setPendingProjectLoad] = useState(null); // raw callback fn
 
+  // ── Dirty tracking — true only after user makes real edits since last load/reset ──
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Call this whenever a project loads or the wizard resets to restart dirty tracking.
+  // Also calls wizard.markClean() to keep the hook ref in sync.
+  const resetDirtyTracking = () => {
+    setIsDirty(false);
+    wizard.markClean();
+  };
+
+  // Expose a function for explicit dirty marking from user event handlers.
+  // Called by: PsadtLifecycleStep action buttons, ReviewStep on publish.
+  const markDirtyFromUser = () => {
+    setIsDirty(true);
+    wizard.markDirty();
+  };
+
   // ── Modals ────────────────────────────────────────────────────────────────
   // IntuneExportPicker remains a modal (it's triggered from within the wizard step)
   const [showIntunePicker, setShowIntunePicker] = useState(false);
@@ -122,6 +139,7 @@ export default function App() {
   const applyPlatformSelect = (platformId) => {
     if (wizard.state.platform !== platformId) {
       wizard.reset();
+      resetDirtyTracking();
       // reset() resets platform and group fields — restore from server config and set platform
       setTimeout(() => {
         applyServerGroups();
@@ -164,6 +182,7 @@ export default function App() {
   const handleNewBlank = () => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
+    resetDirtyTracking();
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
@@ -184,6 +203,7 @@ export default function App() {
   const handleQueueSelect = (fields) => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
+    resetDirtyTracking();
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
@@ -198,6 +218,7 @@ export default function App() {
   // ── Edit existing project selected ────────────────────────────────────────
   const handleProjectSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
     wizard.importProjectForEdit(files, projectMeta);
+    resetDirtyTracking();
     wizard.goToStep(0);
     setView(VIEW.PACKAGE);
   });
@@ -216,6 +237,7 @@ export default function App() {
       const cloneData = await cloneRes.json();
       const enrichedMeta = { ...cloneData.projectMeta, tags: project.tags || [], localPath: cloneData.localPath };
       wizard.importProjectForEdit(cloneData.files, enrichedMeta);
+      resetDirtyTracking();
     } catch (err) {
       alert(`Failed to transition to existing project: ${err.message}`);
     }
@@ -277,25 +299,39 @@ export default function App() {
     }
   };
 
+  // ── Dirty-aware wrappers ──────────────────────────────────────────────────
+  // Passed to step components in place of the raw wizard functions.
+  // Any user edit through the UI calls markDirtyFromUser() automatically.
+  // Auto-sync useEffects inside steps also use these, but that is fine:
+  // resetDirtyTracking() is always called after every load/reset so the
+  // first auto-sync after load is immediately overridden.
+  const dirtyUpdateField        = (f, v)    => { markDirtyFromUser(); wizard.updateField(f, v); };
+  const dirtyUpdateFields       = (f)       => { markDirtyFromUser(); wizard.updateFields(f); };
+  const dirtyAddAction          = (p, a)    => { markDirtyFromUser(); wizard.addAction(p, a); };
+  const dirtyRemoveAction       = (p, i)    => { markDirtyFromUser(); wizard.removeAction(p, i); };
+  const dirtyUpdateAction       = (p, i, u) => { markDirtyFromUser(); wizard.updateAction(p, i, u); };
+  const dirtyMoveAction         = (p, f, t) => { markDirtyFromUser(); wizard.moveAction(p, f, t); };
+  const dirtyUpdateLifecycleRoot = (f, v)   => { markDirtyFromUser(); wizard.updateLifecycleRoot(f, v); };
+
   // ── Step renderer ─────────────────────────────────────────────────────────
   const currentStepId = wizard.steps[wizard.currentStep]?.id;
 
   const renderStep = () => {
     switch (currentStepId) {
       case 'basic':
-        return <BasicInfoStep state={wizard.state} updateField={wizard.updateField} CATEGORIES={wizard.CATEGORIES} onLoadExistingProject={handleLoadExistingProject} />;
+        return <BasicInfoStep state={wizard.state} updateField={dirtyUpdateField} CATEGORIES={wizard.CATEGORIES} onLoadExistingProject={handleLoadExistingProject} />;
       case 'psadt':
-        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
+        return <PsadtLifecycleStep state={wizard.state} updateField={dirtyUpdateField} updateFields={dirtyUpdateFields} addAction={dirtyAddAction} removeAction={dirtyRemoveAction} updateAction={dirtyUpdateAction} moveAction={dirtyMoveAction} updateLifecycleRoot={dirtyUpdateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':
-        return <InstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
+        return <InstallerStep state={wizard.state} updateField={dirtyUpdateField} updateFields={dirtyUpdateFields} />;
       case 'intune':
-        return <IntuneConfigStep state={wizard.state} updateField={wizard.updateField} intuneCatalog={intuneCatalog} loadIntuneCatalog={loadIntuneCatalog} fetchAppDetail={fetchIntuneAppDetail} />;
+        return <IntuneConfigStep state={wizard.state} updateField={dirtyUpdateField} intuneCatalog={intuneCatalog} loadIntuneCatalog={loadIntuneCatalog} fetchAppDetail={fetchIntuneAppDetail} />;
       case 'mac-installer':
-        return <MacInstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
+        return <MacInstallerStep state={wizard.state} updateField={dirtyUpdateField} updateFields={dirtyUpdateFields} />;
       case 'macos':
-        return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
+        return <MacConfigStep state={wizard.state} updateField={dirtyUpdateField} />;
       case 'review':
-        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} markClean={wizard.markClean} />;
+        return <ReviewStep state={wizard.state} updateField={dirtyUpdateField} allStepsValid={wizard.allStepsValid} markClean={resetDirtyTracking} />;
       default:
         return null;
     }

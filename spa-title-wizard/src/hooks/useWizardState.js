@@ -331,19 +331,15 @@ export default function useWizardState() {
   // ── Dirty tracking ──────────────────────────────────────────────────────
   // isDirtyRef is true only when the user has made real edits after a load/reset.
   // We use a ref so toggling it doesn't cause extra re-renders.
+  //
+  // IMPORTANT: markDirty() is NOT called automatically inside updateField or
+  // lifecycle CRUD functions — because those are also used by useEffect auto-sync
+  // (Intune pull, VS Code sync, normalization flush, server group config, etc.)
+  // which must NOT trigger the "unsaved work" guard.
+  //
+  // Instead, markDirty() is exported and must be called explicitly from actual
+  // user-triggered event handlers in UI components.
   const isDirtyRef = useRef(false);
-
-  // Fields set automatically by the system (server config, lookups, etc.).
-  // Writes to these fields alone do NOT count as user edits.
-  const SYSTEM_FIELDS = new Set([
-    'gitLabGroup', 'gitLabWinGroup', 'gitLabMacGroup',
-    'existingProject', 'duplicateAcknowledge',
-    'vsCodeOpened', 'syncPendingFields',
-    // internal edit-mode tracking set during load
-    '_editProjectId', '_editProjectPath', '_editProjectUrl',
-    '_editLoadedRef', '_editProjectTags', '_localRepoPath',
-  ]);
-
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
   const markClean = useCallback(() => { isDirtyRef.current = false; }, []);
 
@@ -353,11 +349,6 @@ export default function useWizardState() {
   const updateField = useCallback((field, value) => {
     setState(prev => {
       const next = { ...prev, [field]: value };
-
-      // Mark dirty for real user edits (skip system-managed fields)
-      if (!SYSTEM_FIELDS.has(field)) {
-        markDirty();
-      }
 
       // Auto-derive packageId from displayName
       if (field === 'displayName') {
@@ -429,10 +420,6 @@ export default function useWizardState() {
   }, []);
 
   const updateFields = useCallback((fields) => {
-    // Mark dirty if any non-system field is being updated
-    if (Object.keys(fields).some(k => !SYSTEM_FIELDS.has(k))) {
-      markDirty();
-    }
     setState(prev => {
       const next = { ...prev, ...fields };
 
@@ -459,7 +446,6 @@ export default function useWizardState() {
 
   // ── Lifecycle action CRUD ──────────────────────────────────────────────
   const addAction = useCallback((phaseKey, action) => {
-    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       phases[phaseKey] = { ...phases[phaseKey], actions: [...(phases[phaseKey]?.actions || []), action] };
@@ -468,7 +454,6 @@ export default function useWizardState() {
   }, []);
 
   const removeAction = useCallback((phaseKey, index) => {
-    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       const actions = [...(phases[phaseKey]?.actions || [])];
@@ -479,7 +464,6 @@ export default function useWizardState() {
   }, []);
 
   const updateAction = useCallback((phaseKey, index, updates) => {
-    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       const actions = [...(phases[phaseKey]?.actions || [])];
@@ -490,7 +474,6 @@ export default function useWizardState() {
   }, []);
 
   const moveAction = useCallback((phaseKey, fromIndex, toIndex) => {
-    markDirty();
     setState(prev => {
       const phases = { ...prev.lifecycle.phases };
       const actions = [...(phases[phaseKey]?.actions || [])];
@@ -1005,6 +988,7 @@ export default function useWizardState() {
     stepValidation,
     allStepsValid,
     isDirty: isDirtyRef.current,
+    markDirty,
     markClean,
     updateField,
     updateFields,
