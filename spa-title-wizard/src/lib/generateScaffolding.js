@@ -78,8 +78,12 @@ export default function generateScaffolding(s, forPublish = false) {
   vars.push('  SPA_STAGE_LIMIT: ""');
   const uniqueVars = [...new Set(vars)];
 
+  // Use the explicit CI templates project path from server config (.env GITLAB_CI_TEMPLATES_PROJECT)
+  // Fall back to the legacy derived pattern so existing installs keep working.
+  const ciTemplatesProject = s.gitLabCiTemplatesProject || `${s.gitLabGroup}/spa-frameworks/gitlab-ci-templates`;
+
   let ciYml = `include:
-  - project: '${s.gitLabGroup}/spa-frameworks/gitlab-ci-templates'
+  - project: '${ciTemplatesProject}'
     ref: 'main'
     file:
 ${includeFiles.join('\n')}

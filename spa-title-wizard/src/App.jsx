@@ -101,6 +101,7 @@ export default function App() {
           gitLabWinGroup: data.gitLabWinGroup || '',
           gitLabMacGroup: data.gitLabMacGroup || '',
           gitLabGroup: data.gitLabGroup || '',
+          gitLabCiTemplatesProject: data.gitLabCiTemplatesProject || '',
         };
         // Apply to wizard state
         applyServerGroups();
@@ -114,6 +115,7 @@ export default function App() {
     if (cfg.gitLabWinGroup) wizard.updateField('gitLabWinGroup', cfg.gitLabWinGroup);
     if (cfg.gitLabMacGroup) wizard.updateField('gitLabMacGroup', cfg.gitLabMacGroup);
     if (cfg.gitLabGroup && !cfg.gitLabWinGroup) wizard.updateField('gitLabGroup', cfg.gitLabGroup);
+    if (cfg.gitLabCiTemplatesProject) wizard.updateField('gitLabCiTemplatesProject', cfg.gitLabCiTemplatesProject);
   };
 
   // ── Platform selection ────────────────────────────────────────────────────

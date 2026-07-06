@@ -1443,6 +1443,7 @@ app.get('/api/health', (req, res) => {
     gitLabGroup: GITLAB_DEFAULT_GROUP,
     gitLabWinGroup: GITLAB_WIN_GROUP,
     gitLabMacGroup: GITLAB_MAC_GROUP,
+    gitLabCiTemplatesProject: GITLAB_CI_TEMPLATES_PROJECT,
   });
 });
 
@@ -1451,7 +1452,7 @@ const ENV_PATH = join(__dirname, '.env');
 const SENSITIVE_KEYS = new Set(['GITLAB_TOKEN', 'AZURE_CLIENT_SECRET']);
 const ALLOWED_KEYS = new Set([
   'GITLAB_URL', 'GITLAB_TOKEN', 'GITLAB_DEFAULT_GROUP',
-  'GITLAB_WIN_GROUP', 'GITLAB_MAC_GROUP',
+  'GITLAB_WIN_GROUP', 'GITLAB_MAC_GROUP', 'GITLAB_CI_TEMPLATES_PROJECT',
   'AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET',
   'PORT',
 ]);
