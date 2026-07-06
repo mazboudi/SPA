@@ -11,14 +11,14 @@
 ##                                 Required only when lifecycle.yaml is present (new titles)
 ##   INTUNE_MODULES_REF         — (optional) Ref/tag for intune-deployment-modules (default: main)
 ##
-## IntuneWinAppUtil.exe is bundled inside the psadt-enterprise framework zip at
-##   tools/IntuneWinAppUtil.exe
-## It does NOT need to be downloaded at runtime. To upgrade it, update the
-## binary in frameworks/psadt-enterprise/tools/ and tag a new framework release.
+## This job assembles the full PSADT staging area and writes package metadata
+## to out/build.env. It does NOT run IntuneWinAppUtil — the .intunewin file is
+## created by windows-deploy-intune (deploy-intune stage) so that the PSADT
+## package can be downloaded and inspected without generating the large binary.
 ##
 ## Produces artifacts:
-##   out/*.intunewin            — The packaged application
-##   out/build.env              — Dotenv: INTUNEWIN_PATH, PKG_ID, VENDOR_VERSION ...
+##   out/staging/               — Assembled PSADT staging area (framework + title overlay)
+##   out/build.env              — Dotenv: PKG_ID, VENDOR_VERSION, PACKAGING_VERSION, PLATFORM
 ##=============================================================================
 
 .windows_build:
@@ -93,7 +93,7 @@
         Write-Host "  ✓ windows/intune/requirements.json valid"
       }
 
-      ## 2 — Download psadt-enterprise framework bundle (includes IntuneWinAppUtil.exe)
+      ## 2 — Download psadt-enterprise framework bundle
       $frameworkDir = "psadt-framework-$($env:PSADT_FRAMEWORK_VERSION)"
       if (!(Test-Path $frameworkDir)) {
         $pkgUri = "$($env:CI_API_V4_URL)/projects/$($env:PSADT_PROJECT_ID)/packages/generic/psadt-enterprise/$($env:PSADT_FRAMEWORK_VERSION)/psadt-enterprise-$($env:PSADT_FRAMEWORK_VERSION).zip"
@@ -122,36 +122,18 @@
         Write-Warning "  Ensure the psadt-enterprise pipeline has run its build+publish stages."
       }
 
-      ## 3 — Resolve IntuneWinAppUtil.exe
-      ##     Priority: C:\tools (pre-installed on runner) → bundle tools\ → bundle root
-      $intuneUtil = $null
-      $candidates = @(
-        'C:\tools\IntuneWinAppUtil.exe',                          # pre-installed on runner
-        (Join-Path $frameworkDir 'tools\IntuneWinAppUtil.exe'),   # bundled in psadt-enterprise zip
-        (Join-Path $frameworkDir 'IntuneWinAppUtil.exe')           # legacy bundle root location
-      )
-      foreach ($candidate in $candidates) {
-        if (Test-Path $candidate) { $intuneUtil = $candidate; break }
-      }
-      if (-not $intuneUtil) {
-        throw "IntuneWinAppUtil.exe not found. Install it at C:\tools\IntuneWinAppUtil.exe on the runner, or include tools/ in the psadt-enterprise bundle."
-      }
-      Write-Host "Using IntuneWinAppUtil: $intuneUtil"
-
-
       ##     In production, the psadt-enterprise bundle should already include
       ##     the upstream PSADT in a PSAppDeployToolkit/ subfolder.
-      ##     If not present, we pull it from the GitLab Package Registry or a
-      ##     known URL. This step is a placeholder — update the URL for your env.
       $psadtRuntime = Join-Path $frameworkDir 'PSAppDeployToolkit'
       if (!(Test-Path $psadtRuntime)) {
         Write-Warning "PSAppDeployToolkit runtime not found in framework bundle."
         Write-Warning "Expected path: $psadtRuntime"
         Write-Warning "Please add the PSADT runtime to the psadt-enterprise bundle."
       }
-      ## 4a — Generate Invoke-AppDeployToolkit.ps1 from lifecycle.yaml (if present)
-      ##       New titles use lifecycle.yaml (declarative); legacy titles commit the .ps1 directly.
-      ##       Refactored v3 titles include Deploy-Application.ps1 + v3_conversion flag.
+
+      ## 3 — Generate / locate Invoke-AppDeployToolkit.ps1
+      ##     New titles use lifecycle.yaml (declarative); legacy titles commit the .ps1 directly.
+      ##     Refactored v3 titles include Deploy-Application.ps1 + v3_conversion flag.
       $titleDeploy = 'windows/src/Invoke-AppDeployToolkit.ps1'
       $lifecyclePath = 'windows/lifecycle.yaml'
       $v3Script = 'windows/src/Deploy-Application.ps1'
@@ -194,7 +176,7 @@
         Write-Host "  ✓ Generated $titleDeploy from lifecycle.yaml"
 
       } elseif (Test-Path $v3Script) {
-        ## 4b — v3 → v4 conversion (refactored title with Deploy-Application.ps1)
+        ## v3 → v4 conversion (refactored title with Deploy-Application.ps1)
         Write-Host "--- Converting v3 Deploy-Application.ps1 to v4 ---" -ForegroundColor Cyan
         Install-Module -Name PSAppDeployToolkit.Tools -Scope CurrentUser -AllowPrerelease -Force -ErrorAction Stop
 
@@ -211,23 +193,14 @@
         if (Test-Path $titleDeploy) {
           Write-Host "  ✓ Converted to v4: $titleDeploy" -ForegroundColor Green
 
-          ## 4c — Graduate: commit v4 back to repo, remove v3 script + flag
-          ##      This makes the conversion a one-time migration. Future builds use v4 directly.
+          ## Graduate: commit v4 back to repo, remove v3 script + flag
           Write-Host "--- Graduating title to v4 (committing back to repo) ---" -ForegroundColor Cyan
           try {
-            # Configure git for the commit
             git config user.email "spa-pipeline@fiserv.com"
             git config user.name "SPA Pipeline"
-
-            # Stage the new v4 script
             git add $titleDeploy
+            if (Test-Path $v3Script) { git rm $v3Script 2>$null }
 
-            # Remove the old v3 script
-            if (Test-Path $v3Script) {
-              git rm $v3Script 2>$null
-            }
-
-            # Strip v3_conversion flag from package.yaml
             $pkgYamlPath = 'windows/package.yaml'
             if (Test-Path $pkgYamlPath) {
               $pkgContent = Get-Content $pkgYamlPath -Raw
@@ -237,14 +210,12 @@
               git add $pkgYamlPath
             }
 
-            # Commit and push
             git commit -m "chore: graduate v3 → v4 (auto-converted by pipeline)" --allow-empty
             git push "https://gitlab-ci-token:$($env:GITLAB_PUSH_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_COMMIT_REF_NAME)
             Write-Host "  ✓ v4 script committed — future builds will use v4 directly" -ForegroundColor Green
           } catch {
             Write-Warning "⚠ Could not commit v4 back to repo: $_"
             Write-Warning "  The build will continue, but the v3 script will be re-converted on next build."
-            Write-Warning "  To fix: set GITLAB_PUSH_TOKEN with write access, or manually commit the v4 script."
           }
         } else {
           throw "Convert-ADTDeployment did not produce $titleDeploy — check compatibility report above."
@@ -256,7 +227,7 @@
         Write-Host "Using committed Invoke-AppDeployToolkit.ps1 (no lifecycle.yaml found)"
       }
 
-      ## 5 — Build staging area
+      ## 4 — Build staging area
       $staging = Join-Path $env:TEMP ("psadt_build_" + [guid]::NewGuid())
       New-Item -ItemType Directory -Path $staging | Out-Null
 
@@ -268,10 +239,6 @@
       Copy-Item -Path $titleDeploy -Destination $staging -Force
 
       # Copy installer from runner VM if WINDOWS_INSTALLER_SOURCE is set
-      # Use this when the installer is pre-staged on the runner (e.g. C:\files\7-zip\7z2408-x64.msi)
-      # rather than committed to git in windows/src/Files/
-      # If WINDOWS_INSTALLER_SUBFOLDER is set (e.g. 'Bin' or 'x64\Setup'), the installer is placed
-      # in that subfolder under Files/ — matching "$($adtSession.DirFiles)\Bin\setup.exe" in PSADT.
       if ($env:WINDOWS_INSTALLER_SOURCE) {
         $subDir   = if ($env:WINDOWS_INSTALLER_SUBFOLDER) { $env:WINDOWS_INSTALLER_SUBFOLDER.Trim('\').Trim('/') } else { '' }
         $filesDir = if ($subDir) { Join-Path 'windows\src\Files' $subDir } else { 'windows\src\Files' }
@@ -285,7 +252,6 @@
       }
 
       # Copy support files from runner VM if WINDOWS_SUPPORT_FILES_SOURCE is set
-      # Copies all files from the specified directory into windows/src/SupportFiles/
       if ($env:WINDOWS_SUPPORT_FILES_SOURCE) {
         $supportDir = 'windows\src\SupportFiles'
         if (!(Test-Path $supportDir)) { New-Item -ItemType Directory -Path $supportDir | Out-Null }
@@ -322,7 +288,7 @@
         }
       }
 
-      ## 5b — Validate staging area has required PSADT files
+      ## 4b — Validate staging area has required PSADT files
       $requiredFiles = @('Invoke-AppDeployToolkit.exe', 'Invoke-AppDeployToolkit.ps1')
       foreach ($req in $requiredFiles) {
         $reqPath = Join-Path $staging $req
@@ -340,20 +306,28 @@
         Write-Host "⚠ Staging Files/ directory not found — no installer binary!" -ForegroundColor Yellow
       }
 
-      ## 6 — Run IntuneWinAppUtil
+      ## 5 — Copy staging area to out/staging/ for artifact handoff to deploy-intune
       $outDir = 'out'
       if (!(Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 
-      $setupFile = 'Invoke-AppDeployToolkit.exe'
+      $stagingArtifact = Join-Path $outDir 'staging'
+      Write-Host "Copying staging area to: $stagingArtifact" -ForegroundColor DarkGray
+      Copy-Item -Path $staging -Destination $stagingArtifact -Recurse -Force
 
-      Write-Host "Running IntuneWinAppUtil..."
-      & $intuneUtil -c $staging -s $setupFile -o (Resolve-Path $outDir) -q
+      Write-Host "=== Staging area contents (out/staging/) ===" -ForegroundColor DarkGray
+      Get-ChildItem -Path $stagingArtifact -Recurse | ForEach-Object {
+        $rel = $_.FullName.Substring($stagingArtifact.Length)
+        $size = if (!$_.PSIsContainer) { " ($($_.Length) bytes)" } else { "" }
+        Write-Host "  $rel$size" -ForegroundColor DarkGray
+      }
 
-      ## 7 — Rename output deterministically
-      $safeName    = ($app.package_id -replace '[^a-z0-9\-]', '-')
+      ## 6 — Write build.env (package metadata only — no INTUNEWIN_PATH)
+      ##     IntuneWinAppUtil runs in the deploy-intune job, which reads this dotenv
+      ##     and adds INTUNEWIN_PATH after packaging.
       $winPkg      = Get-Content 'windows/package.yaml' -Raw
+      $safeName    = ($app.package_id -replace '[^a-z0-9\-]', '-')
 
-      # Extract version from package.yaml (double-quoted regex avoids single-quote parser issues)
+      # Extract version from package.yaml
       if ($winPkg -match "(?m)^version:\s*[`"']?([^`"'`r`n]+)[`"']?\s*$") {
         $vendorVer = $Matches[1].Trim().Trim('"').Trim("'")
       } else { $vendorVer = $app.version }
@@ -362,24 +336,11 @@
         $pkgVer = $Matches[1].Trim()
       } else { $pkgVer = '1' }
 
-      $produced = Get-ChildItem -Path $outDir -Filter '*.intunewin' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-      if (-not $produced) { throw "No .intunewin file produced in $outDir" }
-
-      $targetName = "${safeName}_${vendorVer}_${pkgVer}.intunewin"
-      $targetPath = Join-Path $outDir $targetName
-      Move-Item -Path $produced.FullName -Destination $targetPath -Force
-
-      Write-Host "✅ Built: $targetPath" -ForegroundColor Green
-
-      ## 8 — Compute checksum and write dotenv
-      $sha256 = (Get-FileHash -Path $targetPath -Algorithm SHA256).Hash.ToLower()
       $builtAt = (Get-Date -Format 'o')
 
       $dotenv = @(
-        "INTUNEWIN_PATH=$targetPath",
-        "INTUNEWIN_FILENAME=$targetName",
-        "INTUNEWIN_SHA256=$sha256",
         "PACKAGE_ID=$($app.package_id)",
+        "PACKAGE_SAFE_NAME=$safeName",
         "VENDOR_VERSION=$vendorVer",
         "PACKAGING_VERSION=$pkgVer",
         "PLATFORM=windows",
@@ -387,28 +348,14 @@
       ) -join "`n"
       $dotenv | Out-File (Join-Path $outDir 'build.env') -Encoding ascii -Force
       Write-Host "Dotenv written: out/build.env"
-
-      ## 9 — Copy staging area to project directory for troubleshooting
-      ##     The staging dir is in $env:TEMP — copy it into out/staging/ so it's
-      ##     visible on the runner alongside the .intunewin and preserved as an artifact.
-      $stagingCopy = Join-Path $outDir 'staging'
-      Write-Host "Copying staging area to: $stagingCopy" -ForegroundColor DarkGray
-      Copy-Item -Path $staging -Destination $stagingCopy -Recurse -Force
-
-      Write-Host "=== Staging area contents (out/staging/) ===" -ForegroundColor DarkGray
-      Get-ChildItem -Path $stagingCopy -Recurse | ForEach-Object {
-        $rel = $_.FullName.Substring($stagingCopy.Length)
-        $size = if (!$_.PSIsContainer) { " ($($_.Length) bytes)" } else { "" }
-        Write-Host "  $rel$size" -ForegroundColor DarkGray
-      }
+      Write-Host "✅ Build complete — staging area ready for deploy-intune" -ForegroundColor Green
 
   artifacts:
     when: always
     expire_in: 14 days
     paths:
-      - out/*.intunewin
-      - out/build.env
       - out/staging/
+      - out/build.env
     reports:
       dotenv: out/build.env
 
@@ -439,4 +386,3 @@ windows_build:
     paths:
       - psadt-framework-$PSADT_FRAMEWORK_VERSION/
     policy: pull-push
-

@@ -11,8 +11,16 @@
 ##   INTUNE_MODULES_REF    — ref/tag for intune-deployment-modules scripts
 ##   INTUNE_MODULES_PROJECT_ID — project ID for intune-deployment-modules repo
 ##   GITLAB_READ_TOKEN     — Token to download scripts from the modules repo
+##   PSADT_FRAMEWORK_VERSION — e.g. '4.1.0' (needed to locate IntuneWinAppUtil in bundle)
+##   PSADT_PROJECT_ID      — GitLab project ID of psadt-enterprise repo (for IntuneWinAppUtil)
 ##
-## Needs: windows_build job (consumes out/build.env via dotenv artifact)
+## Needs: windows_build job (consumes out/build.env + out/staging/ via artifacts)
+##
+## This job:
+##   1. Runs IntuneWinAppUtil on the staging area produced by windows_build to
+##      create the .intunewin package (moved here so the PSADT package zip can
+##      be downloaded without generating the large .intunewin binary).
+##   2. Publishes / updates the Win32 app in Intune via the Graph API.
 ##=============================================================================
 
 ## ---------------------------------------------------------------------------
@@ -50,7 +58,7 @@
   Write-Host "Intune modules ready in: $modulesDir"
 
 ## ---------------------------------------------------------------------------
-## publish_intune — Create / update the Win32 app in Intune
+## publish_intune — Package with IntuneWinAppUtil, then create / update in Intune
 ## ---------------------------------------------------------------------------
 .windows_publish_intune:
   stage: publish
@@ -58,6 +66,7 @@
   variables:
     INTUNE_DRY_RUN: "false"
     INTUNE_MODULES_REF: "main"
+    PSADT_FRAMEWORK_VERSION: "4.1.0"
   needs:
     - job: windows_build
       artifacts: true
@@ -66,7 +75,82 @@
     - *download_intune_modules
     - |
       $ErrorActionPreference = "Stop"
-      if (-not $env:INTUNEWIN_PATH) { throw "INTUNEWIN_PATH not set. Check build.env." }
+
+      ## ── Step 1: Run IntuneWinAppUtil on the staging area ─────────────────
+      ## The staging area was assembled by windows_build and passed as an artifact.
+      ## We run IntuneWinAppUtil here so the PSADT package can be downloaded
+      ## without the large .intunewin file being generated during the build stage.
+
+      if (!(Test-Path 'out/staging')) {
+        throw "out/staging not found. Ensure windows_build completed successfully and artifacts are available."
+      }
+
+      # Resolve IntuneWinAppUtil.exe
+      # Priority: C:\tools (pre-installed on runner) → framework bundle tools\ → bundle root
+      $intuneUtil = $null
+
+      # Try to locate the cached framework bundle (same version used by build)
+      $frameworkDir = "psadt-framework-$($env:PSADT_FRAMEWORK_VERSION)"
+
+      # If the framework is not already cached on this runner, download it
+      if (!(Test-Path $frameworkDir)) {
+        Write-Host "Framework bundle not cached — downloading for IntuneWinAppUtil..." -ForegroundColor DarkGray
+        $pkgUri = "$($env:CI_API_V4_URL)/projects/$($env:PSADT_PROJECT_ID)/packages/generic/psadt-enterprise/$($env:PSADT_FRAMEWORK_VERSION)/psadt-enterprise-$($env:PSADT_FRAMEWORK_VERSION).zip"
+        $headers = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
+        $zipPath = "$frameworkDir.zip"
+        Invoke-WebRequest -Uri $pkgUri -Headers $headers -OutFile $zipPath
+        Expand-Archive -Path $zipPath -DestinationPath $frameworkDir -Force
+        Remove-Item $zipPath
+        Write-Host "Framework extracted to: $frameworkDir"
+      }
+
+      $candidates = @(
+        'C:\tools\IntuneWinAppUtil.exe',                          # pre-installed on runner
+        (Join-Path $frameworkDir 'tools\IntuneWinAppUtil.exe'),   # bundled in psadt-enterprise zip
+        (Join-Path $frameworkDir 'IntuneWinAppUtil.exe')           # legacy bundle root location
+      )
+      foreach ($candidate in $candidates) {
+        if (Test-Path $candidate) { $intuneUtil = $candidate; break }
+      }
+      if (-not $intuneUtil) {
+        throw "IntuneWinAppUtil.exe not found. Install it at C:\tools\IntuneWinAppUtil.exe on the runner, or include tools/ in the psadt-enterprise bundle."
+      }
+      Write-Host "Using IntuneWinAppUtil: $intuneUtil"
+
+      # Create output directory and run IntuneWinAppUtil
+      $outDir = 'out'
+      if (!(Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
+
+      $staging   = 'out/staging'
+      $setupFile = 'Invoke-AppDeployToolkit.exe'
+
+      Write-Host "Running IntuneWinAppUtil..." -ForegroundColor Cyan
+      & $intuneUtil -c $staging -s $setupFile -o (Resolve-Path $outDir) -q
+
+      # Rename output deterministically using metadata from build.env
+      # PACKAGE_ID, PACKAGE_SAFE_NAME, VENDOR_VERSION, PACKAGING_VERSION are
+      # injected as CI variables from the windows_build dotenv artifact.
+      $safeName = if ($env:PACKAGE_SAFE_NAME) { $env:PACKAGE_SAFE_NAME } else { $env:PACKAGE_ID -replace '[^a-z0-9\-]', '-' }
+      $vendorVer = $env:VENDOR_VERSION
+      $pkgVer    = $env:PACKAGING_VERSION ?? '1'
+
+      $produced = Get-ChildItem -Path $outDir -Filter '*.intunewin' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+      if (-not $produced) { throw "No .intunewin file produced in $outDir" }
+
+      $targetName = "${safeName}_${vendorVer}_${pkgVer}.intunewin"
+      $targetPath = Join-Path $outDir $targetName
+      Move-Item -Path $produced.FullName -Destination $targetPath -Force
+
+      # Compute checksum
+      $sha256  = (Get-FileHash -Path $targetPath -Algorithm SHA256).Hash.ToLower()
+      $env:INTUNEWIN_PATH     = $targetPath
+      $env:INTUNEWIN_FILENAME = $targetName
+      $env:INTUNEWIN_SHA256   = $sha256
+
+      Write-Host "✅ Packaged: $targetPath (SHA256: $sha256)" -ForegroundColor Green
+
+      ## ── Step 2: Publish to Intune ─────────────────────────────────────────
+      if (-not $env:INTUNEWIN_PATH) { throw "INTUNEWIN_PATH not set after packaging step." }
 
       # Import shared module
       if (Test-Path 'intune-modules/IntuneDeployment.psm1') {
@@ -144,6 +228,7 @@
     when: always
     expire_in: 14 days
     paths:
+      - out/*.intunewin
       - out/app.env
       - out/publish-logs/*
     reports:
@@ -182,8 +267,6 @@
 
       # Supersedence + dependencies also run here for standalone assign invocations
       # (e.g. when re-running just the assign stage without a fresh publish).
-      # If publish already ran them in this pipeline, Intune will treat the repeat
-      # call gracefully (relationships already exist).
       if (Test-Path 'windows/intune/supersedence.json') {
         & 'intune-modules/Set-Win32Supersedence.ps1' `
           -AppId              $env:APP_ID `
@@ -239,4 +322,3 @@ windows_assign_intune:
       when: manual
     - if: $CI_COMMIT_BRANCH == "main" && $WINDOWS_ENABLED == "true"
       when: manual
-
