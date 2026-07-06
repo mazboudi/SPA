@@ -455,7 +455,9 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           <code>{state.gitLabGroup}/software-titles/{state.packageId}</code>
         </p>
 
-        {publishResult ? (
+
+        {/* ── Publish result / error — shown above the options when present ── */}
+        {publishResult && (
           <div className="publish-result publish-result--success">
             <div className="publish-result__header">
               <span className="publish-result__icon">✅</span>
@@ -506,92 +508,96 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
               }}>🖥️ Open in VS Code</button>
             </div>
           </div>
-        ) : publishError ? (
+        )}
+
+        {publishError && !publishResult && (
           <div className="publish-result publish-result--error">
             <span className="publish-result__icon">❌</span>
             <span>{publishError}</span>
             <button className="btn btn-secondary btn-sm" onClick={handlePublish}>Retry</button>
           </div>
-        ) : (
-          <div className="publish-actions">
-            {/* Pipeline control */}
-            <div className="pipeline-control">
-              <div className="pipeline-control__label">Pipeline Action</div>
-              {!allStepsValid && (
-                <div className="pipeline-incomplete-banner">
-                  ⚠️ <strong>Required fields are missing.</strong> Complete all highlighted steps to enable Build and Publish actions. Commit Only is still available.
-                </div>
-              )}
-              <div className="pipeline-control__options">
-                {(() => {
-                  const isWin = state.platform === 'windows' || state.platform === 'both';
-                  const isMac = state.platform === 'macos' || state.platform === 'both';
-                  // 'none' = commit only — always available
-                  const options = [{ value: 'none', label: "⏸️ Commit Project", desc: 'Commit only — no pipeline' }];
-                  if (isWin) {
-                    options.push(
-                      { value: 'build', label: '📦 Build PSADT', desc: 'Package only', disabled: !allStepsValid },
-                      { value: 'publish', label: '📦 Build .intunewin + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
-                      { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady },
-                    );
-                  }
-                  if (isMac && !isWin) {
-                    options.push(
-                      { value: 'deploy', label: '🍎 Deploy', desc: 'Terraform apply to Jamf', disabled: !allStepsValid },
-                    );
-                  }
-                  if (isMac && isWin) {
-                    options.push(
-                      { value: 'deploy', label: '🍎 macOS Deploy', desc: 'Also triggers Jamf Terraform deploy', disabled: !allStepsValid },
-                    );
-                  }
-
-                  return options.map(opt => {
-                    const isDisabledBySteps = opt.value !== 'none' && !allStepsValid;
-                    const isDisabledByIntune = (opt.value === 'publish' || opt.value === 'assign') && !intuneReady;
-                    const tooltip = isDisabledBySteps
-                      ? 'Complete all required fields across all stages first'
-                      : isDisabledByIntune
-                        ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)'
-                        : '';
-                    return (
-                      <label
-                        key={opt.value}
-                        className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''} ${opt.disabled ? 'pipeline-option--disabled' : ''}`}
-                        title={tooltip}
-                      >
-                        <input
-                          type="radio"
-                          name="pipelineAction"
-                          value={opt.value}
-                          checked={pipelineAction === opt.value}
-                          onChange={() => setPipelineAction(opt.value)}
-                          disabled={opt.disabled}
-                        />
-                        <span className="pipeline-option__label">{opt.label}</span>
-                        <span className="pipeline-option__desc">
-                          {opt.desc}
-                          {isDisabledBySteps ? ' ⚠️ Required fields missing' : ''}
-                          {!isDisabledBySteps && isDisabledByIntune ? ' ⚠️ Intune fields incomplete' : ''}
-                        </span>
-                      </label>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-            <button
-              className="btn btn-primary"
-              onClick={handlePublish}
-              disabled={publishing || hasErrors || apiAvailable === false}
-            >
-              {publishing ? `⏳ ${publishPhase || 'Publishing...'}` : state.wizardMode === 'edit' ? '✏️ Update Project' : '🚀 Publish to GitLab'}
-            </button>
-            {apiAvailable === false && <span className="publish-hint">⚠️ Publish API not reachable — start with <code>npm run server</code></span>}
-            {hasErrors && <span className="publish-hint">⚠️ Fix schema errors before publishing</span>}
-            {!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign') && <span className="publish-hint">🚫 Complete required Intune fields to enable Build + Publish</span>}
-          </div>
         )}
+
+        {/* ── Options panel — always visible so user can publish again or choose a different action ── */}
+        <div className="publish-actions">
+          {/* Pipeline control */}
+          <div className="pipeline-control">
+            <div className="pipeline-control__label">Pipeline Action</div>
+            {!allStepsValid && (
+              <div className="pipeline-incomplete-banner">
+                ⚠️ <strong>Required fields are missing.</strong> Complete all highlighted steps to enable Build and Publish actions. Commit Only is still available.
+              </div>
+            )}
+            <div className="pipeline-control__options">
+              {(() => {
+                const isWin = state.platform === 'windows' || state.platform === 'both';
+                const isMac = state.platform === 'macos' || state.platform === 'both';
+                // 'none' = commit only — always available
+                const options = [{ value: 'none', label: "⏸️ Commit Project", desc: 'Commit only — no pipeline' }];
+                if (isWin) {
+                  options.push(
+                    { value: 'build', label: '📦 Build PSADT', desc: 'Package only', disabled: !allStepsValid },
+                    { value: 'publish', label: '📦 Build .intunewin + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
+                    { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady },
+                  );
+                }
+                if (isMac && !isWin) {
+                  options.push(
+                    { value: 'deploy', label: '🍎 Deploy', desc: 'Terraform apply to Jamf', disabled: !allStepsValid },
+                  );
+                }
+                if (isMac && isWin) {
+                  options.push(
+                    { value: 'deploy', label: '🍎 macOS Deploy', desc: 'Also triggers Jamf Terraform deploy', disabled: !allStepsValid },
+                  );
+                }
+
+                return options.map(opt => {
+                  const isDisabledBySteps = opt.value !== 'none' && !allStepsValid;
+                  const isDisabledByIntune = (opt.value === 'publish' || opt.value === 'assign') && !intuneReady;
+                  const tooltip = isDisabledBySteps
+                    ? 'Complete all required fields across all stages first'
+                    : isDisabledByIntune
+                      ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)'
+                      : '';
+                  return (
+                    <label
+                      key={opt.value}
+                      className={`pipeline-option ${pipelineAction === opt.value ? 'pipeline-option--active' : ''} ${opt.disabled ? 'pipeline-option--disabled' : ''}`}
+                      title={tooltip}
+                    >
+                      <input
+                        type="radio"
+                        name="pipelineAction"
+                        value={opt.value}
+                        checked={pipelineAction === opt.value}
+                        onChange={() => setPipelineAction(opt.value)}
+                        disabled={opt.disabled}
+                      />
+                      <span className="pipeline-option__label">{opt.label}</span>
+                      <span className="pipeline-option__desc">
+                        {opt.desc}
+                        {isDisabledBySteps ? ' ⚠️ Required fields missing' : ''}
+                        {!isDisabledBySteps && isDisabledByIntune ? ' ⚠️ Intune fields incomplete' : ''}
+                      </span>
+                    </label>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handlePublish}
+            disabled={publishing || hasErrors || apiAvailable === false}
+          >
+            {publishing ? `⏳ ${publishPhase || 'Publishing...'}` : state.wizardMode === 'edit' ? '✏️ Update Project' : '🚀 Publish to GitLab'}
+          </button>
+          {apiAvailable === false && <span className="publish-hint">⚠️ Publish API not reachable — start with <code>npm run server</code></span>}
+          {hasErrors && <span className="publish-hint">⚠️ Fix schema errors before publishing</span>}
+          {!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign') && <span className="publish-hint">🚫 Complete required Intune fields to enable Build + Publish</span>}
+        </div>
+
       </div>
 
       {/* ═══ Push to Intune ═══ */}
