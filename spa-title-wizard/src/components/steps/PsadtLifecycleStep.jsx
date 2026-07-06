@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
 import FormField from '../ui/FormField';
@@ -21,7 +21,64 @@ import './windows-steps.css';
  * Dedicated card for raw_ps (unparsed block) actions.
  * Shows the full PowerShell block in a resizable monospace editor with a warning badge.
  */
-function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand }) {
+/**
+ * Drag-and-drop list wrapper for action cards.
+ * Uses native HTML5 DnD — no external library.
+ * Calls onMove(phaseKey, fromIndex, toIndex) on a successful drop.
+ */
+function DraggableActionList({ phaseKey, actions, onMove, children }) {
+  const dragSrc = useRef(null);       // index being dragged
+  const [dragOver, setDragOver] = useState(null); // index currently hovered
+
+  const handleDragStart = (e, index) => {
+    dragSrc.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+    // Tiny delay so the browser snapshot doesn't show the :active state
+    setTimeout(() => e.target.closest('.action-card')?.classList.add('action-card--dragging'), 0);
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.closest('.action-card')?.classList.remove('action-card--dragging');
+    setDragOver(null);
+    dragSrc.current = null;
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver(index);
+  };
+
+  const handleDrop = (e, toIndex) => {
+    e.preventDefault();
+    setDragOver(null);
+    if (dragSrc.current === null || dragSrc.current === toIndex) return;
+    onMove(phaseKey, dragSrc.current, toIndex);
+    dragSrc.current = null;
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear if leaving the list container entirely
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null);
+  };
+
+  return (
+    <div className="draggable-list" onDragLeave={handleDragLeave}>
+      {React.Children.map(children, (child, i) =>
+        child ? React.cloneElement(child, {
+          isDragOver: dragOver === i,
+          onDragStart: (e) => handleDragStart(e, i),
+          onDragEnd: handleDragEnd,
+          onDragOver: (e) => handleDragOver(e, i),
+          onDrop: (e) => handleDrop(e, i),
+        }) : null
+      )}
+    </div>
+  );
+}
+
+function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand,
+  isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }) {
   const [expanded, setExpanded] = useState(false);
 
   // Sync with parent "Expand All" / "Collapse All" toggle
@@ -34,8 +91,16 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
   const preview = (action.note || action.script || '').split('\n')[0].substring(0, 60);
 
   return (
-    <div className={`action-card action-card--raw-ps ${isLocked ? 'action-card--locked' : ''} ${isCardDisabled ? 'action-card--disabled' : ''}`}>
+    <div
+      className={`action-card action-card--raw-ps ${isLocked ? 'action-card--locked' : ''} ${isCardDisabled ? 'action-card--disabled' : ''} ${isDragOver ? 'action-card--drop-target' : ''}`}
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       <div className="action-card__header" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+        <span className="action-card__drag-handle" title="Drag to reorder" onMouseDown={e => e.stopPropagation()}>⠿</span>
         <span className="action-card__chevron">{expanded ? '▾' : '▸'}</span>
         <span className="action-card__icon">🔷</span>
         <span className="action-card__label">Raw PowerShell Block</span>
@@ -107,7 +172,8 @@ function CmdPreview({ cmd }) {
 }
 
 /** Inline action card — editable, deletable, reorderable */
-function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand, installerCtx }) {
+function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand, installerCtx,
+  isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }) {
   // Resolve the file path for the CmdPreview — applies the same subfolder prefix
   // that generatePsadtScript uses so builder and output stay in sync.
   function resolvePreviewFilePath(file) {
@@ -179,8 +245,16 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
   }
 
   return (
-    <div className={`action-card ${isCardDisabled ? 'action-card--disabled' : ''} ${isCustom ? 'action-card--custom' : ''}`}>
+    <div
+      className={`action-card ${isCardDisabled ? 'action-card--disabled' : ''} ${isCustom ? 'action-card--custom' : ''} ${isDragOver ? 'action-card--drop-target' : ''}`}
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       <div className="action-card__header" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+        <span className="action-card__drag-handle" title="Drag to reorder" onMouseDown={e => e.stopPropagation()}>⠿</span>
         <span className="action-card__chevron">{expanded ? '▾' : '▸'}</span>
         <span className="action-card__icon">{icon}</span>
         <span className="action-card__label">{label}</span>
@@ -868,18 +942,20 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                           {actions.length === 0 && (
                             <p className="phase-empty">No actions configured. Add one below.</p>
                           )}
-                          {actions.map((action, i) => (
-                            <ActionCard key={i} action={action} index={i} total={actions.length} phaseKey={phaseKey}
-                              onUpdate={handleUpdateAction} onRemove={handleRemoveAction} onMove={handleMoveAction}
-                              forceExpand={expandAllCards[phaseKey]}
-                              installerCtx={{
-                                installerSubfolder:   state.installerSubfolder,
-                                installerType:        state.installerType,
-                                msiFileName:          state.msiFileName,
-                                exeSourceFilename:    state.exeSourceFilename,
-                                installerSourceFile:  state.installerSourceFile,
-                              }} />
-                          ))}
+                          <DraggableActionList phaseKey={phaseKey} actions={actions} onMove={handleMoveAction}>
+                            {actions.map((action, i) => (
+                              <ActionCard key={`${phaseKey}-${i}-${action.type}`} action={action} index={i} total={actions.length} phaseKey={phaseKey}
+                                onUpdate={handleUpdateAction} onRemove={handleRemoveAction} onMove={handleMoveAction}
+                                forceExpand={expandAllCards[phaseKey]}
+                                installerCtx={{
+                                  installerSubfolder:   state.installerSubfolder,
+                                  installerType:        state.installerType,
+                                  msiFileName:          state.msiFileName,
+                                  exeSourceFilename:    state.exeSourceFilename,
+                                  installerSourceFile:  state.installerSourceFile,
+                                }} />
+                            ))}
+                          </DraggableActionList>
                           <AddActionPicker phaseKey={phaseKey} onAdd={handleAddAction} />
                         </div>
                       )}
@@ -1371,6 +1447,38 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
           background: rgba(239, 68, 68, 0.12) !important;
           color: #f87171 !important;
           border-color: rgba(239, 68, 68, 0.25) !important;
+        }
+
+        /* ── Drag-and-Drop ── */
+        .draggable-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .action-card__drag-handle {
+          cursor: grab;
+          font-size: 1rem;
+          color: var(--text-muted);
+          padding: 0 4px 0 0;
+          flex-shrink: 0;
+          line-height: 1;
+          user-select: none;
+          transition: color 0.15s;
+        }
+        .action-card__drag-handle:hover {
+          color: var(--text-accent);
+        }
+        .action-card__drag-handle:active {
+          cursor: grabbing;
+        }
+        .action-card--dragging {
+          opacity: 0.4;
+          border-style: dashed !important;
+        }
+        .action-card--drop-target {
+          border-color: var(--text-accent) !important;
+          box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.25) !important;
+          transform: translateY(-1px);
         }
 
         /* PSADT Linter & Validation panel */
