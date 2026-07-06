@@ -564,6 +564,20 @@
     "default": false
   },
   {
+    "cmdlet": "start_service",
+    "parameter": "name",
+    "label": "Service Name (-Name)",
+    "type": "text",
+    "required": true
+  },
+  {
+    "cmdlet": "start_service",
+    "parameter": "passThru",
+    "label": "Capture Result (-PassThru)",
+    "type": "boolean",
+    "default": false
+  },
+  {
     "cmdlet": "start_msp_process",
     "parameter": "file",
     "label": "MSP File Path (-FilePath)",

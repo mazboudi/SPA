@@ -1660,7 +1660,15 @@ function extractBlockActions(block) {
       const startSvcMatch = t.match(/Start-ADTServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (startSvcMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `Start service: ${startSvcMatch[1]}`, name: startSvcMatch[1], mode: 'start', raw: t });
+        const passThruMatch = t.match(/\$(\w+)\s*=\s*Start-ADTServiceAndDependencies/i);
+        actions.push({
+          type: 'start_service',
+          desc: `Start service: ${startSvcMatch[1]}`,
+          name: startSvcMatch[1],
+          passThru: !!passThruMatch || /\-PassThru/i.test(t),
+          passThruVar: passThruMatch ? passThruMatch[1] : '',
+          raw: t,
+        });
         matched = true;
       }
     }

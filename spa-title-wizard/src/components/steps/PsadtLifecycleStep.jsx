@@ -314,6 +314,11 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                 v4Cmd = `Stop-ADTServiceAndDependencies -Name '${action.name}'${pt}`;
                 break;
               }
+              case 'start_service': {
+                const pt = action.passThru ? ' -PassThru' : '';
+                v4Cmd = `Start-ADTServiceAndDependencies -Name '${action.name}'${pt}`;
+                break;
+              }
               case 'registry_remove':
                 v4Cmd = `Remove-ADTRegistryKey -Key '${action.key}'`;
                 break;

@@ -364,6 +364,16 @@ export default function generatePsadtScript(s, clean = false) {
           break;
         }
 
+        case 'start_service': {
+          const pt = action.passThru ? ' -PassThru' : '';
+          let svcCmd = `Start-ADTServiceAndDependencies -Name '${action.name || ''}'${pt}`;
+          if (action.passThru && action.passThruVar) {
+            svcCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${svcCmd}`;
+          }
+          actionLines.push(`        ${svcCmd}`);
+          break;
+        }
+
         case 'start_msp_process': {
           const mspArgs = action.args ? ` -ArgumentList '${action.args}'` : '';
           const mspPt = action.passThru ? ' -PassThru' : '';

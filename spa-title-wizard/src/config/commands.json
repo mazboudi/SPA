@@ -39,10 +39,8 @@
     "supportedPhases": [
       "preInstall",
       "install",
-      "postInstall",
       "preUninstall",
-      "uninstall",
-      "postUninstall"
+      "uninstall"
     ]
   },
   {
@@ -65,7 +63,6 @@
     "psadtCmdlet": "Uninstall-ADTApplication",
     "supportedPhases": [
       "preInstall",
-      "preUninstall",
       "uninstall"
     ]
   },
@@ -99,7 +96,6 @@
     "psadtCmdlet": "Copy-ADTFile",
     "supportedPhases": [
       "preInstall",
-      "install",
       "postInstall",
       "preUninstall",
       "postUninstall"
@@ -126,9 +122,7 @@
     "supportedPhases": [
       "preInstall",
       "install",
-      "postInstall",
-      "preUninstall",
-      "postUninstall"
+      "postInstall"
     ]
   },
   {
@@ -141,7 +135,6 @@
       "preInstall",
       "postInstall",
       "preUninstall",
-      "uninstall",
       "postUninstall"
     ]
   },
@@ -155,7 +148,6 @@
       "preInstall",
       "postInstall",
       "preUninstall",
-      "uninstall",
       "postUninstall"
     ]
   },
@@ -168,7 +160,6 @@
     "supportedPhases": [
       "postInstall",
       "preUninstall",
-      "uninstall",
       "postUninstall"
     ]
   },
@@ -206,6 +197,22 @@
     "psadtCmdlet": "Stop-Process",
     "supportedPhases": [
       "preInstall",
+      "install",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
+    ]
+  },
+  {
+    "name": "start_service",
+    "label": "Start Service (Start-ADTServiceAndDependencies)",
+    "icon": "▶️",
+    "category": "System",
+    "psadtCmdlet": "Start-ADTServiceAndDependencies",
+    "supportedPhases": [
+      "preInstall",
+      "install",
       "postInstall",
       "preUninstall",
       "uninstall",
@@ -220,7 +227,11 @@
     "psadtCmdlet": "Stop-ADTServiceAndDependencies",
     "supportedPhases": [
       "preInstall",
-      "preUninstall"
+      "install",
+      "postInstall",
+      "preUninstall",
+      "uninstall",
+      "postUninstall"
     ]
   },
   {
@@ -301,9 +312,7 @@
     "icon": "🩹",
     "category": "Installer",
     "psadtCmdlet": "Start-ADTMspProcess",
-    "supportedPhases": [
-      "install"
-    ]
+    "supportedPhases": []
   },
   {
     "name": "write_log",
@@ -326,9 +335,7 @@
     "icon": "📄",
     "category": "File Operations",
     "psadtCmdlet": "Set-ADTIniValue",
-    "supportedPhases": [
-      "postInstall"
-    ]
+    "supportedPhases": []
   },
   {
     "name": "all_users_registry",
@@ -336,9 +343,7 @@
     "icon": "👥",
     "category": "Registry",
     "psadtCmdlet": "Invoke-ADTAllUsersRegistryAction",
-    "supportedPhases": [
-      "postInstall"
-    ]
+    "supportedPhases": []
   },
   {
     "name": "get_registry_key",
@@ -346,10 +351,7 @@
     "icon": "🔍",
     "category": "Registry",
     "psadtCmdlet": "Get-ADTRegistryKey",
-    "supportedPhases": [
-      "preInstall",
-      "preUninstall"
-    ]
+    "supportedPhases": []
   },
   {
     "name": "remove_firewall_rule",
@@ -357,8 +359,6 @@
     "icon": "🛡️",
     "category": "System",
     "psadtCmdlet": "Remove-NetFirewallRule",
-    "supportedPhases": [
-      "postUninstall"
-    ]
+    "supportedPhases": []
   }
 ]
