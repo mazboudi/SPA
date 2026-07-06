@@ -887,6 +887,10 @@ export default function useWizardState() {
           }
         }
 
+        // Always clear session-only results so the Review section starts fresh
+        delete snapshot._lastPublishResult;
+        delete snapshot._psadtActiveTab;
+
         // If we successfully parsed action blocks from the PS1 script, override the visual phase actions!
         // ONLY if the script actually has SPA:Action comment blocks, ensuring we don't erase visual blocks for clean scripts
         const hasComments = ps1Path && files[ps1Path] && /#\s*<SPA:Action/i.test(files[ps1Path]);
@@ -902,6 +906,9 @@ export default function useWizardState() {
         setState(prev => ({
           ...prev,
           ...snapshot,
+          // Always clear session-only state so new session starts fresh
+          _lastPublishResult: null,
+          _psadtActiveTab: null,
           wizardMode: 'edit',
           _editProjectId: projectMeta.id,
           _editProjectPath: projectMeta.path_with_namespace,
@@ -973,6 +980,10 @@ export default function useWizardState() {
       delete next._lifecycleVarActions;
       delete next._lifecyclePhases;
 
+      // Always clear session-only results so Review section starts fresh
+      delete next._lastPublishResult;
+      delete next._psadtActiveTab;
+
       return next;
     });
     setCurrentStep(0);
@@ -987,9 +998,6 @@ export default function useWizardState() {
     canProceed,
     stepValidation,
     allStepsValid,
-    isDirty: isDirtyRef.current,
-    markDirty,
-    markClean,
     updateField,
     updateFields,
     addAction,

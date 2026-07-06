@@ -25,6 +25,7 @@ import ProjectPicker from './components/ui/ProjectPicker';
 
 import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
 import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from './lib/intuneApi';
+import { getProjectFingerprint } from './lib/projectFingerprint';
 
 // ── Views ─────────────────────────────────────────────────────────────────────
 const VIEW = {
@@ -61,23 +62,25 @@ export default function App() {
 
   // ── Load-project warning (discard unsaved work?) ──────────────────────────
   const [loadWarningDialog, setLoadWarningDialog] = useState(false);
-  const [pendingProjectLoad, setPendingProjectLoad] = useState(null); // raw callback fn
+  const [pendingProjectLoad, setPendingProjectLoad] = useState(null);
 
-  // ── Dirty tracking — true only after user makes real edits since last load/reset ──
-  const [isDirty, setIsDirty] = useState(false);
+  // ── Unsaved-changes detection via content fingerprint ─────────────────────
+  // We store a JSON snapshot of the project's content fields when a project
+  // loads, resets, or is successfully published. hasUnsavedWork() simply
+  // compares the current fingerprint against the stored baseline.
+  // No tracking of individual field writes needed — auto-sync fields
+  // (gitLabGroup, existingProject, _psadtActiveTab, etc.) are excluded from
+  // the fingerprint so they never count as user changes.
+  const baselineFingerprint = useRef('');
 
-  // Call this whenever a project loads or the wizard resets to restart dirty tracking.
-  // Also calls wizard.markClean() to keep the hook ref in sync.
-  const resetDirtyTracking = () => {
-    setIsDirty(false);
-    wizard.markClean();
+  const saveBaseline = () => {
+    baselineFingerprint.current = getProjectFingerprint(wizard.state);
   };
 
-  // Expose a function for explicit dirty marking from user event handlers.
-  // Called by: PsadtLifecycleStep action buttons, ReviewStep on publish.
-  const markDirtyFromUser = () => {
-    setIsDirty(true);
-    wizard.markDirty();
+  const hasUnsavedWork = () => {
+    // No project loaded yet (blank state) — nothing to lose
+    if (!wizard.state.packageId && !wizard.state.displayName) return false;
+    return getProjectFingerprint(wizard.state) !== baselineFingerprint.current;
   };
 
   // ── Modals ────────────────────────────────────────────────────────────────
@@ -161,16 +164,8 @@ export default function App() {
   };
 
   // ── Unsaved-work guard ────────────────────────────────────────────────────
-  // Wraps any navigation/load action. Shows a warning only when the user has
-  // actually edited something since the last load/reset (wizard.isDirty).
-  // wizard.isDirty is a ref-based flag: false on load/reset, true on any real
-  // user edit. System-managed fields (group config, lookups) do NOT set it.
-  const hasUnsavedWork = () => wizard.isDirty;
-
   const withUnsavedWorkGuard = (action) => {
     if (hasUnsavedWork()) {
-      // Wrap in object — if we passed the fn directly, React's useState would
-      // treat it as an updater function and execute it immediately, losing data.
       setPendingProjectLoad({ fn: action });
       setLoadWarningDialog(true);
     } else {
@@ -182,10 +177,10 @@ export default function App() {
   const handleNewBlank = () => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
-    resetDirtyTracking();
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
+      saveBaseline();
     }, 0);
     setView(VIEW.PACKAGE);
   });
@@ -203,7 +198,6 @@ export default function App() {
   const handleQueueSelect = (fields) => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
-    resetDirtyTracking();
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
@@ -211,6 +205,7 @@ export default function App() {
         if (value !== undefined && value !== '') wizard.updateField(key, value);
       });
       wizard.goToStep(0);
+      saveBaseline();
     }, 0);
     setView(VIEW.PACKAGE);
   });
@@ -218,9 +213,11 @@ export default function App() {
   // ── Edit existing project selected ────────────────────────────────────────
   const handleProjectSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
     wizard.importProjectForEdit(files, projectMeta);
-    resetDirtyTracking();
     wizard.goToStep(0);
     setView(VIEW.PACKAGE);
+    // Baseline is set after state settles (importProjectForEdit is sync but
+    // state updates are batched, so defer one tick)
+    setTimeout(saveBaseline, 0);
   });
 
   const handleLoadExistingProject = async (projectPath) => {
@@ -237,7 +234,7 @@ export default function App() {
       const cloneData = await cloneRes.json();
       const enrichedMeta = { ...cloneData.projectMeta, tags: project.tags || [], localPath: cloneData.localPath };
       wizard.importProjectForEdit(cloneData.files, enrichedMeta);
-      resetDirtyTracking();
+      setTimeout(saveBaseline, 0);
     } catch (err) {
       alert(`Failed to transition to existing project: ${err.message}`);
     }
@@ -299,39 +296,25 @@ export default function App() {
     }
   };
 
-  // ── Dirty-aware wrappers ──────────────────────────────────────────────────
-  // Passed to step components in place of the raw wizard functions.
-  // Any user edit through the UI calls markDirtyFromUser() automatically.
-  // Auto-sync useEffects inside steps also use these, but that is fine:
-  // resetDirtyTracking() is always called after every load/reset so the
-  // first auto-sync after load is immediately overridden.
-  const dirtyUpdateField        = (f, v)    => { markDirtyFromUser(); wizard.updateField(f, v); };
-  const dirtyUpdateFields       = (f)       => { markDirtyFromUser(); wizard.updateFields(f); };
-  const dirtyAddAction          = (p, a)    => { markDirtyFromUser(); wizard.addAction(p, a); };
-  const dirtyRemoveAction       = (p, i)    => { markDirtyFromUser(); wizard.removeAction(p, i); };
-  const dirtyUpdateAction       = (p, i, u) => { markDirtyFromUser(); wizard.updateAction(p, i, u); };
-  const dirtyMoveAction         = (p, f, t) => { markDirtyFromUser(); wizard.moveAction(p, f, t); };
-  const dirtyUpdateLifecycleRoot = (f, v)   => { markDirtyFromUser(); wizard.updateLifecycleRoot(f, v); };
-
   // ── Step renderer ─────────────────────────────────────────────────────────
   const currentStepId = wizard.steps[wizard.currentStep]?.id;
 
   const renderStep = () => {
     switch (currentStepId) {
       case 'basic':
-        return <BasicInfoStep state={wizard.state} updateField={dirtyUpdateField} CATEGORIES={wizard.CATEGORIES} onLoadExistingProject={handleLoadExistingProject} />;
+        return <BasicInfoStep state={wizard.state} updateField={wizard.updateField} CATEGORIES={wizard.CATEGORIES} onLoadExistingProject={handleLoadExistingProject} />;
       case 'psadt':
-        return <PsadtLifecycleStep state={wizard.state} updateField={dirtyUpdateField} updateFields={dirtyUpdateFields} addAction={dirtyAddAction} removeAction={dirtyRemoveAction} updateAction={dirtyUpdateAction} moveAction={dirtyMoveAction} updateLifecycleRoot={dirtyUpdateLifecycleRoot} psadtResult={psadtResult} />;
+        return <PsadtLifecycleStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} addAction={wizard.addAction} removeAction={wizard.removeAction} updateAction={wizard.updateAction} moveAction={wizard.moveAction} updateLifecycleRoot={wizard.updateLifecycleRoot} psadtResult={psadtResult} />;
       case 'installer':
-        return <InstallerStep state={wizard.state} updateField={dirtyUpdateField} updateFields={dirtyUpdateFields} />;
+        return <InstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
       case 'intune':
-        return <IntuneConfigStep state={wizard.state} updateField={dirtyUpdateField} intuneCatalog={intuneCatalog} loadIntuneCatalog={loadIntuneCatalog} fetchAppDetail={fetchIntuneAppDetail} />;
+        return <IntuneConfigStep state={wizard.state} updateField={wizard.updateField} intuneCatalog={intuneCatalog} loadIntuneCatalog={loadIntuneCatalog} fetchAppDetail={fetchIntuneAppDetail} />;
       case 'mac-installer':
-        return <MacInstallerStep state={wizard.state} updateField={dirtyUpdateField} updateFields={dirtyUpdateFields} />;
+        return <MacInstallerStep state={wizard.state} updateField={wizard.updateField} updateFields={wizard.updateFields} />;
       case 'macos':
-        return <MacConfigStep state={wizard.state} updateField={dirtyUpdateField} />;
+        return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':
-        return <ReviewStep state={wizard.state} updateField={dirtyUpdateField} allStepsValid={wizard.allStepsValid} markClean={resetDirtyTracking} />;
+        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} markClean={saveBaseline} />;
       default:
         return null;
     }
