@@ -8,22 +8,22 @@ import CodePreview from '../ui/CodePreview';
 
 // ── Pipeline Tracker Component ────────────────────────────────────────────
 const JOB_STATUS_META = {
-  created:  { icon: '⬜', color: 'var(--text-muted)',  label: 'Created'  },
-  pending:  { icon: '🟡', color: '#f59e0b',             label: 'Pending'  },
-  running:  { icon: '🔵', color: '#60a5fa',             label: 'Running'  },
-  success:  { icon: '🟢', color: '#34d399',             label: 'Success'  },
-  failed:   { icon: '🔴', color: '#f87171',             label: 'Failed'   },
-  canceled: { icon: '⚫', color: 'var(--text-muted)',   label: 'Canceled' },
-  skipped:  { icon: '⬜', color: 'var(--text-muted)',   label: 'Skipped'  },
-  manual:   { icon: '⚙️', color: '#a78bfa',             label: 'Manual'   },
+  created: { icon: '⬜', color: 'var(--text-muted)', label: 'Created' },
+  pending: { icon: '🟡', color: '#f59e0b', label: 'Pending' },
+  running: { icon: '🔵', color: '#60a5fa', label: 'Running' },
+  success: { icon: '🟢', color: '#34d399', label: 'Success' },
+  failed: { icon: '🔴', color: '#f87171', label: 'Failed' },
+  canceled: { icon: '⚫', color: 'var(--text-muted)', label: 'Canceled' },
+  skipped: { icon: '⬜', color: 'var(--text-muted)', label: 'Skipped' },
+  manual: { icon: '⚙️', color: '#a78bfa', label: 'Manual' },
 };
 
 const PIPELINE_STATUS_META = {
-  pending:  { icon: '🟡', label: 'Pending',   color: '#f59e0b' },
-  running:  { icon: '⏳', label: 'Running',   color: '#60a5fa' },
-  success:  { icon: '✅', label: 'Succeeded', color: '#34d399' },
-  failed:   { icon: '❌', label: 'Failed',    color: '#f87171' },
-  canceled: { icon: '⛔', label: 'Canceled',  color: '#9ca3af' },
+  pending: { icon: '🟡', label: 'Pending', color: '#f59e0b' },
+  running: { icon: '⏳', label: 'Running', color: '#60a5fa' },
+  success: { icon: '✅', label: 'Succeeded', color: '#34d399' },
+  failed: { icon: '❌', label: 'Failed', color: '#f87171' },
+  canceled: { icon: '⛔', label: 'Canceled', color: '#9ca3af' },
 };
 
 function PipelineTracker({ pipelineStatus, polling, pipelineUrl, projectId, pipelineId, onDownloadArtifact }) {
@@ -530,8 +530,8 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
                   const options = [{ value: 'none', label: "⏸️ Commit Project", desc: 'Commit only — no pipeline' }];
                   if (isWin) {
                     options.push(
-                      { value: 'build', label: '📦 Build PSADT', desc: 'Package .intunewin only', disabled: !allStepsValid },
-                      { value: 'publish', label: '📦 Build + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
+                      { value: 'build', label: '📦 Build PSADT', desc: 'Package only', disabled: !allStepsValid },
+                      { value: 'publish', label: '📦 Build .intunewin + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
                       { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady },
                     );
                   }
