@@ -452,7 +452,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           </p>
         )}
         <p className="publish-section__path">
-          <code>{state.gitLabGroup}/software-titles/{state.packageId}</code>
+          <code>{state.gitLabGroup}/{state.packageId}</code>
         </p>
 
 

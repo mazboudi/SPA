@@ -44,7 +44,8 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
     setFetchingProjects(true);
     setProjectsError(null);
     
-    const groupPath = `${state.gitLabGroup}/software-titles`;
+    // gitLabGroup from .env is already the full parent group — use it directly
+    const groupPath = state.gitLabGroup;
     fetch(`/api/projects?group=${encodeURIComponent(groupPath)}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -82,7 +83,8 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
       setExistingProject(null);
       updateField('existingProject', null);
       try {
-        const primaryPath = `${state.gitLabGroup}/software-titles/${state.packageId}`;
+        // gitLabGroup from .env is the full parent group — just append packageId directly
+        const primaryPath = `${state.gitLabGroup}/${state.packageId}`;
 
         // Helper to check a single path
         const checkPath = async (fullPath) => {
@@ -94,17 +96,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
 
         let project = await checkPath(primaryPath);
 
-        // Fallback: if the primary group has a platform segment (/win or /mac)
-        // and the project wasn't found there, also try the base group.
-        // This handles projects created before platform-specific subgroups.
-        if (!project) {
-          const baseGroup = state.gitLabGroup.replace(/\/(?:win|mac)$/, '');
-          if (baseGroup && baseGroup !== state.gitLabGroup) {
-            console.log(`[ProjectCheck] Not found at ${primaryPath} — trying base: ${baseGroup}/software-titles/${state.packageId}`);
-            project = await checkPath(`${baseGroup}/software-titles/${state.packageId}`);
-          }
-        }
-
+        // No fallback needed — the group path is fully specified in .env
 
         if (project) {
           setExistingProject(project);
@@ -423,7 +415,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
       {state.displayName && state.category && (
         <div className="step-preview-badge animate-in">
           <span className="badge-label">GitLab Path</span>
-          <code>{state.gitLabGroup}/software-titles/{state.packageId}</code>
+          <code>{state.gitLabGroup}/{state.packageId}</code>
           {checkingProject && <span className="checking-spinner">⚡ Checking GitLab...</span>}
         </div>
       )}

@@ -948,11 +948,12 @@ export default function useWizardState() {
       next._editProjectTags = projectMeta.tags || [];
       next._localRepoPath = projectMeta.localPath || '';
 
-      // Derive gitLabGroup from the project path (remove /software-titles/slug)
+      // Derive gitLabGroup from the project path: everything except the last segment (the slug).
+      // e.g. 'euc/software-package-automation/software-titles/node-js'
+      //   → gitLabGroup = 'euc/software-package-automation/software-titles'
       const nsPath = projectMeta.path_with_namespace || '';
-      const groupMatch = nsPath.match(/^(.+)\/software-titles\/.+$/);
-      if (groupMatch) {
-        next.gitLabGroup = groupMatch[1];
+      if (nsPath.includes('/')) {
+        next.gitLabGroup = nsPath.substring(0, nsPath.lastIndexOf('/'));
       }
 
       // Apply parsed actions from the PS1 script if available, else fallback to metadata parsing

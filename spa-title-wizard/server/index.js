@@ -342,10 +342,12 @@ app.post('/api/publish', async (req, res) => {
       return res.status(400).json({ message: slugError });
     }
 
-    console.log(`\n📦 Publishing "${displayName || packageId}" → ${gitLabGroup}/software-titles/${packageId}`);
+    console.log(`\n📦 Publishing "${displayName || packageId}" → ${gitLabGroup}/${packageId}`);
 
     // 1. Resolve the group path (creates subgroups if needed)
-    const fullGroupPath = `${gitLabGroup}/software-titles`;
+    // gitLabGroup comes directly from GITLAB_WIN_GROUP / GITLAB_MAC_GROUP in .env
+    // and is already the full parent group path — do not append anything to it.
+    const fullGroupPath = gitLabGroup;
     const groupId = await ensureGroupPath(fullGroupPath);
     console.log(`  📂 Group resolved: ${fullGroupPath} (id: ${groupId})`);
 
