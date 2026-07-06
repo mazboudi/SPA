@@ -1,45 +1,19 @@
-Pre-Installation
-ADD:
-•	Start Service (Start-ADTServiceAndDependencies)
-REMOVE: 
-•	Get Registry Key (this would be used in more complex custom code blocks and unlikely as a standalone command)
+ 📂 Local clone ready: C:\Users\F7NXPWL\spa-workbench\titles\node-js
+[1]   ❌ GitLab 400 POST /projects/97139/pipeline: {"base":["Project `euc/software-package-automation/software-titles/spa-frameworks/gitlab-ci-templates` not found or access denied! Make sure any includes in the pipeline configuration are correctly defined."]}
+[1]   ✅ Done: https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/software-titles/node-js
+[1]   ⚠️  Pipeline trigger failed: GitLab 400: {"base":["Project `euc/software-package-automation/software-titles/spa-frameworks/gitlab-ci-templates` not found or access denied! Make sure any includes in the pipeline configuration are correctly defined."]}
 
-Installation
-ADD:
-•	Stop/Kill Process — PowerShell Stop-Process  -Name 
-•	Start Service (Start-ADTServiceAndDependencies)
-•	Stop Service (Stop-ADTServiceAndDependencies)
-REMOVE:
-•	Copy File and Create Folder (No file operations should be needed in install or uninstall section. This is what pre- and post-install are for.)
-•	Run MSP Patch (Start-ADTMspProcess)
 
-Post-Installation
-ADD:
-•	Start Service (Start-ADTServiceAndDependencies)
-•	Stop Service (Stop-ADTServiceAndDependencies)
-REMOVE:
-•	Run Process (not a common post task)
-•	Set INI Value
-•	All Users Registry
+my .env:
+GITLAB_URL=https://gitlab.onefiserv.net
+GITLAB_TOKEN=29DyTgsVmwr1JcBu1111
+GITLAB_DEFAULT_GROUP=euc/software-package-automation
+GITLAB_CI_TEMPLATES_PROJECT=euc/software-package-automation/spa-frameworks/gitlab-ci-templates
+PORT=3001
 
-Pre-Uninstallation
-ADD: 
-•	TO REMOVE: Get Registry Key, Uninstall Application (this would naturally go in the Uninstallation phase), Create Folder (unlikely one would explicitly create new folders when uninstalling software)
-
-Uninstallation
-ADD:
-•	Start Service (Start-ADTServiceAndDependencies)
-•	Stop Service (Stop-ADTServiceAndDependencies)
-REMOVE: 
-•	Delete File(s)
-•	Delete Folder(s)
-•	Remove from User Profiles (file operations typically happen in pre- and post- phases)
-
-Post-Uninstallation
-ADD:
-•	Start Service (Start-ADTServiceAndDependencies)
-•	Stop Service (Stop-ADTServiceAndDependencies)
-REMOVE:
-•	Remove Firewall Rule
-•	Create Folder (unlikely one would explicitly create new folders when uninstalling software)
-•	Run Process (this would be in the uninstall phase)
+# Microsoft Graph — Intune integration
+AZURE_TENANT_ID=xxxxxxxxxxx
+AZURE_CLIENT_ID=xxxxxxxxxxxxxxx
+AZURE_CLIENT_SECRET=xxxxxxxxxxxxxxxxx
+GITLAB_WIN_GROUP=euc/software-package-automation/software-titles
+GITLAB_MAC_GROUP=euc/software-package-automation/software-titles
