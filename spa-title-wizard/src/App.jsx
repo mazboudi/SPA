@@ -25,7 +25,6 @@ import ProjectPicker from './components/ui/ProjectPicker';
 
 import { parsePsadtFile, toWizardState } from './lib/parsePsadt';
 import { fetchIntuneCatalog, fetchIntuneAppDetail, refreshIntuneCatalog } from './lib/intuneApi';
-import { getProjectFingerprint } from './lib/projectFingerprint';
 
 // ── Views ─────────────────────────────────────────────────────────────────────
 const VIEW = {
@@ -64,24 +63,14 @@ export default function App() {
   const [loadWarningDialog, setLoadWarningDialog] = useState(false);
   const [pendingProjectLoad, setPendingProjectLoad] = useState(null);
 
-  // ── Unsaved-changes detection via content fingerprint ─────────────────────
-  // We store a JSON snapshot of the project's content fields when a project
-  // loads, resets, or is successfully published. hasUnsavedWork() simply
-  // compares the current fingerprint against the stored baseline.
-  // No tracking of individual field writes needed — auto-sync fields
-  // (gitLabGroup, existingProject, _psadtActiveTab, etc.) are excluded from
-  // the fingerprint so they never count as user changes.
-  const baselineFingerprint = useRef('');
-
-  const saveBaseline = () => {
-    baselineFingerprint.current = getProjectFingerprint(wizard.state);
-  };
-
-  const hasUnsavedWork = () => {
-    // No project loaded yet (blank state) — nothing to lose
-    if (!wizard.state.packageId && !wizard.state.displayName) return false;
-    return getProjectFingerprint(wizard.state) !== baselineFingerprint.current;
-  };
+  // ── Unsaved-changes detection ─────────────────────────────────────────
+  // A single boolean ref. Set to true by any pointer-down inside the active
+  // wizard content area (so any click or tap by the user marks the project as
+  // edited). Reset to false on every load, reset, or successful publish.
+  // No field tracking, no fingerprints, no false positives.
+  const hasEditsRef = useRef(false);
+  const clearEdits = () => { hasEditsRef.current = false; };
+  const hasUnsavedWork = () => hasEditsRef.current;
 
   // ── Modals ────────────────────────────────────────────────────────────────
   // IntuneExportPicker remains a modal (it's triggered from within the wizard step)
@@ -146,9 +135,9 @@ export default function App() {
       setTimeout(() => {
         applyServerGroups();
         wizard.updateField('platform', platformId);
-        saveBaseline();
       }, 0);
     }
+    clearEdits();
     setView(VIEW.LANDING);
     setPlatformSwitchDialog(false);
     setPendingPlatform(null);
@@ -177,10 +166,10 @@ export default function App() {
   const handleNewBlank = () => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
+    clearEdits();
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
-      saveBaseline();
     }, 0);
     setView(VIEW.PACKAGE);
   });
@@ -198,6 +187,7 @@ export default function App() {
   const handleQueueSelect = (fields) => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
     wizard.reset();
+    clearEdits();
     setTimeout(() => {
       applyServerGroups();
       if (platform) wizard.updateField('platform', platform);
@@ -205,7 +195,6 @@ export default function App() {
         if (value !== undefined && value !== '') wizard.updateField(key, value);
       });
       wizard.goToStep(0);
-      saveBaseline();
     }, 0);
     setView(VIEW.PACKAGE);
   });
@@ -213,11 +202,9 @@ export default function App() {
   // ── Edit existing project selected ────────────────────────────────────────
   const handleProjectSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
     wizard.importProjectForEdit(files, projectMeta);
+    clearEdits();
     wizard.goToStep(0);
     setView(VIEW.PACKAGE);
-    // Baseline is set after state settles (importProjectForEdit is sync but
-    // state updates are batched, so defer one tick)
-    setTimeout(saveBaseline, 0);
   });
 
   const handleLoadExistingProject = async (projectPath) => {
@@ -234,7 +221,7 @@ export default function App() {
       const cloneData = await cloneRes.json();
       const enrichedMeta = { ...cloneData.projectMeta, tags: project.tags || [], localPath: cloneData.localPath };
       wizard.importProjectForEdit(cloneData.files, enrichedMeta);
-      setTimeout(saveBaseline, 0);
+      clearEdits();
     } catch (err) {
       alert(`Failed to transition to existing project: ${err.message}`);
     }
@@ -314,7 +301,7 @@ export default function App() {
       case 'macos':
         return <MacConfigStep state={wizard.state} updateField={wizard.updateField} />;
       case 'review':
-        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} markClean={saveBaseline} />;
+        return <ReviewStep state={wizard.state} updateField={wizard.updateField} allStepsValid={wizard.allStepsValid} markClean={clearEdits} />;
       default:
         return null;
     }
@@ -563,8 +550,11 @@ export default function App() {
 
           {view === VIEW.PACKAGE && (
             <>
-              {/* Main step content */}
-              <main className="app-main glass-panel">
+              {/* Main step content — any interaction marks project as having edits */}
+              <main
+                className="app-main glass-panel"
+                onPointerDown={() => { hasEditsRef.current = true; }}
+              >
                 {renderStep()}
               </main>
 
