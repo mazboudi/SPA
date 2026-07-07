@@ -1,0 +1,9 @@
+﻿Metric,Green,Amber,Red
+Exoprise Availability,>= 99.5%,>= 98.5% and < 99.5%,< 98.5%
+Avg Response Time ms,<= 2500,> 2500 and <= 4000,> 4000
+Avg Sign-In Duration Sec,<= 30,> 30 and <= 60,> 60
+Round Trip Latency ms,<= 100,> 100 and <= 150,> 150
+Disk Free GB,>= 20,>= 10 and < 20,< 10
+Days Since Last Login,< 15,15 - 45,> 45
+Compliance Rate,>= 95%,>= 90% and < 95%,< 90%
+MTTR Minutes,<= 60,> 60 and <= 240,> 240

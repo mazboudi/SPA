@@ -1,0 +1,19 @@
+﻿MeasureName,Table,DAX,Dashboard
+Total Cloud PCs,DimCloudPC,Total Cloud PCs = DISTINCTCOUNT(DimCloudPC[CloudPCID]),W365 Platform Overview
+Provisioned Cloud PCs,DimCloudPC,"Provisioned Cloud PCs = CALCULATE([Total Cloud PCs], DimCloudPC[Status] = ""Provisioned"")",W365 Platform Overview
+Provisioning Success Rate,DimCloudPC,"Provisioning Success Rate = DIVIDE([Provisioned Cloud PCs], [Total Cloud PCs])",W365 Platform Overview
+Active Users 7D,FactCloudPCUsage,"Active Users 7D = CALCULATE(DISTINCTCOUNT(FactCloudPCUsage[UserKey]), FactCloudPCUsage[UsageHours] > 0, DATESINPERIOD(DimDate[Date], MAX(DimDate[Date]), -7, DAY))",User Dashboard
+Avg Usage Hours,FactCloudPCUsage,Avg Usage Hours = AVERAGE(FactCloudPCUsage[UsageHours]),User Dashboard
+Stale Cloud PCs 45D,DimCloudPC,"Stale Cloud PCs 45D = CALCULATE([Total Cloud PCs], DimCloudPC[DaysSinceLastLogin] > 45)",User Dashboard
+Exoprise Availability,FactExopriseSynthetic,Exoprise Availability = AVERAGE(FactExopriseSynthetic[AvailabilityPct]) / 100,Service Health Dashboard
+Avg Response Time ms,FactExopriseSynthetic,Avg Response Time ms = AVERAGE(FactExopriseSynthetic[ResponseTimeMs]),Service Health Dashboard
+Synthetic Failures,FactExopriseSynthetic,"Synthetic Failures = CALCULATE(COUNTROWS(FactExopriseSynthetic), FactExopriseSynthetic[Result] = ""Failure"")",Service Health Dashboard
+Open Incidents,FactServiceHealth,"Open Incidents = CALCULATE(DISTINCTCOUNT(FactServiceHealth[IncidentID]), FactServiceHealth[Status] IN {""Open"", ""Monitoring""})",Service Health Dashboard
+Avg MTTD Minutes,FactServiceHealth,Avg MTTD Minutes = AVERAGE(FactServiceHealth[MTTDMinutes]),Service Health Dashboard
+Avg MTTR Minutes,FactServiceHealth,Avg MTTR Minutes = AVERAGE(FactServiceHealth[MTTRMinutes]),Service Health Dashboard
+Total Monthly Cost,FactCost,Total Monthly Cost = SUM(FactCost[MonthlyCost]),Cost Dashboard
+Cost per Active User,FactCost,"Cost per Active User = DIVIDE([Total Monthly Cost], [Active Users 7D])",Cost Dashboard
+Total NAT Gateway GB,FactNetworkTraffic,Total NAT Gateway GB = SUM(FactNetworkTraffic[NATGatewayGB]),Cost Dashboard
+Compliance Rate,FactCompliance,"Compliance Rate = DIVIDE(CALCULATE(COUNTROWS(FactCompliance), FactCompliance[ComplianceState] = ""Compliant""), COUNTROWS(FactCompliance))",Compliance Dashboard
+Non-Compliant Devices,FactCompliance,"Non-Compliant Devices = CALCULATE(DISTINCTCOUNT(FactCompliance[DeviceID]), FactCompliance[ComplianceState] = ""NonCompliant"")",Compliance Dashboard
+Managed Macs,DimMacOS,"Managed Macs = CALCULATE(DISTINCTCOUNT(DimMacOS[MacDeviceID]), DimMacOS[Status] = ""Managed"")",MacOS Platform Overview

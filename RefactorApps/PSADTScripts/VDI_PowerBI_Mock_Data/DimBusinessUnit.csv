@@ -1,0 +1,13 @@
+﻿BUKey,BusinessUnit,CostCenter,CIOOwner
+1,Global Operations,CC-1000,Ops CIO
+2,Payments,CC-1100,Payments CIO
+3,Banking,CC-1200,Banking CIO
+4,Risk,CC-1300,Risk CIO
+5,Cybersecurity,CC-1400,Security CIO
+6,Corporate,CC-1500,Corporate CIO
+7,Merchant Solutions,CC-1600,Merchant CIO
+8,Infrastructure,CC-1700,Infrastructure CIO
+9,Finance,CC-1800,Finance CIO
+10,Technology Services,CC-1900,Tech Services CIO
+11,Client Support,CC-2000,Support CIO
+12,Digital,CC-2100,Digital CIO

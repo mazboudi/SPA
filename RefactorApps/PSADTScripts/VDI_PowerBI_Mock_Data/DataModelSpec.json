@@ -1,0 +1,486 @@
+{
+  "generated": "2026-07-07T16:21:45",
+  "tables": {
+    "DimDate": {
+      "rows": 90,
+      "file": "DimDate.csv",
+      "columns": [
+        "DateKey",
+        "Date",
+        "Year",
+        "Quarter",
+        "MonthNumber",
+        "MonthName",
+        "WeekStartDate",
+        "DayOfWeek",
+        "IsBusinessDay"
+      ]
+    },
+    "DimRegion": {
+      "rows": 6,
+      "file": "DimRegion.csv",
+      "columns": [
+        "RegionKey",
+        "GlobalRegion",
+        "AzureRegion",
+        "RegionCode",
+        "Country",
+        "City",
+        "TimeZone",
+        "Latitude",
+        "Longitude"
+      ]
+    },
+    "DimBusinessUnit": {
+      "rows": 12,
+      "file": "DimBusinessUnit.csv",
+      "columns": [
+        "BUKey",
+        "BusinessUnit",
+        "CostCenter",
+        "CIOOwner"
+      ]
+    },
+    "DimUser": {
+      "rows": 14000,
+      "file": "DimUser.csv",
+      "columns": [
+        "UserKey",
+        "UserPrincipalName",
+        "DisplayName",
+        "Email",
+        "Department",
+        "City",
+        "Country",
+        "WorkerType",
+        "BUKey",
+        "RegionKey",
+        "ManagerUPN"
+      ]
+    },
+    "DimCloudPC": {
+      "rows": 14000,
+      "file": "DimCloudPC.csv",
+      "columns": [
+        "CloudPCID",
+        "CloudPCName",
+        "UserKey",
+        "RegionKey",
+        "BUKey",
+        "ProvisioningPolicy",
+        "LicenseSKU",
+        "Status",
+        "vCPU",
+        "MemoryGB",
+        "DiskGB",
+        "DiskType",
+        "OSVersion",
+        "IPAddress",
+        "AzureResourceGroup",
+        "ProvisionedDate",
+        "EnrolledDate",
+        "LastLoginDate",
+        "DaysSinceLastLogin",
+        "InactivityBucket"
+      ]
+    },
+    "DimMacOS": {
+      "rows": 1500,
+      "file": "DimMacOS.csv",
+      "columns": [
+        "MacDeviceID",
+        "DeviceName",
+        "UserKey",
+        "RegionKey",
+        "BUKey",
+        "SerialNumber",
+        "Model",
+        "OSVersion",
+        "EnrollmentDate",
+        "LastCheckInDate",
+        "Status"
+      ]
+    },
+    "FactCloudPCUsage": {
+      "rows": 420000,
+      "file": "FactCloudPCUsage.csv",
+      "columns": [
+        "DateKey",
+        "Date",
+        "CloudPCID",
+        "UserKey",
+        "RegionKey",
+        "BUKey",
+        "LoginCount",
+        "UsageHours",
+        "ConnectionFailures",
+        "AvgRoundTripLatencyMs",
+        "AvgSignInDurationSec",
+        "SessionReliabilityPct",
+        "DiskFreeGB",
+        "CPUAvgPct",
+        "MemoryAvgPct"
+      ]
+    },
+    "FactExopriseSynthetic": {
+      "rows": 21600,
+      "file": "FactExopriseSynthetic.csv",
+      "columns": [
+        "RunID",
+        "RunDateTime",
+        "DateKey",
+        "RegionKey",
+        "ProbeLocation",
+        "Service",
+        "TransactionName",
+        "Result",
+        "AvailabilityPct",
+        "ResponseTimeMs",
+        "NetworkLatencyMs",
+        "DnsTimeMs",
+        "AuthTimeMs",
+        "BrokerTimeMs",
+        "AlertSeverity",
+        "IncidentID"
+      ]
+    },
+    "FactServiceHealth": {
+      "rows": 120,
+      "file": "FactServiceHealth.csv",
+      "columns": [
+        "IncidentID",
+        "Service",
+        "IncidentTitle",
+        "Status",
+        "Severity",
+        "RegionKey",
+        "DetectedBy",
+        "StartDateTime",
+        "EndDateTime",
+        "MTTDMinutes",
+        "MTTRMinutes",
+        "ImpactedUsers",
+        "RootCauseCategory",
+        "PostIncidentReviewRequired"
+      ]
+    },
+    "FactCost": {
+      "rows": 1728,
+      "file": "FactCost.csv",
+      "columns": [
+        "CostMonth",
+        "BUKey",
+        "RegionKey",
+        "ServiceCategory",
+        "ConsumedUnits",
+        "UnitCost",
+        "MonthlyCost",
+        "Currency"
+      ]
+    },
+    "FactNetworkTraffic": {
+      "rows": 180,
+      "file": "FactNetworkTraffic.csv",
+      "columns": [
+        "DateKey",
+        "Date",
+        "RegionKey",
+        "IngressGB",
+        "EgressGB",
+        "NATGatewayGB",
+        "EstimatedNATCost"
+      ]
+    },
+    "FactCompliance": {
+      "rows": 76000,
+      "file": "FactCompliance.csv",
+      "columns": [
+        "ComplianceRecordID",
+        "DeviceID",
+        "DeviceType",
+        "UserKey",
+        "RegionKey",
+        "BUKey",
+        "PolicyName",
+        "ComplianceState",
+        "RiskLevel",
+        "RemediationStatus",
+        "LastCheckInDate"
+      ]
+    }
+  },
+  "relationships": [
+    {
+      "FromTable": "FactCloudPCUsage",
+      "FromColumn": "DateKey",
+      "ToTable": "DimDate",
+      "ToColumn": "DateKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCloudPCUsage",
+      "FromColumn": "CloudPCID",
+      "ToTable": "DimCloudPC",
+      "ToColumn": "CloudPCID",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCloudPCUsage",
+      "FromColumn": "UserKey",
+      "ToTable": "DimUser",
+      "ToColumn": "UserKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCloudPCUsage",
+      "FromColumn": "RegionKey",
+      "ToTable": "DimRegion",
+      "ToColumn": "RegionKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCloudPCUsage",
+      "FromColumn": "BUKey",
+      "ToTable": "DimBusinessUnit",
+      "ToColumn": "BUKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactExopriseSynthetic",
+      "FromColumn": "DateKey",
+      "ToTable": "DimDate",
+      "ToColumn": "DateKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactExopriseSynthetic",
+      "FromColumn": "RegionKey",
+      "ToTable": "DimRegion",
+      "ToColumn": "RegionKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactServiceHealth",
+      "FromColumn": "RegionKey",
+      "ToTable": "DimRegion",
+      "ToColumn": "RegionKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCost",
+      "FromColumn": "BUKey",
+      "ToTable": "DimBusinessUnit",
+      "ToColumn": "BUKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCost",
+      "FromColumn": "RegionKey",
+      "ToTable": "DimRegion",
+      "ToColumn": "RegionKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactNetworkTraffic",
+      "FromColumn": "RegionKey",
+      "ToTable": "DimRegion",
+      "ToColumn": "RegionKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCompliance",
+      "FromColumn": "UserKey",
+      "ToTable": "DimUser",
+      "ToColumn": "UserKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCompliance",
+      "FromColumn": "RegionKey",
+      "ToTable": "DimRegion",
+      "ToColumn": "RegionKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "FactCompliance",
+      "FromColumn": "BUKey",
+      "ToTable": "DimBusinessUnit",
+      "ToColumn": "BUKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "DimCloudPC",
+      "FromColumn": "UserKey",
+      "ToTable": "DimUser",
+      "ToColumn": "UserKey",
+      "Cardinality": "Many-to-one"
+    },
+    {
+      "FromTable": "DimMacOS",
+      "FromColumn": "UserKey",
+      "ToTable": "DimUser",
+      "ToColumn": "UserKey",
+      "Cardinality": "Many-to-one"
+    }
+  ],
+  "measures": [
+    {
+      "MeasureName": "Total Cloud PCs",
+      "Table": "DimCloudPC",
+      "DAX": "Total Cloud PCs = DISTINCTCOUNT(DimCloudPC[CloudPCID])",
+      "Dashboard": "W365 Platform Overview"
+    },
+    {
+      "MeasureName": "Provisioned Cloud PCs",
+      "Table": "DimCloudPC",
+      "DAX": "Provisioned Cloud PCs = CALCULATE([Total Cloud PCs], DimCloudPC[Status] = \"Provisioned\")",
+      "Dashboard": "W365 Platform Overview"
+    },
+    {
+      "MeasureName": "Provisioning Success Rate",
+      "Table": "DimCloudPC",
+      "DAX": "Provisioning Success Rate = DIVIDE([Provisioned Cloud PCs], [Total Cloud PCs])",
+      "Dashboard": "W365 Platform Overview"
+    },
+    {
+      "MeasureName": "Active Users 7D",
+      "Table": "FactCloudPCUsage",
+      "DAX": "Active Users 7D = CALCULATE(DISTINCTCOUNT(FactCloudPCUsage[UserKey]), FactCloudPCUsage[UsageHours] > 0, DATESINPERIOD(DimDate[Date], MAX(DimDate[Date]), -7, DAY))",
+      "Dashboard": "User Dashboard"
+    },
+    {
+      "MeasureName": "Avg Usage Hours",
+      "Table": "FactCloudPCUsage",
+      "DAX": "Avg Usage Hours = AVERAGE(FactCloudPCUsage[UsageHours])",
+      "Dashboard": "User Dashboard"
+    },
+    {
+      "MeasureName": "Stale Cloud PCs 45D",
+      "Table": "DimCloudPC",
+      "DAX": "Stale Cloud PCs 45D = CALCULATE([Total Cloud PCs], DimCloudPC[DaysSinceLastLogin] > 45)",
+      "Dashboard": "User Dashboard"
+    },
+    {
+      "MeasureName": "Exoprise Availability",
+      "Table": "FactExopriseSynthetic",
+      "DAX": "Exoprise Availability = AVERAGE(FactExopriseSynthetic[AvailabilityPct]) / 100",
+      "Dashboard": "Service Health Dashboard"
+    },
+    {
+      "MeasureName": "Avg Response Time ms",
+      "Table": "FactExopriseSynthetic",
+      "DAX": "Avg Response Time ms = AVERAGE(FactExopriseSynthetic[ResponseTimeMs])",
+      "Dashboard": "Service Health Dashboard"
+    },
+    {
+      "MeasureName": "Synthetic Failures",
+      "Table": "FactExopriseSynthetic",
+      "DAX": "Synthetic Failures = CALCULATE(COUNTROWS(FactExopriseSynthetic), FactExopriseSynthetic[Result] = \"Failure\")",
+      "Dashboard": "Service Health Dashboard"
+    },
+    {
+      "MeasureName": "Open Incidents",
+      "Table": "FactServiceHealth",
+      "DAX": "Open Incidents = CALCULATE(DISTINCTCOUNT(FactServiceHealth[IncidentID]), FactServiceHealth[Status] IN {\"Open\", \"Monitoring\"})",
+      "Dashboard": "Service Health Dashboard"
+    },
+    {
+      "MeasureName": "Avg MTTD Minutes",
+      "Table": "FactServiceHealth",
+      "DAX": "Avg MTTD Minutes = AVERAGE(FactServiceHealth[MTTDMinutes])",
+      "Dashboard": "Service Health Dashboard"
+    },
+    {
+      "MeasureName": "Avg MTTR Minutes",
+      "Table": "FactServiceHealth",
+      "DAX": "Avg MTTR Minutes = AVERAGE(FactServiceHealth[MTTRMinutes])",
+      "Dashboard": "Service Health Dashboard"
+    },
+    {
+      "MeasureName": "Total Monthly Cost",
+      "Table": "FactCost",
+      "DAX": "Total Monthly Cost = SUM(FactCost[MonthlyCost])",
+      "Dashboard": "Cost Dashboard"
+    },
+    {
+      "MeasureName": "Cost per Active User",
+      "Table": "FactCost",
+      "DAX": "Cost per Active User = DIVIDE([Total Monthly Cost], [Active Users 7D])",
+      "Dashboard": "Cost Dashboard"
+    },
+    {
+      "MeasureName": "Total NAT Gateway GB",
+      "Table": "FactNetworkTraffic",
+      "DAX": "Total NAT Gateway GB = SUM(FactNetworkTraffic[NATGatewayGB])",
+      "Dashboard": "Cost Dashboard"
+    },
+    {
+      "MeasureName": "Compliance Rate",
+      "Table": "FactCompliance",
+      "DAX": "Compliance Rate = DIVIDE(CALCULATE(COUNTROWS(FactCompliance), FactCompliance[ComplianceState] = \"Compliant\"), COUNTROWS(FactCompliance))",
+      "Dashboard": "Compliance Dashboard"
+    },
+    {
+      "MeasureName": "Non-Compliant Devices",
+      "Table": "FactCompliance",
+      "DAX": "Non-Compliant Devices = CALCULATE(DISTINCTCOUNT(FactCompliance[DeviceID]), FactCompliance[ComplianceState] = \"NonCompliant\")",
+      "Dashboard": "Compliance Dashboard"
+    },
+    {
+      "MeasureName": "Managed Macs",
+      "Table": "DimMacOS",
+      "DAX": "Managed Macs = CALCULATE(DISTINCTCOUNT(DimMacOS[MacDeviceID]), DimMacOS[Status] = \"Managed\")",
+      "Dashboard": "MacOS Platform Overview"
+    }
+  ],
+  "thresholds": [
+    {
+      "Metric": "Exoprise Availability",
+      "Green": ">= 99.5%",
+      "Amber": ">= 98.5% and < 99.5%",
+      "Red": "< 98.5%"
+    },
+    {
+      "Metric": "Avg Response Time ms",
+      "Green": "<= 2500",
+      "Amber": "> 2500 and <= 4000",
+      "Red": "> 4000"
+    },
+    {
+      "Metric": "Avg Sign-In Duration Sec",
+      "Green": "<= 30",
+      "Amber": "> 30 and <= 60",
+      "Red": "> 60"
+    },
+    {
+      "Metric": "Round Trip Latency ms",
+      "Green": "<= 100",
+      "Amber": "> 100 and <= 150",
+      "Red": "> 150"
+    },
+    {
+      "Metric": "Disk Free GB",
+      "Green": ">= 20",
+      "Amber": ">= 10 and < 20",
+      "Red": "< 10"
+    },
+    {
+      "Metric": "Days Since Last Login",
+      "Green": "< 15",
+      "Amber": "15 - 45",
+      "Red": "> 45"
+    },
+    {
+      "Metric": "Compliance Rate",
+      "Green": ">= 95%",
+      "Amber": ">= 90% and < 95%",
+      "Red": "< 90%"
+    },
+    {
+      "Metric": "MTTR Minutes",
+      "Green": "<= 60",
+      "Amber": "> 60 and <= 240",
+      "Red": "> 240"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+-- W365 Platform Overview | DimCloudPC
+Total Cloud PCs = DISTINCTCOUNT(DimCloudPC[CloudPCID])
+
+-- W365 Platform Overview | DimCloudPC
+Provisioned Cloud PCs = CALCULATE([Total Cloud PCs], DimCloudPC[Status] = "Provisioned")
+
+-- W365 Platform Overview | DimCloudPC
+Provisioning Success Rate = DIVIDE([Provisioned Cloud PCs], [Total Cloud PCs])
+
+-- User Dashboard | FactCloudPCUsage
+Active Users 7D = CALCULATE(DISTINCTCOUNT(FactCloudPCUsage[UserKey]), FactCloudPCUsage[UsageHours] > 0, DATESINPERIOD(DimDate[Date], MAX(DimDate[Date]), -7, DAY))
+
+-- User Dashboard | FactCloudPCUsage
+Avg Usage Hours = AVERAGE(FactCloudPCUsage[UsageHours])
+
+-- User Dashboard | DimCloudPC
+Stale Cloud PCs 45D = CALCULATE([Total Cloud PCs], DimCloudPC[DaysSinceLastLogin] > 45)
+
+-- Service Health Dashboard | FactExopriseSynthetic
+Exoprise Availability = AVERAGE(FactExopriseSynthetic[AvailabilityPct]) / 100
+
+-- Service Health Dashboard | FactExopriseSynthetic
+Avg Response Time ms = AVERAGE(FactExopriseSynthetic[ResponseTimeMs])
+
+-- Service Health Dashboard | FactExopriseSynthetic
+Synthetic Failures = CALCULATE(COUNTROWS(FactExopriseSynthetic), FactExopriseSynthetic[Result] = "Failure")
+
+-- Service Health Dashboard | FactServiceHealth
+Open Incidents = CALCULATE(DISTINCTCOUNT(FactServiceHealth[IncidentID]), FactServiceHealth[Status] IN {"Open", "Monitoring"})
+
+-- Service Health Dashboard | FactServiceHealth
+Avg MTTD Minutes = AVERAGE(FactServiceHealth[MTTDMinutes])
+
+-- Service Health Dashboard | FactServiceHealth
+Avg MTTR Minutes = AVERAGE(FactServiceHealth[MTTRMinutes])
+
+-- Cost Dashboard | FactCost
+Total Monthly Cost = SUM(FactCost[MonthlyCost])
+
+-- Cost Dashboard | FactCost
+Cost per Active User = DIVIDE([Total Monthly Cost], [Active Users 7D])
+
+-- Cost Dashboard | FactNetworkTraffic
+Total NAT Gateway GB = SUM(FactNetworkTraffic[NATGatewayGB])
+
+-- Compliance Dashboard | FactCompliance
+Compliance Rate = DIVIDE(CALCULATE(COUNTROWS(FactCompliance), FactCompliance[ComplianceState] = "Compliant"), COUNTROWS(FactCompliance))
+
+-- Compliance Dashboard | FactCompliance
+Non-Compliant Devices = CALCULATE(DISTINCTCOUNT(FactCompliance[DeviceID]), FactCompliance[ComplianceState] = "NonCompliant")
+
+-- MacOS Platform Overview | DimMacOS
+Managed Macs = CALCULATE(DISTINCTCOUNT(DimMacOS[MacDeviceID]), DimMacOS[Status] = "Managed")
+

@@ -1,0 +1,10 @@
+﻿Dashboard,Visual/KPI,PrimaryTable,Fields,Notes
+W365 Platform Overview,Cloud PCs by Azure Region,DimCloudPC,"RegionKey, Status, ProvisioningPolicy, LicenseSKU",Bubble/world map and region filters
+W365 Platform Overview,24h and 30-day availability trend,FactExopriseSynthetic,"RunDateTime, RegionKey, TransactionName, AvailabilityPct, Result",Synthetic monitoring baseline and outage visibility
+Inventory Dashboard,Cloud PC inventory table,DimCloudPC,"CloudPCName, Status, vCPU, MemoryGB, DiskGB, DiskType, AzureRegion, ProvisioningPolicy, IPAddress, ProvisionedDate, EnrolledDate",Core inventory with drill-through to device details
+Service Health Dashboard,MTTD / MTTR / open incidents,FactServiceHealth,"IncidentID, Service, Status, Severity, MTTDMinutes, MTTRMinutes, ImpactedUsers",Incident and alert management
+User Dashboard,User activity and stale Cloud PCs,FactCloudPCUsage + DimUser + DimCloudPC,"UsageHours, LastLoginDate, WorkerType, Department, Country","User experience, adoption, and reclaim candidate identification"
+Cost Dashboard,Monthly cost by BU/region/service,FactCost,"CostMonth, BUKey, RegionKey, ServiceCategory, MonthlyCost",Chargeback/showback and cost optimization
+Cost Dashboard,Azure NAT Gateway traffic,FactNetworkTraffic,"Date, RegionKey, IngressGB, EgressGB, NATGatewayGB, EstimatedNATCost",Network cost and traffic view
+MacOS Platform Overview,Mac device status and check-in health,DimMacOS,"MacDeviceID, Model, OSVersion, Status, LastCheckInDate, RegionKey",MacOS inventory and operational health
+Compliance Dashboard,Compliance by device type/policy/risk,FactCompliance,"DeviceType, PolicyName, ComplianceState, RiskLevel, RemediationStatus",EUC compliance and remediation tracking

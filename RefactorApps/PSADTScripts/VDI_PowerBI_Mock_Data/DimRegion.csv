@@ -1,0 +1,7 @@
+﻿RegionKey,GlobalRegion,AzureRegion,RegionCode,Country,City,TimeZone,Latitude,Longitude
+1,Americas,East US,USE,United States,New York,Eastern,40.7128,-74.006
+2,Americas,West US 2,USW,United States,Phoenix,Mountain,33.4484,-112.074
+3,EMEA,North Europe,EUN,Ireland,Dublin,GMT,53.3498,-6.2603
+4,EMEA,West Europe,EUW,Netherlands,Amsterdam,Central European,52.3676,4.9041
+5,APAC,Southeast Asia,SEA,Singapore,Singapore,Singapore,1.3521,103.8198
+6,LATAM,Brazil South,BRS,Brazil,São Paulo,Brasilia,-23.5558,-46.6396

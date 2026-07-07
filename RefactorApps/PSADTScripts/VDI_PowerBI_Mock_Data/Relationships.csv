@@ -1,0 +1,17 @@
+﻿FromTable,FromColumn,ToTable,ToColumn,Cardinality
+FactCloudPCUsage,DateKey,DimDate,DateKey,Many-to-one
+FactCloudPCUsage,CloudPCID,DimCloudPC,CloudPCID,Many-to-one
+FactCloudPCUsage,UserKey,DimUser,UserKey,Many-to-one
+FactCloudPCUsage,RegionKey,DimRegion,RegionKey,Many-to-one
+FactCloudPCUsage,BUKey,DimBusinessUnit,BUKey,Many-to-one
+FactExopriseSynthetic,DateKey,DimDate,DateKey,Many-to-one
+FactExopriseSynthetic,RegionKey,DimRegion,RegionKey,Many-to-one
+FactServiceHealth,RegionKey,DimRegion,RegionKey,Many-to-one
+FactCost,BUKey,DimBusinessUnit,BUKey,Many-to-one
+FactCost,RegionKey,DimRegion,RegionKey,Many-to-one
+FactNetworkTraffic,RegionKey,DimRegion,RegionKey,Many-to-one
+FactCompliance,UserKey,DimUser,UserKey,Many-to-one
+FactCompliance,RegionKey,DimRegion,RegionKey,Many-to-one
+FactCompliance,BUKey,DimBusinessUnit,BUKey,Many-to-one
+DimCloudPC,UserKey,DimUser,UserKey,Many-to-one
+DimMacOS,UserKey,DimUser,UserKey,Many-to-one
