@@ -1068,11 +1068,23 @@ function extractBlockActions(block) {
       continue;
     }
 
+    // ── Skip PowerShell comment lines (# prefix) ──────────────────────────
+    // Prevents commented-out cmdlets (e.g. #Show-InstallationWelcome ...) from
+    // being misidentified as real actions. Comment lines accumulate in customBuffer
+    // and are naturally dropped by the hasExecutableCode filter in flushCustomBuffer.
+    if (t.startsWith('#')) {
+      customBuffer.push(line);
+      continue;
+    }
+
     let matched = false;
 
     // Check for ADT cmdlet matches
-    // Execute-MSI (v3) — convert to start_msi_process so the generator can render it
-    const msiMatch = t.match(/Execute-MSI\s+.*-Action\s+['"]?(\w+)['"]?/i);
+    // Execute-MSI (v3) — convert to start_msi_process so the generator can render it.
+    // GUARD: if the line is actually a ForEach-Object batch pipeline (e.g. "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI ... })
+    // do NOT treat it as a plain Execute-MSI — it will be caught by the msi_uninstall_batch handler below.
+    const isForeachMsiPipeline = /\|\s*ForEach-Object\s*\{\s*Execute-MSI/i.test(t);
+    const msiMatch = !isForeachMsiPipeline && t.match(/Execute-MSI\s+.*-Action\s+['"](\w+)['"]?/i);
     if (msiMatch) {
       flushCustomBuffer();
       const msiAction = msiMatch[1];
@@ -1375,8 +1387,9 @@ function extractBlockActions(block) {
     }
 
     // Show-InstallationWelcome / Show-ADTInstallationWelcome (inline params, not splatting)
+    // Guard: skip comment lines — e.g. #Show-InstallationWelcome ... should not produce an action
     if (!matched) {
-      const welcomeMatch = t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
+      const welcomeMatch = !t.startsWith('#') && t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
       if (welcomeMatch && !/@saiwParams/.test(t)) {
         flushCustomBuffer();
         const params = welcomeMatch[1];
@@ -1766,19 +1779,11 @@ function extractAllPhasesV3(text) {
   for (const [psName, key] of Object.entries(phaseNames)) {
     const block = extractV3Phase(text, psName);
     const actions = extractBlockActions(block);
-    // Enrich pre-install with GUIDs for batch uninstall
-    if (key === 'preInstall' && block) {
-      const guids = extractGuidsFromBlock(block);
-      if (guids.length > 0) {
-        const existing = actions.find(a => a.type === 'msi_uninstall_batch');
-        if (existing) {
-          existing.guids = guids;
-          existing.desc = `Batch MSI Uninstall (${guids.length} old versions)`;
-        } else if (guids.length > 1) {
-          actions.unshift({ type: 'msi_uninstall_batch', desc: `Remove ${guids.length} old versions by GUID`, guids });
-        }
-      }
-    }
+    // Enrich pre-install with GUIDs was previously done here via extractGuidsFromBlock(block).
+    // That approach picked up ALL GUIDs in the block — including ones embedded in file paths
+    // (e.g. Package Cache\{229c8b18-...}\WiX310.exe) — producing false positives.
+    // GUIDs are now extracted accurately in-line during extractBlockActions()
+    // by splitting the ForEach-Object token on the pipe and scanning only the left side.
     if (actions.length > 0) phases[key] = actions;
   }
   return phases;
