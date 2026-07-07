@@ -13,6 +13,26 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# ── Helper: expand abbreviated hive prefixes to full Intune-style names ───────
+# The Graph API keyPath field is documented to contain the full path including
+# the hive root (HKEY_LOCAL_MACHINE\... or HKEY_CURRENT_USER\...).
+# package.yaml may be written with abbreviations (HKLM\, HKCU\, HKCU:) or the
+# full form.  This function always returns the fully-qualified form.
+function Expand-RegistryHive {
+    param([string]$Path)
+    if (-not $Path) { return $Path }
+    # Normalize separators first (some authors write forward slashes)
+    $p = $Path.TrimStart() -replace '/', '\'
+    switch -Regex ($p) {
+        '^HKEY_LOCAL_MACHINE[\\/]?'  { return $p }  # already full
+        '^HKEY_CURRENT_USER[\\/]?'   { return $p }  # already full
+        '^HKLM[\\/]'                 { return 'HKEY_LOCAL_MACHINE\' + $p.Substring(5) }
+        '^HKCU[\\/]'                 { return 'HKEY_CURRENT_USER\' + $p.Substring(5) }
+        '^HKCU:'                     { return 'HKEY_CURRENT_USER\' + $p.Substring(5) }
+        default                      { return 'HKEY_LOCAL_MACHINE\' + $p }  # bare path — assume HKLM
+    }
+}
+
 if (!(Test-Path $PackageYamlPath)) {
     throw "package.yaml not found at: $PackageYamlPath"
 }
@@ -223,9 +243,10 @@ if ($detectionMethod) {
                     throw "detection_rules: key_path is required for registry rule"
                 }
 
-                # NOTE: The Graph API win32LobAppRegistryDetection does NOT accept a 'hive' field.
-                # It always defaults to localMachine. Log it for diagnostics only.
-                Write-Host "    hive       : $hive (informational — Graph API ignores hive field)"
+                # Expand to full path (HKEY_LOCAL_MACHINE\... or HKEY_CURRENT_USER\...)
+                # key_path in package.yaml may contain abbreviations (HKLM\, HKCU\) or
+                # already be fully qualified.  Always send the full form to the Graph API.
+                $keyPath = Expand-RegistryHive $keyPath
 
                 # Map detection_type to Graph API fields
                 $graphDetType  = 'version'
@@ -343,10 +364,18 @@ switch ($detectionMode) {
             throw "package.yaml: detection.hive must be HKLM or HKCU"
         }
 
-        # NOTE: The Graph API win32LobAppRegistryDetection does NOT accept a 'hive' field.
-        # It always defaults to localMachine. Log it for diagnostics only.
+        # Expand to full path — if key_path already has the prefix, Expand-RegistryHive is a no-op.
+        # If only a bare path is stored (legacy), we prepend the hive from the hive field.
+        $fullKeyPath = if ($keyPath -match '^HKEY_') {
+            Expand-RegistryHive $keyPath
+        } else {
+            # bare path: prepend hive from the separate hive field
+            $prefix = if ($hive -eq 'HKCU') { 'HKEY_CURRENT_USER\' } else { 'HKEY_LOCAL_MACHINE\' }
+            Expand-RegistryHive ($prefix + $keyPath)
+        }
+
         Write-Host "  hive     : $hive (informational — Graph API ignores hive field)"
-        Write-Host "  key_path : $keyPath"
+        Write-Host "  key_path : $fullKeyPath"
 
         $detectionType = 'version'
         $graphOperator = 'greaterThanOrEqual'
@@ -364,7 +393,7 @@ switch ($detectionMode) {
             '@odata.type'            = '#microsoft.graph.win32LobAppRegistryDetection'
             # hive is NOT sent — Graph API does not accept this field (400 if included)
             check32BitOn64System     = $check32Bool
-            keyPath                  = $keyPath
+            keyPath                  = $fullKeyPath
             valueName                = $valueName
             detectionType            = $detectionType
         }

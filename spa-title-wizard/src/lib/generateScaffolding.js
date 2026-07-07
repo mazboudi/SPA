@@ -220,7 +220,13 @@ detection:
           rule += `\n    check_32bit: ${r.check32BitOn64}`;
           return rule;
         } else if (r.ruleType === 'registry') {
-          let rule = `  - type: registry\n    hive: ${r.hive}\n    key_path: '${r.keyPath}'\n    value_name: "${r.valueName}"\n    detection_type: ${r.detectionType}`;
+          // Build the full key path — always includes hive prefix (HKEY_LOCAL_MACHINE\ or HKEY_CURRENT_USER\)
+          // so the pipeline writes exactly what the Intune UI stores (no abbreviations)
+          const hivePrefix = (r.hive === 'HKCU') ? 'HKEY_CURRENT_USER\\' : 'HKEY_LOCAL_MACHINE\\';
+          const fullPath = r.fullKeyPath
+            ? r.fullKeyPath  // new field — already has full prefix from the workbench input
+            : `${hivePrefix}${r.keyPath || ''}`; // backwards compat for saved titles without fullKeyPath
+          let rule = `  - type: registry\n    key_path: '${fullPath}'\n    value_name: "${r.valueName}"\n    detection_type: ${r.detectionType}`;
           if (!['exists', 'doesNotExist'].includes(r.detectionType)) {
             rule += `\n    operator: ${r.operator}\n    value: "${r.detectionValue}"`;
           }
