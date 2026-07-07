@@ -230,7 +230,13 @@ export default function App() {
   };
 
   // ── Intune ────────────────────────────────────────────────────────────────
-  const handleIntuneImport = (fields) => { wizard.importIntuneExport(fields); };
+  const handleIntuneImport = (fields) => {
+    // Reset PSADT upload state — a freshly selected Intune app needs a clean PS1 import
+    setPsadtResult(null);
+    setPsadtError(null);
+    wizard.importIntuneExport(fields);
+  };
+
 
   const loadIntuneCatalog = useCallback(async (refresh = false) => {
     if (refresh) setIntuneRefreshing(true);

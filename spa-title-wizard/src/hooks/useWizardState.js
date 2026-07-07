@@ -822,19 +822,26 @@ export default function useWizardState() {
    */
   const importIntuneExport = useCallback((intuneFields) => {
     setState(prev => {
-      const next = { ...prev };
+      // Start from a clean slate — same as reset() — so that switching from
+      // one Intune app to another doesn't leave stale fields from the previous app.
+      // Only carry over the fields that should survive a title switch.
+      const next = {
+        ...INITIAL_STATE,
+        // Preserve platform selection and server-configured group paths
+        platform:                  prev.platform                  || INITIAL_STATE.platform,
+        gitLabGroup:               prev.gitLabGroup               || INITIAL_STATE.gitLabGroup,
+        gitLabWinGroup:            prev.gitLabWinGroup            || INITIAL_STATE.gitLabWinGroup,
+        gitLabMacGroup:            prev.gitLabMacGroup            || INITIAL_STATE.gitLabMacGroup,
+        gitLabCiTemplatesProject:  prev.gitLabCiTemplatesProject  || '',
+      };
+
       next._intuneExportImported = true;
       next.wizardMode = 'refactor';
       next.vsCodeOpened = false;
 
-      // Merge each field — skip if PSADT already populated it
+      // Apply all Intune fields onto the clean state
       for (const [key, value] of Object.entries(intuneFields)) {
         if (value == null || value === '') continue;
-        // For key fields that PSADT may have set, only overwrite if currently empty/default
-        const psadtPriorityFields = ['displayName', 'publisher', 'version'];
-        if (psadtPriorityFields.includes(key) && prev[key] && prev[key] !== INITIAL_STATE[key]) {
-          continue;
-        }
         next[key] = value;
       }
 
@@ -848,7 +855,7 @@ export default function useWizardState() {
       }
 
       // Auto-derive packageId from displayName
-      if (next.displayName && (!next.packageId || next.packageId === prev.packageId || next.packageId === INITIAL_STATE.packageId)) {
+      if (next.displayName && (!next.packageId || next.packageId === INITIAL_STATE.packageId)) {
         next.packageId = toKebabCase(next.displayName);
       }
 
@@ -858,6 +865,7 @@ export default function useWizardState() {
       return next;
     });
   }, []);
+
 
   /**
    * Import project files from GitLab into wizard state (Edit Existing mode).
