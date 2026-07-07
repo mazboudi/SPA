@@ -252,16 +252,33 @@
       }
 
       # Copy support files from runner VM if WINDOWS_SUPPORT_FILES_SOURCE is set
+      # IMPORTANT: The primary installer (WINDOWS_INSTALLER_SOURCE) is explicitly
+      # excluded here — it belongs in Files/ only, not SupportFiles/.
       if ($env:WINDOWS_SUPPORT_FILES_SOURCE) {
         $supportDir = 'windows\src\SupportFiles'
         if (!(Test-Path $supportDir)) { New-Item -ItemType Directory -Path $supportDir | Out-Null }
         if (Test-Path $env:WINDOWS_SUPPORT_FILES_SOURCE) {
-          $supportItems = Get-ChildItem -Path $env:WINDOWS_SUPPORT_FILES_SOURCE -File -ErrorAction SilentlyContinue
+          # Determine the primary installer filename to exclude it from support files
+          $installerBaseName = if ($env:WINDOWS_INSTALLER_SOURCE) {
+            Split-Path -Leaf $env:WINDOWS_INSTALLER_SOURCE
+          } else { $null }
+
+          $supportItems = Get-ChildItem -Path $env:WINDOWS_SUPPORT_FILES_SOURCE -File -ErrorAction SilentlyContinue |
+            Where-Object { $installerBaseName -eq $null -or $_.Name -ne $installerBaseName }
+
           if ($supportItems.Count -gt 0) {
-            Write-Host "Copying $($supportItems.Count) support files from: $($env:WINDOWS_SUPPORT_FILES_SOURCE) -> $supportDir"
-            Copy-Item -Path (Join-Path $env:WINDOWS_SUPPORT_FILES_SOURCE '*') -Destination $supportDir -Recurse -Force
+            Write-Host "Copying $($supportItems.Count) support file(s) from: $($env:WINDOWS_SUPPORT_FILES_SOURCE) -> $supportDir"
+            if ($installerBaseName) {
+              Write-Host "  (excluded primary installer: $installerBaseName — lives in Files/ only)"
+            }
+            foreach ($item in $supportItems) {
+              Copy-Item -Path $item.FullName -Destination $supportDir -Force
+            }
           } else {
-            Write-Host "WINDOWS_SUPPORT_FILES_SOURCE set but directory is empty: $($env:WINDOWS_SUPPORT_FILES_SOURCE)"
+            Write-Host "WINDOWS_SUPPORT_FILES_SOURCE set but no eligible support files found: $($env:WINDOWS_SUPPORT_FILES_SOURCE)"
+            if ($installerBaseName) {
+              Write-Host "  (note: $installerBaseName was excluded as the primary installer)"
+            }
           }
         } else {
           Write-Host "⚠️ WINDOWS_SUPPORT_FILES_SOURCE set but path not found: $($env:WINDOWS_SUPPORT_FILES_SOURCE)" -ForegroundColor Yellow
