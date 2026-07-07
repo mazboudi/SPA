@@ -110,6 +110,27 @@ export default function generatePsadtScript(s, clean = false) {
           actionLines.push(`        ${cmd}`);
           break;
         }
+
+        // Batch MSI uninstall/install: array of GUIDs piped through ForEach-Object
+        // V3: "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI -Action 'Uninstall' -Path "$_" }
+        // V4: @('{GUID1}', '{GUID2}') | ForEach-Object { Start-ADTMsiProcess -Action 'Uninstall' -ProductCode $_ }
+        case 'msi_uninstall_batch':
+        case 'msi_install_batch': {
+          const batchAction = action.type === 'msi_uninstall_batch' ? 'Uninstall' : 'Install';
+          const guids = Array.isArray(action.guids) && action.guids.length > 0
+            ? action.guids
+            : [];
+          if (guids.length > 0) {
+            const guidList = guids.map(g => `'${g}'`).join(', ');
+            actionLines.push(`        @(${guidList}) | ForEach-Object { Start-ADTMsiProcess -Action '${batchAction}' -ProductCode $_ }`);
+          } else {
+            // No GUIDs captured — emit a clearly labelled comment so the packager can fill them in
+            actionLines.push(`        # TODO: Batch MSI ${batchAction} — GUIDs not captured from v3 script. Replace the placeholders below:`);
+            actionLines.push(`        # @('{GUID1}', '{GUID2}') | ForEach-Object { Start-ADTMsiProcess -Action '${batchAction}' -ProductCode $_ }`);
+          }
+          break;
+        }
+
         case 'start_process': {
           const args = action.args ? ` -ArgumentList '${action.args}'` : '';
           const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';

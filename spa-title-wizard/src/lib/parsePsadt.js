@@ -1510,12 +1510,30 @@ function extractBlockActions(block) {
         matched = true;
       }
     }
-    // ForEach-Object with Execute-MSI (multi-GUID uninstall pattern)
+    // ForEach-Object with Execute-MSI (multi-GUID batch pattern)
+    // Pattern: "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI -Action 'Uninstall' -Path "$_" }
+    // After backtick-joining these all appear on one line.
     if (!matched) {
       const foreachMsi = t.match(/\|?\s*ForEach-Object\s*\{\s*Execute-MSI\s+-Action\s+['"]?(\w+)['"]?/i);
       if (foreachMsi) {
         flushCustomBuffer();
-        actions.push({ type: `msi_${foreachMsi[1].toLowerCase()}_batch`, desc: `Batch MSI ${foreachMsi[1]} (multiple GUIDs)`, raw: t });
+        const action = foreachMsi[1];
+        // Extract GUIDs from the part of the line BEFORE the pipe — these are the piped values
+        const beforePipe = t.split('|')[0];
+        const guidRe = /\{([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\}/g;
+        const guids = [];
+        let gm;
+        while ((gm = guidRe.exec(beforePipe)) !== null) {
+          guids.push(`{${gm[1]}}`);
+        }
+        actions.push({
+          type: `msi_${action.toLowerCase()}_batch`,
+          desc: guids.length > 0
+            ? `Batch MSI ${action} (${guids.length} GUID${guids.length !== 1 ? 's' : ''})`
+            : `Batch MSI ${action} (multiple GUIDs)`,
+          guids: [...new Set(guids)],
+          raw: t,
+        });
         matched = true;
       }
     }

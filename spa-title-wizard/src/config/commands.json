@@ -56,6 +56,19 @@
     ]
   },
   {
+    "name": "msi_uninstall_batch",
+    "label": "Batch MSI Uninstall by GUID (ForEach-Object)",
+    "icon": "🗑️",
+    "category": "Installer",
+    "psadtCmdlet": "Start-ADTMsiProcess",
+    "supportedPhases": [
+      "preInstall",
+      "install",
+      "uninstall",
+      "preUninstall"
+    ]
+  },
+  {
     "name": "uninstall_application",
     "label": "Uninstall Application (Uninstall-ADTApplication)",
     "icon": "🗑️",

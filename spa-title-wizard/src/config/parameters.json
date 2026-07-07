@@ -58,6 +58,14 @@
     "placeholder": "processResult"
   },
   {
+    "cmdlet": "msi_uninstall_batch",
+    "parameter": "guids",
+    "label": "MSI Product Codes / GUIDs (one per line)",
+    "type": "guids",
+    "placeholder": "{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}",
+    "required": true
+  },
+  {
     "cmdlet": "start_msi_process",
     "parameter": "action",
     "label": "Action",
