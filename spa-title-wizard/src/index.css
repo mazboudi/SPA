@@ -613,3 +613,19 @@ button.mode-card:disabled {
   font-style: italic;
   color: #fde68a;
 }
+
+/* Green variant — shown when install context is User (HKCU resolves correctly) */
+.hkcu-warning--ok {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #6ee7b7;
+}
+
+.hkcu-warning--ok code {
+  background: rgba(52, 211, 153, 0.12);
+  color: #a7f3d0;
+}
+
+.hkcu-warning--ok strong {
+  color: #a7f3d0;
+}

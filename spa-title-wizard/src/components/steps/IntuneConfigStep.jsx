@@ -524,14 +524,22 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                   }}
                 />
               </FormField>
-              {/* HKCU system-context warning */}
+              {/* HKCU context-aware notice */}
               {isHkcuPath(rule.fullKeyPath || ((rule.hive === 'HKCU' ? 'HKEY_CURRENT_USER\\' : '') + (rule.keyPath || ''))) && (
-                <div className="hkcu-warning" style={{ gridColumn: '1 / -1' }}>
-                  ⚠️ <strong>System Context Caveat:</strong> Manual detection rules run as <strong>SYSTEM</strong>, so{' '}
-                  <code>HKEY_CURRENT_USER</code> checks the <em>SYSTEM user&apos;s</em> registry hive — not the
-                  logged-in user&apos;s. For per-user or dynamic detection, use a{' '}
-                  <strong>PowerShell detection script</strong> instead.
-                </div>
+                (state.installContext === 'user')
+                  ? (
+                    <div className="hkcu-warning hkcu-warning--ok" style={{ gridColumn: '1 / -1' }}>
+                      ✅ <strong>User context detected:</strong> Your app installs as <strong>User</strong>, so detection also runs as
+                      the logged-in user — <code>HKEY_CURRENT_USER</code> will resolve to the correct hive.
+                    </div>
+                  ) : (
+                    <div className="hkcu-warning" style={{ gridColumn: '1 / -1' }}>
+                      ⚠️ <strong>System Context Caveat:</strong> Detection rules run as <strong>SYSTEM</strong> (matching your install
+                      behavior), so <code>HKEY_CURRENT_USER</code> checks the <em>SYSTEM user&apos;s</em> hive — not the logged-in
+                      user&apos;s. Switch install behavior to <strong>User</strong> on the Info tab, or use a{' '}
+                      <strong>PowerShell detection script</strong> instead.
+                    </div>
+                  )
               )}
               <FormField label="Value Name" id={`det-reg-val-name-${idx}`}>
                 <input type="text" placeholder="DisplayVersion" value={rule.valueName} onChange={e => updateRule(idx, 'valueName', e.target.value)} />
@@ -974,13 +982,22 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                             }}
                           />
                         </FormField>
-                        {/* HKCU system-context warning */}
+                        {/* HKCU context-aware notice */}
                         {isHkcuPath(req.fullKeyPath || ((req.hive === 'HKCU' ? 'HKEY_CURRENT_USER\\' : '') + (req.keyPath || ''))) && (
-                          <div className="hkcu-warning" style={{ gridColumn: '1 / -1' }}>
-                            ⚠️ <strong>System Context Caveat:</strong> Requirement rules run as <strong>SYSTEM</strong>, so{' '}
-                            <code>HKEY_CURRENT_USER</code> checks the <em>SYSTEM user&apos;s</em> registry hive — not the
-                            logged-in user&apos;s. For per-user checks, use a <strong>script requirement</strong> instead.
-                          </div>
+                          (state.installContext === 'user')
+                            ? (
+                              <div className="hkcu-warning hkcu-warning--ok" style={{ gridColumn: '1 / -1' }}>
+                                ✅ <strong>User context detected:</strong> Your app installs as <strong>User</strong>, so requirement
+                                checks also run as the logged-in user — <code>HKEY_CURRENT_USER</code> will resolve correctly.
+                              </div>
+                            ) : (
+                              <div className="hkcu-warning" style={{ gridColumn: '1 / -1' }}>
+                                ⚠️ <strong>System Context Caveat:</strong> Requirement rules run as <strong>SYSTEM</strong> (matching
+                                your install behavior), so <code>HKEY_CURRENT_USER</code> checks the <em>SYSTEM user&apos;s</em> hive —
+                                not the logged-in user&apos;s. Switch install behavior to <strong>User</strong> on the Info tab, or use
+                                a <strong>script requirement</strong> instead.
+                              </div>
+                            )
                         )}
                         <FormField label="Value Name" id={`req-reg-val-name-${idx}`}>
                           <input type="text" value={req.valueName || ''} onChange={e => updateCustomReq(idx, 'valueName', e.target.value)} />
