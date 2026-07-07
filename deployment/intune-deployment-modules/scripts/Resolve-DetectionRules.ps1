@@ -223,6 +223,14 @@ if ($detectionMethod) {
                     throw "detection_rules: key_path is required for registry rule"
                 }
 
+                # Map hive abbreviation to Graph API enum value
+                # Graph API: 'localMachine' | 'currentUser'
+                $graphHive = switch ($hive.ToUpper()) {
+                    'HKCU'                 { 'currentUser' }
+                    'HKEY_CURRENT_USER'    { 'currentUser' }
+                    default                { 'localMachine' }  # HKLM, HKEY_LOCAL_MACHINE, or unknown
+                }
+
                 # Map detection_type to Graph API fields
                 $graphDetType  = 'version'
                 $graphOperator = 'greaterThanOrEqual'
@@ -236,12 +244,13 @@ if ($detectionMethod) {
                     default        { $graphDetType = 'exists';       $graphOperator = 'notConfigured' }
                 }
 
-                Write-Host "    hive       : $hive"
+                Write-Host "    hive       : $hive -> $graphHive"
                 Write-Host "    key_path   : $keyPath"
                 Write-Host "    value_name : $valueName"
 
                 $rule = @{
                     '@odata.type'        = '#microsoft.graph.win32LobAppRegistryDetection'
+                    hive                 = $graphHive          # Graph: 'localMachine' | 'currentUser'
                     check32BitOn64System = $check32
                     keyPath              = $keyPath
                     valueName            = $valueName
@@ -339,6 +348,10 @@ switch ($detectionMode) {
             throw "package.yaml: detection.hive must be HKLM or HKCU"
         }
 
+        # Map hive abbreviation to Graph API enum value
+        # Graph API: 'localMachine' | 'currentUser'
+        $graphHive = if ($hive -eq 'HKCU') { 'currentUser' } else { 'localMachine' }
+
         $detectionType = 'version'
         $graphOperator = 'greaterThanOrEqual'
 
@@ -351,8 +364,12 @@ switch ($detectionMode) {
             default              { $detectionType = 'exists';       $graphOperator = 'notConfigured' }
         }
 
+        Write-Host "  hive     : $hive -> $graphHive"
+        Write-Host "  key_path : $keyPath"
+
         $rule = @{
             '@odata.type'            = '#microsoft.graph.win32LobAppRegistryDetection'
+            hive                     = $graphHive          # Graph: 'localMachine' | 'currentUser'
             check32BitOn64System     = $check32Bool
             keyPath                  = $keyPath
             valueName                = $valueName
