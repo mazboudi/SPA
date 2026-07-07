@@ -10,7 +10,7 @@
  *   v4: $adtSession = @{ ... } hashtable, Install-ADTDeployment function,
  *       Start-ADTMsiProcess, DeployAppScriptVersion = '4.x.x'
  *
- * Command reference sourced from: src/config/psadt-commands.json
+ * Command reference: src/config/commands.json + src/config/parameters.json
  */
 
 /**
