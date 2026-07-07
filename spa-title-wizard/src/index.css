@@ -581,3 +581,35 @@ button.mode-card:disabled {
 .platform-landing__tips-list li strong {
   color: var(--text-primary);
 }
+
+/* ── HKCU system-context warning banner (detection / requirement registry rules) ── */
+.hkcu-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.hkcu-warning code {
+  background: rgba(251, 191, 36, 0.15);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: #fde68a;
+}
+
+.hkcu-warning strong {
+  color: #fde68a;
+}
+
+.hkcu-warning em {
+  font-style: italic;
+  color: #fde68a;
+}

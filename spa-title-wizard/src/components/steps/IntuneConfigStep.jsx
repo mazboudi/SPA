@@ -89,10 +89,21 @@ const REG_DET_TYPES = [
   { value: 'version', label: 'Version comparison' },
 ];
 
-const REG_HIVES = [
-  { value: 'HKLM', label: 'HKEY_LOCAL_MACHINE' },
-  { value: 'HKCU', label: 'HKEY_CURRENT_USER' },
+// Full path prefixes written exactly as Intune UI expects them
+const REG_PATH_PREFIXES = [
+  'HKEY_LOCAL_MACHINE\\',
+  'HKEY_CURRENT_USER\\',
 ];
+
+// Helper: detect if a full key path starts with HKCU (any format)
+const isHkcuPath = (p = '') =>
+  /^HKEY_CURRENT_USER[\\/]/i.test(p) ||
+  /^HKCU[\\/]/i.test(p) ||
+  /^HKCU:/i.test(p);
+
+// Derive the legacy hive abbreviation from a full path (used when persisting to state)
+const hiveFromFullPath = (p = '') =>
+  isHkcuPath(p) ? 'HKCU' : 'HKLM';
 
 export default function IntuneConfigStep({ state, updateField, intuneCatalog, loadIntuneCatalog, fetchAppDetail }) {
   const [activeTab, setActiveTab] = useState('info');
@@ -399,7 +410,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         newRule = { ruleType: 'file', path: '', fileOrFolder: '', detectionType: 'exists', operator: 'notConfigured', detectionValue: '', check32BitOn64: false };
         break;
       case 'registry':
-        newRule = { ruleType: 'registry', hive: 'HKLM', keyPath: '', valueName: '', detectionType: 'exists', operator: 'notConfigured', detectionValue: '', check32BitOn64: false };
+        newRule = { ruleType: 'registry', hive: 'HKLM', keyPath: '', fullKeyPath: 'HKEY_LOCAL_MACHINE\\', valueName: '', detectionType: 'exists', operator: 'notConfigured', detectionValue: '', check32BitOn64: false };
         break;
       default: return;
     }
@@ -486,14 +497,44 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
           )}
           {rule.ruleType === 'registry' && (
             <>
-              <SelectField label="Hive" id={`det-reg-hive-${idx}`} value={rule.hive}
-                onChange={v => updateRule(idx, 'hive', v)} options={REG_HIVES} />
-              <FormField label="Key Path" id={`det-reg-key-${idx}`}>
-                <input type="text" placeholder={`SOFTWARE\\Fiserv\\InstalledApps\\${state.packageId || 'my-app'}`}
-                  value={rule.keyPath} onChange={e => updateRule(idx, 'keyPath', e.target.value)} />
+              {/* Full Key Path field — matches Intune UI format: HKEY_LOCAL_MACHINE\... */}
+              <FormField
+                label="Key Path"
+                id={`det-reg-key-${idx}`}
+                hint={<>Write the full path including hive, e.g. <code>HKEY_LOCAL_MACHINE\SOFTWARE\Vendor\App</code></>}
+                style={{ gridColumn: '1 / -1' }}
+              >
+                <input
+                  type="text"
+                  placeholder={`HKEY_LOCAL_MACHINE\\SOFTWARE\\Fiserv\\InstalledApps\\${state.packageId || 'my-app'}`}
+                  value={rule.fullKeyPath || (rule.hive === 'HKCU' ? 'HKEY_CURRENT_USER\\' : 'HKEY_LOCAL_MACHINE\\') + (rule.keyPath || '')}
+                  onChange={e => {
+                    const full = e.target.value;
+                    updateRule(idx, 'fullKeyPath', full);
+                    // also keep hive + keyPath in sync for pipeline
+                    updateRule(idx, 'hive', hiveFromFullPath(full));
+                    // strip prefix for keyPath
+                    const stripped = full
+                      .replace(/^HKEY_LOCAL_MACHINE[\\/]+/i, '')
+                      .replace(/^HKEY_CURRENT_USER[\\/]+/i, '')
+                      .replace(/^HKLM[\\/]+/i, '')
+                      .replace(/^HKCU[\\/]+/i, '')
+                      .replace(/^HKCU:/i, '');
+                    updateRule(idx, 'keyPath', stripped);
+                  }}
+                />
               </FormField>
+              {/* HKCU system-context warning */}
+              {isHkcuPath(rule.fullKeyPath || ((rule.hive === 'HKCU' ? 'HKEY_CURRENT_USER\\' : '') + (rule.keyPath || ''))) && (
+                <div className="hkcu-warning" style={{ gridColumn: '1 / -1' }}>
+                  ⚠️ <strong>System Context Caveat:</strong> Manual detection rules run as <strong>SYSTEM</strong>, so{' '}
+                  <code>HKEY_CURRENT_USER</code> checks the <em>SYSTEM user&apos;s</em> registry hive — not the
+                  logged-in user&apos;s. For per-user or dynamic detection, use a{' '}
+                  <strong>PowerShell detection script</strong> instead.
+                </div>
+              )}
               <FormField label="Value Name" id={`det-reg-val-name-${idx}`}>
-                <input type="text" placeholder="Version" value={rule.valueName} onChange={e => updateRule(idx, 'valueName', e.target.value)} />
+                <input type="text" placeholder="DisplayVersion" value={rule.valueName} onChange={e => updateRule(idx, 'valueName', e.target.value)} />
               </FormField>
               <SelectField label="Detection Method" id={`det-reg-type-${idx}`} value={rule.detectionType}
                 onChange={v => updateRule(idx, 'detectionType', v)} options={REG_DET_TYPES} />
@@ -908,12 +949,39 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                     )}
                     {req.type === 'registry' && (
                       <>
-                        <SelectField label="Hive" id={`req-reg-hive-${idx}`} value={req.hive}
-                          onChange={v => updateCustomReq(idx, 'hive', v)}
-                          options={[{ value: 'HKLM', label: 'HKEY_LOCAL_MACHINE' }, { value: 'HKCU', label: 'HKEY_CURRENT_USER' }]} />
-                        <FormField label="Key Path" id={`req-reg-key-${idx}`}>
-                          <input type="text" value={req.keyPath || ''} onChange={e => updateCustomReq(idx, 'keyPath', e.target.value)} />
+                        {/* Full Key Path field — matches Intune UI format: HKEY_LOCAL_MACHINE\... */}
+                        <FormField
+                          label="Key Path"
+                          id={`req-reg-key-${idx}`}
+                          hint={<>Write the full path including hive, e.g. <code>HKEY_LOCAL_MACHINE\SOFTWARE\Vendor\App</code></>}
+                          style={{ gridColumn: '1 / -1' }}
+                        >
+                          <input
+                            type="text"
+                            placeholder="HKEY_LOCAL_MACHINE\SOFTWARE\Fiserv\InstalledApps\my-app"
+                            value={req.fullKeyPath || (req.hive === 'HKCU' ? 'HKEY_CURRENT_USER\\' : 'HKEY_LOCAL_MACHINE\\') + (req.keyPath || '')}
+                            onChange={e => {
+                              const full = e.target.value;
+                              updateCustomReq(idx, 'fullKeyPath', full);
+                              updateCustomReq(idx, 'hive', hiveFromFullPath(full));
+                              const stripped = full
+                                .replace(/^HKEY_LOCAL_MACHINE[\\/]+/i, '')
+                                .replace(/^HKEY_CURRENT_USER[\\/]+/i, '')
+                                .replace(/^HKLM[\\/]+/i, '')
+                                .replace(/^HKCU[\\/]+/i, '')
+                                .replace(/^HKCU:/i, '');
+                              updateCustomReq(idx, 'keyPath', stripped);
+                            }}
+                          />
                         </FormField>
+                        {/* HKCU system-context warning */}
+                        {isHkcuPath(req.fullKeyPath || ((req.hive === 'HKCU' ? 'HKEY_CURRENT_USER\\' : '') + (req.keyPath || ''))) && (
+                          <div className="hkcu-warning" style={{ gridColumn: '1 / -1' }}>
+                            ⚠️ <strong>System Context Caveat:</strong> Requirement rules run as <strong>SYSTEM</strong>, so{' '}
+                            <code>HKEY_CURRENT_USER</code> checks the <em>SYSTEM user&apos;s</em> registry hive — not the
+                            logged-in user&apos;s. For per-user checks, use a <strong>script requirement</strong> instead.
+                          </div>
+                        )}
                         <FormField label="Value Name" id={`req-reg-val-name-${idx}`}>
                           <input type="text" value={req.valueName || ''} onChange={e => updateCustomReq(idx, 'valueName', e.target.value)} />
                         </FormField>
