@@ -73,11 +73,12 @@ function PipelineTracker({ pipelineStatus, polling, pipelineUrl, projectId, pipe
                       <span className="pipeline-job__icon">{meta.icon}</span>
                       <span className="pipeline-job__name">{job.name}</span>
                       <span className="pipeline-job__status">{meta.label}</span>
-                      {job.artifactsAvailable && job.status === 'success' && (
+                      {/* Only show artifact download for build-stage jobs */}
+                      {job.stage === 'build' && job.artifactsAvailable && job.status === 'success' && (
                         <button
                           className="pipeline-job__download"
                           onClick={() => onDownloadArtifact(projectId, pipelineId, job.name)}
-                          title={`Download artifacts for ${job.name}`}
+                          title={`Download build artifacts for ${job.name}`}
                         >
                           ⬇️ Download
                         </button>
@@ -100,15 +101,21 @@ function PipelineTracker({ pipelineStatus, polling, pipelineUrl, projectId, pipe
         </div>
       )}
 
-      {/* Download all artifacts button — shown when at least one job has artifacts */}
-      {pipelineStatus?.jobs?.some(j => j.artifactsAvailable && j.status === 'success') && (
-        <button
-          className="btn btn-secondary btn-sm pipeline-tracker__dl-all"
-          onClick={() => onDownloadArtifact(projectId, pipelineId, null)}
-        >
-          ⬇️ Download Build Artifacts
-        </button>
-      )}
+      {/* Download build artifacts — only shown when a build-stage job has artifacts */}
+      {(() => {
+        const buildJob = pipelineStatus?.jobs?.find(
+          j => j.stage === 'build' && j.artifactsAvailable && j.status === 'success'
+        );
+        return buildJob ? (
+          <button
+            className="btn btn-secondary btn-sm pipeline-tracker__dl-all"
+            onClick={() => onDownloadArtifact(projectId, pipelineId, buildJob.name)}
+            title={`Download artifacts from the build stage (${buildJob.name})`}
+          >
+            ⬇️ Download Build Artifacts
+          </button>
+        ) : null;
+      })()}
     </div>
   );
 }
