@@ -1,26 +1,215 @@
-I want to seperate WIndows packaging from MAC packaging.  
-Each package will have its own root repository in gitlab. currently we use  
-GITLAB_DEFAULT_GROUP=euc/software-package-automation for both.  The new repo:
-for Mac will be euc/software-package-automation/mac 
-for windows it will be euc/software-package-automation/win
 
-I want to redesign the workbench UI and navigation to use latest Material UI components and a dark mode
-- Login page - To be developed later
-- Home screen, Seletct Platform 
-    - MAC 
-    - Windows 
-Once a platform is selected, I want to use a collapsable side menu for navigation with the following sections:
-- Manage Queue (this will show the pending service requests for selected platfomrm )
-- New Package
-- Edit Packages
-- Settings
+Page 1 — Executive Overview
 
-depending on the selection on side menu then organize all the stages as menu Action:
-Installer, PSADT, Intune, Review & Export for Windows.  
-Mac Installer, macOS Config and Review & Export for Mac.  
+Create a page named:
 
-Leave the tab structure and corresponding functionality under each of the stages 
+Executive Overview
+
+Add KPI cards:
+
+Total Cloud PCs
+Provisioned Cloud PCs
+Provisioning Success Rate
+Active Users 7D
+Exoprise Availability
+Open Incidents
+Compliance Rate
+Total Monthly Cost
+
+Add visuals:
+
+Visual	Fields
+Line chart	DimDate[Date] + Exoprise Availability
+Bar chart	DimRegion[GlobalRegion] + Total Cloud PCs
+Bar chart	DimBusinessUnit[BusinessUnit] + Total Monthly Cost
+Donut chart	DimCloudPC[Status] + CloudPCID count
+Table	Region, Availability, Avg Response Time, Open Incidents
+
+This page should answer:
+
+Is the Windows 365 estate healthy?
+Where are the issues?
+Are cost, availability, and compliance trending in the right direction?
 
 
-The setting page should allow me to set all that is in the .env file and also 
-set the default windows size (Standard, Wide, Full)
+Page 2 — Windows 365 Platform Overview
+
+Create a page named:
+
+W365 Platform Overview
+
+Add KPI cards:
+
+Total Cloud PCs
+Provisioned Cloud PCs
+Provisioning Success Rate
+Stale Cloud PCs 45D
+Avg Usage Hours
+
+Add visuals:
+
+Visual	Fields
+Stacked bar	Region by Status
+Matrix	Business Unit, Region, Cloud PC count
+Column chart	LicenseSKU by Cloud PC count
+Bar chart	ProvisioningPolicy by Cloud PC count
+Table	CloudPCName, UserPrincipalName, Region, Status, LastLoginDate, InactivityBucket
+
+Useful columns:
+
+DimCloudPC[CloudPCName]
+DimCloudPC[Status]
+DimCloudPC[LicenseSKU]
+DimCloudPC[ProvisioningPolicy]
+DimCloudPC[DaysSinceLastLogin]
+DimCloudPC[InactivityBucket]
+DimUser[UserPrincipalName]
+DimRegion[GlobalRegion]
+DimBusinessUnit[BusinessUnit]
+
+Page 3 — User Experience / Usage
+
+Create a page named:
+
+User Experience
+
+Add KPI cards:
+
+Active Users 7D
+Avg Usage Hours
+Avg Response Time ms
+Synthetic Failures
+Stale Cloud PCs 45D
+
+Add visuals:
+
+Visual	Fields
+Line chart	DimDate[Date] + Avg Usage Hours
+Line chart	DimDate[Date] + AvgRoundTripLatencyMs average
+Bar chart	Region + AvgSignInDurationSec average
+Bar chart	Region + ConnectionFailures sum
+Scatter chart	CPUAvgPct vs MemoryAvgPct by CloudPCID
+Table	User, Cloud PC, UsageHours, LoginCount, Latency, Sign-in duration
+
+This page should help identify whether users are having performance or connection issues.
+
+Page 4 — Exoprise Synthetic Monitoring
+
+Create a page named:
+
+Synthetic Monitoring
+
+Add KPI cards:
+
+Exoprise Availability
+Avg Response Time ms
+Synthetic Failures
+Avg MTTD Minutes
+Avg MTTR Minutes
+
+Add visuals:
+
+Visual	Fields
+Line chart	RunDateTime or Date + AvailabilityPct
+Line chart	Date + ResponseTimeMs
+Bar chart	ProbeLocation + ResponseTimeMs
+Bar chart	TransactionName + Synthetic Failures
+Matrix	Region, Service, TransactionName, AvailabilityPct, ResponseTimeMs, AlertSeverity
+Table	RunDateTime, ProbeLocation, Service, Result, AlertSeverity, IncidentID
+
+Use this page to show what Exoprise adds: proactive synthetic monitoring by region, probe, transaction, and service.
+
+Page 5 — Service Health / Incidents
+
+Create a page named:
+
+Service Health
+
+Add KPI cards:
+
+Open Incidents
+Avg MTTD Minutes
+Avg MTTR Minutes
+
+Add visuals:
+
+Visual	Fields
+Bar chart	Severity + Incident count
+Bar chart	RootCauseCategory + Incident count
+Matrix	Region, Service, Status, Severity, ImpactedUsers
+Table	IncidentID, IncidentTitle, Service, Severity, Status, StartDateTime, MTTRMinutes
+
+This page is good for operations review and post-incident reporting.
+
+Page 6 — Compliance / Remediation
+
+Create a page named:
+
+Compliance
+
+Add KPI cards:
+
+Compliance Rate
+Non-Compliant Devices
+
+Add visuals:
+
+Visual	Fields
+Donut chart	ComplianceState + record count
+Bar chart	PolicyName + Non-Compliant Devices
+Bar chart	RiskLevel + record count
+Matrix	BU, Region, ComplianceState, count
+Table	DeviceID, DeviceType, PolicyName, ComplianceState, RiskLevel, RemediationStatus, LastCheckInDate
+
+This page should answer:
+
+Which devices are not compliant?
+Which policies are failing?
+Which BU or region has the highest remediation backlog?
+
+
+Page 7 — Cost / Capacity
+
+Create a page named:
+
+Cost & Capacity
+
+Add KPI cards:
+
+Total Monthly Cost
+Cost per Active User
+Total NAT Gateway GB
+
+Add visuals:
+
+Visual	Fields
+Column chart	BusinessUnit + Total Monthly Cost
+Column chart	Region + Total Monthly Cost
+Line chart	CostMonth + Total Monthly Cost
+Bar chart	ServiceCategory + MonthlyCost
+Line chart	Date + NATGatewayGB
+Matrix	BU, Region, ServiceCategory, ConsumedUnits, MonthlyCost
+
+This page should support financial management and optimization.
+
+
+xPage 8 — MacOS Overview
+
+Create a page named:
+
+MacOS Overview
+
+Add KPI card:
+
+Managed Macs
+
+Add visuals:
+
+Visual	Fields
+Bar chart	Model + Mac count
+Bar chart	OSVersion + Mac count
+Donut chart	Status + Mac count
+Matrix	Region, BU, Managed Macs
+Table	DeviceName, SerialNumber, User, Model, OSVersion, LastCheckInDate, Status
+
+This gives you the MacOS reporting scope from the SOW without overcomplicating the Windows 365 model.
