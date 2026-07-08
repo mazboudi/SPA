@@ -247,6 +247,39 @@ if ($intuneMeta.categories -and $intuneMeta.categories.Count -gt 0) {
     }
 }
 
+# ── Wait for app to reach 'published' state ───────────────────────────────────
+# After the PATCH committedContentVersion, Graph processes content asynchronously.
+# Calling updateRelationships (supersedence/dependencies) while the app is still
+# in 'processing' state causes relationships to be silently discarded.
+# Poll until publishingState == 'published' before handing off the APP_ID.
+$maxWaitSeconds = 180      # 3 minutes total
+$pollInterval   = 10       # seconds between polls
+$elapsed        = 0
+$appUri         = "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId"
+$pubState       = 'processing'
+
+Write-Log "Waiting for publishingState=published (up to ${maxWaitSeconds}s)..." -LogFile $logFile
+do {
+    Start-Sleep -Seconds $pollInterval
+    $elapsed += $pollInterval
+    try {
+        $appState = Invoke-GraphRequest -Token $token -Method GET -Uri $appUri
+        $pubState = $appState.publishingState
+    } catch {
+        Write-Log "  Poll error (will retry): $($_.Exception.Message)" -Level WARN -LogFile $logFile
+        $pubState = 'unknown'
+    }
+    Write-Log "  publishingState: $pubState (${elapsed}s elapsed)" -LogFile $logFile
+} while ($pubState -ne 'published' -and $elapsed -lt $maxWaitSeconds)
+
+if ($pubState -ne 'published') {
+    Write-Log "WARNING: App did not reach 'published' within ${maxWaitSeconds}s (last: $pubState). Supersedence may not apply." -Level WARN -LogFile $logFile
+    Write-Host "⚠️  App still in '$pubState' after ${maxWaitSeconds}s — supersedence will be attempted anyway." -ForegroundColor Yellow
+} else {
+    Write-Log "App is published — ready for supersedence/dependencies." -LogFile $logFile
+    Write-Host "✅ App published — proceeding to relationships." -ForegroundColor Green
+}
+
 # ── Write dotenv for downstream jobs ──────────────────────────────────────────
 "APP_ID=$appId" | Out-File 'out/app.env' -Encoding ascii -Force
 Write-Log "Written out/app.env (APP_ID=$appId)" -LogFile $logFile
