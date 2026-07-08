@@ -42,6 +42,7 @@
     'Set-Win32Assignments.ps1',
     'Set-Win32Supersedence.ps1',
     'Set-Win32Dependencies.ps1',
+    'Set-Win32Relationships.ps1',
     'IntuneDeployment.psm1'
   )
   $ref = $env:INTUNE_MODULES_REF ?? 'main'
@@ -200,22 +201,16 @@
       }
 
       if ($publishedAppId -and $publishedAppId -ne 'DRY-RUN') {
-        # Set supersedence if configured
-        if (Test-Path 'windows/intune/supersedence.json') {
-          Write-Host "Setting supersedence relationships..."
-          & 'intune-modules/Set-Win32Supersedence.ps1' `
+        # Set supersedence + dependencies in ONE call.
+        # updateRelationships is a replace-all operation: two separate calls would
+        # cause the second to silently overwrite the first.
+        $hasSupersedence = Test-Path 'windows/intune/supersedence.json'
+        $hasDependencies = Test-Path 'windows/intune/dependencies.json'
+        if ($hasSupersedence -or $hasDependencies) {
+          Write-Host "Setting app relationships (supersedence + dependencies)..."
+          & 'intune-modules/Set-Win32Relationships.ps1' `
             -AppId            $publishedAppId `
             -SupersedencePath 'windows/intune/supersedence.json' `
-            -TenantId         $env:AZURE_TENANT_ID `
-            -ClientId         $env:AZURE_CLIENT_ID `
-            -ClientSecret     $env:AZURE_CLIENT_SECRET
-        }
-
-        # Set dependencies if configured
-        if (Test-Path 'windows/intune/dependencies.json') {
-          Write-Host "Setting dependency relationships..."
-          & 'intune-modules/Set-Win32Dependencies.ps1' `
-            -AppId            $publishedAppId `
             -DependenciesPath 'windows/intune/dependencies.json' `
             -TenantId         $env:AZURE_TENANT_ID `
             -ClientId         $env:AZURE_CLIENT_ID `
@@ -265,24 +260,19 @@
         -ClientSecret     $env:AZURE_CLIENT_SECRET `
         -DryRun:([bool]::Parse($env:INTUNE_DRY_RUN))
 
-      # Supersedence + dependencies also run here for standalone assign invocations
-      # (e.g. when re-running just the assign stage without a fresh publish).
-      if (Test-Path 'windows/intune/supersedence.json') {
-        & 'intune-modules/Set-Win32Supersedence.ps1' `
-          -AppId              $env:APP_ID `
-          -SupersedencePath   'windows/intune/supersedence.json' `
-          -TenantId           $env:AZURE_TENANT_ID `
-          -ClientId           $env:AZURE_CLIENT_ID `
-          -ClientSecret       $env:AZURE_CLIENT_SECRET
-      }
-
-      if (Test-Path 'windows/intune/dependencies.json') {
-        & 'intune-modules/Set-Win32Dependencies.ps1' `
-          -AppId              $env:APP_ID `
-          -DependenciesPath   'windows/intune/dependencies.json' `
-          -TenantId           $env:AZURE_TENANT_ID `
-          -ClientId           $env:AZURE_CLIENT_ID `
-          -ClientSecret       $env:AZURE_CLIENT_SECRET
+      # Supersedence + dependencies in ONE combined call — updateRelationships is
+      # replace-all, so two separate calls would cause the second to overwrite the first.
+      $hasSupersedence = Test-Path 'windows/intune/supersedence.json'
+      $hasDependencies = Test-Path 'windows/intune/dependencies.json'
+      if ($hasSupersedence -or $hasDependencies) {
+        Write-Host "Setting app relationships (supersedence + dependencies)..."
+        & 'intune-modules/Set-Win32Relationships.ps1' `
+          -AppId            $env:APP_ID `
+          -SupersedencePath 'windows/intune/supersedence.json' `
+          -DependenciesPath 'windows/intune/dependencies.json' `
+          -TenantId         $env:AZURE_TENANT_ID `
+          -ClientId         $env:AZURE_CLIENT_ID `
+          -ClientSecret     $env:AZURE_CLIENT_SECRET
       }
   artifacts:
     when: always
