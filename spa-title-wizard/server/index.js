@@ -1148,8 +1148,10 @@ app.get('/api/entra/groups', async (req, res) => {
     const filter = filterClauses.join(' or ');
 
     // Fetch from Graph — select minimal fields, $top=100
+    // NOTE: $orderby is NOT used here — it is incompatible with startswith() filters
+    // when ConsistencyLevel: eventual is active. Sort client-side instead.
     const token = await getGraphToken();
-    const url = `https://graph.microsoft.com/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=100&$orderby=displayName`;
+    const url = `https://graph.microsoft.com/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=100`;
     const r = await fetch(url, {
       headers: { Authorization: `Bearer ${token}`, ConsistencyLevel: 'eventual' },
     });
@@ -1167,6 +1169,9 @@ app.get('/api/entra/groups', async (req, res) => {
         (g.description || '').toLowerCase().includes(q)
       );
     }
+
+    // Client-side alphabetical sort (replaces removed $orderby)
+    groups.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
 
     res.json({ groups: groups.map(g => ({ id: g.id, displayName: g.displayName, description: g.description || '' })) });
   } catch (err) {
