@@ -1,5 +1,6 @@
 import FormField from '../ui/FormField';
 import SelectField from '../ui/SelectField';
+import EntraGroupPicker from '../ui/EntraGroupPicker';
 
 export default function AssignmentsSection({ assignments, onChange, validationErrors = {} }) {
   const updateAssignment = (index, field, value) => {
@@ -8,7 +9,14 @@ export default function AssignmentsSection({ assignments, onChange, validationEr
   };
 
   const addAssignment = () => {
-    onChange([...assignments, { intent: 'available', groupId: '', filterMode: 'none', filterId: '', notifications: 'showAll', deliveryOptPriority: 'notConfigured' }]);
+    onChange([...assignments, {
+      intent: 'available',
+      groupId: '',
+      filterMode: 'none',
+      filterId: '',
+      notifications: 'showAll',
+      deliveryOptPriority: 'notConfigured',
+    }]);
   };
 
   const removeAssignment = (index) => {
@@ -19,6 +27,7 @@ export default function AssignmentsSection({ assignments, onChange, validationEr
   return (
     <div className="config-section">
       <h3 className="section-title">Intune Assignments</h3>
+
       {assignments.map((a, i) => (
         <div key={i} className="assignment-card">
           <div className="assignment-card__header">
@@ -27,52 +36,87 @@ export default function AssignmentsSection({ assignments, onChange, validationEr
               <button type="button" className="btn btn-ghost assignment-card__remove" onClick={() => removeAssignment(i)}>✕</button>
             )}
           </div>
+
           <div className="form-grid">
-            <SelectField label="Intent" id={`assign-intent-${i}`} value={a.intent} onChange={v => updateAssignment(i, 'intent', v)}
-              options={[
-                { value: 'available', label: 'Available' },
-                { value: 'required', label: 'Required' },
-                { value: 'uninstall', label: 'Uninstall' },
-              ]}
-            />
-            <FormField label="Entra ID Group Object ID" id={`assign-group-${i}`} required hint="Azure AD group GUID" error={validationErrors[`assignment_${i}_groupId`]}>
-              <input id={`assign-group-${i}`} type="text" placeholder="00000000-0000-0000-0000-000000000000"
-                className={validationErrors[`assignment_${i}_groupId`] ? 'input--error' : ''}
-                value={a.groupId} onChange={e => updateAssignment(i, 'groupId', e.target.value)} />
+            {/* Intent — locked to Available */}
+            <div className="assign-intent-locked">
+              <span className="assign-intent-locked__label">Intent</span>
+              <span className="assign-intent-locked__badge">✅ Available</span>
+              <span className="assign-intent-locked__hint">Locked — only Available assignments are supported</span>
+            </div>
+
+            {/* Group Picker — spans full width */}
+            <FormField
+              label="Entra ID Group"
+              id={`assign-group-${i}`}
+              required
+              hint="Search your Entra ID groups by name — the Object ID (GUID) is stored automatically"
+              error={validationErrors[`assignment_${i}_groupId`]}
+              style={{ gridColumn: 'span 2' }}
+            >
+              <EntraGroupPicker
+                index={i}
+                value={a.groupId}
+                onChange={v => updateAssignment(i, 'groupId', v)}
+                error={validationErrors[`assignment_${i}_groupId`]}
+              />
             </FormField>
-            <SelectField label="Filter Mode" id={`assign-filter-${i}`} value={a.filterMode} onChange={v => updateAssignment(i, 'filterMode', v)}
+
+            <SelectField
+              label="Filter Mode"
+              id={`assign-filter-${i}`}
+              value={a.filterMode}
+              onChange={v => updateAssignment(i, 'filterMode', v)}
               options={[
-                { value: 'none', label: 'None' },
+                { value: 'none',    label: 'None' },
                 { value: 'include', label: 'Include' },
                 { value: 'exclude', label: 'Exclude' },
               ]}
             />
+
             {a.filterMode !== 'none' && (
               <FormField label="Filter ID" id={`assign-filterId-${i}`} error={validationErrors[`assignment_${i}_filterId`]}>
-                <input id={`assign-filterId-${i}`} type="text" placeholder="Filter GUID"
+                <input
+                  id={`assign-filterId-${i}`}
+                  type="text"
+                  placeholder="Filter GUID"
                   className={validationErrors[`assignment_${i}_filterId`] ? 'input--error' : ''}
-                  value={a.filterId} onChange={e => updateAssignment(i, 'filterId', e.target.value)} />
+                  value={a.filterId}
+                  onChange={e => updateAssignment(i, 'filterId', e.target.value)}
+                />
               </FormField>
             )}
-            <SelectField label="Notifications" id={`assign-notif-${i}`} value={a.notifications} onChange={v => updateAssignment(i, 'notifications', v)}
+
+            <SelectField
+              label="Notifications"
+              id={`assign-notif-${i}`}
+              value={a.notifications}
+              onChange={v => updateAssignment(i, 'notifications', v)}
               options={[
-                { value: 'showAll', label: 'Show All' },
+                { value: 'showAll',    label: 'Show All' },
                 { value: 'showReboot', label: 'Show Reboot Only' },
-                { value: 'hideAll', label: 'Hide All' },
+                { value: 'hideAll',    label: 'Hide All' },
               ]}
             />
-            <SelectField label="Delivery Optimization" id={`assign-delopt-${i}`} value={a.deliveryOptPriority} onChange={v => updateAssignment(i, 'deliveryOptPriority', v)}
+
+            <SelectField
+              label="Delivery Optimization"
+              id={`assign-delopt-${i}`}
+              value={a.deliveryOptPriority}
+              onChange={v => updateAssignment(i, 'deliveryOptPriority', v)}
               options={[
                 { value: 'notConfigured', label: 'Not Configured' },
-                { value: 'foreground', label: 'Foreground' },
+                { value: 'foreground',    label: 'Foreground' },
               ]}
             />
           </div>
         </div>
       ))}
+
       <button type="button" className="btn btn-secondary" onClick={addAssignment} style={{ marginTop: 'var(--space-sm)' }}>
         + Add Assignment
       </button>
+
       <style>{`
         .assignment-card {
           padding: var(--space-md);
@@ -87,16 +131,27 @@ export default function AssignmentsSection({ assignments, onChange, validationEr
           align-items: center;
           margin-bottom: var(--space-md);
         }
-        .assignment-card__num {
-          font-size: 0.8rem;
+        .assignment-card__num  { font-size: 0.8rem; font-weight: 600; color: var(--text-accent); }
+        .assignment-card__remove { padding: 2px 8px; font-size: 0.75rem; color: var(--color-error); }
+
+        .assign-intent-locked {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 10px 14px;
+          background: rgba(52,211,153,0.05);
+          border: 1px solid rgba(52,211,153,0.18);
+          border-radius: var(--radius-sm);
+        }
+        .assign-intent-locked__label {
+          font-size: 0.72rem;
           font-weight: 600;
-          color: var(--text-accent);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
         }
-        .assignment-card__remove {
-          padding: 2px 8px;
-          font-size: 0.75rem;
-          color: var(--color-error);
-        }
+        .assign-intent-locked__badge { font-size: 0.88rem; font-weight: 700; color: #34d399; }
+        .assign-intent-locked__hint  { font-size: 0.7rem; color: var(--text-muted); }
       `}</style>
     </div>
   );

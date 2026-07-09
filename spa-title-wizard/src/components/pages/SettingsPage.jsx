@@ -32,6 +32,7 @@ const FIELD_GROUPS = [
       { key: 'AZURE_TENANT_ID', label: 'Azure Tenant ID', hint: 'Microsoft Entra ID tenant GUID', sensitive: false, placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' },
       { key: 'AZURE_CLIENT_ID', label: 'Azure Client ID (App Registration)', hint: 'Application client_id from Azure App Registration', sensitive: false, placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' },
       { key: 'AZURE_CLIENT_SECRET', label: 'Azure Client Secret', hint: 'Secret value from the App Registration — stored in .env, never committed', sensitive: true },
+      { key: 'INTUNE_GROUP_PREFIXES', label: 'Entra Group Search Prefixes', hint: 'Comma-separated display name prefixes for the assignment group picker, e.g. "EUC SPA Test,EUC SPA Prod"', sensitive: false, placeholder: 'EUC SPA Test,EUC SPA Prod' },
     ],
   },
   {

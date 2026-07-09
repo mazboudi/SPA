@@ -1109,7 +1109,100 @@ async function getCachedApps() {
   return appCache;
 }
 
-// ── GET /api/intune/apps — cached catalog ───────────────────────────────────
+// ── GET /api/entra/groups/prefixes ─────────────────────────────────────────
+// Returns the configured INTUNE_GROUP_PREFIXES as an array.
+// Must be registered BEFORE /api/entra/groups/:id routes (static path wins).
+app.get('/api/entra/groups/prefixes', (req, res) => {
+  const raw = process.env.INTUNE_GROUP_PREFIXES || readEnvFile()['INTUNE_GROUP_PREFIXES'] || '';
+  const prefixes = raw.split(',').map(s => s.trim()).filter(Boolean);
+  res.json({ prefixes });
+});
+
+// ── GET /api/entra/groups?prefix=<text>&search=<text> ──────────────────────
+// Searches Entra ID groups whose displayName starts with the given prefix
+// (or any configured prefix if none supplied), filtered further by optional
+// search text. Returns [{ id, displayName, description }].
+app.get('/api/entra/groups', async (req, res) => {
+  if (!graphConfigured) {
+    return res.status(501).json({ message: 'Graph not configured. Set AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET.' });
+  }
+  try {
+    const prefix  = (req.query.prefix  || '').trim();
+    const search  = (req.query.search  || '').trim();
+
+    // Determine which prefix(es) to search
+    const raw = process.env.INTUNE_GROUP_PREFIXES || readEnvFile()['INTUNE_GROUP_PREFIXES'] || '';
+    const configuredPrefixes = raw.split(',').map(s => s.trim()).filter(Boolean);
+
+    // If caller specified a prefix use it; else fan-out across all configured prefixes
+    const prefixesToSearch = prefix ? [prefix] : configuredPrefixes;
+
+    if (!prefixesToSearch.length) {
+      return res.json({ groups: [] });
+    }
+
+    // Build $filter clauses — one startswith per prefix (OR-joined, up to 10)
+    const filterClauses = prefixesToSearch
+      .slice(0, 10)
+      .map(p => `startswith(displayName,'${p.replace(/'/g, "''")}')`);
+    const filter = filterClauses.join(' or ');
+
+    // Fetch from Graph — select minimal fields, $top=100
+    const token = await getGraphToken();
+    const url = `https://graph.microsoft.com/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=100&$orderby=displayName`;
+    const r = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, ConsistencyLevel: 'eventual' },
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => r.statusText);
+      throw new Error(`Graph ${r.status}: ${err}`);
+    }
+    let { value: groups = [] } = await r.json();
+
+    // Client-side filter by additional search text (case-insensitive)
+    if (search) {
+      const q = search.toLowerCase();
+      groups = groups.filter(g =>
+        (g.displayName || '').toLowerCase().includes(q) ||
+        (g.description || '').toLowerCase().includes(q)
+      );
+    }
+
+    res.json({ groups: groups.map(g => ({ id: g.id, displayName: g.displayName, description: g.description || '' })) });
+  } catch (err) {
+    console.error('❌ Entra group search failed:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// ── GET /api/entra/groups/:id/members/count ────────────────────────────────
+// Returns the transitive member count for the given group ID.
+// Uses ConsistencyLevel: eventual + $count header as required by Graph.
+app.get('/api/entra/groups/:id/members/count', async (req, res) => {
+  if (!graphConfigured) {
+    return res.status(501).json({ message: 'Graph not configured.' });
+  }
+  try {
+    const { id } = req.params;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+      return res.status(400).json({ message: 'Invalid group ID format.' });
+    }
+    const token = await getGraphToken();
+    const r = await fetch(`https://graph.microsoft.com/v1.0/groups/${id}/transitiveMembers/$count`, {
+      headers: { Authorization: `Bearer ${token}`, ConsistencyLevel: 'eventual' },
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => r.statusText);
+      throw new Error(`Graph ${r.status}: ${err}`);
+    }
+    const count = Number(await r.text());
+    res.json({ count });
+  } catch (err) {
+    console.error('❌ Entra member count failed:', err.message);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 app.get('/api/intune/apps', async (req, res) => {
   if (!graphConfigured) return res.status(501).json({ message: 'Intune integration not configured. Set AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET in server/.env' });
   try {
@@ -1458,6 +1551,7 @@ const ALLOWED_KEYS = new Set([
   'GITLAB_URL', 'GITLAB_TOKEN', 'GITLAB_DEFAULT_GROUP',
   'GITLAB_WIN_GROUP', 'GITLAB_MAC_GROUP', 'GITLAB_CI_TEMPLATES_PROJECT',
   'AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET',
+  'INTUNE_GROUP_PREFIXES',
   'PORT',
 ]);
 
