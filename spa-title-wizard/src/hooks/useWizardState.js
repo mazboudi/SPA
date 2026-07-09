@@ -1000,6 +1000,58 @@ export default function useWizardState() {
     markClean();
   }, [markClean]);
 
+  /**
+   * Clone an existing project: load all its config exactly like an edit,
+   * but clear the fields that must be unique / re-entered for a new title:
+   *   - packageId (slug) — must be unique
+   *   - version — must be set fresh
+   *   - installer source path + file (runner-specific, not carried over)
+   *   - MSI metadata (tied to the specific binary)
+   *   - all publish/session artifacts
+   * Everything else (detection rules, lifecycle/PSADT actions, Intune config,
+   * requirements, dependencies) is preserved as a starting point.
+   */
+  const importProjectForClone = useCallback((files, projectMeta) => {
+    // Reuse the full edit import to populate all fields from the source project
+    importProjectForEdit(files, projectMeta);
+
+    // After import completes (next tick), clear clone-specific fields
+    setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        // Identity — must be unique for the new project
+        packageId:            '',
+        // Version — must be set explicitly for the new title
+        version:              '',
+        // Installer source — runner path is specific to the source title
+        installerSourceDir:   '',
+        installerSourceFile:  '',
+        installerSubfolder:   '',
+        supportFilesSource:   '',
+        // MSI metadata — tied to the specific binary
+        msiProductCode:       '',
+        msiProductVersion:    '',
+        msiProductName:       '',
+        msiManufacturer:      '',
+        msiUpgradeCode:       '',
+        msiFileName:          '',
+        exeSourceFilename:    '',
+        // Reset exe silent args? No — keep them as they likely apply to same app family
+        // Mode: treat as a new package, not an update to the source
+        wizardMode:           'new',
+        // Clear the source project's edit metadata so publish creates a new project
+        _editProjectId:       null,
+        _editProjectPath:     null,
+        _editProjectUrl:      null,
+        _editLoadedRef:       null,
+        _editProjectTags:     [],
+        // Clear session artifacts
+        _lastPublishResult:   null,
+        _psadtActiveTab:      null,
+      }));
+    }, 0);
+  }, [importProjectForEdit]);
+
   return {
     state,
     currentStep,
@@ -1017,6 +1069,7 @@ export default function useWizardState() {
     importPsadtState,
     importIntuneExport,
     importProjectForEdit,
+    importProjectForClone,
     nextStep,
     prevStep,
     goToStep,

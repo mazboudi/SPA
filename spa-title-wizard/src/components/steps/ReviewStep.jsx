@@ -250,10 +250,29 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
       const res = await fetch(`/api/pipeline/${projectId}/${pipelineId}/artifacts${params}`);
       const data = await res.json();
       if (!res.ok) { alert(`Artifact download error: ${data.message}`); return; }
-      // Open the artifact URL in a new tab — browser triggers the download
-      window.open(data.url, '_blank', 'noopener');
+
+      // Determine a safe filename — always ensure it ends with .zip
+      let filename = data.filename || (jobName ? `${jobName}-artifacts.zip` : 'artifacts.zip');
+      if (!filename.endsWith('.zip')) filename += '.zip';
+
+      // Fetch the binary through the server proxy so we can force the correct
+      // filename via a synthetic <a download> click. window.open() loses the
+      // filename because the browser ignores Content-Disposition on cross-origin
+      // redirects and on blob: URLs opened in new tabs.
+      const fileRes = await fetch(data.url);
+      if (!fileRes.ok) { alert(`Artifact download failed (HTTP ${fileRes.status})`); return; }
+      const blob = await fileRes.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      // Release object URL after a short delay to let the download start
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (e) {
-      alert(`Failed to fetch artifact URL: ${e.message}`);
+      alert(`Failed to download artifact: ${e.message}`);
     }
   };
 

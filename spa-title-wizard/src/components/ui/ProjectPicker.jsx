@@ -3,11 +3,11 @@ import './ProjectPicker.css';
 
 /**
  * ProjectPicker — modal to browse and select an existing SPA project
- * from GitLab for editing in the workbench.
+ * from GitLab for editing or cloning in the workbench.
  *
- * @param {{ onSelect: Function, onClose: Function, groupPath?: string }} props
+ * @param {{ onSelect: Function, onClose: Function, groupPath?: string, mode?: 'edit'|'clone' }} props
  */
-export default function ProjectPicker({ onSelect, onClose, groupPath }) {
+export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'edit' }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,12 +93,20 @@ export default function ProjectPicker({ onSelect, onClose, groupPath }) {
     } catch { return iso; }
   };
 
+  const isClone = mode === 'clone';
+
   return (
     <div className="pp-page">
       <div className="pp-header">
         <div>
-          <h2 className="pp-title">✏️ Edit / Update Existing Package</h2>
-          <p className="pp-subtitle">Select a project from GitLab to load into the workbench</p>
+          <h2 className="pp-title">
+            {isClone ? '📋 Clone Existing App' : '✏️ Edit / Update Existing Package'}
+          </h2>
+          <p className="pp-subtitle">
+            {isClone
+              ? 'Select a source project — all config is copied except Package ID, version, and installer details'
+              : 'Select a project from GitLab to load into the workbench'}
+          </p>
         </div>
         <button className="pp-close" onClick={onClose} title="Back">← Back</button>
       </div>
@@ -169,14 +177,20 @@ export default function ProjectPicker({ onSelect, onClose, groupPath }) {
             {/* Version selector — expanded */}
             {expandedProject === project.id && project.tags?.length > 0 && (
               <div className="pp-versions">
-                <div className="pp-versions__header">Select version to load:</div>
+                <div className="pp-versions__header">
+                  {isClone ? 'Select version to clone from:' : 'Select version to load:'}
+                </div>
                 <button
                   className="pp-version-btn pp-version-btn--latest"
                   onClick={() => handleLoad(project, null)}
                   disabled={!!loadingProject}
                 >
-                  <span className="pp-version-btn__name">📌 Latest ({project.default_branch})</span>
-                  <span className="pp-version-btn__hint">Head of default branch</span>
+                  <span className="pp-version-btn__name">
+                    {isClone ? `📋 Clone from latest (${project.default_branch})` : `📌 Latest (${project.default_branch})`}
+                  </span>
+                  <span className="pp-version-btn__hint">
+                    {isClone ? 'Copies latest config as starting point' : 'Head of default branch'}
+                  </span>
                 </button>
                 {project.tags.map(tag => (
                   <button
@@ -185,7 +199,9 @@ export default function ProjectPicker({ onSelect, onClose, groupPath }) {
                     onClick={() => handleLoad(project, tag.name)}
                     disabled={!!loadingProject}
                   >
-                    <span className="pp-version-btn__name">🏷️ {tag.name}</span>
+                    <span className="pp-version-btn__name">
+                      {isClone ? `📋 Clone from ${tag.name}` : `🏷️ ${tag.name}`}
+                    </span>
                     {tag.message && <span className="pp-version-btn__hint">{tag.message.split('\n')[0]}</span>}
                   </button>
                 ))}

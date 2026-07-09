@@ -19,6 +19,7 @@ import BackupIcon from '@mui/icons-material/Backup';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import QueueIcon from '@mui/icons-material/Queue';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 export const DRAWER_WIDTH = 240;
 export const DRAWER_COLLAPSED_WIDTH = 58;
@@ -180,6 +181,7 @@ export default function Sidebar({
   onNewFromQueue,
   onRefactor,
   onEditPackages,
+  onClonePackages,
   onSettings,
 }) {
   const stages = platform === 'macos' ? MAC_STAGES : WIN_STAGES;
@@ -270,6 +272,16 @@ export default function Sidebar({
           label="Edit / Update"
           selected={activeView === 'edit'}
           onClick={onEditPackages}
+          disabled={!platform}
+          sidebarOpen={sidebarOpen}
+        />
+
+        {/* ── Clone App ── */}
+        <NavSection
+          icon={<ContentCopyIcon sx={{ fontSize: 18 }} />}
+          label="Clone App"
+          selected={activeView === 'clone'}
+          onClick={onClonePackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
         />

@@ -506,9 +506,11 @@ app.post('/api/publish', async (req, res) => {
       return res.json({
         action: 'created',
         projectUrl: project.web_url,
+        projectId: project.id,          // ← required for pipeline polling
         tagName,
         tagUrl,
         pipelineUrl,
+        pipelineId,                     // ← required for pipeline polling
         pipelineAction: pipelineAction || 'none',
         pipelineError,
         localPath: repoDir,

@@ -128,7 +128,8 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       installerSourceDir:  dir,
       installerSourceFile: file,
       installerSubfolder:  subfolder,
-      supportFilesSource:  dir,   // always mirrors source dir
+      // Do NOT auto-mirror supportFilesSource — it must be set explicitly
+      // via its own field since it points to a separate SupportFiles folder.
     };
     if (installerType) updates.installerType = installerType;
     if (updateFields) updateFields(updates);
@@ -366,9 +367,10 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       <div className="config-section">
         <h3 className="section-title">📂 Installer Source <span className="section-subtitle">(Runner / File Share)</span></h3>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-          Enter the <strong>full path</strong> to the installer file on the GitLab runner.
-          The path must include <code>\Files\</code> — the pipeline copies the installer into the PSADT{' '}
-          <code>Files\</code> directory. Any subfolder after <code>\Files\</code> is derived automatically.
+          Enter the <strong>full path to the installer file</strong> on the GitLab runner.
+          The file must be located inside a <code>\Files\</code> folder — the pipeline copies the
+          <em> entire</em> <code>Files\</code> folder into the PSADT staging area.
+          A <code>SupportFiles\</code> folder at the same level is automatically detected and copied if it exists.
           Supports local paths (<code>C:\...</code>), UNC shares (<code>\\server\share\...</code>), and mapped drives.
         </p>
 
@@ -376,7 +378,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           label="Full path to installer file"
           id="installerFullPath"
           required
-          hint={`Must contain \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files\\setup.msi   or   C:\\AppSource\\AppName\\Files\\Bin\\setup.exe`}
+          hint={`Must contain \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files\\setup.msi   or   \\\\server\\share\\AppName\\Files\\Bin\\setup.exe`}
         >
           <div className="inst-fullpath-row">
             <input
@@ -418,10 +420,6 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         {!parsed.pathError && state.installerSourceFile && (
           <div className="inst-derived-grid animate-in">
             <div className="inst-derived-row">
-              <span className="inst-derived-label">Source directory</span>
-              <code className="inst-derived-value">{state.installerSourceDir || '—'}</code>
-            </div>
-            <div className="inst-derived-row">
               <span className="inst-derived-label">Installer file</span>
               <code className="inst-derived-value inst-derived-value--file">{state.installerSourceFile}</code>
               {state.installerType && (
@@ -429,6 +427,18 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                   {state.installerType.toUpperCase()}
                 </span>
               )}
+            </div>
+            <div className="inst-derived-row">
+              <span className="inst-derived-label">Files\ folder copied entirely</span>
+              <code className="inst-derived-value">{state.installerSourceDir || '—'}</code>
+            </div>
+            <div className="inst-derived-row">
+              <span className="inst-derived-label">SupportFiles\ (auto-derived sibling)</span>
+              <code className="inst-derived-value">
+                {state.installerSourceDir
+                  ? state.installerSourceDir.replace(/\\?Files\\?$/, '') + 'SupportFiles  (copied if exists)'
+                  : '—'}
+              </code>
             </div>
             <div className="inst-derived-row">
               <span className="inst-derived-label">PSADT subfolder</span>

@@ -33,6 +33,7 @@ const VIEW = {
   PACKAGE: 'package',  // Active package wizard
   QUEUE:   'queue',    // ServiceNow queue — inline page
   EDIT:    'edit',     // Edit existing — inline page
+  CLONE:   'clone',    // Clone existing app — inline page
   SETTINGS: 'settings',
   REFACTOR: 'refactor',
 };
@@ -184,6 +185,17 @@ export default function App() {
 
   // ── Edit packages ─────────────────────────────────────────────────────────
   const handleEditPackages = () => withUnsavedWorkGuard(() => setView(VIEW.EDIT));
+
+  // ── Clone app ─────────────────────────────────────────────────────────────
+  const handleClonePackages = () => withUnsavedWorkGuard(() => setView(VIEW.CLONE));
+
+  // Clone project selected from picker: load full config, then clear identity/installer fields
+  const handleCloneSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
+    wizard.importProjectForClone(files, projectMeta);
+    clearEdits();
+    wizard.goToStep(0);
+    setView(VIEW.PACKAGE);
+  });
 
   // ── ServiceNow queue item selected ────────────────────────────────────────
   const handleQueueSelect = (fields) => withUnsavedWorkGuard(() => {
@@ -481,6 +493,7 @@ export default function App() {
           handleRefactor();
         }}
         onEditPackages={handleEditPackages}
+        onClonePackages={handleClonePackages}
         onSettings={() => setView(VIEW.SETTINGS)}
       />
 
@@ -551,6 +564,16 @@ export default function App() {
           {view === VIEW.EDIT && (
             <ProjectPicker
               onSelect={handleProjectSelect}
+              onClose={() => setView(wizard.state.displayName || wizard.state.packageId ? VIEW.PACKAGE : wizard.state.platform ? VIEW.LANDING : VIEW.HOME)}
+              groupPath={activeProjectGroup}
+            />
+          )}
+
+          {/* ── CLONE: Project picker (clone mode) ── */}
+          {view === VIEW.CLONE && (
+            <ProjectPicker
+              mode="clone"
+              onSelect={handleCloneSelect}
               onClose={() => setView(wizard.state.displayName || wizard.state.packageId ? VIEW.PACKAGE : wizard.state.platform ? VIEW.LANDING : VIEW.HOME)}
               groupPath={activeProjectGroup}
             />

@@ -10,6 +10,14 @@
 ##   INTUNE_MODULES_PROJECT_ID  — (optional) GitLab project ID of intune-deployment-modules
 ##                                 Required only when lifecycle.yaml is present (new titles)
 ##   INTUNE_MODULES_REF         — (optional) Ref/tag for intune-deployment-modules (default: main)
+##   WINDOWS_INSTALLER_SOURCE   — Full UNC/local path to the installer FILE on the runner.
+##                                 The file MUST reside inside a folder named 'Files'.
+##                                 e.g. '\\\\fileserver\\share\\AppName\\Files\\setup.msi'
+##                                 The pipeline copies the ENTIRE Files\ folder to windows\src\Files\.
+##   WINDOWS_INSTALLER_SUBFOLDER — (optional) Subfolder within Files\ where the installer lives.
+##                                 e.g. 'Bin' if installer is at Files\Bin\setup.exe
+##                                 SupportFiles\ is auto-derived as the sibling of Files\ and copied
+##                                 entirely if it exists — no variable required.
 ##
 ## This job assembles the full PSADT staging area and writes package metadata
 ## to out/build.env. It does NOT run IntuneWinAppUtil — the .intunewin file is
@@ -238,50 +246,44 @@
       Write-Host "Overlaying title Invoke-AppDeployToolkit.ps1..."
       Copy-Item -Path $titleDeploy -Destination $staging -Force
 
-      # Copy installer from runner VM if WINDOWS_INSTALLER_SOURCE is set
+      # ── Copy installer files from runner ───────────────────────────────────────
+      # WINDOWS_INSTALLER_SOURCE = full UNC/local path to the installer file,
+      # which MUST reside inside a folder named 'Files'.
+      # The pipeline copies the ENTIRE \Files\ folder (not just the single file)
+      # into windows\src\Files\. \SupportFiles\ is always auto-derived as the
+      # sibling folder next to \Files\ and copied entirely if it exists.
       if ($env:WINDOWS_INSTALLER_SOURCE) {
-        $subDir   = if ($env:WINDOWS_INSTALLER_SUBFOLDER) { $env:WINDOWS_INSTALLER_SUBFOLDER.Trim('\').Trim('/') } else { '' }
-        $filesDir = if ($subDir) { Join-Path 'windows\src\Files' $subDir } else { 'windows\src\Files' }
-        if (!(Test-Path $filesDir)) { New-Item -ItemType Directory -Path $filesDir -Force | Out-Null }
-        if (Test-Path $env:WINDOWS_INSTALLER_SOURCE) {
-          Write-Host "Copying installer from: $($env:WINDOWS_INSTALLER_SOURCE) -> $filesDir"
-          Copy-Item -Path $env:WINDOWS_INSTALLER_SOURCE -Destination $filesDir -Force
-        } else {
-          throw "WINDOWS_INSTALLER_SOURCE set but file not found: $($env:WINDOWS_INSTALLER_SOURCE)"
+        # Validate that the path contains a \Files\ segment
+        if ($env:WINDOWS_INSTALLER_SOURCE -notmatch '\\Files\\') {
+          throw "WINDOWS_INSTALLER_SOURCE must include a \\Files\\ folder segment. Got: $($env:WINDOWS_INSTALLER_SOURCE)"
         }
-      }
 
-      # Copy support files from runner VM if WINDOWS_SUPPORT_FILES_SOURCE is set
-      # IMPORTANT: The primary installer (WINDOWS_INSTALLER_SOURCE) is explicitly
-      # excluded here — it belongs in Files/ only, not SupportFiles/.
-      if ($env:WINDOWS_SUPPORT_FILES_SOURCE) {
-        $supportDir = 'windows\src\SupportFiles'
-        if (!(Test-Path $supportDir)) { New-Item -ItemType Directory -Path $supportDir | Out-Null }
-        if (Test-Path $env:WINDOWS_SUPPORT_FILES_SOURCE) {
-          # Determine the primary installer filename to exclude it from support files
-          $installerBaseName = if ($env:WINDOWS_INSTALLER_SOURCE) {
-            Split-Path -Leaf $env:WINDOWS_INSTALLER_SOURCE
-          } else { $null }
+        # Derive the \Files\ folder from the installer file path
+        $filesSourceFolder = Split-Path -Parent $env:WINDOWS_INSTALLER_SOURCE
+        $srcFilesDir = 'windows\src\Files'
+        if (!(Test-Path $srcFilesDir)) { New-Item -ItemType Directory -Path $srcFilesDir -Force | Out-Null }
 
-          $supportItems = Get-ChildItem -Path $env:WINDOWS_SUPPORT_FILES_SOURCE -File -ErrorAction SilentlyContinue |
-            Where-Object { $installerBaseName -eq $null -or $_.Name -ne $installerBaseName }
-
-          if ($supportItems.Count -gt 0) {
-            Write-Host "Copying $($supportItems.Count) support file(s) from: $($env:WINDOWS_SUPPORT_FILES_SOURCE) -> $supportDir"
-            if ($installerBaseName) {
-              Write-Host "  (excluded primary installer: $installerBaseName — lives in Files/ only)"
-            }
-            foreach ($item in $supportItems) {
-              Copy-Item -Path $item.FullName -Destination $supportDir -Force
-            }
-          } else {
-            Write-Host "WINDOWS_SUPPORT_FILES_SOURCE set but no eligible support files found: $($env:WINDOWS_SUPPORT_FILES_SOURCE)"
-            if ($installerBaseName) {
-              Write-Host "  (note: $installerBaseName was excluded as the primary installer)"
-            }
-          }
+        if (Test-Path $filesSourceFolder) {
+          $fileItems = Get-ChildItem -Path $filesSourceFolder -Force -ErrorAction SilentlyContinue
+          Write-Host "Copying entire Files\ folder: $filesSourceFolder -> $srcFilesDir ($($fileItems.Count) item(s))"
+          Copy-Item -Path (Join-Path $filesSourceFolder '*') -Destination $srcFilesDir -Recurse -Force
         } else {
-          Write-Host "⚠️ WINDOWS_SUPPORT_FILES_SOURCE set but path not found: $($env:WINDOWS_SUPPORT_FILES_SOURCE)" -ForegroundColor Yellow
+          throw "Derived Files\ folder not found: $filesSourceFolder (from WINDOWS_INSTALLER_SOURCE=$($env:WINDOWS_INSTALLER_SOURCE))"
+        }
+
+        # Auto-derive \SupportFiles\ as the sibling folder next to \Files\
+        # e.g. if Files\ = \\server\AppName\Files  then SupportFiles\ = \\server\AppName\SupportFiles
+        $parentOfFiles     = Split-Path -Parent $filesSourceFolder
+        $supportSourceFolder = Join-Path $parentOfFiles 'SupportFiles'
+        $srcSupportDir     = 'windows\src\SupportFiles'
+
+        if (Test-Path $supportSourceFolder) {
+          if (!(Test-Path $srcSupportDir)) { New-Item -ItemType Directory -Path $srcSupportDir -Force | Out-Null }
+          $supportItems = Get-ChildItem -Path $supportSourceFolder -Force -ErrorAction SilentlyContinue
+          Write-Host "Copying entire SupportFiles\ folder: $supportSourceFolder -> $srcSupportDir ($($supportItems.Count) item(s))"
+          Copy-Item -Path (Join-Path $supportSourceFolder '*') -Destination $srcSupportDir -Recurse -Force
+        } else {
+          Write-Host "INFO: No SupportFiles\ folder found at $supportSourceFolder — skipping (not required)."
         }
       }
 

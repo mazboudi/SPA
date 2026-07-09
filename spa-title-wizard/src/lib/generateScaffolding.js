@@ -52,18 +52,17 @@ export default function generateScaffolding(s, forPublish = false) {
   if (isWin) {
     vars.push('  WINDOWS_ENABLED: "true"');
     vars.push(`  PSADT_FRAMEWORK_VERSION: "${winFrameworkVersion}"`);
-    // Build the full installer path from dir + filename
+    // WINDOWS_INSTALLER_SOURCE — full path to the installer file on the runner.
+    // The file MUST reside inside a \Files\ folder; the pipeline copies the
+    // entire \Files\ folder and auto-derives \SupportFiles\ as its sibling.
     if (s.installerSourceDir && s.installerSourceFile) {
-      const dir = s.installerSourceDir.replace(/[\\/]+$/, '');  // strip trailing slash
+      const dir = s.installerSourceDir.replace(/[\\/]+$/, '');
       vars.push(`  WINDOWS_INSTALLER_SOURCE: '${dir}\\${s.installerSourceFile}'`);
     }
-    // Optional subfolder within Files/ where the installer will be placed on the runner
+    // Optional subfolder within Files/ where the installer lives on the runner
     if (s.installerSubfolder) {
       const subDir = s.installerSubfolder.replace(/^[/\\]+|[/\\]+$/g, '').replace(/\//g, '\\');
       vars.push(`  WINDOWS_INSTALLER_SUBFOLDER: '${subDir}'`);
-    }
-    if (s.supportFilesSource) {
-      vars.push(`  WINDOWS_SUPPORT_FILES_SOURCE: '${s.supportFilesSource}'`);
     }
   }
   if (isMac) {

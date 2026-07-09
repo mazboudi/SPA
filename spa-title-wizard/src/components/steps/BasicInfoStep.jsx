@@ -167,7 +167,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
                 </p>
               )}
               {!isStale && (
-                <p>Review and update the fields below, then publish to push changes.</p>
+                <p>Project information is <strong>locked</strong> in Edit mode. You can update installer details, PSADT actions, detection rules, and other configuration below.</p>
               )}
             </div>
           </div>
@@ -379,13 +379,20 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           />
         </FormField>
 
-        <FormField label="Version" required id="version" hint="Vendor version string, e.g. '134.0.6998.89'">
+        <FormField
+          label="Version"
+          required
+          id="version"
+          hint={isEditMode ? 'Version is locked in edit mode.' : "Vendor version string, e.g. '134.0.6998.89'"}
+        >
           <input
             id="version"
             type="text"
             placeholder="e.g. 134.0"
             value={state.version}
             onChange={e => updateField('version', e.target.value)}
+            disabled={isEditMode}
+            className={isEditMode ? 'input-disabled' : ''}
           />
         </FormField>
 
