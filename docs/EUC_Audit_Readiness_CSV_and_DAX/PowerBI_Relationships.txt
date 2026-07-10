@@ -1,0 +1,27 @@
+Power BI Relationships
+
+Dim_Date[DateKey] 1 -> * Fact_Configuration[SnapshotDateKey]
+Dim_Date[DateKey] 1 -> * Fact_Encryption[SnapshotDateKey]
+Dim_Date[DateKey] 1 -> * Fact_Patch[SnapshotDateKey]
+Dim_Date[DateKey] 1 -> * Fact_Vulnerability[SnapshotDateKey]
+
+Dim_Device[DeviceID] 1 -> * Fact_Configuration[DeviceID]
+Dim_Device[DeviceID] 1 -> * Fact_Encryption[DeviceID]
+Dim_Device[DeviceID] 1 -> * Fact_Patch[DeviceID]
+Dim_Device[DeviceID] 1 -> * Fact_Vulnerability[DeviceID]
+Dim_Device[DeviceID] 1 -> * Fact_Lifecycle[DeviceID]
+Dim_Device[DeviceID] 1 -> * Fact_SoftwareInventory[DeviceID]
+Dim_Device[DeviceID] 1 -> * Fact_Exception[DeviceID]
+
+Dim_Software[SoftwareID] 1 -> * Fact_SoftwareInventory[SoftwareID]
+Dim_Software[SoftwareID] 1 -> * Fact_SoftwareWorkflow[SoftwareID]
+
+Dim_Control[ControlID] 1 -> * Fact_Exception[ControlID]
+
+Dim_Region[RegionID] 1 -> * Dim_Device[RegionID]
+Dim_BusinessUnit[BusinessUnitID] 1 -> * Dim_Device[BusinessUnitID]
+Dim_Platform[PlatformID] 1 -> * Dim_Device[PlatformID]
+
+Use single-direction filtering from the 1-side to the many-side.
+Mark Dim_Date[Date] as the date table.
+Sort Dim_Date[MonthName] by Dim_Date[MonthNumber].

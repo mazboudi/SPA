@@ -1,0 +1,5 @@
+﻿PlatformID,Platform,CurrentOSFamily,PrimaryManagementTool
+P01,Windows,Windows 11,Intune
+P02,macOS,macOS 15,JAMF
+P03,iOS,iOS 19,MDM
+P04,Android,Android 16,MDM

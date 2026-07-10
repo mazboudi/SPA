@@ -1,0 +1,11 @@
+﻿ControlID,Domain,ControlName,StandardReference,Framework,Criticality,RemediationSLADays
+CTL-001,Device Configuration,Secure configuration baseline,EUC-STD-001,CIS,High,30
+CTL-002,Device Configuration,Antivirus agent active,EUC-STD-002,NIST CSF,Critical,7
+CTL-003,Device Configuration,Firewall enabled,EUC-STD-003,CIS,High,14
+CTL-004,Access,Passwordless / FIDO2 enabled,EUC-STD-004,Internal Standard,High,30
+CTL-005,Encryption,Whole disk encryption enabled,EUC-STD-005,NIST 800-53,Critical,7
+CTL-006,Encryption,Portable media restriction enforced,EUC-STD-006,Internal Standard,High,14
+CTL-007,Patch,Critical patches within SLA,EUC-STD-007,PCI DSS,Critical,14
+CTL-008,Vulnerability,Critical vulnerabilities within SLA,EUC-STD-008,NIST CSF,Critical,14
+CTL-009,Lifecycle,EOL devices removed or excepted,EUC-STD-009,Internal Standard,High,30
+CTL-010,Software,Unsupported software removed or excepted,EUC-STD-010,Internal Standard,High,30

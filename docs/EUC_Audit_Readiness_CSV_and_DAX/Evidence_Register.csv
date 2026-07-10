@@ -1,0 +1,101 @@
+﻿DocumentID,DocumentTitle,DocumentType,Domain,Owner,Version,LastReviewDate,NextReviewDate,ReviewStatus,SharePointURL
+DOC-0001,Software Lifecycle Procedure 1,Meeting Slides,Vulnerability,owner11@example.com,v6,2025-03-14,2026-03-14,Draft,https://sharepoint.example.com/sites/euc/doc1
+DOC-0002,Device Configuration Meeting Slides 2,Process Flow,Software Lifecycle,owner3@example.com,v2,2025-11-02,2026-11-02,Overdue,https://sharepoint.example.com/sites/euc/doc2
+DOC-0003,Software Lifecycle Process Flow 3,Audit Evidence,Device Configuration,owner11@example.com,v6,2025-06-03,2026-06-03,Overdue,https://sharepoint.example.com/sites/euc/doc3
+DOC-0004,Patch Standard 4,Procedure,Device Configuration,owner6@example.com,v4,2025-09-29,2026-09-29,Current,https://sharepoint.example.com/sites/euc/doc4
+DOC-0005,Asset Lifecycle Audit Evidence 5,Process Flow,Vulnerability,owner8@example.com,v3,2025-08-27,2026-08-27,Due Soon,https://sharepoint.example.com/sites/euc/doc5
+DOC-0006,Vulnerability Meeting Slides 6,Standard,Vulnerability,owner4@example.com,v1,2025-10-29,2026-10-29,Overdue,https://sharepoint.example.com/sites/euc/doc6
+DOC-0007,Device Configuration Process Flow 7,Audit Evidence,Encryption,owner6@example.com,v5,2025-04-02,2026-04-02,Current,https://sharepoint.example.com/sites/euc/doc7
+DOC-0008,Encryption Process Flow 8,Process Flow,Encryption,owner6@example.com,v1,2025-11-25,2026-11-25,Draft,https://sharepoint.example.com/sites/euc/doc8
+DOC-0009,Asset Lifecycle Policy 9,Meeting Slides,Patch,owner12@example.com,v6,2025-03-27,2026-03-27,Due Soon,https://sharepoint.example.com/sites/euc/doc9
+DOC-0010,Patch Process Flow 10,Meeting Slides,Patch,owner13@example.com,v3,2025-12-10,2026-12-10,Current,https://sharepoint.example.com/sites/euc/doc10
+DOC-0011,Device Configuration Policy 11,Standard,Asset Lifecycle,owner4@example.com,v6,2025-01-03,2026-01-03,Overdue,https://sharepoint.example.com/sites/euc/doc11
+DOC-0012,Asset Lifecycle Standard 12,Policy,Software Lifecycle,owner8@example.com,v6,2025-05-20,2026-05-20,Due Soon,https://sharepoint.example.com/sites/euc/doc12
+DOC-0013,Device Configuration Process Flow 13,Standard,Software Lifecycle,owner8@example.com,v1,2025-02-04,2026-02-04,Current,https://sharepoint.example.com/sites/euc/doc13
+DOC-0014,Encryption Meeting Slides 14,Meeting Slides,Asset Lifecycle,owner10@example.com,v6,2025-06-23,2026-06-23,Overdue,https://sharepoint.example.com/sites/euc/doc14
+DOC-0015,Asset Lifecycle Meeting Slides 15,Procedure,Encryption,owner9@example.com,v3,2025-02-03,2026-02-03,Overdue,https://sharepoint.example.com/sites/euc/doc15
+DOC-0016,Vulnerability Policy 16,Meeting Slides,Vulnerability,owner12@example.com,v5,2025-06-19,2026-06-19,Draft,https://sharepoint.example.com/sites/euc/doc16
+DOC-0017,Patch Process Flow 17,Process Flow,Patch,owner10@example.com,v5,2025-08-28,2026-08-28,Current,https://sharepoint.example.com/sites/euc/doc17
+DOC-0018,Encryption Audit Evidence 18,Standard,Software Lifecycle,owner9@example.com,v3,2025-04-19,2026-04-19,Current,https://sharepoint.example.com/sites/euc/doc18
+DOC-0019,Vulnerability Policy 19,Policy,Device Configuration,owner2@example.com,v3,2025-10-24,2026-10-24,Draft,https://sharepoint.example.com/sites/euc/doc19
+DOC-0020,Encryption Audit Evidence 20,Procedure,Vulnerability,owner2@example.com,v5,2025-11-02,2026-11-02,Due Soon,https://sharepoint.example.com/sites/euc/doc20
+DOC-0021,Device Configuration Process Flow 21,Process Flow,Asset Lifecycle,owner10@example.com,v2,2025-03-31,2026-03-31,Draft,https://sharepoint.example.com/sites/euc/doc21
+DOC-0022,Asset Lifecycle Procedure 22,Procedure,Encryption,owner4@example.com,v4,2025-06-15,2026-06-15,Draft,https://sharepoint.example.com/sites/euc/doc22
+DOC-0023,Patch Audit Evidence 23,Procedure,Encryption,owner8@example.com,v6,2025-03-30,2026-03-30,Draft,https://sharepoint.example.com/sites/euc/doc23
+DOC-0024,Vulnerability Meeting Slides 24,Audit Evidence,Asset Lifecycle,owner10@example.com,v5,2025-02-07,2026-02-07,Due Soon,https://sharepoint.example.com/sites/euc/doc24
+DOC-0025,Software Lifecycle Policy 25,Standard,Asset Lifecycle,owner8@example.com,v2,2025-09-12,2026-09-12,Draft,https://sharepoint.example.com/sites/euc/doc25
+DOC-0026,Software Lifecycle Policy 26,Meeting Slides,Asset Lifecycle,owner9@example.com,v2,2025-03-10,2026-03-10,Due Soon,https://sharepoint.example.com/sites/euc/doc26
+DOC-0027,Software Lifecycle Policy 27,Procedure,Vulnerability,owner9@example.com,v4,2025-12-11,2026-12-11,Overdue,https://sharepoint.example.com/sites/euc/doc27
+DOC-0028,Patch Process Flow 28,Audit Evidence,Encryption,owner14@example.com,v2,2025-08-28,2026-08-28,Overdue,https://sharepoint.example.com/sites/euc/doc28
+DOC-0029,Encryption Meeting Slides 29,Policy,Vulnerability,owner15@example.com,v3,2025-08-29,2026-08-29,Current,https://sharepoint.example.com/sites/euc/doc29
+DOC-0030,Encryption Procedure 30,Audit Evidence,Encryption,owner13@example.com,v6,2025-11-16,2026-11-16,Due Soon,https://sharepoint.example.com/sites/euc/doc30
+DOC-0031,Device Configuration Standard 31,Process Flow,Software Lifecycle,owner13@example.com,v1,2025-09-28,2026-09-28,Current,https://sharepoint.example.com/sites/euc/doc31
+DOC-0032,Vulnerability Audit Evidence 32,Standard,Vulnerability,owner3@example.com,v2,2025-03-21,2026-03-21,Overdue,https://sharepoint.example.com/sites/euc/doc32
+DOC-0033,Vulnerability Meeting Slides 33,Audit Evidence,Device Configuration,owner3@example.com,v3,2025-10-11,2026-10-11,Overdue,https://sharepoint.example.com/sites/euc/doc33
+DOC-0034,Patch Meeting Slides 34,Process Flow,Patch,owner11@example.com,v2,2025-10-25,2026-10-25,Draft,https://sharepoint.example.com/sites/euc/doc34
+DOC-0035,Vulnerability Meeting Slides 35,Procedure,Vulnerability,owner14@example.com,v6,2025-09-20,2026-09-20,Current,https://sharepoint.example.com/sites/euc/doc35
+DOC-0036,Software Lifecycle Standard 36,Process Flow,Vulnerability,owner4@example.com,v1,2025-07-03,2026-07-03,Overdue,https://sharepoint.example.com/sites/euc/doc36
+DOC-0037,Encryption Audit Evidence 37,Procedure,Encryption,owner5@example.com,v4,2025-06-01,2026-06-01,Overdue,https://sharepoint.example.com/sites/euc/doc37
+DOC-0038,Encryption Standard 38,Policy,Encryption,owner10@example.com,v3,2025-07-04,2026-07-04,Current,https://sharepoint.example.com/sites/euc/doc38
+DOC-0039,Encryption Audit Evidence 39,Standard,Device Configuration,owner11@example.com,v5,2025-06-30,2026-06-30,Overdue,https://sharepoint.example.com/sites/euc/doc39
+DOC-0040,Encryption Meeting Slides 40,Process Flow,Encryption,owner14@example.com,v6,2025-05-31,2026-05-31,Draft,https://sharepoint.example.com/sites/euc/doc40
+DOC-0041,Encryption Procedure 41,Audit Evidence,Asset Lifecycle,owner5@example.com,v3,2025-11-24,2026-11-24,Due Soon,https://sharepoint.example.com/sites/euc/doc41
+DOC-0042,Software Lifecycle Audit Evidence 42,Procedure,Encryption,owner2@example.com,v3,2025-10-03,2026-10-03,Overdue,https://sharepoint.example.com/sites/euc/doc42
+DOC-0043,Software Lifecycle Audit Evidence 43,Process Flow,Vulnerability,owner8@example.com,v4,2025-08-22,2026-08-22,Draft,https://sharepoint.example.com/sites/euc/doc43
+DOC-0044,Device Configuration Standard 44,Procedure,Vulnerability,owner1@example.com,v1,2025-07-24,2026-07-24,Current,https://sharepoint.example.com/sites/euc/doc44
+DOC-0045,Encryption Standard 45,Policy,Vulnerability,owner12@example.com,v3,2025-05-28,2026-05-28,Current,https://sharepoint.example.com/sites/euc/doc45
+DOC-0046,Patch Standard 46,Policy,Patch,owner13@example.com,v5,2025-04-25,2026-04-25,Draft,https://sharepoint.example.com/sites/euc/doc46
+DOC-0047,Vulnerability Procedure 47,Policy,Software Lifecycle,owner6@example.com,v6,2025-10-14,2026-10-14,Current,https://sharepoint.example.com/sites/euc/doc47
+DOC-0048,Patch Process Flow 48,Audit Evidence,Encryption,owner9@example.com,v4,2025-07-07,2026-07-07,Current,https://sharepoint.example.com/sites/euc/doc48
+DOC-0049,Vulnerability Process Flow 49,Procedure,Encryption,owner10@example.com,v5,2025-09-01,2026-09-01,Draft,https://sharepoint.example.com/sites/euc/doc49
+DOC-0050,Vulnerability Procedure 50,Procedure,Encryption,owner3@example.com,v6,2025-08-24,2026-08-24,Due Soon,https://sharepoint.example.com/sites/euc/doc50
+DOC-0051,Encryption Procedure 51,Meeting Slides,Software Lifecycle,owner3@example.com,v6,2025-10-18,2026-10-18,Current,https://sharepoint.example.com/sites/euc/doc51
+DOC-0052,Asset Lifecycle Policy 52,Meeting Slides,Encryption,owner8@example.com,v3,2025-12-19,2026-12-19,Overdue,https://sharepoint.example.com/sites/euc/doc52
+DOC-0053,Vulnerability Process Flow 53,Process Flow,Encryption,owner10@example.com,v3,2025-03-11,2026-03-11,Due Soon,https://sharepoint.example.com/sites/euc/doc53
+DOC-0054,Asset Lifecycle Meeting Slides 54,Standard,Encryption,owner8@example.com,v3,2025-06-25,2026-06-25,Current,https://sharepoint.example.com/sites/euc/doc54
+DOC-0055,Device Configuration Audit Evidence 55,Policy,Encryption,owner2@example.com,v2,2025-12-19,2026-12-19,Overdue,https://sharepoint.example.com/sites/euc/doc55
+DOC-0056,Device Configuration Meeting Slides 56,Meeting Slides,Encryption,owner8@example.com,v3,2025-03-01,2026-03-01,Draft,https://sharepoint.example.com/sites/euc/doc56
+DOC-0057,Encryption Audit Evidence 57,Audit Evidence,Encryption,owner1@example.com,v2,2025-08-09,2026-08-09,Current,https://sharepoint.example.com/sites/euc/doc57
+DOC-0058,Vulnerability Procedure 58,Standard,Encryption,owner9@example.com,v5,2025-06-20,2026-06-20,Due Soon,https://sharepoint.example.com/sites/euc/doc58
+DOC-0059,Vulnerability Audit Evidence 59,Meeting Slides,Vulnerability,owner9@example.com,v3,2025-11-25,2026-11-25,Due Soon,https://sharepoint.example.com/sites/euc/doc59
+DOC-0060,Vulnerability Policy 60,Standard,Software Lifecycle,owner8@example.com,v6,2025-08-27,2026-08-27,Current,https://sharepoint.example.com/sites/euc/doc60
+DOC-0061,Software Lifecycle Standard 61,Audit Evidence,Software Lifecycle,owner1@example.com,v5,2025-07-14,2026-07-14,Due Soon,https://sharepoint.example.com/sites/euc/doc61
+DOC-0062,Patch Procedure 62,Policy,Vulnerability,owner9@example.com,v5,2025-03-26,2026-03-26,Overdue,https://sharepoint.example.com/sites/euc/doc62
+DOC-0063,Vulnerability Standard 63,Standard,Device Configuration,owner5@example.com,v3,2025-11-28,2026-11-28,Current,https://sharepoint.example.com/sites/euc/doc63
+DOC-0064,Vulnerability Standard 64,Procedure,Patch,owner10@example.com,v4,2025-12-23,2026-12-23,Due Soon,https://sharepoint.example.com/sites/euc/doc64
+DOC-0065,Device Configuration Policy 65,Process Flow,Asset Lifecycle,owner15@example.com,v5,2025-09-03,2026-09-03,Draft,https://sharepoint.example.com/sites/euc/doc65
+DOC-0066,Device Configuration Standard 66,Procedure,Asset Lifecycle,owner6@example.com,v4,2025-05-20,2026-05-20,Current,https://sharepoint.example.com/sites/euc/doc66
+DOC-0067,Device Configuration Policy 67,Policy,Encryption,owner10@example.com,v1,2025-11-02,2026-11-02,Draft,https://sharepoint.example.com/sites/euc/doc67
+DOC-0068,Encryption Meeting Slides 68,Process Flow,Vulnerability,owner2@example.com,v1,2025-05-17,2026-05-17,Current,https://sharepoint.example.com/sites/euc/doc68
+DOC-0069,Software Lifecycle Standard 69,Standard,Vulnerability,owner11@example.com,v4,2025-08-20,2026-08-20,Draft,https://sharepoint.example.com/sites/euc/doc69
+DOC-0070,Encryption Process Flow 70,Policy,Asset Lifecycle,owner1@example.com,v1,2025-01-09,2026-01-09,Due Soon,https://sharepoint.example.com/sites/euc/doc70
+DOC-0071,Patch Policy 71,Process Flow,Patch,owner2@example.com,v5,2025-02-21,2026-02-21,Current,https://sharepoint.example.com/sites/euc/doc71
+DOC-0072,Patch Standard 72,Policy,Encryption,owner12@example.com,v3,2025-04-29,2026-04-29,Draft,https://sharepoint.example.com/sites/euc/doc72
+DOC-0073,Encryption Policy 73,Process Flow,Device Configuration,owner4@example.com,v6,2025-11-07,2026-11-07,Due Soon,https://sharepoint.example.com/sites/euc/doc73
+DOC-0074,Software Lifecycle Meeting Slides 74,Audit Evidence,Device Configuration,owner8@example.com,v1,2025-09-22,2026-09-22,Overdue,https://sharepoint.example.com/sites/euc/doc74
+DOC-0075,Device Configuration Meeting Slides 75,Audit Evidence,Patch,owner2@example.com,v3,2025-07-19,2026-07-19,Current,https://sharepoint.example.com/sites/euc/doc75
+DOC-0076,Software Lifecycle Standard 76,Standard,Device Configuration,owner12@example.com,v1,2025-07-06,2026-07-06,Current,https://sharepoint.example.com/sites/euc/doc76
+DOC-0077,Patch Audit Evidence 77,Standard,Software Lifecycle,owner6@example.com,v3,2025-12-25,2026-12-25,Due Soon,https://sharepoint.example.com/sites/euc/doc77
+DOC-0078,Device Configuration Meeting Slides 78,Standard,Device Configuration,owner3@example.com,v5,2025-02-09,2026-02-09,Current,https://sharepoint.example.com/sites/euc/doc78
+DOC-0079,Asset Lifecycle Procedure 79,Policy,Vulnerability,owner10@example.com,v4,2025-07-31,2026-07-31,Due Soon,https://sharepoint.example.com/sites/euc/doc79
+DOC-0080,Vulnerability Audit Evidence 80,Policy,Asset Lifecycle,owner12@example.com,v5,2025-07-31,2026-07-31,Due Soon,https://sharepoint.example.com/sites/euc/doc80
+DOC-0081,Device Configuration Standard 81,Policy,Device Configuration,owner9@example.com,v4,2025-11-14,2026-11-14,Current,https://sharepoint.example.com/sites/euc/doc81
+DOC-0082,Device Configuration Process Flow 82,Audit Evidence,Device Configuration,owner7@example.com,v4,2025-11-06,2026-11-06,Draft,https://sharepoint.example.com/sites/euc/doc82
+DOC-0083,Vulnerability Audit Evidence 83,Audit Evidence,Device Configuration,owner14@example.com,v5,2025-08-10,2026-08-10,Overdue,https://sharepoint.example.com/sites/euc/doc83
+DOC-0084,Encryption Procedure 84,Procedure,Vulnerability,owner6@example.com,v2,2025-07-27,2026-07-27,Current,https://sharepoint.example.com/sites/euc/doc84
+DOC-0085,Device Configuration Process Flow 85,Policy,Vulnerability,owner3@example.com,v5,2025-12-16,2026-12-16,Overdue,https://sharepoint.example.com/sites/euc/doc85
+DOC-0086,Vulnerability Process Flow 86,Procedure,Device Configuration,owner15@example.com,v2,2025-07-23,2026-07-23,Draft,https://sharepoint.example.com/sites/euc/doc86
+DOC-0087,Patch Standard 87,Meeting Slides,Vulnerability,owner14@example.com,v3,2025-11-12,2026-11-12,Overdue,https://sharepoint.example.com/sites/euc/doc87
+DOC-0088,Device Configuration Procedure 88,Standard,Device Configuration,owner15@example.com,v2,2025-09-26,2026-09-26,Due Soon,https://sharepoint.example.com/sites/euc/doc88
+DOC-0089,Vulnerability Process Flow 89,Process Flow,Asset Lifecycle,owner15@example.com,v2,2025-05-27,2026-05-27,Draft,https://sharepoint.example.com/sites/euc/doc89
+DOC-0090,Patch Audit Evidence 90,Audit Evidence,Patch,owner3@example.com,v6,2025-05-20,2026-05-20,Current,https://sharepoint.example.com/sites/euc/doc90
+DOC-0091,Software Lifecycle Meeting Slides 91,Process Flow,Vulnerability,owner6@example.com,v3,2025-07-29,2026-07-29,Draft,https://sharepoint.example.com/sites/euc/doc91
+DOC-0092,Device Configuration Procedure 92,Process Flow,Patch,owner9@example.com,v5,2025-08-02,2026-08-02,Current,https://sharepoint.example.com/sites/euc/doc92
+DOC-0093,Patch Standard 93,Process Flow,Device Configuration,owner3@example.com,v5,2025-08-20,2026-08-20,Draft,https://sharepoint.example.com/sites/euc/doc93
+DOC-0094,Device Configuration Process Flow 94,Standard,Device Configuration,owner9@example.com,v3,2025-05-21,2026-05-21,Overdue,https://sharepoint.example.com/sites/euc/doc94
+DOC-0095,Asset Lifecycle Audit Evidence 95,Policy,Patch,owner5@example.com,v3,2025-12-01,2026-12-01,Draft,https://sharepoint.example.com/sites/euc/doc95
+DOC-0096,Device Configuration Process Flow 96,Process Flow,Patch,owner11@example.com,v1,2025-04-29,2026-04-29,Draft,https://sharepoint.example.com/sites/euc/doc96
+DOC-0097,Asset Lifecycle Process Flow 97,Audit Evidence,Encryption,owner4@example.com,v3,2025-11-02,2026-11-02,Current,https://sharepoint.example.com/sites/euc/doc97
+DOC-0098,Patch Audit Evidence 98,Policy,Asset Lifecycle,owner6@example.com,v5,2025-10-29,2026-10-29,Draft,https://sharepoint.example.com/sites/euc/doc98
+DOC-0099,Vulnerability Audit Evidence 99,Policy,Vulnerability,owner6@example.com,v5,2025-02-01,2026-02-01,Current,https://sharepoint.example.com/sites/euc/doc99
+DOC-0100,Software Lifecycle Meeting Slides 100,Process Flow,Software Lifecycle,owner11@example.com,v1,2025-06-03,2026-06-03,Due Soon,https://sharepoint.example.com/sites/euc/doc100

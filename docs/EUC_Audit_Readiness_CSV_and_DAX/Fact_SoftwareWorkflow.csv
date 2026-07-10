@@ -1,0 +1,151 @@
+﻿SoftwareRequestID,SoftwareID,RequestDate,LifecycleStage,RiskRating,Owner,TargetDate,SourceSystem
+SWR-00001,SW005,2026-05-19,Approved,Low,owner9@example.com,2026-06-09,ServiceNow
+SWR-00002,SW008,2025-12-27,Packaging,High,owner20@example.com,2026-02-11,Packaging Platform
+SWR-00003,SW008,2026-02-24,Production,Low,owner14@example.com,2026-03-06,ServiceNow
+SWR-00004,SW001,2025-09-11,Denied,Low,owner11@example.com,2025-10-18,ServiceNow
+SWR-00005,SW001,2026-02-11,Requested,Low,owner10@example.com,2026-03-16,Packaging Platform
+SWR-00006,SW007,2026-03-02,Requested,High,owner16@example.com,2026-04-28,Packaging Platform
+SWR-00007,SW001,2025-10-03,Assessment,Medium,owner16@example.com,2025-12-02,Packaging Platform
+SWR-00008,SW006,2025-12-09,Requested,Low,owner9@example.com,2026-01-27,ServiceNow
+SWR-00009,SW004,2025-11-18,Denied,High,owner19@example.com,2025-12-04,ServiceNow
+SWR-00010,SW009,2025-11-15,Production,High,owner15@example.com,2025-12-07,Packaging Platform
+SWR-00011,SW004,2025-08-14,Denied,Low,owner14@example.com,2025-09-16,ServiceNow
+SWR-00012,SW007,2026-03-06,Retired,Low,owner13@example.com,2026-04-13,Packaging Platform
+SWR-00013,SW009,2026-02-19,Approved,High,owner13@example.com,2026-03-08,ServiceNow
+SWR-00014,SW009,2025-09-26,Production,Low,owner20@example.com,2025-11-17,ServiceNow
+SWR-00015,SW001,2025-12-27,Pilot,Low,owner3@example.com,2026-01-22,Packaging Platform
+SWR-00016,SW001,2025-11-15,Requested,Medium,owner19@example.com,2025-11-26,ServiceNow
+SWR-00017,SW003,2025-11-07,Requested,High,owner14@example.com,2026-01-02,Packaging Platform
+SWR-00018,SW007,2025-07-11,Retired,Medium,owner2@example.com,2025-08-06,Packaging Platform
+SWR-00019,SW007,2025-09-21,Denied,High,owner18@example.com,2025-11-16,Packaging Platform
+SWR-00020,SW007,2025-10-12,Requested,Low,owner7@example.com,2025-10-26,ServiceNow
+SWR-00021,SW004,2026-02-27,Production,High,owner15@example.com,2026-04-02,ServiceNow
+SWR-00022,SW008,2026-02-17,Retired,Medium,owner15@example.com,2026-04-02,Packaging Platform
+SWR-00023,SW009,2025-11-01,Assessment,Low,owner3@example.com,2025-11-12,Packaging Platform
+SWR-00024,SW009,2026-01-02,Production,Low,owner19@example.com,2026-01-31,Packaging Platform
+SWR-00025,SW009,2026-06-07,Packaging,High,owner18@example.com,2026-07-11,Packaging Platform
+SWR-00026,SW002,2026-06-27,Assessment,Low,owner19@example.com,2026-07-21,Packaging Platform
+SWR-00027,SW005,2025-10-26,Pilot,Low,owner11@example.com,2025-11-14,ServiceNow
+SWR-00028,SW007,2026-06-03,Approved,Medium,owner12@example.com,2026-07-20,ServiceNow
+SWR-00029,SW009,2025-08-06,Denied,High,owner17@example.com,2025-09-02,Packaging Platform
+SWR-00030,SW008,2026-06-11,Approved,High,owner18@example.com,2026-07-12,ServiceNow
+SWR-00031,SW007,2025-07-15,Production,Low,owner3@example.com,2025-07-17,ServiceNow
+SWR-00032,SW006,2025-10-17,Production,High,owner8@example.com,2025-11-27,Packaging Platform
+SWR-00033,SW003,2025-12-13,Requested,Low,owner1@example.com,2026-02-11,Packaging Platform
+SWR-00034,SW004,2025-08-13,Requested,Low,owner19@example.com,2025-09-18,Packaging Platform
+SWR-00035,SW004,2025-10-10,Assessment,Medium,owner13@example.com,2025-12-02,Packaging Platform
+SWR-00036,SW010,2025-10-24,Denied,Low,owner11@example.com,2025-10-29,ServiceNow
+SWR-00037,SW001,2025-10-16,Requested,Low,owner13@example.com,2025-10-24,Packaging Platform
+SWR-00038,SW009,2026-06-14,Denied,Low,owner1@example.com,2026-06-23,ServiceNow
+SWR-00039,SW005,2026-06-03,Pilot,Low,owner18@example.com,2026-07-14,ServiceNow
+SWR-00040,SW004,2025-11-20,Approved,Low,owner6@example.com,2025-12-10,Packaging Platform
+SWR-00041,SW002,2025-12-26,Production,High,owner4@example.com,2026-01-17,ServiceNow
+SWR-00042,SW006,2026-05-21,Approved,High,owner12@example.com,2026-06-10,Packaging Platform
+SWR-00043,SW010,2026-03-25,Denied,High,owner3@example.com,2026-04-01,Packaging Platform
+SWR-00044,SW010,2025-07-16,Approved,Low,owner8@example.com,2025-08-20,Packaging Platform
+SWR-00045,SW009,2026-01-19,Assessment,High,owner4@example.com,2026-03-20,ServiceNow
+SWR-00046,SW010,2025-12-04,Denied,Medium,owner5@example.com,2026-01-22,Packaging Platform
+SWR-00047,SW002,2025-09-12,Requested,Medium,owner6@example.com,2025-10-02,ServiceNow
+SWR-00048,SW009,2025-09-28,Denied,Medium,owner13@example.com,2025-10-06,ServiceNow
+SWR-00049,SW007,2025-12-07,Pilot,Low,owner7@example.com,2026-01-18,Packaging Platform
+SWR-00050,SW004,2025-07-13,Requested,Low,owner19@example.com,2025-07-17,Packaging Platform
+SWR-00051,SW003,2026-05-13,Assessment,High,owner8@example.com,2026-06-22,ServiceNow
+SWR-00052,SW005,2025-08-21,Requested,High,owner9@example.com,2025-10-19,ServiceNow
+SWR-00053,SW007,2025-10-27,Packaging,Low,owner9@example.com,2025-11-27,Packaging Platform
+SWR-00054,SW008,2025-10-12,Requested,Low,owner20@example.com,2025-10-20,Packaging Platform
+SWR-00055,SW005,2026-01-12,Assessment,High,owner3@example.com,2026-02-03,Packaging Platform
+SWR-00056,SW004,2025-07-20,Retired,Medium,owner9@example.com,2025-08-16,ServiceNow
+SWR-00057,SW002,2026-04-21,Pilot,Medium,owner5@example.com,2026-06-14,ServiceNow
+SWR-00058,SW007,2025-09-04,Assessment,High,owner1@example.com,2025-09-18,Packaging Platform
+SWR-00059,SW002,2026-07-02,Retired,Medium,owner9@example.com,2026-07-18,Packaging Platform
+SWR-00060,SW005,2025-08-31,Approved,Medium,owner8@example.com,2025-09-12,Packaging Platform
+SWR-00061,SW003,2025-10-27,Denied,High,owner14@example.com,2025-11-11,Packaging Platform
+SWR-00062,SW006,2026-04-15,Retired,Low,owner14@example.com,2026-04-30,Packaging Platform
+SWR-00063,SW004,2025-12-18,Approved,High,owner6@example.com,2026-01-18,Packaging Platform
+SWR-00064,SW005,2026-03-27,Requested,Medium,owner14@example.com,2026-04-23,Packaging Platform
+SWR-00065,SW001,2026-04-16,Retired,Medium,owner10@example.com,2026-05-10,ServiceNow
+SWR-00066,SW006,2025-11-14,Pilot,High,owner11@example.com,2026-01-02,ServiceNow
+SWR-00067,SW008,2026-02-06,Pilot,Low,owner10@example.com,2026-03-28,ServiceNow
+SWR-00068,SW003,2026-03-03,Packaging,High,owner9@example.com,2026-04-08,Packaging Platform
+SWR-00069,SW007,2025-08-08,Requested,Low,owner11@example.com,2025-09-18,Packaging Platform
+SWR-00070,SW009,2025-09-11,Denied,Low,owner14@example.com,2025-10-21,ServiceNow
+SWR-00071,SW009,2026-02-20,Assessment,Low,owner3@example.com,2026-04-10,Packaging Platform
+SWR-00072,SW003,2026-03-19,Production,High,owner2@example.com,2026-03-30,ServiceNow
+SWR-00073,SW009,2025-09-20,Requested,High,owner13@example.com,2025-10-10,Packaging Platform
+SWR-00074,SW001,2025-09-05,Packaging,Medium,owner17@example.com,2025-09-30,Packaging Platform
+SWR-00075,SW009,2026-01-27,Requested,High,owner3@example.com,2026-02-20,ServiceNow
+SWR-00076,SW005,2025-11-03,Packaging,High,owner18@example.com,2026-01-02,ServiceNow
+SWR-00077,SW009,2026-02-06,Retired,Medium,owner11@example.com,2026-04-01,ServiceNow
+SWR-00078,SW005,2025-12-01,Retired,Medium,owner7@example.com,2026-01-17,ServiceNow
+SWR-00079,SW008,2026-03-12,Approved,Low,owner15@example.com,2026-04-25,ServiceNow
+SWR-00080,SW003,2026-04-06,Approved,High,owner15@example.com,2026-05-25,ServiceNow
+SWR-00081,SW010,2026-03-30,Requested,High,owner20@example.com,2026-05-28,Packaging Platform
+SWR-00082,SW004,2026-03-03,Denied,Medium,owner15@example.com,2026-04-19,Packaging Platform
+SWR-00083,SW010,2025-10-15,Requested,Medium,owner11@example.com,2025-12-08,ServiceNow
+SWR-00084,SW001,2026-06-30,Production,High,owner7@example.com,2026-08-02,Packaging Platform
+SWR-00085,SW010,2026-03-20,Retired,Low,owner2@example.com,2026-04-14,Packaging Platform
+SWR-00086,SW003,2026-01-01,Assessment,High,owner17@example.com,2026-01-30,ServiceNow
+SWR-00087,SW006,2025-12-27,Requested,Medium,owner16@example.com,2026-01-30,Packaging Platform
+SWR-00088,SW004,2026-04-24,Production,High,owner1@example.com,2026-06-12,ServiceNow
+SWR-00089,SW009,2025-08-10,Pilot,High,owner17@example.com,2025-10-08,ServiceNow
+SWR-00090,SW006,2025-07-23,Approved,Medium,owner12@example.com,2025-08-03,Packaging Platform
+SWR-00091,SW010,2025-07-19,Production,High,owner15@example.com,2025-08-04,ServiceNow
+SWR-00092,SW008,2026-02-12,Denied,High,owner4@example.com,2026-02-17,ServiceNow
+SWR-00093,SW004,2025-07-21,Production,Medium,owner11@example.com,2025-09-17,Packaging Platform
+SWR-00094,SW002,2025-07-11,Requested,Low,owner4@example.com,2025-08-08,Packaging Platform
+SWR-00095,SW003,2025-08-09,Packaging,High,owner6@example.com,2025-08-23,ServiceNow
+SWR-00096,SW007,2026-01-02,Assessment,Medium,owner5@example.com,2026-02-13,Packaging Platform
+SWR-00097,SW004,2025-09-14,Pilot,Low,owner20@example.com,2025-09-25,Packaging Platform
+SWR-00098,SW001,2026-02-03,Pilot,Medium,owner7@example.com,2026-02-19,Packaging Platform
+SWR-00099,SW006,2025-09-22,Pilot,Medium,owner20@example.com,2025-11-11,Packaging Platform
+SWR-00100,SW002,2026-05-05,Denied,Low,owner11@example.com,2026-06-04,ServiceNow
+SWR-00101,SW009,2026-04-05,Approved,High,owner12@example.com,2026-04-20,ServiceNow
+SWR-00102,SW003,2025-10-12,Assessment,High,owner12@example.com,2025-10-21,ServiceNow
+SWR-00103,SW002,2026-06-21,Production,Medium,owner17@example.com,2026-08-20,Packaging Platform
+SWR-00104,SW009,2026-06-02,Denied,Low,owner17@example.com,2026-07-02,Packaging Platform
+SWR-00105,SW007,2026-03-07,Pilot,Low,owner20@example.com,2026-03-09,Packaging Platform
+SWR-00106,SW002,2025-11-15,Packaging,Medium,owner13@example.com,2025-12-30,ServiceNow
+SWR-00107,SW002,2025-07-13,Approved,Low,owner6@example.com,2025-08-24,ServiceNow
+SWR-00108,SW002,2025-09-01,Production,Low,owner17@example.com,2025-09-14,Packaging Platform
+SWR-00109,SW009,2026-01-31,Assessment,High,owner4@example.com,2026-02-21,ServiceNow
+SWR-00110,SW007,2025-10-20,Production,Medium,owner12@example.com,2025-11-21,Packaging Platform
+SWR-00111,SW002,2025-11-22,Production,High,owner15@example.com,2025-12-12,Packaging Platform
+SWR-00112,SW004,2025-12-24,Production,High,owner15@example.com,2026-01-28,Packaging Platform
+SWR-00113,SW008,2026-01-14,Denied,Low,owner13@example.com,2026-03-08,ServiceNow
+SWR-00114,SW005,2025-11-14,Denied,Medium,owner19@example.com,2025-12-21,Packaging Platform
+SWR-00115,SW004,2025-10-11,Assessment,Low,owner19@example.com,2025-11-10,Packaging Platform
+SWR-00116,SW008,2026-01-05,Packaging,Low,owner10@example.com,2026-03-01,Packaging Platform
+SWR-00117,SW004,2026-02-24,Requested,Medium,owner9@example.com,2026-04-25,Packaging Platform
+SWR-00118,SW002,2025-10-17,Assessment,Medium,owner7@example.com,2025-11-25,Packaging Platform
+SWR-00119,SW010,2025-09-16,Retired,Low,owner19@example.com,2025-10-30,ServiceNow
+SWR-00120,SW009,2025-09-25,Denied,High,owner20@example.com,2025-11-22,ServiceNow
+SWR-00121,SW001,2026-02-12,Production,Low,owner9@example.com,2026-03-14,Packaging Platform
+SWR-00122,SW008,2026-07-06,Requested,High,owner15@example.com,2026-07-27,ServiceNow
+SWR-00123,SW005,2025-09-02,Denied,Medium,owner11@example.com,2025-09-05,ServiceNow
+SWR-00124,SW002,2026-06-17,Production,High,owner12@example.com,2026-08-06,ServiceNow
+SWR-00125,SW002,2026-04-08,Production,Medium,owner3@example.com,2026-05-18,Packaging Platform
+SWR-00126,SW006,2025-08-14,Retired,Medium,owner9@example.com,2025-10-05,Packaging Platform
+SWR-00127,SW009,2025-12-15,Pilot,High,owner9@example.com,2025-12-29,Packaging Platform
+SWR-00128,SW007,2025-09-19,Assessment,High,owner1@example.com,2025-10-23,Packaging Platform
+SWR-00129,SW005,2026-04-10,Production,High,owner10@example.com,2026-06-07,ServiceNow
+SWR-00130,SW001,2026-03-14,Pilot,High,owner18@example.com,2026-04-28,ServiceNow
+SWR-00131,SW004,2026-04-20,Production,Low,owner20@example.com,2026-04-22,Packaging Platform
+SWR-00132,SW008,2026-02-13,Assessment,High,owner14@example.com,2026-03-31,Packaging Platform
+SWR-00133,SW004,2025-07-03,Production,High,owner13@example.com,2025-07-16,Packaging Platform
+SWR-00134,SW003,2025-10-24,Approved,Medium,owner3@example.com,2025-11-17,ServiceNow
+SWR-00135,SW004,2025-11-23,Requested,Low,owner15@example.com,2025-12-12,Packaging Platform
+SWR-00136,SW002,2025-10-13,Retired,Medium,owner3@example.com,2025-10-23,Packaging Platform
+SWR-00137,SW005,2025-08-30,Production,Low,owner17@example.com,2025-10-27,ServiceNow
+SWR-00138,SW007,2025-11-16,Denied,High,owner16@example.com,2025-11-30,Packaging Platform
+SWR-00139,SW009,2026-01-11,Production,Low,owner15@example.com,2026-02-18,ServiceNow
+SWR-00140,SW009,2026-05-27,Production,High,owner5@example.com,2026-06-21,ServiceNow
+SWR-00141,SW008,2025-11-28,Denied,Low,owner9@example.com,2026-01-17,Packaging Platform
+SWR-00142,SW006,2026-02-17,Assessment,High,owner15@example.com,2026-03-05,Packaging Platform
+SWR-00143,SW008,2026-05-21,Assessment,Medium,owner15@example.com,2026-07-10,Packaging Platform
+SWR-00144,SW003,2026-04-18,Packaging,Low,owner13@example.com,2026-04-20,ServiceNow
+SWR-00145,SW010,2025-09-29,Requested,High,owner7@example.com,2025-11-02,ServiceNow
+SWR-00146,SW010,2026-02-02,Packaging,Medium,owner11@example.com,2026-03-24,ServiceNow
+SWR-00147,SW003,2025-12-18,Denied,High,owner17@example.com,2026-01-20,ServiceNow
+SWR-00148,SW003,2025-09-07,Assessment,Low,owner9@example.com,2025-10-30,Packaging Platform
+SWR-00149,SW007,2025-12-07,Assessment,High,owner14@example.com,2026-01-27,ServiceNow
+SWR-00150,SW007,2026-01-12,Pilot,Medium,owner19@example.com,2026-02-02,ServiceNow

@@ -1,0 +1,559 @@
+// ============================================================================
+// EUC Audit Readiness Power BI Measures
+// Create a blank table named _Measures and add these measures to it.
+// ============================================================================
+
+// ---------- Device Population ----------
+Total Devices =
+DISTINCTCOUNT ( Dim_Device[DeviceID] )
+
+Active Devices =
+CALCULATE (
+    [Total Devices],
+    Dim_Device[LifecycleStatus] = "Active"
+)
+
+Devices Not Seen 30 Days =
+CALCULATE (
+    [Total Devices],
+    Dim_Device[LifecycleStatus] = "Active",
+    Dim_Device[LastSeenDate] < TODAY () - 30
+)
+
+Lost or Stolen Devices =
+CALCULATE (
+    [Total Devices],
+    Dim_Device[LifecycleStatus] = "Lost/Stolen"
+)
+
+Disposed Devices =
+CALCULATE (
+    [Total Devices],
+    Dim_Device[LifecycleStatus] = "Disposed"
+)
+
+Devices At or Past EOL =
+CALCULATE (
+    [Total Devices],
+    Dim_Device[LifecycleStatus] = "Active",
+    Dim_Device[EOLDate] <= TODAY ()
+)
+
+Devices Approaching EOL 180 Days =
+CALCULATE (
+    [Total Devices],
+    Dim_Device[LifecycleStatus] = "Active",
+    Dim_Device[EOLDate] > TODAY (),
+    Dim_Device[EOLDate] <= TODAY () + 180
+)
+
+
+// ---------- Snapshot Dates ----------
+Latest Configuration Snapshot =
+MAXX (
+    ALL ( Fact_Configuration ),
+    Fact_Configuration[SnapshotDateKey]
+)
+
+Latest Encryption Snapshot =
+MAXX (
+    ALL ( Fact_Encryption ),
+    Fact_Encryption[SnapshotDateKey]
+)
+
+Latest Patch Snapshot =
+MAXX (
+    ALL ( Fact_Patch ),
+    Fact_Patch[SnapshotDateKey]
+)
+
+Latest Vulnerability Snapshot =
+MAXX (
+    ALL ( Fact_Vulnerability ),
+    Fact_Vulnerability[SnapshotDateKey]
+)
+
+
+// ---------- Configuration ----------
+Configuration Devices Evaluated =
+VAR LatestDate = [Latest Configuration Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate
+    )
+
+Configuration Compliant Devices =
+VAR LatestDate = [Latest Configuration Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate,
+        Fact_Configuration[ComplianceStatus] = "Compliant"
+    )
+
+Configuration Non-Compliant Devices =
+[Configuration Devices Evaluated] - [Configuration Compliant Devices]
+
+Configuration Compliance % =
+DIVIDE (
+    [Configuration Compliant Devices],
+    [Configuration Devices Evaluated]
+)
+
+AV Coverage % =
+VAR LatestDate = [Latest Configuration Snapshot]
+VAR Covered =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate,
+        Fact_Configuration[AVActive] = TRUE ()
+    )
+RETURN
+    DIVIDE ( Covered, [Configuration Devices Evaluated] )
+
+Firewall Coverage % =
+VAR LatestDate = [Latest Configuration Snapshot]
+VAR Covered =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate,
+        Fact_Configuration[FirewallEnabled] = TRUE ()
+    )
+RETURN
+    DIVIDE ( Covered, [Configuration Devices Evaluated] )
+
+Agent Coverage % =
+VAR LatestDate = [Latest Configuration Snapshot]
+VAR Covered =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate,
+        Fact_Configuration[AgentPresent] = TRUE ()
+    )
+RETURN
+    DIVIDE ( Covered, [Configuration Devices Evaluated] )
+
+Passwordless Compliant Devices =
+VAR LatestDate = [Latest Configuration Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate,
+        Fact_Configuration[PasswordlessEnabled] = TRUE ()
+    )
+
+Passwordless Compliance % =
+DIVIDE (
+    [Passwordless Compliant Devices],
+    [Configuration Devices Evaluated]
+)
+
+Devices With Drift =
+VAR LatestDate = [Latest Configuration Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate,
+        Fact_Configuration[DriftCount] > 0
+    )
+
+Total Configuration Drift =
+VAR LatestDate = [Latest Configuration Snapshot]
+RETURN
+    CALCULATE (
+        SUM ( Fact_Configuration[DriftCount] ),
+        Fact_Configuration[SnapshotDateKey] = LatestDate
+    )
+
+Configuration Compliance Trend % =
+VAR Evaluated =
+    DISTINCTCOUNT ( Fact_Configuration[DeviceID] )
+VAR Compliant =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Configuration[DeviceID] ),
+        Fact_Configuration[ComplianceStatus] = "Compliant"
+    )
+RETURN
+    DIVIDE ( Compliant, Evaluated )
+
+
+// ---------- Encryption ----------
+Encryption Devices Evaluated =
+VAR LatestDate = [Latest Encryption Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[SnapshotDateKey] = LatestDate
+    )
+
+Encryption Compliant Devices =
+VAR LatestDate = [Latest Encryption Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[SnapshotDateKey] = LatestDate,
+        Fact_Encryption[ComplianceStatus] = "Compliant"
+    )
+
+Encryption Non-Compliant Devices =
+[Encryption Devices Evaluated] - [Encryption Compliant Devices]
+
+Encryption Compliance % =
+DIVIDE (
+    [Encryption Compliant Devices],
+    [Encryption Devices Evaluated]
+)
+
+Encryption Software Missing =
+VAR LatestDate = [Latest Encryption Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[SnapshotDateKey] = LatestDate,
+        Fact_Encryption[SoftwareInstalled] = FALSE ()
+    )
+
+Encryption Disabled =
+VAR LatestDate = [Latest Encryption Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[SnapshotDateKey] = LatestDate,
+        Fact_Encryption[EncryptionEnabled] = FALSE ()
+    )
+
+Recovery Keys Not Escrowed =
+VAR LatestDate = [Latest Encryption Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[SnapshotDateKey] = LatestDate,
+        Fact_Encryption[RecoveryKeyEscrowed] = FALSE ()
+    )
+
+Portable Media Restriction % =
+VAR LatestDate = [Latest Encryption Snapshot]
+VAR Restricted =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[SnapshotDateKey] = LatestDate,
+        Fact_Encryption[PortableMediaRestricted] = TRUE ()
+    )
+RETURN
+    DIVIDE ( Restricted, [Encryption Devices Evaluated] )
+
+Encryption Compliance Trend % =
+VAR Evaluated =
+    DISTINCTCOUNT ( Fact_Encryption[DeviceID] )
+VAR Compliant =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Encryption[DeviceID] ),
+        Fact_Encryption[ComplianceStatus] = "Compliant"
+    )
+RETURN
+    DIVIDE ( Compliant, Evaluated )
+
+
+// ---------- Patch ----------
+Patch Devices Evaluated =
+VAR LatestDate = [Latest Patch Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Patch[DeviceID] ),
+        Fact_Patch[SnapshotDateKey] = LatestDate
+    )
+
+Patch Compliant Devices =
+VAR LatestDate = [Latest Patch Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Patch[DeviceID] ),
+        Fact_Patch[SnapshotDateKey] = LatestDate,
+        Fact_Patch[ComplianceStatus] = "Compliant"
+    )
+
+Patch Compliance % =
+DIVIDE (
+    [Patch Compliant Devices],
+    [Patch Devices Evaluated]
+)
+
+Devices Missing Critical Patches =
+VAR LatestDate = [Latest Patch Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Patch[DeviceID] ),
+        Fact_Patch[SnapshotDateKey] = LatestDate,
+        Fact_Patch[MissingCriticalPatches] > 0
+    )
+
+Total Missing Critical Patches =
+VAR LatestDate = [Latest Patch Snapshot]
+RETURN
+    CALCULATE (
+        SUM ( Fact_Patch[MissingCriticalPatches] ),
+        Fact_Patch[SnapshotDateKey] = LatestDate
+    )
+
+Average Days Since Last Patch =
+VAR LatestDate = [Latest Patch Snapshot]
+RETURN
+    CALCULATE (
+        AVERAGE ( Fact_Patch[DaysSinceLastPatch] ),
+        Fact_Patch[SnapshotDateKey] = LatestDate
+    )
+
+Patch Compliance Trend % =
+VAR Evaluated =
+    DISTINCTCOUNT ( Fact_Patch[DeviceID] )
+VAR Compliant =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Patch[DeviceID] ),
+        Fact_Patch[ComplianceStatus] = "Compliant"
+    )
+RETURN
+    DIVIDE ( Compliant, Evaluated )
+
+
+// ---------- Vulnerability ----------
+Vulnerability Devices Evaluated =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Vulnerability[DeviceID] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate
+    )
+
+Vulnerability Compliant Devices =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Vulnerability[DeviceID] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate,
+        Fact_Vulnerability[ComplianceStatus] = "Compliant"
+    )
+
+Vulnerability Compliance % =
+DIVIDE (
+    [Vulnerability Compliant Devices],
+    [Vulnerability Devices Evaluated]
+)
+
+Critical Vulnerabilities =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        SUM ( Fact_Vulnerability[CriticalCount] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate
+    )
+
+High Vulnerabilities =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        SUM ( Fact_Vulnerability[HighCount] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate
+    )
+
+Medium Vulnerabilities =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        SUM ( Fact_Vulnerability[MediumCount] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate
+    )
+
+Unscored or Undefined Findings =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        SUM ( Fact_Vulnerability[UnscoredUndefinedCount] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate
+    )
+
+Devices With Critical Vulnerabilities =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Vulnerability[DeviceID] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate,
+        Fact_Vulnerability[CriticalCount] > 0
+    )
+
+Devices Outside Vulnerability SLA =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Vulnerability[DeviceID] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate,
+        Fact_Vulnerability[ComplianceStatus] = "Non-Compliant"
+    )
+
+Oldest Open Vulnerability Age =
+VAR LatestDate = [Latest Vulnerability Snapshot]
+RETURN
+    CALCULATE (
+        MAX ( Fact_Vulnerability[OldestOpenAgeDays] ),
+        Fact_Vulnerability[SnapshotDateKey] = LatestDate
+    )
+
+Vulnerability Compliance Trend % =
+VAR Evaluated =
+    DISTINCTCOUNT ( Fact_Vulnerability[DeviceID] )
+VAR Compliant =
+    CALCULATE (
+        DISTINCTCOUNT ( Fact_Vulnerability[DeviceID] ),
+        Fact_Vulnerability[ComplianceStatus] = "Compliant"
+    )
+RETURN
+    DIVIDE ( Compliant, Evaluated )
+
+
+// ---------- Software ----------
+Installed Software Records =
+COUNTROWS ( Fact_SoftwareInventory )
+
+Devices With Software Inventory =
+DISTINCTCOUNT ( Fact_SoftwareInventory[DeviceID] )
+
+Non-Compliant Software Installations =
+CALCULATE (
+    COUNTROWS ( Fact_SoftwareInventory ),
+    Fact_SoftwareInventory[ComplianceStatus] = "Non-Compliant"
+)
+
+Devices With Non-Compliant Software =
+CALCULATE (
+    DISTINCTCOUNT ( Fact_SoftwareInventory[DeviceID] ),
+    Fact_SoftwareInventory[ComplianceStatus] = "Non-Compliant"
+)
+
+Software Requests =
+DISTINCTCOUNT ( Fact_SoftwareWorkflow[SoftwareRequestID] )
+
+Open Software Requests =
+CALCULATE (
+    [Software Requests],
+    NOT (
+        Fact_SoftwareWorkflow[LifecycleStage]
+            IN { "Production", "Retired", "Denied" }
+    )
+)
+
+Software Requests Outside Target =
+CALCULATE (
+    [Software Requests],
+    Fact_SoftwareWorkflow[TargetDate] < TODAY (),
+    NOT (
+        Fact_SoftwareWorkflow[LifecycleStage]
+            IN { "Production", "Retired", "Denied" }
+    )
+)
+
+Average Software Request Age Days =
+AVERAGEX (
+    FILTER (
+        Fact_SoftwareWorkflow,
+        NOT (
+            Fact_SoftwareWorkflow[LifecycleStage]
+                IN { "Production", "Retired", "Denied" }
+        )
+    ),
+    DATEDIFF (
+        Fact_SoftwareWorkflow[RequestDate],
+        TODAY (),
+        DAY
+    )
+)
+
+
+// ---------- Lifecycle ----------
+Lifecycle Events =
+COUNTROWS ( Fact_Lifecycle )
+
+Open Lost or Stolen Events =
+CALCULATE (
+    COUNTROWS ( Fact_Lifecycle ),
+    Fact_Lifecycle[EventType] = "Lost/Stolen",
+    Fact_Lifecycle[EventStatus] = "Open"
+)
+
+Sanitization Events =
+CALCULATE (
+    COUNTROWS ( Fact_Lifecycle ),
+    Fact_Lifecycle[EventType] = "Sanitized"
+)
+
+Disposal Events =
+CALCULATE (
+    COUNTROWS ( Fact_Lifecycle ),
+    Fact_Lifecycle[EventType] = "Disposed"
+)
+
+
+// ---------- Exceptions ----------
+Active Exceptions =
+CALCULATE (
+    DISTINCTCOUNT ( Fact_Exception[ExceptionID] ),
+    Fact_Exception[Status] = "Active"
+)
+
+Expired Exceptions =
+CALCULATE (
+    DISTINCTCOUNT ( Fact_Exception[ExceptionID] ),
+    Fact_Exception[EndDate] < TODAY (),
+    Fact_Exception[Status] <> "Closed"
+)
+
+Exceptions Expiring 30 Days =
+CALCULATE (
+    DISTINCTCOUNT ( Fact_Exception[ExceptionID] ),
+    Fact_Exception[EndDate] >= TODAY (),
+    Fact_Exception[EndDate] <= TODAY () + 30,
+    Fact_Exception[Status] = "Active"
+)
+
+
+// ---------- Evidence Repository ----------
+Evidence Documents =
+DISTINCTCOUNT ( Evidence_Register[DocumentID] )
+
+Current Evidence Documents =
+CALCULATE (
+    [Evidence Documents],
+    Evidence_Register[ReviewStatus] = "Current"
+)
+
+Overdue Evidence Reviews =
+CALCULATE (
+    [Evidence Documents],
+    Evidence_Register[NextReviewDate] < TODAY (),
+    Evidence_Register[ReviewStatus] <> "Current"
+)
+
+Evidence Reviews Due 30 Days =
+CALCULATE (
+    [Evidence Documents],
+    Evidence_Register[NextReviewDate] >= TODAY (),
+    Evidence_Register[NextReviewDate] <= TODAY () + 30
+)
+
+Evidence Current % =
+DIVIDE (
+    [Current Evidence Documents],
+    [Evidence Documents]
+)
+
+
+// ---------- Executive Composite Metric ----------
+Overall Domain Compliance % =
+AVERAGEX (
+    {
+        [Configuration Compliance %],
+        [Encryption Compliance %],
+        [Patch Compliance %],
+        [Vulnerability Compliance %]
+    },
+    [Value]
+)

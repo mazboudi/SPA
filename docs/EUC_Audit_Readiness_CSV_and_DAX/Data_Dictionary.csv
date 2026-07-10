@@ -1,0 +1,14 @@
+﻿Table,Grain,PrimaryKey,Purpose
+Dim_Device,One row per managed or known endpoint,DeviceID,Master endpoint population and organizational attributes
+Dim_Date,One row per calendar date,DateKey,Time intelligence and historical trending
+Dim_Control,One row per EUC control,ControlID,"Maps standards, regulations, severity and remediation SLA"
+Dim_Software,One row per normalized software title,SoftwareID,Authoritative software catalog
+Fact_Configuration,One row per device per snapshot,SnapshotDateKey + DeviceID,"Baseline, agent, firewall, AV, FIDO2 and drift compliance"
+Fact_Encryption,One row per device per snapshot,SnapshotDateKey + DeviceID,BitLocker/FileVault and portable media compliance
+Fact_Patch,One row per device per snapshot,SnapshotDateKey + DeviceID,Patch backlog and SLA status
+Fact_Vulnerability,One row per device per snapshot,SnapshotDateKey + DeviceID,"Severity counts, undefined findings and SLA age"
+Fact_Lifecycle,One row per device lifecycle event,DeviceID + EventDate + EventType,"Onboarding, lost/stolen, sanitization and disposal evidence"
+Fact_SoftwareInventory,One row per device/software installation,DeviceID + SoftwareID,Installed software and approval compliance
+Fact_SoftwareWorkflow,One row per software request,SoftwareRequestID,Request-to-retirement workflow
+Fact_Exception,One row per approved exception,ExceptionID,Risk acceptance and expiration tracking
+Evidence_Register,One row per controlled document/evidence artifact,DocumentID,Repository review and annual certification status

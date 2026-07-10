@@ -1,0 +1,11 @@
+﻿SoftwareID,SoftwareTitle,Publisher,Category,ApprovalStatus,SupportEndDate
+SW001,Microsoft 365 Apps,Microsoft,Productivity,Approved,2030-12-31
+SW002,Google Chrome,Google,Browser,Approved,2030-12-31
+SW003,Mozilla Firefox,Mozilla,Browser,Approved,2030-12-31
+SW004,CrowdStrike Falcon,CrowdStrike,Security,Approved,2030-12-31
+SW005,Tanium Client,Tanium,Security,Approved,2030-12-31
+SW006,7-Zip,Igor Pavlov,Utility,Approved,2029-12-31
+SW007,Java 8,Oracle,Runtime,Restricted,2026-12-31
+SW008,Adobe Acrobat Reader,Adobe,Productivity,Approved,2030-12-31
+SW009,Legacy VPN Client,Legacy Vendor,Network,Out of Service,2026-03-31
+SW010,Python,Python Software Foundation,Development,Conditional,2030-12-31
