@@ -100,12 +100,12 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
       <div className="pp-header">
         <div>
           <h2 className="pp-title">
-            {isClone ? '📋 Clone Existing App' : '✏️ Edit / Update Existing Package'}
+            {isClone ? '📋 Clone Existing Title' : '✏️ Edit / Update Existing Title'}
           </h2>
           <p className="pp-subtitle">
             {isClone
-              ? 'Select a source project — all config is copied except Package ID, version, and installer details'
-              : 'Select a project from GitLab to load into the workbench'}
+              ? 'Select a source title — all config is copied except Title ID, version, and installer details'
+              : 'Select a title from GitLab to load into the workbench'}
           </p>
         </div>
         <button className="pp-close" onClick={onClose} title="Back">← Back</button>

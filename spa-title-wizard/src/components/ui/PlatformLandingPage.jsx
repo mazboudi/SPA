@@ -15,16 +15,16 @@ const WIN_ACTIONS = [
   {
     id: 'blank',
     icon: '📄',
-    title: 'New Blank Package',
-    desc: 'Start from scratch. Enter all package metadata manually and build the full deployment.',
+    title: 'New Blank Title',
+    desc: 'Start from scratch. Enter all title metadata manually and build the full deployment.',
     cta: 'Create Blank →',
   },
   {
     id: 'edit',
     icon: '✏️',
-    title: 'Edit / Update',
-    desc: 'Load an existing package from GitLab to modify metadata, lifecycle scripts, or Intune settings.',
-    cta: 'Browse Projects →',
+    title: 'Edit Title',
+    desc: 'Load an existing title from GitLab to modify metadata, lifecycle scripts, or Intune settings.',
+    cta: 'Browse Titles →',
   },
   {
     id: 'refactor',
@@ -47,16 +47,16 @@ const MAC_ACTIONS = [
   {
     id: 'blank',
     icon: '📄',
-    title: 'New Blank Package',
-    desc: 'Start from scratch. Enter all package metadata manually and build the full macOS deployment.',
+    title: 'New Blank Title',
+    desc: 'Start from scratch. Enter all title metadata manually and build the full macOS deployment.',
     cta: 'Create Blank →',
   },
   {
     id: 'edit',
     icon: '✏️',
-    title: 'Edit / Update',
-    desc: 'Load an existing macOS package from GitLab to modify metadata or deployment configuration.',
-    cta: 'Browse Projects →',
+    title: 'Edit Title',
+    desc: 'Load an existing macOS title from GitLab to modify metadata or deployment configuration.',
+    cta: 'Browse Titles →',
   },
 ];
 
@@ -98,7 +98,7 @@ export default function PlatformLandingPage({ platform, onQueue, onBlank, onEdit
         </div>
         <div className="platform-landing__header-text">
           <h1 className="platform-landing__title">
-            {isWindows ? 'Windows Package Automation' : 'macOS Package Automation'}
+            {isWindows ? 'Windows Title Automation' : 'macOS Title Automation'}
           </h1>
           <p className="platform-landing__subtitle">
             {isWindows

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import generateScaffolding from '../../lib/generateScaffolding';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
-import { publishToGitLab, checkPublishHealth } from '../../lib/gitlabPublish';
+import { publishToGitLab, publishToGitLabStreamed, checkPublishHealth } from '../../lib/gitlabPublish';
 import { pushIntuneMetadata } from '../../lib/intuneApi';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
@@ -129,6 +129,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
   const [publishing, setPublishing] = useState(false);
   const [publishPhase, setPublishPhase] = useState('');
   const [publishError, setPublishError] = useState(null);
+  const [publishLog, setPublishLog] = useState([]); // live activity entries
   const [apiAvailable, setApiAvailable] = useState(null);
   const [pipelineAction, setPipelineAction] = useState('none');
 
@@ -176,28 +177,38 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
     setPublishError(null);
     setPublishResult(null);
     setPipelineStatus(null);
-    // Clear any active polling
+    setPublishLog([]);
     if (pipelineTimerRef.current) clearInterval(pipelineTimerRef.current);
     try {
-      setPublishPhase('Checking project...');
-      const result = await publishToGitLab({
-        packageId: state.packageId,
-        gitLabGroup: state.gitLabGroup,
-        category: state.category,
-        displayName: state.displayName,
-        version: state.version,
-        files,
-        pipelineAction,
-      });
+      const result = await publishToGitLabStreamed(
+        {
+          packageId: state.packageId,
+          gitLabGroup: state.gitLabGroup,
+          category: state.category,
+          displayName: state.displayName,
+          version: state.version,
+          files,
+          pipelineAction,
+        },
+        (event) => {
+          setPublishPhase(event.message);
+          setPublishLog(prev => {
+            // Update last entry if same step, otherwise append
+            if (prev.length > 0 && prev[prev.length - 1].step === event.step) {
+              return [...prev.slice(0, -1), event];
+            }
+            return [...prev, event];
+          });
+        }
+      );
       setPublishResult(result);
-      // Clear dirty flag — changes are now committed to GitLab
       if (markClean) markClean();
-      // If a pipeline was triggered, start polling for status
       if (result.pipelineId && result.projectId) {
         startPipelinePolling(result.projectId, result.pipelineId);
       }
     } catch (err) {
       setPublishError(err.message);
+      setPublishLog(prev => [...prev, { step: 'error', message: err.message, status: 'error' }]);
     } finally {
       setPublishing(false);
       setPublishPhase('');
@@ -541,6 +552,31 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
             <span className="publish-result__icon">❌</span>
             <span>{publishError}</span>
             <button className="btn btn-secondary btn-sm" onClick={handlePublish}>Retry</button>
+          </div>
+        )}
+
+        {/* ── Live Activity Log ── */}
+        {publishLog.length > 0 && (
+          <div className="publish-activity-log">
+            <div className="publish-activity-log__header">
+              <span>📋 Publish Activity</span>
+              {publishing && <span className="pipeline-spinner" style={{ width: 10, height: 10 }} />}
+            </div>
+            <div className="publish-activity-log__entries">
+              {publishLog.map((entry, i) => {
+                const icon =
+                  entry.status === 'ok'      ? '✅' :
+                  entry.status === 'warn'    ? '⚠️' :
+                  entry.status === 'error'   ? '❌' :
+                  i === publishLog.length - 1 && publishing ? '⏳' : '▸';
+                return (
+                  <div key={i} className={`pal-entry pal-entry--${entry.status}`}>
+                    <span className="pal-icon">{icon}</span>
+                    <span className="pal-msg">{entry.message}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -1292,6 +1328,47 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           overflow-x: auto;
           tab-size: 4;
         }
+        /* ── Publish Activity Log ── */
+        .publish-activity-log {
+          margin: var(--space-md) 0;
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          font-family: var(--font-mono, monospace);
+          font-size: 0.78rem;
+        }
+        .publish-activity-log__header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          background: rgba(255,255,255,0.04);
+          border-bottom: 1px solid var(--border-subtle);
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-muted);
+        }
+        .publish-activity-log__entries {
+          padding: 8px 0;
+          max-height: 220px;
+          overflow-y: auto;
+        }
+        .pal-entry {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          padding: 4px 14px;
+          color: var(--text-secondary);
+          transition: background 0.15s;
+        }
+        .pal-entry--ok    { color: #4ade80; }
+        .pal-entry--warn  { color: #fbbf24; }
+        .pal-entry--error { color: #f87171; }
+        .pal-icon { flex-shrink: 0; width: 1.2em; text-align: center; }
+        .pal-msg  { flex: 1; line-height: 1.5; }
       `}</style>
     </div>
   );

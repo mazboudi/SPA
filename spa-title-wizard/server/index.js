@@ -326,6 +326,191 @@ function validateSlug(slug) {
   return null;
 }
 
+// ── POST /api/publish/stream — SSE progress streaming ────────────────────────
+// Emits newline-delimited JSON events as the publish progresses.
+// Format: data: {"step":"...","message":"...","status":"running"|"ok"|"warn"|"error"}\n\n
+app.post('/api/publish/stream', async (req, res) => {
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const emit = (step, message, status = 'running') => {
+    const payload = JSON.stringify({ step, message, status });
+    res.write(`data: ${payload}\n\n`);
+  };
+
+  try {
+    const { packageId, gitLabGroup, category, displayName, version, files, pipelineAction } = req.body;
+    const triggerPipeline = pipelineAction && pipelineAction !== 'none';
+
+    if (!packageId || !gitLabGroup || !files || !Object.keys(files).length) {
+      emit('error', 'Missing required fields: packageId, gitLabGroup, files', 'error');
+      return res.end();
+    }
+    const slugError = validateSlug(packageId);
+    if (slugError) {
+      emit('error', slugError, 'error');
+      return res.end();
+    }
+
+    emit('init', `Publishing "${displayName || packageId}" → ${gitLabGroup}/${packageId}`);
+
+    // 1. Resolve group
+    emit('group', 'Resolving GitLab group…');
+    const fullGroupPath = gitLabGroup;
+    const groupId = await ensureGroupPath(fullGroupPath);
+    emit('group', `Group resolved: ${fullGroupPath}`, 'ok');
+
+    // 2. Check if project exists
+    emit('check', 'Checking if project exists in GitLab…');
+    const existing = await findProject(groupId, packageId);
+
+    if (existing) {
+      // ── Existing project path ──────────────────────────────────────
+      const defaultBranch = existing.default_branch || 'main';
+      const tagName = version ? `v${version.replace(/^v/i, '')}` : `v${Date.now()}`;
+      emit('check', `Project exists — updating with tag ${tagName}`, 'ok');
+
+      emit('clone', 'Syncing local clone…');
+      const repoDir = ensureLocalClone(existing.path_with_namespace, defaultBranch);
+      emit('clone', 'Local clone up to date', 'ok');
+
+      emit('files', `Writing ${Object.keys(files).length} files to workspace…`);
+      writeFilesToDir(repoDir, files);
+      emit('files', `${Object.keys(files).length} files written`, 'ok');
+
+      emit('git', 'Staging changes…');
+      git('add -A', repoDir);
+      const status = git('status --porcelain', repoDir, { silent: true });
+      if (status) {
+        emit('git', 'Committing changes…');
+        git(`commit -m "release: ${displayName || packageId} ${tagName} [skip ci]\n\nUpdated by SPA Packaging Workbench"`, repoDir);
+        emit('git', 'Changes committed', 'ok');
+      } else {
+        emit('git', 'No file changes — tag update only', 'warn');
+      }
+
+      emit('tag', `Creating tag ${tagName}…`);
+      git(`tag -f -a ${tagName} -m "Release ${tagName} — ${displayName || packageId}"`, repoDir);
+      emit('tag', `Tag ${tagName} created`, 'ok');
+
+      emit('push', `Pushing to origin/${defaultBranch}…`);
+      git(`push origin ${defaultBranch} --force`, repoDir);
+      git(`push origin ${tagName} --force`, repoDir);
+      emit('push', 'Pushed to GitLab', 'ok');
+
+      const tagUrl = `${existing.web_url}/-/tags/${tagName}`;
+      let pipelineUrl = null, pipelineError = null, pipelineId = null;
+
+      if (triggerPipeline) {
+        emit('pipeline', `Triggering pipeline (${pipelineAction})…`);
+        try {
+          await new Promise(r => setTimeout(r, 1500));
+          const pipelineVars = [{ key: 'SPA_STAGE_LIMIT', variable_type: 'env_var', value: pipelineAction }];
+          const pipeline = await gitlab('POST', `/projects/${existing.id}/pipeline`, { ref: defaultBranch, variables: pipelineVars });
+          pipelineUrl = pipeline.web_url || `${existing.web_url}/-/pipelines/${pipeline.id}`;
+          pipelineId = pipeline.id;
+          emit('pipeline', `Pipeline triggered (#${pipeline.id})`, 'ok');
+        } catch (pipeErr) {
+          pipelineError = pipeErr.message;
+          emit('pipeline', `Pipeline trigger failed: ${pipeErr.message}`, 'warn');
+        }
+      }
+
+      emit('done', `Published successfully`, 'ok');
+      res.write(`data: ${JSON.stringify({ step: 'result', status: 'ok', result: {
+        action: 'updated', projectUrl: existing.web_url, projectId: existing.id,
+        tagName, tagUrl, pipelineUrl, pipelineId, pipelineAction: pipelineAction || 'none',
+        pipelineError, localPath: repoDir,
+        vsCodeUrl: `vscode://file${repoDir.replace(/\\/g, '/')}`,
+      }})}\n\n`);
+
+    } else {
+      // ── New project path ───────────────────────────────────────────
+      const tagName = version ? `v${version.replace(/^v/i, '')}` : 'v1.0.0';
+      emit('check', 'Project not found — creating new project', 'ok');
+
+      emit('create', `Creating GitLab project "${displayName || packageId}"…`);
+      const project = await gitlab('POST', '/projects', {
+        name: displayName || packageId,
+        path: packageId,
+        namespace_id: groupId,
+        visibility: 'private',
+        initialize_with_readme: false,
+        description: `SPA packaging project for ${displayName || packageId}`,
+      });
+      emit('create', `Project created: ${project.path_with_namespace}`, 'ok');
+
+      emit('files', `Committing ${Object.keys(files).length} files…`);
+      const actions = buildCommitActions(files, 'create');
+      await gitlab('POST', `/projects/${project.id}/repository/commits`, {
+        branch: 'main',
+        commit_message: `feat: initial scaffolding for ${displayName || packageId} ${tagName} [skip ci]\n\nGenerated by SPA Packaging Workbench`,
+        actions,
+      });
+      emit('files', `${actions.length} files committed to main`, 'ok');
+
+      try { await gitlab('PUT', `/projects/${project.id}`, { default_branch: 'main' }); } catch { /* non-critical */ }
+
+      emit('tag', `Creating tag ${tagName}…`);
+      let tagUrl = null;
+      try {
+        await gitlab('POST', `/projects/${project.id}/repository/tags`, {
+          tag_name: tagName, ref: 'main',
+          message: `Release ${tagName} — ${displayName || packageId}\n\nPublished via SPA Packaging Workbench`,
+        });
+        tagUrl = `${project.web_url}/-/tags/${tagName}`;
+        emit('tag', `Tag ${tagName} created`, 'ok');
+      } catch (tagErr) {
+        emit('tag', `Tag creation failed (non-critical): ${tagErr.message}`, 'warn');
+      }
+
+      emit('clone', 'Cloning project locally for VS Code…');
+      let repoDir = null;
+      try {
+        repoDir = ensureLocalClone(project.path_with_namespace, 'main');
+        emit('clone', 'Local clone ready', 'ok');
+      } catch (cloneErr) {
+        emit('clone', `Local clone failed (non-critical): ${cloneErr.message}`, 'warn');
+      }
+
+      let pipelineUrl = null, pipelineError = null, pipelineId = null;
+      if (triggerPipeline) {
+        emit('pipeline', `Triggering pipeline (${pipelineAction})…`);
+        try {
+          await new Promise(r => setTimeout(r, 1500));
+          const pipelineVars = [{ key: 'SPA_STAGE_LIMIT', variable_type: 'env_var', value: pipelineAction }];
+          const pipeline = await gitlab('POST', `/projects/${project.id}/pipeline`, { ref: 'main', variables: pipelineVars });
+          pipelineUrl = pipeline.web_url || `${project.web_url}/-/pipelines/${pipeline.id}`;
+          pipelineId = pipeline.id;
+          emit('pipeline', `Pipeline triggered (#${pipeline.id})`, 'ok');
+        } catch (pipeErr) {
+          pipelineError = pipeErr.message;
+          emit('pipeline', `Pipeline trigger failed: ${pipeErr.message}`, 'warn');
+        }
+      }
+
+      emit('done', 'Published successfully', 'ok');
+      res.write(`data: ${JSON.stringify({ step: 'result', status: 'ok', result: {
+        action: 'created', projectUrl: project.web_url, projectId: project.id,
+        tagName, tagUrl, pipelineUrl, pipelineId, pipelineAction: pipelineAction || 'none',
+        pipelineError, localPath: repoDir,
+        vsCodeUrl: repoDir
+          ? `vscode://file${repoDir.replace(/\\/g, '/')}`
+          : `vscode://vscode.git/clone?url=${encodeURIComponent(`${GITLAB_URL}/${project.path_with_namespace}.git`)}`,
+      }})}\n\n`);
+    }
+
+  } catch (err) {
+    console.error('❌ Publish stream failed:', err.message);
+    emit('error', err.message, 'error');
+  } finally {
+    res.end();
+  }
+});
+
 // ── POST /api/publish ───────────────────────────────────────────────────────
 app.post('/api/publish', async (req, res) => {
   try {

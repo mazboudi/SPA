@@ -230,10 +230,10 @@ export default function Sidebar({
 
         <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
 
-        {/* ── New Package ── */}
+        {/* ── New Title ── */}
         <NavSection
           icon={<AddCircleIcon sx={{ fontSize: 18 }} />}
-          label="New Package"
+          label="New Title"
           selected={activeView === 'package' && !inPackage}
           open={!!platform}
           disabled={!platform}
@@ -266,20 +266,20 @@ export default function Sidebar({
 
         <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
 
-        {/* ── Edit Packages ── */}
+        {/* ── Edit Title ── */}
         <NavSection
           icon={<EditIcon sx={{ fontSize: 18 }} />}
-          label="Edit / Update"
+          label="Edit Title"
           selected={activeView === 'edit'}
           onClick={onEditPackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
         />
 
-        {/* ── Clone App ── */}
+        {/* ── Clone Title ── */}
         <NavSection
           icon={<ContentCopyIcon sx={{ fontSize: 18 }} />}
-          label="Clone App"
+          label="Clone Title"
           selected={activeView === 'clone'}
           onClick={onClonePackages}
           disabled={!platform}
