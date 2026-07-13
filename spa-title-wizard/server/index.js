@@ -342,7 +342,7 @@ app.post('/api/publish/stream', async (req, res) => {
   };
 
   try {
-    const { packageId, gitLabGroup, category, displayName, version, files, pipelineAction } = req.body;
+    const { packageId, gitLabGroup, category, displayName, version, files, pipelineAction, editProjectPath } = req.body;
     const triggerPipeline = pipelineAction && pipelineAction !== 'none';
 
     if (!packageId || !gitLabGroup || !files || !Object.keys(files).length) {
@@ -364,8 +364,35 @@ app.post('/api/publish/stream', async (req, res) => {
     emit('group', `Group resolved: ${fullGroupPath}`, 'ok');
 
     // 2. Check if project exists
+    // In Edit mode the client sends editProjectPath (the exact path_with_namespace).
+    // Use a direct lookup to avoid the group-search miss when the project lives
+    // in a different subgroup than the one currently in Settings.
     emit('check', 'Checking if project exists in GitLab…');
-    const existing = await findProject(groupId, packageId);
+    let existing = null;
+    if (editProjectPath) {
+      // Direct lookup by exact path — always accurate regardless of group config
+      try {
+        const qs = new URLSearchParams({ search: packageId, per_page: '20', simple: 'true' });
+        const results = await gitlab('GET', `/projects?${qs}`);
+        if (Array.isArray(results)) {
+          existing = results.find(p => p.path_with_namespace === editProjectPath) || null;
+        }
+        if (!existing) {
+          // Broader search with search_namespaces
+          const qs2 = new URLSearchParams({ search: packageId, search_namespaces: 'true', per_page: '50', simple: 'true' });
+          const results2 = await gitlab('GET', `/projects?${qs2}`);
+          if (Array.isArray(results2)) {
+            existing = results2.find(p => p.path_with_namespace === editProjectPath) || null;
+          }
+        }
+      } catch (lookupErr) {
+        console.warn(`  ⚠️ Direct project lookup failed: ${lookupErr.message} — falling back to group search`);
+      }
+    }
+    // Fallback to group search for new titles or when direct lookup doesn't find the project
+    if (!existing) {
+      existing = await findProject(groupId, packageId);
+    }
 
     if (existing) {
       // ── Existing project path ──────────────────────────────────────
@@ -514,7 +541,7 @@ app.post('/api/publish/stream', async (req, res) => {
 // ── POST /api/publish ───────────────────────────────────────────────────────
 app.post('/api/publish', async (req, res) => {
   try {
-    const { packageId, gitLabGroup, category, displayName, version, files, pipelineAction } = req.body;
+    const { packageId, gitLabGroup, category, displayName, version, files, pipelineAction, editProjectPath } = req.body;
     // pipelineAction: 'none' | 'build' | 'publish' | 'assign' | 'deploy' (default: 'none')
     const triggerPipeline = pipelineAction && pipelineAction !== 'none';
 
@@ -530,14 +557,40 @@ app.post('/api/publish', async (req, res) => {
     console.log(`\n📦 Publishing "${displayName || packageId}" → ${gitLabGroup}/${packageId}`);
 
     // 1. Resolve the group path (creates subgroups if needed)
-    // gitLabGroup comes directly from GITLAB_WIN_GROUP / GITLAB_MAC_GROUP in .env
-    // and is already the full parent group path — do not append anything to it.
     const fullGroupPath = gitLabGroup;
     const groupId = await ensureGroupPath(fullGroupPath);
     console.log(`  📂 Group resolved: ${fullGroupPath} (id: ${groupId})`);
 
     // 2. Check if project already exists
-    const existing = await findProject(groupId, packageId);
+    // In Edit mode the client sends editProjectPath (exact path_with_namespace).
+    // Use a direct path lookup so we find the project regardless of which group
+    // it actually lives in (avoids mismatch when Settings group differs from the
+    // group the title was originally created in).
+    let existing = null;
+    if (editProjectPath) {
+      try {
+        const qs = new URLSearchParams({ search: packageId, per_page: '20', simple: 'true' });
+        const results = await gitlab('GET', `/projects?${qs}`);
+        if (Array.isArray(results)) {
+          existing = results.find(p => p.path_with_namespace === editProjectPath) || null;
+        }
+        if (!existing) {
+          const qs2 = new URLSearchParams({ search: packageId, search_namespaces: 'true', per_page: '50', simple: 'true' });
+          const results2 = await gitlab('GET', `/projects?${qs2}`);
+          if (Array.isArray(results2)) {
+            existing = results2.find(p => p.path_with_namespace === editProjectPath) || null;
+          }
+        }
+        if (existing) {
+          console.log(`  ✅ Found project by path: ${existing.path_with_namespace} (id: ${existing.id})`);
+        }
+      } catch (lookupErr) {
+        console.warn(`  ⚠️ Direct project lookup failed: ${lookupErr.message} — falling back to group search`);
+      }
+    }
+    if (!existing) {
+      existing = await findProject(groupId, packageId);
+    }
 
     if (existing) {
       // ── Existing project → write to local clone + git push ────────

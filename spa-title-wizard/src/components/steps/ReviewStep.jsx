@@ -189,6 +189,10 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           version: state.version,
           files,
           pipelineAction,
+          // In Edit/Clone mode, pass the exact project path so the server can
+          // find the project by path_with_namespace rather than a group search.
+          // This fixes "Not Found" when the project lives in a different group.
+          editProjectPath: state._editProjectPath || undefined,
         },
         (event) => {
           setPublishPhase(event.message);
