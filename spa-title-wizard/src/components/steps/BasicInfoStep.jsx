@@ -14,93 +14,37 @@ function toKebabCase(str) {
 
 export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadExistingProject }) {
   const isEditMode = state.wizardMode === 'edit';
+  const isCloneMode = state.wizardMode === 'clone';
+  const isFromQueue = !!state._fromQueue;
+
   const [checkingProject, setCheckingProject] = useState(false);
   const [existingProject, setExistingProject] = useState(null);
-  
-  // GitLab project search dropdown states
-  const [projects, setProjects] = useState([]);
-  const [fetchingProjects, setFetchingProjects] = useState(false);
-  const [projectsError, setProjectsError] = useState(null);
-  
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const comboboxRef = useRef(null);
+  // Set to true once the user clicks "Load & Edit" so the card vanishes immediately
+  const [duplicateLoadDismissed, setDuplicateLoadDismissed] = useState(false);
 
-  // Click outside combobox closes dropdown
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (comboboxRef.current && !comboboxRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Fetch the projects list when gitLabGroup changes
-  useEffect(() => {
-    if (state.wizardMode === 'edit') return; // no need to fetch list in edit mode
-    
-    let active = true;
-    setFetchingProjects(true);
-    setProjectsError(null);
-    
-    // gitLabGroup from .env is already the full parent group — use it directly
-    const groupPath = state.gitLabGroup;
-    fetch(`/api/projects?group=${encodeURIComponent(groupPath)}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        if (active) {
-          setProjects(data.projects || []);
-          setFetchingProjects(false);
-        }
-      })
-      .catch(err => {
-        if (active) {
-          console.warn('Failed to fetch projects list:', err);
-          setProjectsError(err.message);
-          setFetchingProjects(false);
-        }
-      });
-      
-    return () => { active = false; };
-  }, [state.gitLabGroup, state.wizardMode]);
-
-  // Check if current Package ID exists in GitLab
-  // Tries the active gitLabGroup first; if not found, falls back to the base group
-  // (handles projects created before platform-specific subgroups were introduced).
+  // Check if current Package ID exists in GitLab (debounced)
   useEffect(() => {
     if (!state.packageId || !state.gitLabGroup) {
       setExistingProject(null);
       updateField('existingProject', null);
       return;
     }
+    // In edit mode we already know this project exists — skip the check.
+    if (isEditMode) return;
 
     const timer = setTimeout(async () => {
       setCheckingProject(true);
       setExistingProject(null);
       updateField('existingProject', null);
+      setDuplicateLoadDismissed(false); // reset dismiss state when ID changes
       try {
-        // gitLabGroup from .env is the full parent group — just append packageId directly
         const primaryPath = `${state.gitLabGroup}/${state.packageId}`;
-
-        // Helper to check a single path
-        const checkPath = async (fullPath) => {
-          const res = await fetch(`/api/projects/check?path=${encodeURIComponent(fullPath)}`);
-          if (!res.ok) return null;
-          const data = await res.json();
-          return data.exists ? data.project : null;
-        };
-
-        let project = await checkPath(primaryPath);
-
-        // No fallback needed — the group path is fully specified in .env
-
-        if (project) {
-          setExistingProject(project);
-          updateField('existingProject', project);
+        const res = await fetch(`/api/projects/check?path=${encodeURIComponent(primaryPath)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.exists) {
+          setExistingProject(data.project);
+          updateField('existingProject', data.project);
         } else {
           setExistingProject(null);
           updateField('existingProject', null);
@@ -110,10 +54,12 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
       } finally {
         setCheckingProject(false);
       }
-    }, 600); // 600ms debounce
+    }, 600);
 
     return () => clearTimeout(timer);
-  }, [state.packageId, state.gitLabGroup]);
+  }, [state.packageId, state.gitLabGroup, isEditMode]);
+
+
   return (
     <div className="step-content animate-in">
       {/* Refactor import banner */}
@@ -179,8 +125,8 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
         <p>Define the application identity. These values are used across all generated files.</p>
       </div>
 
-      {/* Duplicate Project Choice Card */}
-      {existingProject && (state.wizardMode !== 'edit' || existingProject.path_with_namespace !== state._editProjectPath) && (
+      {/* NEW mode — existing project found: offer Load & Edit vs Proceed */}
+      {existingProject && !duplicateLoadDismissed && state.wizardMode === 'new' && !isFromQueue && (
         <div className="duplicate-alert duplicate-choice-card animate-in">
           <div className="duplicate-alert__header">
             <span className="duplicate-alert__icon">⚠️</span>
@@ -199,31 +145,31 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
                 <span><strong>Latest Version:</strong> <code className="duplicate-alert__version">{existingProject.tags[0].name}</code></span>
               )}
             </div>
-            
             <div className="duplicate-choices-grid">
-              {/* Option A */}
+              {/* Option A — Load & Edit */}
               <div className={`duplicate-choice-box ${!state.duplicateAcknowledge ? 'duplicate-choice-box--active' : ''}`}>
                 <div className="duplicate-choice-box__badge">Option A (Recommended)</div>
-                <h4>✏️ Load & Edit Existing Configuration</h4>
-                <p>Discard current changes/uploads, pull the configuration directly from GitLab, and edit it. This maintains project history.</p>
+                <h4>✏️ Load &amp; Edit Existing Configuration</h4>
+                <p>Discard current changes, pull the configuration from GitLab, and edit it. This maintains project history.</p>
                 {onLoadExistingProject && (
                   <button
                     type="button"
                     className="btn btn-primary duplicate-alert__btn"
-                    onClick={() => onLoadExistingProject(existingProject.path_with_namespace)}
+                    onClick={() => {
+                      setDuplicateLoadDismissed(true);
+                      onLoadExistingProject(existingProject.path_with_namespace);
+                    }}
                     style={{ marginTop: 'auto' }}
                   >
                     ✏️ Load Existing Project
                   </button>
                 )}
               </div>
-
-              {/* Option B */}
+              {/* Option B — Proceed */}
               <div className={`duplicate-choice-box ${state.duplicateAcknowledge ? 'duplicate-choice-box--active' : ''}`}>
                 <div className="duplicate-choice-box__badge duplicate-choice-box__badge--caution">Option B (Proceed)</div>
-                <h4>🔄 Proceed with Refactoring</h4>
-                <p>Continue using your uploaded files. Note that publishing will overwrite or update scripts directly on the main branch of the repository.</p>
-                
+                <h4>🔄 Proceed as New</h4>
+                <p>Continue creating a new project. Publishing will overwrite or update scripts on the existing repository's main branch.</p>
                 <label className="duplicate-ack-label" style={{ marginTop: 'auto', display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                   <input
                     type="checkbox"
@@ -235,7 +181,6 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
                 </label>
               </div>
             </div>
-
             {!state.duplicateAcknowledge && (
               <p className="duplicate-alert__msg" style={{ marginTop: 'var(--space-md)', color: '#ef4444', fontWeight: '500', fontSize: '0.8rem' }}>
                 ⚠️ Please select Option A (Load Existing) or check the acknowledgment checkbox in Option B to proceed.
@@ -244,6 +189,54 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           </div>
         </div>
       )}
+
+      {/* CLONE mode — derived Package ID already exists: lighter warning */}
+      {existingProject && isCloneMode && (
+        <div className="duplicate-alert duplicate-alert--clone animate-in">
+          <div className="duplicate-alert__header">
+            <span className="duplicate-alert__icon">⚠️</span>
+            <div className="duplicate-alert__title-group">
+              <h3 className="duplicate-alert__title">Package ID Already Exists</h3>
+              <p className="duplicate-alert__subtitle">
+                A GitLab project with the ID <code>{state.packageId}</code> already exists at{' '}
+                <a href={existingProject.web_url} target="_blank" rel="noreferrer" className="duplicate-alert__link">{existingProject.path_with_namespace}</a>.
+                This clone will create a <strong>new, separate project</strong> when published — choose a different Display Name if that's not intended.
+              </p>
+            </div>
+          </div>
+          <label className="duplicate-ack-label" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 'var(--space-md)' }}>
+            <input
+              type="checkbox"
+              checked={state.duplicateAcknowledge || false}
+              onChange={e => updateField('duplicateAcknowledge', e.target.checked)}
+              style={{ marginTop: '3px' }}
+            />
+            <span>I understand — continue with this Package ID for the cloned project.</span>
+          </label>
+        </div>
+      )}
+
+      {/* QUEUE mode — version already tagged in GitLab */}
+      {isFromQueue && existingProject && state.version && (() => {
+        const tags = existingProject.tags || [];
+        const versionTag = `v${state.version.replace(/^v/i, '')}`;
+        const versionExists = tags.some(t => t.name === versionTag || t.name === state.version);
+        return versionExists ? (
+          <div className="duplicate-alert duplicate-alert--queue-version animate-in">
+            <div className="duplicate-alert__header">
+              <span className="duplicate-alert__icon">⚠️</span>
+              <div className="duplicate-alert__title-group">
+                <h3 className="duplicate-alert__title">Version Already Released</h3>
+                <p className="duplicate-alert__subtitle">
+                  Version <code>{state.version}</code> ({versionTag}) has already been published to GitLab for package <code>{state.packageId}</code>.
+                  You may be creating a duplicate release. You can still proceed — update the version if needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
+
 
 
       <div className="form-grid">
@@ -260,112 +253,34 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           />
         </FormField>
 
-        {state.wizardMode !== 'edit' ? (
-          <FormField
-            label="Package ID"
-            required
-            id="packageId"
-            hint="Select an existing GitLab project or enter a Package ID to create a new one."
-            style={{ gridColumn: 'span 2', marginTop: 'var(--space-md)' }}
-          >
-            <div className="combobox-container" ref={comboboxRef}>
-              <div className="combobox-input-wrapper">
-                <input
-                  id="packageId"
-                  type="text"
-                  placeholder={fetchingProjects ? "Loading projects from GitLab..." : "Search existing projects or enter new Package ID..."}
-                  value={state.packageId}
-                  onChange={e => {
-                    updateField('packageId', e.target.value);
-                    setDropdownOpen(true);
-                  }}
-                  onFocus={() => setDropdownOpen(true)}
-                  className="combobox-input"
-                />
-                {state.packageId && (
-                  <button
-                    type="button"
-                    className="combobox-clear"
-                    onClick={() => {
-                      updateField('packageId', '');
-                      setDropdownOpen(true);
-                    }}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-              {dropdownOpen && (
-                <div className="combobox-dropdown animate-in">
-                  {(() => {
-                    const query = (state.packageId || '').toLowerCase();
-                    const filteredProjects = projects.filter(p =>
-                      (p.name || '').toLowerCase().includes(query) ||
-                      (p.path || '').toLowerCase().includes(query)
-                    );
-                    
-                    const exactMatch = projects.some(p => p.path.toLowerCase() === query);
-                    const showCreateNew = query.trim().length > 0 && !exactMatch;
 
-                    if (filteredProjects.length === 0 && !showCreateNew) {
-                      return (
-                        <div className="combobox-empty">
-                          {fetchingProjects ? "Loading GitLab projects..." : "Start typing to search or create a new project..."}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <>
-                        {filteredProjects.map(p => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            className={`combobox-item ${state.packageId === p.path ? 'combobox-item--selected' : ''}`}
-                            onClick={() => {
-                              updateField('packageId', p.path);
-                              updateField('displayName', p.name);
-                              setDropdownOpen(false);
-                            }}
-                          >
-                            <span className="combobox-item-name">{p.name}</span>
-                            <span className="combobox-item-path">{p.path_with_namespace}</span>
-                          </button>
-                        ))}
-                        {showCreateNew && (
-                          <button
-                            type="button"
-                            className="combobox-item combobox-item--create-new"
-                            onClick={() => {
-                              setDropdownOpen(false);
-                            }}
-                          >
-                            <span className="combobox-item-name">➕ Create new project with ID "{state.packageId}"</span>
-                            <span className="combobox-item-path">A new GitLab repository will be created for this package ID</span>
-                          </button>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-            {state.packageId && (() => {
-              const err = validatePackageId(state.packageId);
-              return err ? <span className="field-error-msg">⚠️ {err}</span> : null;
-            })()}
-          </FormField>
-        ) : (
-          <FormField label="Package ID" required id="packageId" hint="Package ID is locked in edit mode." style={{ gridColumn: 'span 2', marginTop: 'var(--space-md)' }}>
+        {/* Package ID — always read-only, always derived from Display Name */}
+        <FormField
+          label="🔒 Package ID"
+          required
+          id="packageId"
+          hint={
+            isEditMode ? 'Package ID is locked in edit mode.' :
+              isCloneMode ? 'Auto-derived from Display Name — edit Display Name to change.' :
+                isFromQueue ? 'Package ID is derived from Display Name.' :
+                  checkingProject ? '🔍 Checking GitLab…' :
+                    'Auto-derived from Display Name — not directly editable.'
+          }
+          style={{ gridColumn: 'span 2', marginTop: 'var(--space-md)' }}
+        >
+          <div className="packageid-readonly-wrapper">
             <input
               id="packageId"
               type="text"
               value={state.packageId}
               disabled
-              className="input-disabled"
+              className="input-disabled packageid-readonly-input"
             />
-          </FormField>
-        )}
+            {checkingProject && (
+              <span className="packageid-checking">⏳</span>
+            )}
+          </div>
+        </FormField>
 
         <FormField label="Publisher" required id="publisher" hint={isEditMode ? 'Publisher is locked in edit mode.' : undefined}>
           <input
@@ -680,103 +595,27 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           100% { opacity: 0.6; }
         }
 
-        /* ── Package ID & Combobox ── */
-        .combobox-container {
-          position: relative;
-          width: 100%;
-        }
-        .combobox-input-wrapper {
-          position: relative;
+        /* ── Package ID read-only wrapper ── */
+        .packageid-readonly-wrapper {
           display: flex;
           align-items: center;
-        }
-        .combobox-input {
+          gap: 8px;
           width: 100%;
-          padding-right: 32px !important;
         }
-        .combobox-clear {
-          position: absolute;
-          right: 10px;
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          font-size: 0.8rem;
-          padding: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
+        .packageid-lock-icon {
+          font-size: 0.9rem;
+          flex-shrink: 0;
+          opacity: 0.6;
         }
-        .combobox-clear:hover {
-          color: var(--text-primary);
-          background: rgba(255, 255, 255, 0.1);
-        }
-        .combobox-dropdown {
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          background: var(--bg-elevated, #161b33);
-          border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
-          border-radius: var(--radius-md, 8px);
-          margin-top: 4px;
-          max-height: 250px;
-          overflow-y: auto;
-          z-index: 100;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-          backdrop-filter: var(--glass-blur);
-        }
-        .combobox-item {
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 2px;
-          padding: 10px 14px;
-          background: transparent;
-          border: none;
-          border-bottom: 1px solid rgba(255,255,255,0.03);
-          text-align: left;
-          color: var(--text-primary);
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .combobox-item:hover {
-          background: rgba(99, 140, 255, 0.1);
-        }
-        .combobox-item--selected {
-          background: rgba(99, 140, 255, 0.15);
-          border-left: 3px solid var(--text-accent, #7c8aff);
-        }
-        .combobox-item-name {
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-        .combobox-item-path {
-          font-size: 0.72rem;
-          color: var(--text-muted);
+        .packageid-readonly-input {
+          flex: 1;
           font-family: var(--font-mono, monospace);
+          font-size: 0.85rem;
+          letter-spacing: 0.02em;
         }
-        .combobox-empty {
-          padding: 16px;
-          text-align: center;
-          font-size: 0.82rem;
-          color: var(--text-muted);
-        }
-        .field-error-msg {
-          display: block;
-          margin-top: var(--space-xs);
-          font-size: 0.78rem;
-          color: #ef4444;
-          font-weight: 500;
-        }
-        .input-disabled {
-          background: rgba(255, 255, 255, 0.03) !important;
-          color: var(--text-muted) !important;
-          cursor: not-allowed;
-          border-color: rgba(255, 255, 255, 0.05) !important;
+        .packageid-checking {
+          font-size: 0.85rem;
+          flex-shrink: 0;
         }
 
         /* ── Duplicate Choice Cards ── */
@@ -849,15 +688,30 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           100% { opacity: 0.6; }
         }
 
-        .combobox-item--create-new {
-          border-top: 1px dashed var(--border-subtle);
-          background: rgba(99, 140, 255, 0.03) !important;
+        .field-error-msg {
+          display: block;
+          margin-top: var(--space-xs);
+          font-size: 0.78rem;
+          color: #ef4444;
+          font-weight: 500;
         }
-        .combobox-item--create-new:hover {
-          background: rgba(99, 140, 255, 0.08) !important;
+        .input-disabled {
+          background: rgba(255, 255, 255, 0.03) !important;
+          color: var(--text-muted) !important;
+          cursor: not-allowed;
+          border-color: rgba(255, 255, 255, 0.05) !important;
         }
-        .combobox-item--create-new .combobox-item-name {
-          color: var(--text-accent, #7c8aff) !important;
+
+        /* Clone mode — lighter amber warning */
+        .duplicate-alert--clone {
+          border-color: rgba(245, 158, 11, 0.3) !important;
+          background: rgba(245, 158, 11, 0.04) !important;
+        }
+
+        /* Queue mode — version-already-released warning */
+        .duplicate-alert--queue-version {
+          border-color: rgba(251, 191, 36, 0.3) !important;
+          background: rgba(251, 191, 36, 0.04) !important;
         }
       `}</style>
     </div>

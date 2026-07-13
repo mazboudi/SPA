@@ -181,13 +181,22 @@ export default function App() {
   const handleNewFromQueue = () => withUnsavedWorkGuard(() => setView(VIEW.QUEUE));
 
   // ── Refactor ──────────────────────────────────────────────────────────────
-  const handleRefactor = () => withUnsavedWorkGuard(() => setView(VIEW.REFACTOR));
+  const handleRefactor = () => withUnsavedWorkGuard(() => {
+    clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
+    setView(VIEW.REFACTOR);
+  });
 
   // ── Edit packages ─────────────────────────────────────────────────────────
-  const handleEditPackages = () => withUnsavedWorkGuard(() => setView(VIEW.EDIT));
+  const handleEditPackages = () => withUnsavedWorkGuard(() => {
+    clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
+    setView(VIEW.EDIT);
+  });
 
   // ── Clone app ─────────────────────────────────────────────────────────────
-  const handleClonePackages = () => withUnsavedWorkGuard(() => setView(VIEW.CLONE));
+  const handleClonePackages = () => withUnsavedWorkGuard(() => {
+    clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
+    setView(VIEW.CLONE);
+  });
 
   // Clone project selected from picker: load full config, then clear identity/installer fields
   const handleCloneSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
@@ -208,6 +217,9 @@ export default function App() {
       Object.entries(fields).forEach(([key, value]) => {
         if (value !== undefined && value !== '') wizard.updateField(key, value);
       });
+      // Mark as queue-seeded so BasicInfoStep shows the locked badge
+      // and suppresses the standard new-project duplicate card.
+      wizard.updateField('_fromQueue', true);
       wizard.goToStep(0);
     }, 0);
     setView(VIEW.PACKAGE);

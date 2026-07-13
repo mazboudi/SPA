@@ -350,11 +350,16 @@ export default function useWizardState() {
     setState(prev => {
       const next = { ...prev, [field]: value };
 
-      // Auto-derive packageId from displayName
+      // Auto-derive packageId from displayName — applies in ALL modes.
+      // The field is always read-only in the UI; derivation ensures consistency
+      // when Display Name is changed (e.g. clone mode).
       if (field === 'displayName') {
         next.packageId = toKebabCase(value);
-        next.existingProject = null;
-        next.duplicateAcknowledge = false;
+        // Only reset duplicate state in non-edit modes
+        if (prev.wizardMode !== 'edit') {
+          next.existingProject = null;
+          next.duplicateAcknowledge = false;
+        }
         if (prev.displayName && prev._intuneAppNameOverride && prev._intuneAppNameOverride.includes(prev.displayName)) {
           next._intuneAppNameOverride = prev._intuneAppNameOverride.replace(prev.displayName, value);
         }
@@ -1019,8 +1024,10 @@ export default function useWizardState() {
     setTimeout(() => {
       setState(prev => ({
         ...prev,
-        // Identity — must be unique for the new project
-        packageId:            '',
+        // Identity — packageId is derived from the copied displayName so it
+        // appears immediately. The user changes Display Name to make it unique,
+        // which will re-derive packageId automatically.
+        packageId:            toKebabCase(prev.displayName || ''),
         // Version — must be set explicitly for the new title
         version:              '',
         // Installer source — runner path is specific to the source title
