@@ -150,10 +150,6 @@ export default function App() {
     applyPlatformSelect(pendingPlatform);
   };
 
-  // ── Sidebar action handlers ───────────────────────────────────────────────
-  const handleGoHome = () => {
-    setView(VIEW.HOME);
-  };
 
   // ── Unsaved-work guard ────────────────────────────────────────────────────
   const withUnsavedWorkGuard = (action) => {
@@ -164,6 +160,11 @@ export default function App() {
       action();
     }
   };
+
+  // ── Sidebar action handlers ───────────────────────────────────────────────
+  const handleGoHome = () => withUnsavedWorkGuard(() => {
+    setView(VIEW.HOME);
+  });
 
   // ── New blank package ─────────────────────────────────────────────────────
   const handleNewBlank = () => withUnsavedWorkGuard(() => {
