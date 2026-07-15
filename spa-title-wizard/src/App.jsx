@@ -163,6 +163,8 @@ export default function App() {
 
   // ── Sidebar action handlers ───────────────────────────────────────────────
   const handleGoHome = () => withUnsavedWorkGuard(() => {
+    wizard.reset();
+    clearEdits();
     setView(VIEW.HOME);
   });
 
