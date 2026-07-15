@@ -674,7 +674,7 @@ export default function useWizardState() {
           { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart' },
         ]);
         mkPhase('uninstall', [
-          { type: 'uninstall_application', enabled: true, name: prev.displayName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
+          { type: 'uninstall_application', enabled: true, name: prev.msiProductName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
         ]);
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';

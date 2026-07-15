@@ -82,6 +82,7 @@
 .action-field__label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); }
 .action-field input[type="text"], .action-field input[type="number"], .action-field textarea { font-size: 0.75rem; padding: 4px 6px; background: var(--bg-surface, rgba(0,0,0,0.3)); border: 1px solid var(--border-subtle); border-radius: 3px; color: var(--text-primary); font-family: var(--font-mono, monospace); }
 .action-field textarea { grid-column: 1 / -1; font-size: 0.7rem; }
+.action-field__hint { font-size: 0.63rem; color: var(--text-muted); font-style: italic; line-height: 1.3; margin-top: 1px; }
 .action-card__raw { padding: 4px 10px 6px; }
 .action-card__raw code { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono, monospace); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

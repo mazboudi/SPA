@@ -498,7 +498,9 @@ function extractV4Function(text, funcName) {
 
 /** Extract a MARK: block from v4 function body */
 function extractV4Mark(funcBody, markName) {
-  const markRe = new RegExp(`## MARK: ${markName}\\b`, 'i');
+  // Use a prefix match so "Post-Uninstall" also matches "Post-Uninstallation"
+  const escapedMark = markName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const markRe = new RegExp(`## MARK: ${escapedMark}(?:\\w+)?\\b`, 'i');
   const markMatch = funcBody.match(markRe);
   if (!markMatch) return null;
 
@@ -717,6 +719,10 @@ function extractPsParamValue(line, paramName) {
   const unquotedRe = new RegExp(`-${paramName}\\s+(\\$(?:\\([^)]+\\)|[\\w.]+)(?:[\\\\/][^\\s'",;|}]+)*)`, 'i');
   const um = line.match(unquotedRe);
   if (um) return um[1];
+  // Try unquoted bare word: -ParamName SomeWord (no quotes, no $, ends at whitespace/end)
+  const bareRe = new RegExp(`-${paramName}\\s+([A-Za-z][A-Za-z0-9_]*)(?=[\\s,;|]|$)`, 'i');
+  const bw = line.match(bareRe);
+  if (bw) return bw[1];
   return null;
 }
 
@@ -1124,15 +1130,23 @@ function extractBlockActions(block) {
       }
     }
 
-    // Start-ADTMsiProcess (v4) — with -ProductCode GUID (uninstall by product code)
+    // Start-ADTMsiProcess (v4) — with -ProductCode GUID (uninstall/repair/install by product code)
+    // Emit as 'start_msi_process' with productCode so the generator's existing case handles it.
     if (!matched) {
       const adtMsiPcMatch = t.match(/Start-ADTMsiProcess\b.*-ProductCode\s+['"]?(\{?[0-9A-Fa-f\-]{32,38}\}?)['"]?/i);
       if (adtMsiPcMatch) {
         flushCustomBuffer();
         const actionMatch = t.match(/-Action\s+['"]?(\w+)['"]?/i);
         const argVal = extractPsParamValue(t, 'ArgumentList');
-        const action = actionMatch?.[1] || 'uninstall';
-        actions.push({ type: `msi_${action.toLowerCase()}`, desc: `MSI ${action} by ProductCode: ${adtMsiPcMatch[1]}`, productCode: adtMsiPcMatch[1], args: argVal || '', raw: t });
+        const action = actionMatch?.[1] || 'Uninstall';
+        actions.push({
+          type: 'start_msi_process',
+          action,
+          productCode: adtMsiPcMatch[1],
+          args: argVal || '',
+          desc: `MSI ${action} by ProductCode: ${adtMsiPcMatch[1]}`,
+          raw: t,
+        });
         matched = true;
       }
     }

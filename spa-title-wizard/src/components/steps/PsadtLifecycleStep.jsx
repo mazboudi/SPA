@@ -303,6 +303,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                   ) : (
                     <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} />
                   )}
+                  {f.hint && <span className="action-field__hint">{f.hint}</span>}
                 </div>
               ))}
             </div>

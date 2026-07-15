@@ -391,7 +391,8 @@
     "parameter": "name",
     "label": "Name (-Name)",
     "type": "text",
-    "placeholder": "App Name"
+    "placeholder": "Exact name from Add/Remove Programs",
+    "hint": "Must match the program name as it appears in Add/Remove Programs (Control Panel). This is the MSI ProductName, which may differ from the wizard Display Name."
   },
   {
     "cmdlet": "uninstall_application",
