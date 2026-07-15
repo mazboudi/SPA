@@ -1,664 +1,78 @@
-Invoke-AppDeployToolkit.ps1 - Original <#
-
-.SYNOPSIS
-PSAppDeployToolkit - This script performs the installation or uninstallation of an application(s).
-
-.DESCRIPTION
-- The script is provided as a template to perform an install, uninstall, or repair of an application(s).
-- The script either performs an "Install", "Uninstall", or "Repair" deployment type.
-- The install deployment type is broken down into 3 main sections/phases: Pre-Install, Install, and Post-Install.
-
-The script imports the PSAppDeployToolkit module which contains the logic and functions required to install or uninstall an application.
-
-PSAppDeployToolkit is licensed under the GNU LGPLv3 License - (C) 2025 PSAppDeployToolkit Team (Sean Lillis, Dan Cunningham, Muhammad Mashwani, Mitch Richters, Dan Gough).
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the
-Free Software Foundation, either version 3 of the License, or any later version. This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-for more details. You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-.PARAMETER DeploymentType
-The type of deployment to perform.
-
-.PARAMETER DeployMode
-Specifies whether the installation should be run in Interactive (shows dialogs), Silent (no dialogs), or NonInteractive (dialogs without prompts) mode.
-
-NonInteractive mode is automatically set if it is detected that the process is not user interactive.
-
-.PARAMETER AllowRebootPassThru
-Allows the 3010 return code (requires restart) to be passed back to the parent process (e.g. SCCM) if detected from an installation. If 3010 is passed back to SCCM, a reboot prompt will be triggered.
-
-.PARAMETER TerminalServerMode
-Changes to "user install mode" and back to "user execute mode" for installing/uninstalling applications for Remote Desktop Session Hosts/Citrix servers.
-
-.PARAMETER DisableLogging
-Disables logging to file for the script.
-
-.EXAMPLE
-powershell.exe -File Invoke-AppDeployToolkit.ps1 -DeployMode Silent
-
-.EXAMPLE
-powershell.exe -File Invoke-AppDeployToolkit.ps1 -AllowRebootPassThru
-
-.EXAMPLE
-powershell.exe -File Invoke-AppDeployToolkit.ps1 -DeploymentType Uninstall
-
-.EXAMPLE
-Invoke-AppDeployToolkit.exe -DeploymentType "Install" -DeployMode "Silent"
-
-.INPUTS
-None. You cannot pipe objects to this script.
-
-.OUTPUTS
-None. This script does not generate any output.
-
-.NOTES
-Toolkit Exit Code Ranges:
-- 60000 - 68999: Reserved for built-in exit codes in Invoke-AppDeployToolkit.ps1, and Invoke-AppDeployToolkit.exe
-- 69000 - 69999: Recommended for user customized exit codes in Invoke-AppDeployToolkit.ps1
-- 70000 - 79999: Recommended for user customized exit codes in PSAppDeployToolkit.Extensions module.
-
-.LINK
-https://psappdeploytoolkit.com
-
-#>
-
-[CmdletBinding()]
-param
-(
-    [Parameter(Mandatory = $false)]
-    [ValidateSet('Install', 'Uninstall', 'Repair')]
-    [PSDefaultValue(Help = 'Install', Value = 'Install')]
-    [System.String]$DeploymentType,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateSet('Interactive', 'Silent', 'NonInteractive')]
-    [PSDefaultValue(Help = 'Interactive', Value = 'Interactive')]
-    [System.String]$DeployMode,
-
-    [Parameter(Mandatory = $false)]
-    [System.Management.Automation.SwitchParameter]$AllowRebootPassThru,
-
-    [Parameter(Mandatory = $false)]
-    [System.Management.Automation.SwitchParameter]$TerminalServerMode,
-
-    [Parameter(Mandatory = $false)]
-    [System.Management.Automation.SwitchParameter]$DisableLogging
-)
-
-
-##================================================
-## MARK: Variables
-##================================================
-
-$adtSession = @{
-    # App variables.
-    AppVendor = 'Postman'
-    AppName = 'Postman Enterprise'
-    AppVersion = '11.85.0'
-    AppArch = 'x64'
-    AppLang = 'EN'
-    AppRevision = '01'
-    AppSuccessExitCodes = @(0)
-    AppRebootExitCodes = @(1641, 3010)
-    AppScriptVersion = '1.0.0'
-    AppScriptDate = '2026-05-11'
-    AppScriptAuthor = 'Cellina Lukram'
-
-    # Install Titles (Only set here to override defaults set by the toolkit).
-    InstallName = 'Postman_PostmanEnterprise_11.85.0'
-    InstallTitle = 'Postman_PostmanEnterprise_11.85.0'
-
-    # Script variables.
-    DeployAppScriptFriendlyName = $MyInvocation.MyCommand.Name
-    DeployAppScriptVersion = '4.0.6'
-    DeployAppScriptParameters = $PSBoundParameters
-}
-
-function Install-ADTDeployment
-{
-    ##================================================
-    ## MARK: Pre-Install
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
-
-    ## Show Welcome Message, close Internet Explorer if required, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt.
-    Show-ADTInstallationWelcome -CloseProcesses iexplore -AllowDefer -DeferTimes 3 -CheckDiskSpace -PersistPrompt
-     Show-ADTInstallationWelcome -CloseProcesses "Postman Enterprise" -CloseProcessesCountdown 60
-
-    ## Show Progress Message (with the default message).
-    Show-ADTInstallationProgress
-
-    ## <Perform Pre-Installation tasks here>
-
-
-      
-
-     Start-ADTMsiProcess -Action "Uninstall" -ProductCode "{1B68D43B-CFE0-5616-8CEB-6005E40838F3}" -ArgumentList "/qn /NORESTART"
-    
-     Start-Sleep -Seconds 10
-     
-
-    ##================================================
-    ## MARK: Install
-    ##================================================
-    $adtSession.InstallPhase = $adtSession.DeploymentType
-
-    ## Handle Zero-Config MSI installations.
-    if ($adtSession.UseDefaultMsi)
-    {
-        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-        if ($adtSession.DefaultMstFile)
-        {
-            $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
-        }
-        Start-ADTMsiProcess @ExecuteDefaultMSISplat
-        if ($adtSession.DefaultMspFiles)
-        {
-            $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
-        }
-    }
-
-    ## <Perform Installation tasks here>
-
-        
-       Start-ADTMsiProcess -Action "Install" -FilePath "Postman-Enterprise-11.85.0-enterprise01-x64.msi" -ArgumentList "ALLUSERS=1 REBOOTPROMPT=S REBOOT=ReallySuppress MSIRESTARTMANAGERCONTROL=Disable REINSTALLMODE=omus PROMPTROLLBACKCOST=D /qn /norestart"
-       
-       Start-Sleep -Seconds 10
-
-
-
-  
-    ##================================================
-    ## MARK: Post-Install
-    ##================================================
-    $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
-
-    ## <Perform Post-Installation tasks here>
-    
-
-     #Delete desktop shortcut
-        If (Test-Path "$envCommonDesktop\Postman Enterprise.lnk") {
-        Remove-ADTFile -Path "$envCommonDesktop\Postman Enterprise.lnk"
-        }
-
-
-        #Removing change button
-        Set-ADTRegistryKey -Key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{A4767449-03B7-57A0-99D7-213B7A93802D}" -Name "NoModify" -Value "1" -Type DWord 
-
-        Start-sleep -Seconds 10
-
-   
-    ## Display a message at the end of the install.
-    if (!$adtSession.UseDefaultMsi)
-    {
-        Show-ADTInstallationPrompt -Message 'INSTALLATION SUCCESSFULLY COMPLETED' -ButtonRightText 'OK' -Icon Information -NoWait
-    }
-}
-
-function Uninstall-ADTDeployment
-{
-    ##================================================
-    ## MARK: Pre-Uninstall
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
-
-    ## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing.
-    Show-ADTInstallationWelcome -CloseProcesses "Postman Enterprise" -CloseProcessesCountdown 60
-
-    ## Show Progress Message (with the default message).
-    Show-ADTInstallationProgress
-
-    ## <Perform Pre-Uninstallation tasks here>
-
-
-    ##================================================
-    ## MARK: Uninstall
-    ##================================================
-    $adtSession.InstallPhase = $adtSession.DeploymentType
-
-    ## Handle Zero-Config MSI uninstallations.
-    if ($adtSession.UseDefaultMsi)
-    {
-        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-        if ($adtSession.DefaultMstFile)
-        {
-            $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
-        }
-        Start-ADTMsiProcess @ExecuteDefaultMSISplat
-    }
-
-    ## <Perform Uninstallation tasks here>
-    
-       
-       Start-ADTMsiProcess -Action "Uninstall" -ProductCode "{A4767449-03B7-57A0-99D7-213B7A93802D}" -ArgumentList "/qn /NORESTART"
-       
-        Start-Sleep -Seconds 10
-  
-       
-      
-   
-    ##================================================
-    ## MARK: Post-Uninstallation
-    ##================================================
-    $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
-
-    ## <Perform Post-Uninstallation tasks here>
-      ## Display a message at the end of the install.
-    if (!$adtSession.UseDefaultMsi)
-    {
-        Show-ADTInstallationPrompt -Message 'UNINSTALLATION SUCCESSFULLY COMPLETED' -ButtonRightText 'OK' -Icon Information -NoWait
-    }
-
-}
-
-function Repair-ADTDeployment
-{
-    ##================================================
-    ## MARK: Pre-Repair
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
-
-    ## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing.
-    Show-ADTInstallationWelcome -CloseProcesses iexplore -CloseProcessesCountdown 60
-     Show-ADTInstallationWelcome -CloseProcesses "Postman Enterprise" -CloseProcessesCountdown 60
-
-    ## Show Progress Message (with the default message).
-    Show-ADTInstallationProgress
-
-    ## <Perform Pre-Repair tasks here>
-
-
-    ##================================================
-    ## MARK: Repair
-    ##================================================
-    $adtSession.InstallPhase = $adtSession.DeploymentType
-
-    ## Handle Zero-Config MSI repairs.
-    if ($adtSession.UseDefaultMsi)
-    {
-        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-        if ($adtSession.DefaultMstFile)
-        {
-            $ExecuteDefaultMSISplat.Add('Transform', $adtSession.DefaultMstFile)
-        }
-        Start-ADTMsiProcess @ExecuteDefaultMSISplat
-    }
-
-    ## <Perform Repair tasks here>
-
-       Start-ADTMsiProcess -Action "Repair" -ProductCode "{A4767449-03B7-57A0-99D7-213B7A93802D}" -ArgumentList "/qn /NORESTART"
-       
-        Start-Sleep -Seconds 10
-  
-         
-   
-
-    ##================================================
-    ## MARK: Post-Repair
-    ##================================================
-    $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
-
-    ## <Perform Post-Repair tasks here>
-       #Delete desktop shortcut
-        If (Test-Path "$envCommonDesktop\Postman Enterprise.lnk") {
-        Remove-ADTFile -Path "$envCommonDesktop\Postman Enterprise.lnk"
-        }
-
-
-     #Removing change button
-        Set-ADTRegistryKey -Key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{A4767449-03B7-57A0-99D7-213B7A93802D}" -Name "NoModify" -Value "1" -Type DWord 
-
-     
-        Start-sleep -Seconds 10
-
-          ## Display a message at the end of the install.
-    if (!$adtSession.UseDefaultMsi)
-    {
-        Show-ADTInstallationPrompt -Message 'Repair SUCCESSFULLY COMPLETED' -ButtonRightText 'OK' -Icon Information -NoWait
-    }
-}
-
-
-##================================================
-## MARK: Initialization
-##================================================
-
-# Set strict error handling across entire operation.
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-$ProgressPreference = [System.Management.Automation.ActionPreference]::SilentlyContinue
-Set-StrictMode -Version 1
-
-# Import the module and instantiate a new session.
-try
-{
-    $moduleName = if ([System.IO.File]::Exists("$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1"))
-    {
-        Get-ChildItem -LiteralPath $PSScriptRoot\PSAppDeployToolkit -Recurse -File | Unblock-File -ErrorAction Ignore
-        "$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1"
-    }
-    else
-    {
-        'PSAppDeployToolkit'
-    }
-    Import-Module -FullyQualifiedName @{ ModuleName = $moduleName; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '4.0.6' } -Force
-    try
-    {
-        $iadtParams = Get-ADTBoundParametersAndDefaultValues -Invocation $MyInvocation
-        $adtSession = Open-ADTSession -SessionState $ExecutionContext.SessionState @adtSession @iadtParams -PassThru
-    }
-    catch
-    {
-        Remove-Module -Name PSAppDeployToolkit* -Force
-        throw
-    }
-}
-catch
-{
-    $Host.UI.WriteErrorLine((Out-String -InputObject $_ -Width ([System.Int32]::MaxValue)))
-    exit 60008
-}
-
-
-##================================================
-## MARK: Invocation
-##================================================
-
-try
-{
-    Get-Item -Path $PSScriptRoot\PSAppDeployToolkit.* | & {
-        process
-        {
-            Get-ChildItem -LiteralPath $_.FullName -Recurse -File | Unblock-File -ErrorAction Ignore
-            Import-Module -Name $_.FullName -Force
-        }
-    }
-    & "$($adtSession.DeploymentType)-ADTDeployment"
-    Close-ADTSession
-}
-catch
-{
-    Write-ADTLogEntry -Message ($mainErrorMessage = Resolve-ADTErrorRecord -ErrorRecord $_) -Severity 3
-    Show-ADTDialogBox -Text $mainErrorMessage -Icon Stop | Out-Null
-    Close-ADTSession -ExitCode 60001
-}
-finally
-{
-    Remove-Module -Name PSAppDeployToolkit* -Force
-}
-
-
-Invoke-AppDeployToolkit.ps1 - Generated by Workbench 
-<#
-.SYNOPSIS
-    Postman Enterprise - PSADT v4 deployment script.
-    Generated by SPA Workbench on 2026-07-15.
-
-.DESCRIPTION
-    Performs Install, Uninstall, or Repair of Postman Enterprise.
-    Uses the PSAppDeployToolkit v4 function-based architecture.
-
-.NOTES
-    Framework : PSAppDeployToolkit 4.1.8
-    Package   : postman-enterprise
-    Version   : 11.85.0
-#>
-
-[CmdletBinding()]
-param
-(
-    [Parameter(Mandatory = $false)]
-    [ValidateSet('Install', 'Uninstall', 'Repair')]
-    [System.String]$DeploymentType,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateSet('Auto', 'Interactive', 'NonInteractive', 'Silent')]
-    [System.String]$DeployMode,
-
-    [Parameter(Mandatory = $false)]
-    [System.Management.Automation.SwitchParameter]$SuppressRebootPassThru,
-
-    [Parameter(Mandatory = $false)]
-    [System.Management.Automation.SwitchParameter]$TerminalServerMode,
-
-    [Parameter(Mandatory = $false)]
-    [System.Management.Automation.SwitchParameter]$DisableLogging
-)
-
-
-##================================================
-## MARK: Variables
-##================================================
-
-$adtSession = @{
-    AppVendor              = 'Postman'
-    AppName                = 'Postman Enterprise'
-    AppVersion             = '11.85.0'
-    AppArch                = 'x64'
-    AppLang                = 'EN'
-    AppRevision            = '01'
-    AppSuccessExitCodes    = @(0)
-    AppRebootExitCodes     = @(1641, 3010)
-    AppProcessesToClose    = @()
-    AppScriptVersion       = '1.0.0'
-    AppScriptDate          = '2026-05-11'
-    AppScriptAuthor        = 'Cellina Lukram'
-    RequireAdmin           = $true
-
-    InstallName            = 'Postman_PostmanEnterprise_11.85.0'
-    InstallTitle           = 'Postman_PostmanEnterprise_11.85.0'
-
-    DeployAppScriptFriendlyName = $MyInvocation.MyCommand.Name
-    DeployAppScriptParameters   = $PSBoundParameters
-    DeployAppScriptVersion      = '4.1.8'
-}
-
-
-##================================================
-## MARK: Deployment Flow
-##================================================
-
-function Install-ADTDeployment
-{
-
-    [CmdletBinding()]
-    param
-    (
-    )
-
-    ##================================================
-    ## MARK: Pre-Install
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
-
-        ## Show Welcome Message, close processes if specified, allow up to 3 deferrals, verify disk space, persist the prompt.
-        $saiwParams = @{
-            AllowDefer = $true
-            DeferTimes = 3
-            CheckDiskSpace = $true
-            PersistPrompt = $true
-        }
-        if ($adtSession.AppProcessesToClose.Count -gt 0)
-        {
-            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
-        }
-        Show-ADTInstallationWelcome @saiwParams
-        ## Show Welcome Message, close processes if specified.
-        $saiwParams = @{
-            CloseProcessesCountdown = 60
-        }
-        if ($adtSession.AppProcessesToClose.Count -gt 0)
-        {
-            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
-        }
-        Show-ADTInstallationWelcome @saiwParams
-        ## Show Progress Message (with the default message).
-        Show-ADTInstallationProgress
-        Start-Sleep -Seconds 10
-        # <SPA:CustomCode Phase="Pre-Install" Guide="Perform Pre-Installation tasks here">
-        # TODO: Perform Pre-Installation tasks here
-        # </SPA:CustomCode>
-
-    ##================================================
-    ## MARK: Install
-    ##================================================
-    $adtSession.InstallPhase = $adtSession.DeploymentType
-
-    ## Handle Zero-Config MSI installations.
-    if ($adtSession.UseDefaultMsi)
-    {
-        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-        if ($adtSession.DefaultMstFile)
-        {
-            $ExecuteDefaultMSISplat.Add('Transforms', $adtSession.DefaultMstFile)
-        }
-        Start-ADTMsiProcess @ExecuteDefaultMSISplat
-        if ($adtSession.DefaultMspFiles)
-        {
-            $adtSession.DefaultMspFiles | Start-ADTMsiProcess -Action Patch
-        }
-    }
-
-        Start-ADTMsiProcess -Action 'Install' -FilePath 'Postman-Enterprise-11.85.0-enterprise01-x64.msi' -ArgumentList 'ALLUSERS=1 REBOOTPROMPT=S REBOOT=ReallySuppress MSIRESTARTMANAGERCONTROL=Disable REINSTALLMODE=omus PROMPTROLLBACKCOST=D /qn /norestart'
-        Start-Sleep -Seconds 10
-        # <SPA:CustomCode Phase="Install" Guide="Perform Installation tasks here">
-        # TODO: Perform Installation tasks here
-        # </SPA:CustomCode>
-
-    ##================================================
-    ## MARK: Post-Install
-    ##================================================
-    $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
-
-        # Raw PowerShell: Control flow block preserved as-is
-        If (Test-Path "$envCommonDesktop\Postman Enterprise.lnk") {
-                Remove-ADTFile -Path "$envCommonDesktop\Postman Enterprise.lnk"
-                }
-        Set-ADTRegistryKey -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{A4767449-03B7-57A0-99D7-213B7A93802D}' -Name 'NoModify' -Type 'String' -Value '1'
-        Start-Sleep -Seconds 10
-        # Raw PowerShell: Control flow block preserved as-is
-        if (!$adtSession.UseDefaultMsi)
-            {
-                Show-ADTInstallationPrompt -Message 'INSTALLATION SUCCESSFULLY COMPLETED' -ButtonRightText 'OK' -Icon Information -NoWait
-            }
-        # <SPA:CustomCode Phase="Post-Install" Guide="Perform Post-Installation tasks here">
-        # TODO: Perform Post-Installation tasks here
-        # </SPA:CustomCode>
-}
-
-function Uninstall-ADTDeployment
-{
-    [CmdletBinding()]
-    param
-    (
-    )
-
-    ##================================================
-    ## MARK: Pre-Uninstall
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
-
-        ## Show Welcome Message, close processes if specified.
-        $saiwParams = @{
-            CloseProcessesCountdown = 60
-        }
-        if ($adtSession.AppProcessesToClose.Count -gt 0)
-        {
-            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
-        }
-        Show-ADTInstallationWelcome @saiwParams
-        ## Show Progress Message (with the default message).
-        Show-ADTInstallationProgress
-        # <SPA:CustomCode Phase="Pre-Uninstall" Guide="Perform Pre-Uninstallation tasks here">
-        # TODO: Perform Pre-Uninstallation tasks here
-        # </SPA:CustomCode>
-
-    ##================================================
-    ## MARK: Uninstall
-    ##================================================
-    $adtSession.InstallPhase = $adtSession.DeploymentType
-
-    ## Handle Zero-Config MSI uninstallations.
-    if ($adtSession.UseDefaultMsi)
-    {
-        $ExecuteDefaultMSISplat = @{ Action = $adtSession.DeploymentType; FilePath = $adtSession.DefaultMsiFile }
-        if ($adtSession.DefaultMstFile)
-        {
-            $ExecuteDefaultMSISplat.Add('Transforms', $adtSession.DefaultMstFile)
-        }
-        Start-ADTMsiProcess @ExecuteDefaultMSISplat
-    }
-
-        Start-Sleep -Seconds 10
-        # <SPA:CustomCode Phase="Uninstall" Guide="Perform Uninstallation tasks here">
-        # TODO: Perform Uninstallation tasks here
-        # </SPA:CustomCode>
-
-    ##================================================
-    ## MARK: Post-Uninstall
-    ##================================================
-    $adtSession.InstallPhase = "Post-$($adtSession.DeploymentType)"
-
-        # <SPA:CustomCode Phase="Post-Uninstall" Guide="Perform Post-Uninstallation tasks here">
-        # TODO: Perform Post-Uninstallation tasks here
-        # </SPA:CustomCode>
-}
-
-
-##================================================
-## MARK: Initialization
-##================================================
-
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-$ProgressPreference = [System.Management.Automation.ActionPreference]::SilentlyContinue
-Set-StrictMode -Version 1
-
-try
-{
-    if (Test-Path -LiteralPath "$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1" -PathType Leaf)
-    {
-        Get-ChildItem -LiteralPath "$PSScriptRoot\PSAppDeployToolkit" -Recurse -File | Unblock-File -ErrorAction Ignore
-        Import-Module -FullyQualifiedName @{ ModuleName = "$PSScriptRoot\PSAppDeployToolkit\PSAppDeployToolkit.psd1"; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '4.1.8' } -Force
-    }
-    else
-    {
-        Import-Module -FullyQualifiedName @{ ModuleName = 'PSAppDeployToolkit'; Guid = '8c3c366b-8606-4576-9f2d-4051144f7ca2'; ModuleVersion = '4.1.8' } -Force
-    }
-
-    $iadtParams = Get-ADTBoundParametersAndDefaultValues -Invocation $MyInvocation
-    $adtSession = Remove-ADTHashtableNullOrEmptyValues -Hashtable $adtSession
-    $adtSession = Open-ADTSession @adtSession @iadtParams -PassThru
-}
-catch
-{
-    $Host.UI.WriteErrorLine((Out-String -InputObject $_ -Width ([System.Int32]::MaxValue)))
-    exit 60008
-}
-
-
-##================================================
-## MARK: Invocation
-##================================================
-
-try
-{
-    Get-ChildItem -LiteralPath $PSScriptRoot -Directory | & {
-        process
-        {
-            if ($_.Name -match 'PSAppDeployToolkit\..+$')
-            {
-                Get-ChildItem -LiteralPath $_.FullName -Recurse -File | Unblock-File -ErrorAction Ignore
-                Import-Module -Name $_.FullName -Force
-            }
-        }
-    }
-
-    & "$($adtSession.DeploymentType)-ADTDeployment"
-    Close-ADTSession
-}
-catch
-{
-    $mainErrorMessage = "An unhandled error within [$($MyInvocation.MyCommand.Name)] has occurred.`n$(Resolve-ADTErrorRecord -ErrorRecord $_)"
-    Write-ADTLogEntry -Message $mainErrorMessage -Severity 3
-    Close-ADTSession -ExitCode 60001
-}
+2026-07-15T18:17:40.541835Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-07-15T18:17:40.541835Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-07-15T18:17:40.541835Z 00O Resolving secrets
+2026-07-15T18:17:40.542464Z 00O section_start:1784139460:prepare_executor
+2026-07-15T18:17:40.542464Z 00O+Preparing the "shell" executor
+2026-07-15T18:17:40.542464Z 00O Using Shell (pwsh) executor...
+2026-07-15T18:17:40.542464Z 00O section_end:1784139460:prepare_executor
+2026-07-15T18:17:40.542464Z 00O+section_start:1784139460:prepare_script
+2026-07-15T18:17:40.542989Z 00O+Preparing environment
+2026-07-15T18:17:41.916679Z 01O Running on vm-psa-runner-p...
+2026-07-15T18:17:42.183051Z 00O section_end:1784139462:prepare_script
+2026-07-15T18:17:42.183051Z 00O+section_start:1784139462:get_sources
+2026-07-15T18:17:42.185142Z 00O+Getting source from Git repository
+2026-07-15T18:17:44.243078Z 01O Gitaly correlation ID: 01KXKFZB4ZV0YYK1MEHX3YBXFE
+2026-07-15T18:17:44.572743Z 01O Fetching changes with git depth set to 20...
+2026-07-15T18:17:44.651276Z 01O Initialized empty Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/test-xml-notepad/.git/
+2026-07-15T18:17:44.746449Z 01O Created fresh repository.
+2026-07-15T18:17:55.154709Z 01O Checking out 48b4f809 as detached HEAD (ref is main)...
+2026-07-15T18:17:55.674460Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-07-15T18:17:56.348525Z 01O 
+2026-07-15T18:17:56.349492Z 01O Skipping Git submodules setup
+2026-07-15T18:17:56.425676Z 00O section_end:1784139476:get_sources
+2026-07-15T18:17:56.425676Z 00O+section_start:1784139476:restore_cache
+2026-07-15T18:17:56.426920Z 00O+Restoring cache
+2026-07-15T18:17:57.872422Z 01O Version:      18.9.0
+2026-07-15T18:17:57.872422Z 01O Git revision: 07e534ba
+2026-07-15T18:17:57.872422Z 01O Git branch:   18-9-stable
+2026-07-15T18:17:57.872422Z 01O GO version:   go1.25.7 X:cacheprog
+2026-07-15T18:17:57.872422Z 01O Built:        2026-02-19T16:58:00Z
+2026-07-15T18:17:57.872422Z 01O OS/Arch:      windows/amd64
+2026-07-15T18:17:57.891095Z 01O Checking cache for psadt-framework-4.1.0-protected...
+2026-07-15T18:17:58.060128Z 01E Runtime platform                                    arch=amd64 os=windows pid=15016 revision=07e534ba version=18.9.0
+2026-07-15T18:17:58.060128Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
+2026-07-15T18:17:58.061817Z 01E WARNING: Cache file does not exist                 
+2026-07-15T18:17:58.107452Z 01O Failed to extract cache
+2026-07-15T18:17:58.286646Z 00O section_end:1784139478:restore_cache
+2026-07-15T18:17:58.286646Z 00O+section_start:1784139478:step_script
+2026-07-15T18:17:58.291137Z 00O+Executing "step_script" stage of the job script
+2026-07-15T18:17:59.820346Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-07-15T18:17:59.836224Z 01O === Windows Build: test-xml-notepad ===
+2026-07-15T18:17:59.838101Z 01O Pipeline tag   : 
+2026-07-15T18:17:59.838623Z 01O --- Verifying powershell-yaml module is present ---
+2026-07-15T18:18:00.493605Z 01O --- Downloading JSON Schemas ---
+2026-07-15T18:18:01.124564Z 01E Exception: 
+2026-07-15T18:18:01.124564Z 01E Line |
+2026-07-15T18:18:01.124564Z 01E  455 |      throw "Failed to download $s from SCHEMAS_PROJECT_ID ($schemasId) …
+2026-07-15T18:18:01.124564Z 01E      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-07-15T18:18:01.124564Z 01E      | Failed to download app.schema.json from SCHEMAS_PROJECT_ID (86267). Ensure the variable is set and token has read_api access.
+2026-07-15T18:18:01.355736Z 00O section_end:1784139481:step_script
+2026-07-15T18:18:01.355736Z 00O+section_start:1784139481:upload_artifacts_on_failure
+2026-07-15T18:18:01.357547Z 00O+Uploading artifacts for failed job
+2026-07-15T18:18:02.791565Z 01O Version:      18.9.0
+2026-07-15T18:18:02.791565Z 01O Git revision: 07e534ba
+2026-07-15T18:18:02.791565Z 01O Git branch:   18-9-stable
+2026-07-15T18:18:02.791565Z 01O GO version:   go1.25.7 X:cacheprog
+2026-07-15T18:18:02.791565Z 01O Built:        2026-02-19T16:58:00Z
+2026-07-15T18:18:02.791565Z 01O OS/Arch:      windows/amd64
+2026-07-15T18:18:02.809918Z 01O Uploading artifacts...
+2026-07-15T18:18:02.984642Z 01E Runtime platform                                    arch=amd64 os=windows pid=8812 revision=07e534ba version=18.9.0
+2026-07-15T18:18:02.985295Z 01E WARNING: out/staging/: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\test-xml-notepad) 
+2026-07-15T18:18:02.985295Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\test-xml-notepad) 
+2026-07-15T18:18:02.985295Z 01E ERROR: No files to upload                          
+2026-07-15T18:18:03.183133Z 01O Version:      18.9.0
+2026-07-15T18:18:03.183133Z 01O Git revision: 07e534ba
+2026-07-15T18:18:03.183133Z 01O Git branch:   18-9-stable
+2026-07-15T18:18:03.183133Z 01O GO version:   go1.25.7 X:cacheprog
+2026-07-15T18:18:03.183133Z 01O Built:        2026-02-19T16:58:00Z
+2026-07-15T18:18:03.183133Z 01O OS/Arch:      windows/amd64
+2026-07-15T18:18:03.196708Z 01O Uploading artifacts...
+2026-07-15T18:18:03.392192Z 01E Runtime platform                                    arch=amd64 os=windows pid=15200 revision=07e534ba version=18.9.0
+2026-07-15T18:18:03.392192Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\test-xml-notepad) 
+2026-07-15T18:18:03.392192Z 01E ERROR: No files to upload                          
+2026-07-15T18:18:03.582727Z 00O section_end:1784139483:upload_artifacts_on_failure
+2026-07-15T18:18:03.582727Z 00O+section_start:1784139483:cleanup_file_variables
+2026-07-15T18:18:03.582727Z 00O+Cleaning up project directory and file based variables
+2026-07-15T18:18:05.332784Z 00O section_end:1784139485:cleanup_file_variables
+2026-07-15T18:18:05.334792Z 00O+
+2026-07-15T18:18:05.335328Z 00O ERROR: Job failed: exit status 1
