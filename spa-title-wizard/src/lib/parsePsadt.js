@@ -966,72 +966,11 @@ function extractBlockActions(block) {
     }
   };
 
-  // ── Step 1.5: Pre-process $saiwParams splatting patterns ──────────────
-  // The $saiwParams block spans multiple lines (hashtable + conditional +
-  // Show-ADTInstallationWelcome @saiwParams) and would otherwise fragment
-  // into 3 separate actions. Detect it and inject a structured show_welcome
-  // action directly, then remove those lines from further processing.
-  const joinedBlock = lines.join('\n');
-
-  // Pattern A: Full splatting ($saiwParams = @{ ... } + conditional + @saiwParams)
-  const saiwRx = /\$saiwParams\s*=\s*@\{([^}]*)\}[\s\S]*?Show-ADTInstallationWelcome\s+@saiwParams/;
-  const saiwMatch = joinedBlock.match(saiwRx);
-  if (saiwMatch) {
-    const hashtableBody = saiwMatch[1];
-    const parseBool = (key) => new RegExp(`${key}\\s*=\\s*\\$true`, 'i').test(hashtableBody);
-    const parseNum = (key) => { const m = hashtableBody.match(new RegExp(`${key}\\s*=\\s*(\\d+)`, 'i')); return m ? parseInt(m[1]) : 0; };
-    const parseStr = (key) => { const m = hashtableBody.match(new RegExp(`${key}\\s*=\\s*'([^']*)'`, 'i')); return m ? m[1] : ''; };
-
-    actions.push({
-      type: 'show_welcome',
-      enabled: true,
-      allowDefer: parseBool('AllowDefer'),
-      deferTimes: parseNum('DeferTimes') || 3,
-      deferDays: parseNum('DeferDays'),
-      deferDeadline: parseStr('DeferDeadline'),
-      checkDiskSpace: parseBool('CheckDiskSpace'),
-      persistPrompt: parseBool('PersistPrompt'),
-      closeProcessesCountdown: parseNum('CloseProcessesCountdown'),
-      forceCloseProcessesCountdown: parseNum('ForceCloseProcessesCountdown'),
-      blockExecution: parseBool('BlockExecution'),
-    });
-    // Remove the matched region from lines so it won't be re-parsed
-    const matchStart = joinedBlock.indexOf(saiwMatch[0]);
-    const matchEnd = matchStart + saiwMatch[0].length;
-    const before = joinedBlock.substring(0, matchStart);
-    const after = joinedBlock.substring(matchEnd);
-    lines.length = 0;
-    lines.push(...(before + after).split('\n'));
-  }
-
-  // Pattern B: Countdown welcome (pre-uninstall/pre-repair)
-  // if ($adtSession.AppProcessesToClose.Count -gt 0) { Show-ADTInstallationWelcome -CloseProcesses ... -CloseProcessesCountdown 60 }
-  const countdownRx = /if\s*\(\$adtSession\.AppProcessesToClose\.Count\s+-gt\s+0\)\s*\{[\s\S]*?Show-ADTInstallationWelcome\s+-CloseProcesses\s+\$adtSession\.AppProcessesToClose\s+-CloseProcessesCountdown\s+(\d+)[\s\S]*?\}/;
-  const countdownJoined = lines.join('\n');
-  const countdownMatch = countdownJoined.match(countdownRx);
-  if (countdownMatch) {
-    actions.push({
-      type: 'show_welcome',
-      enabled: true,
-      allowDefer: false,
-      deferTimes: 0,
-      deferDays: 0,
-      deferDeadline: '',
-      checkDiskSpace: false,
-      persistPrompt: false,
-      closeProcessesCountdown: parseInt(countdownMatch[1]) || 60,
-      forceCloseProcessesCountdown: 0,
-      blockExecution: false,
-    });
-    const matchStart = countdownJoined.indexOf(countdownMatch[0]);
-    const matchEnd = matchStart + countdownMatch[0].length;
-    const before = countdownJoined.substring(0, matchStart);
-    const after = countdownJoined.substring(matchEnd);
-    lines.length = 0;
-    lines.push(...(before + after).split('\n'));
-  }
-
   // ── Step 2: Index-based loop ──────────────────────────────────────────
+  // Note: $saiwParams splatting patterns (e.g. $saiwParams = @{...} +
+  // Show-ADTInstallationWelcome @saiwParams) fall through to the customBuffer
+  // and are emitted as raw_ps blocks. This is intentional — best-effort
+  // import keeps the code intact without risking regex-based line splicing.
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
     const t = line.trim();
@@ -1424,11 +1363,15 @@ function extractBlockActions(block) {
       }
     }
 
-    // Show-InstallationWelcome / Show-ADTInstallationWelcome (inline params, not splatting)
+    // Show-InstallationWelcome / Show-ADTInstallationWelcome with explicit inline params.
+    // Scripts using $saiwParams splatting (@saiwParams) fall through to raw_ps — the
+    // $saiwParams hashtable, the optional AppProcessesToClose guard, and the
+    // Show-ADTInstallationWelcome call land together in one coherent block.
     // Guard: skip comment lines — e.g. #Show-InstallationWelcome ... should not produce an action
     if (!matched) {
       const welcomeMatch = !t.startsWith('#') && t.match(/Show-(?:ADT)?InstallationWelcome\b(.+)/i);
-      if (welcomeMatch && !/@saiwParams/.test(t)) {
+      // Only create a structured action for inline-param style (not splatting with @saiwParams)
+      if (welcomeMatch && !/@\w+Params/.test(t)) {
         flushCustomBuffer();
         const params = welcomeMatch[1];
         const hasParam = (name) => new RegExp(`-${name}\\b`, 'i').test(params);
@@ -1450,6 +1393,7 @@ function extractBlockActions(block) {
         });
         matched = true;
       }
+      // Splatted (@saiwParams / @Params) stays in customBuffer → raw_ps
     }
 
     // Show-InstallationProgress / Show-ADTInstallationProgress
