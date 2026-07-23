@@ -122,7 +122,8 @@
     },
     "syncIntuneAppId": {
       "type": "string",
-      "description": "The Intune Win32 app GUID that this project is linked to for bi-directional sync. Set explicitly by the user in the Workbench."
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "The Intune Win32 app GUID this title is linked to. Set by the user for bi-directional sync, and automatically updated by the pipeline after each successful publish. Used on the next publish to safely remove the previous app before creating the replacement — preventing catalogue duplicates."
     }
   }
 }

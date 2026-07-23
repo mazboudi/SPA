@@ -1294,54 +1294,64 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
               </p>
 
               {!state.syncIntuneAppId ? (
-                /* No sync app configured — show selector */
-                <div className="intune-sync-section__setup">
-                  <p className="intune-sync-section__hint">
-                    Link this title to an existing Intune Win32 app to compare metadata.
-                  </p>
-                  <div className="intune-sync-section__actions">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-secondary"
-                      onClick={handleLoadCatalogForSync}
-                      disabled={catalogLoading}
-                    >
-                      {catalogLoading ? '⏳ Loading…' : '📋 Select from Intune Catalog'}
-                    </button>
-                    <div className="intune-sync-section__manual">
-                      <input
-                        type="text"
-                        className="form-input form-input--sm"
-                        placeholder="Or paste Intune App ID (GUID)…"
-                        value={manualAppId}
-                        onChange={e => setManualAppId(e.target.value)}
-                        style={{ flex: 1, minWidth: 260 }}
-                      />
+                /* No sync app configured */
+                state.wizardMode === 'edit' ? (
+                  /* Edit mode — ID is managed by pipeline automatically, no picker needed */
+                  <div className="intune-sync-section__setup" style={{ padding: '16px', background: 'var(--bg-card, rgba(255,255,255,0.02))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      ℹ️ No Intune app is linked to this title yet. The link is established automatically after the first successful publish pipeline run.
+                    </p>
+                  </div>
+                ) : (
+                  /* New / refactor — let user pick from catalog or paste GUID */
+                  <div className="intune-sync-section__setup">
+                    <p className="intune-sync-section__hint">
+                      Link this title to an existing Intune Win32 app to compare metadata.
+                    </p>
+                    <div className="intune-sync-section__actions">
                       <button
                         type="button"
-                        className="btn btn-sm btn-primary"
-                        disabled={!manualAppId.trim() || !GUID_RE.test(manualAppId.trim())}
-                        onClick={() => handleSetSyncApp(manualAppId.trim())}
+                        className="btn btn-sm btn-secondary"
+                        onClick={handleLoadCatalogForSync}
+                        disabled={catalogLoading}
                       >
-                        Link
+                        {catalogLoading ? '⏳ Loading…' : '📋 Select from Intune Catalog'}
                       </button>
+                      <div className="intune-sync-section__manual">
+                        <input
+                          type="text"
+                          className="form-input form-input--sm"
+                          placeholder="Or paste Intune App ID (GUID)…"
+                          value={manualAppId}
+                          onChange={e => setManualAppId(e.target.value)}
+                          style={{ flex: 1, minWidth: 260 }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          disabled={!manualAppId.trim() || !GUID_RE.test(manualAppId.trim())}
+                          onClick={() => handleSetSyncApp(manualAppId.trim())}
+                        >
+                          Link
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Inline catalog picker */}
-                  {showCatalogPicker && catalogForSync && (
-                    <div className="intune-sync-section__catalog">
-                      <CatalogMiniPicker
-                        apps={catalogForSync}
-                        onSelect={(app) => {
-                          handleSetSyncApp(app.id || app.appId);
-                          setShowCatalogPicker(false);
-                        }}
-                        onClose={() => setShowCatalogPicker(false)}
-                      />
-                    </div>
-                  )}
-                </div>
+                    {/* Inline catalog picker */}
+                    {showCatalogPicker && catalogForSync && (
+                      <div className="intune-sync-section__catalog">
+                        <CatalogMiniPicker
+                          apps={catalogForSync}
+                          onSelect={(app) => {
+                            handleSetSyncApp(app.id || app.appId);
+                            setShowCatalogPicker(false);
+                          }}
+                          onClose={() => setShowCatalogPicker(false)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
               ) : (
                 /* Sync app is set — show comparison */
                 <div>

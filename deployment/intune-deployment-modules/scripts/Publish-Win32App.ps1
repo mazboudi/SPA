@@ -16,6 +16,9 @@ param(
 
     [string] $AppJsonPath     = 'windows/intune/app.json',
     [string] $PackageYamlPath = 'windows/package.yaml',
+    # When set, the old Intune app with this ID is deleted before the new one
+    # is created — prevents duplicates when republishing an edited title.
+    [string] $PreviousAppId   = '',
     [switch] $DryRun
 )
 
@@ -181,6 +184,27 @@ if ($largeIcon) {
 if ($RequirementRules -and $RequirementRules.Count -gt 0) {
     $appBody['requirementRules'] = @($RequirementRules)
     Write-Log "Including $($RequirementRules.Count) custom requirement rule(s)" -LogFile $logFile
+}
+
+# ── Delete previous app if replacing an existing title ───────────────────────
+if ($PreviousAppId -and $PreviousAppId -match '^[0-9a-f\-]{36}$') {
+    Write-Log "Replacing previous app ($PreviousAppId) — clearing relationships then deleting..." -LogFile $logFile
+    Write-Host "🔁 Edit mode: safely removing previous Intune app $PreviousAppId" -ForegroundColor Yellow
+    try {
+        & "$PSScriptRoot/Remove-Win32App.ps1" `
+            -AppId   $PreviousAppId `
+            -Token   $token `
+            -LogFile $logFile
+        Write-Host "✅ Previous app removed." -ForegroundColor Green
+        # Brief pause to let Graph settle before creating the replacement
+        Start-Sleep -Seconds 3
+    } catch {
+        Write-Log "WARNING: Safe-delete of $PreviousAppId failed — $($_.Exception.Message)" WARN -LogFile $logFile
+        Write-Host "⚠️  Could not remove previous app ($PreviousAppId): $($_.Exception.Message)" -ForegroundColor Yellow
+        # Non-fatal — continue to create the new app; admin can clean up manually
+    }
+} elseif ($PreviousAppId) {
+    Write-Log "PreviousAppId '$PreviousAppId' does not look like a valid GUID — skipping delete." WARN -LogFile $logFile
 }
 
 Write-Log "Creating Win32 app (metadata + detection rules only)" -LogFile $logFile

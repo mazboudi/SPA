@@ -35,6 +35,7 @@
   $headers = @{ 'PRIVATE-TOKEN' = $env:GITLAB_READ_TOKEN }
   $scripts = @(
     'Publish-Win32App.ps1',
+    'Remove-Win32App.ps1',
     'Upload-Win32Content.ps1',
     'Update-Win32App.ps1',
     'Resolve-DetectionRules.ps1',
@@ -190,6 +191,17 @@
       if ($requirementRules.Count -gt 0) {
         $publishArgs['RequirementRules'] = $requirementRules
       }
+
+      # If the title was previously published to Intune (edit flow), pass the
+      # old app ID so Publish-Win32App.ps1 can delete it before creating the new
+      # version — prevents catalogue duplicates.
+      $appJsonRaw = Get-Content 'windows/intune/app.json' -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+      $previousAppId = $appJsonRaw.syncIntuneAppId
+      if ($previousAppId -and $previousAppId -match '^[0-9a-f\-]{36}$') {
+        Write-Host "🔁 Edit mode: will replace existing Intune app $previousAppId" -ForegroundColor Cyan
+        $publishArgs['PreviousAppId'] = $previousAppId
+      }
+
       & 'intune-modules/Publish-Win32App.ps1' @publishArgs
 
       # ── App relationships: supersedence + dependencies ────────────────────
@@ -215,6 +227,33 @@
             -TenantId         $env:AZURE_TENANT_ID `
             -ClientId         $env:AZURE_CLIENT_ID `
             -ClientSecret     $env:AZURE_CLIENT_SECRET
+        }
+
+        # ── Persist new app ID back into app.json so next edit knows what to replace ──
+        # This prevents catalogue duplicates on future republish cycles.
+        $appJsonPath = 'windows/intune/app.json'
+        try {
+          $appJsonContent = Get-Content $appJsonPath -Raw | ConvertFrom-Json
+          $appJsonContent | Add-Member -NotePropertyName 'syncIntuneAppId' -NotePropertyValue $publishedAppId -Force
+          $appJsonContent | ConvertTo-Json -Depth 10 | Set-Content $appJsonPath -Encoding utf8 -NoNewline
+          Write-Host "✅ syncIntuneAppId updated in app.json: $publishedAppId" -ForegroundColor Green
+
+          # Commit the updated app.json back to the repo
+          git config user.email "ci-bot@spa-pipeline"
+          git config user.name "SPA Pipeline Bot"
+          git add $appJsonPath
+          $changed = (git status --porcelain $appJsonPath).Trim()
+          if ($changed) {
+            git commit -m "ci: update syncIntuneAppId to $publishedAppId [skip ci]"
+            git push "https://gitlab-ci-token:$($env:CI_JOB_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_COMMIT_REF_NAME)
+            Write-Host "✅ app.json committed with new syncIntuneAppId" -ForegroundColor Green
+          } else {
+            Write-Host "ℹ️  app.json syncIntuneAppId already up to date — no commit needed." -ForegroundColor DarkGray
+          }
+        } catch {
+          Write-Log "WARNING: Could not update syncIntuneAppId in app.json — $($_.Exception.Message)" WARN -LogFile $logFile
+          Write-Host "⚠️  Could not persist syncIntuneAppId: $($_.Exception.Message)" -ForegroundColor Yellow
+          # Non-fatal — the app was still published successfully
         }
       } else {
         Write-Host "Dry run or no APP_ID — skipping supersedence/dependencies." -ForegroundColor DarkGray

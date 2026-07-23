@@ -1052,6 +1052,8 @@ export default function useWizardState() {
         _editProjectUrl:      null,
         _editLoadedRef:       null,
         _editProjectTags:     [],
+        // Clear Intune app link — clone is a NEW title; must not delete the source app on first publish
+        syncIntuneAppId:      '',
         // Clear session artifacts
         _lastPublishResult:   null,
         _psadtActiveTab:      null,

@@ -416,6 +416,13 @@ details[open] > .compat-section__title--toggle::before { content: '▾ '; }
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: var(--space-xl);
   padding-bottom: 0;
+  /* Sticky tab bar */
+  position: sticky;
+  top: 56px; /* height of the TopBar */
+  z-index: 20;
+  background: var(--bg-panel, #1a1d2e);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .psadt-tab-btn {
   display: flex;

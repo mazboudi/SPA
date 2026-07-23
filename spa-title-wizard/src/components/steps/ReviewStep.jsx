@@ -569,10 +569,10 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
             <div className="publish-activity-log__entries">
               {publishLog.map((entry, i) => {
                 const icon =
-                  entry.status === 'ok'      ? '✅' :
-                  entry.status === 'warn'    ? '⚠️' :
-                  entry.status === 'error'   ? '❌' :
-                  i === publishLog.length - 1 && publishing ? '⏳' : '▸';
+                  entry.status === 'ok' ? '✅' :
+                    entry.status === 'warn' ? '⚠️' :
+                      entry.status === 'error' ? '❌' :
+                        i === publishLog.length - 1 && publishing ? '⏳' : '▸';
                 return (
                   <div key={i} className={`pal-entry pal-entry--${entry.status}`}>
                     <span className="pal-icon">{icon}</span>
@@ -599,10 +599,10 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
                 const isWin = state.platform === 'windows' || state.platform === 'both';
                 const isMac = state.platform === 'macos' || state.platform === 'both';
                 // 'none' = commit only — always available
-                const options = [{ value: 'none', label: "⏸️ Commit Project", desc: 'Commit only — no pipeline' }];
+                const options = [{ value: 'none', label: "⏸️ Save Project", desc: 'Commit changes to Gitlab' }];
                 if (isWin) {
                   options.push(
-                    { value: 'build', label: '📦 Build PSADT', desc: 'Package only', disabled: !allStepsValid },
+                    { value: 'build', label: '📦 Build PSADT', desc: 'Build Package - Don;t publish to Intune', disabled: !allStepsValid },
                     { value: 'publish', label: '📦 Build .intunewin + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
                     { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady },
                   );

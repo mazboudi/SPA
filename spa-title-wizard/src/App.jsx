@@ -529,8 +529,8 @@ export default function App() {
             mx: 'auto',
             width: '100%',
             maxWidth: maxContentWidth,
-            px: { xs: 2, md: 4 },
-            py: 3,
+            px: { xs: 1, md: 2 },
+            py: 2,
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
@@ -697,8 +697,8 @@ export default function App() {
       <style>{`
         .app-main {
           flex: 1;
-          padding: var(--space-xl) 0;
-          margin-bottom: var(--space-lg);
+          padding: var(--space-md) 0;
+          margin-bottom: var(--space-sm);
         }
         .app-nav {
           display: flex;

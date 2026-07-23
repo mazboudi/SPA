@@ -120,10 +120,9 @@ export function parseIntuneExport(exportData) {
   }
 
   // ── Assignments ───────────────────────────────────────────────────────
-  const rawAssignments = exportData.assignments || [];
-  if (rawAssignments.length > 0) {
-    fields.assignments = rawAssignments.map(a => mapAssignment(a));
-  }
+  // Intentionally not imported: assignments are environment-specific and
+  // should always be configured fresh for each new title.
+
 
   // ── Logo ──────────────────────────────────────────────────────────────
   if (app.largeIcon && app.largeIcon.value) {
