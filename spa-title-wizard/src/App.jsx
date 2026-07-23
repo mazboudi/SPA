@@ -133,12 +133,9 @@ export default function App() {
 
   const applyPlatformSelect = (platformId) => {
     if (wizard.state.platform !== platformId) {
-      wizard.reset();
-      // reset() resets platform and group fields — restore from server config and set platform
-      setTimeout(() => {
-        applyServerGroups();
-        wizard.updateField('platform', platformId);
-      }, 0);
+      // Atomically reset + apply server config + platform in one setState to
+      // guarantee gitLabGroup is correctly derived before any duplicate check fires.
+      wizard.resetWithConfig(serverConfig.current, platformId);
     }
     clearEdits();
     setView(VIEW.LANDING);
@@ -171,12 +168,9 @@ export default function App() {
   // ── New blank package ─────────────────────────────────────────────────────
   const handleNewBlank = () => withUnsavedWorkGuard(() => {
     const platform = wizard.state.platform;
-    wizard.reset();
+    // Atomically reset and restore config+platform so gitLabGroup is correct immediately
+    wizard.resetWithConfig(serverConfig.current, platform || 'windows');
     clearEdits();
-    setTimeout(() => {
-      applyServerGroups();
-      if (platform) wizard.updateField('platform', platform);
-    }, 0);
     setView(VIEW.PACKAGE);
   });
 

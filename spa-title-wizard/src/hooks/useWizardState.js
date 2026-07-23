@@ -738,6 +738,40 @@ export default function useWizardState() {
   }, [markClean]);
 
   /**
+   * Atomically reset state AND apply server config + platform in one setState call.
+   * Avoids the race where platform derivation reads stale gitLabWinGroup because
+   * applyServerGroups() and updateField('platform') each schedule separate setState
+   * calls that React batches with stale closures.
+   *
+   * @param {{ gitLabWinGroup, gitLabMacGroup, gitLabGroup, gitLabCiTemplatesProject }} cfg
+   * @param {string} platform — 'windows' | 'macos' | 'both'
+   */
+  const resetWithConfig = useCallback((cfg, platform) => {
+    setState(() => {
+      const winGroup = cfg.gitLabWinGroup || '';
+      const macGroup = cfg.gitLabMacGroup || '';
+      const fallbackGroup = cfg.gitLabGroup || '';
+      // Derive the correct gitLabGroup for this platform immediately
+      let gitLabGroup = fallbackGroup;
+      if (platform === 'windows' && winGroup) gitLabGroup = winGroup;
+      if (platform === 'macos'   && macGroup) gitLabGroup = macGroup;
+
+      return {
+        ...INITIAL_STATE,
+        platform,
+        gitLabWinGroup: winGroup,
+        gitLabMacGroup: macGroup,
+        gitLabGroup,
+        ...(cfg.gitLabCiTemplatesProject
+          ? { gitLabCiTemplatesProject: cfg.gitLabCiTemplatesProject }
+          : {}),
+      };
+    });
+    setCurrentStep(0);
+    markClean();
+  }, [markClean]);
+
+  /**
    * Import parsed PSADT fields into wizard state.
    * Called after parsePsadtFile() + toWizardState() succeeds.
    * @param {Object} parsedResult - from parsePsadtFile()
@@ -1083,6 +1117,7 @@ export default function useWizardState() {
     prevStep,
     goToStep,
     reset,
+    resetWithConfig,
     CATEGORIES,
     CATEGORY_TO_JAMF,
   };
