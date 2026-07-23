@@ -136,11 +136,11 @@ function StageItem({ icon, label, active, completed, hasError, onClick, sidebarO
         onClick={onClick}
         selected={active}
         sx={{
-          pl: sidebarOpen ? 4 : 1.5,
-          py: 0.5,
+          pl: sidebarOpen ? 3.5 : 1.5,
+          py: 0.3,
           borderLeft: active ? '2px solid' : '2px solid transparent',
           borderColor: active ? 'primary.main' : 'transparent',
-          ml: sidebarOpen ? 1 : 0,
+          ml: sidebarOpen ? 0.5 : 0,
           borderRadius: '0 6px 6px 0',
         }}
       >

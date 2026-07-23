@@ -748,6 +748,9 @@ const TRY_OPENERS  = /^(?:try)\b/i;
 const FLOW_OPENERS = /^(?:if\s*\(|elseif\s*\(|else\b|foreach\s*\(|for\s*\(|while\s*\(|do\b|switch\s*\()/i;
 // Combined — used for the first-pass check
 const BLOCK_OPENERS = /^(?:try\b|if\s*\(|elseif\s*\(|else\b|foreach\s*\(|for\s*\(|while\s*\(|do\b|switch\s*\()/i;
+// Nested helper-function definitions inside a phase block (e.g. function Get-EMEA {)
+// These must be extracted as a complete brace-balanced unit so the closing } is not orphaned.
+const FUNCTION_OPENER = /^function\s+\S+.*\{\s*$/i;
 
 /**
  * Regex matching a recognizable PSADT/ADT cmdlet inside a block.
@@ -1035,6 +1038,27 @@ function extractBlockActions(block) {
 
     // Skip empty lines at the very beginning of parsing to avoid leading raw blocks
     if (!t && customBuffer.length === 0) {
+      continue;
+    }
+
+    // Nested helper-function definition (e.g. function Get-EMEA { ... })
+    // Extract the entire function as one raw_ps block so the opening line,
+    // body, and closing brace stay together and are not split across actions.
+    if (FUNCTION_OPENER.test(t)) {
+      const { blockText, endIndex } = extractBraceBlock(lines, lineIdx);
+      lineIdx = endIndex;
+      flushCustomBuffer();
+      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
+      if (modernizedBlock.length > 3) {
+        const fnName = t.match(/^function\s+(\S+)/i)?.[1] || 'helper';
+        actions.push({
+          type: 'raw_ps',
+          desc: `Helper function: ${fnName}`,
+          script: modernizedBlock,
+          note: 'Nested helper function preserved as-is',
+          enabled: true,
+        });
+      }
       continue;
     }
 

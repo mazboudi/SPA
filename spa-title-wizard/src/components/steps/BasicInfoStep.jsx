@@ -344,10 +344,10 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
 
       <style>{`
         .step-content {
-          padding: 0 var(--space-xl) var(--space-xl);
+          padding: 0 var(--space-lg) var(--space-lg);
         }
         .step-header {
-          margin-bottom: var(--space-xl);
+          margin-bottom: var(--space-md);
         }
         .step-header h2 {
           font-size: 1.35rem;
