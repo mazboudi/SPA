@@ -901,10 +901,71 @@ function modernizeLegacyScriptParts(scriptText) {
     .replace(/\bSet-MsiProperty\b/g, 'Set-ADTMsiProperty')
     .replace(/\bTest-MSUpdates\b/g, 'Test-ADTMSUpdates')
     .replace(/\bInstall-MSUpdates\b/g, 'Install-ADTMSUpdates')
-    // ── Variable paths ────────────────────────────────────────────────────
+    // ── Variable paths (session-gated) ────────────────────────────────────
+    // $dirFiles / $dirSupportFiles are v3 global variables; in v4 they live on $adtSession
     .replace(/\$dirFiles\b/g, '$($adtSession.DirFiles)')
-    .replace(/\$dirSupportFiles\b/g, '$($adtSession.DirSupportFiles)');
+    .replace(/\$dirSupportFiles\b/g, '$($adtSession.DirSupportFiles)')
+    // $scriptDirectory was a v3 idiom for the script root; use $PSScriptRoot in v4
+    .replace(/\$scriptDirectory\b/g, '$PSScriptRoot')
+    // ── Session property variables ─────────────────────────────────────────
+    // v3 stored app identity as local script-level variables; in v4 they're on $adtSession.
+    // These are common in conditional logic, log messages, and path strings in v3 scripts.
+    .replace(/\$deploymentType\b/g, '$adtSession.DeploymentType')
+    .replace(/\$appName\b/g, '$adtSession.AppName')
+    .replace(/\$appVendor\b/g, '$adtSession.AppVendor')
+    .replace(/\$appVersion\b/g, '$adtSession.AppVersion')
+    .replace(/\$appLang\b/g, '$adtSession.AppLang')
+    .replace(/\$appArch\b/g, '$adtSession.AppArch')
+    .replace(/\$appScriptVersion\b/g, '$adtSession.AppScriptVersion')
+    // ── Parameter rename: -Parameters → -ArgumentList ─────────────────────
+    // v3 Execute-Process / Execute-MSI used -Parameters; v4 Start-ADTProcess uses -ArgumentList
+    // Apply AFTER cmdlet renames above so we match on the already-renamed v4 cmdlet name.
+    .replace(/(Start-ADTProcess(?:AsUser)?[^\n]*)-Parameters\b/gi, '$1-ArgumentList')
+    .replace(/(Start-ADTMsiProcess[^\n]*)-Parameters\b/gi, '$1-ArgumentList')
+    // ── Terminal server mode ───────────────────────────────────────────────
+    .replace(/\bDisable-TerminalServerInstallMode\b/g, 'Disable-ADTTerminalServerInstallMode')
+    .replace(/\bEnable-TerminalServerInstallMode\b/g, 'Enable-ADTTerminalServerInstallMode')
+    // ── Content cache ─────────────────────────────────────────────────────
+    .replace(/\bCopy-ContentToCache\b/g, 'Copy-ADTContentToCache')
+    .replace(/\bRemove-ContentFromCache\b/g, 'Remove-ADTContentFromCache')
+    // ── Deferred install history ───────────────────────────────────────────
+    .replace(/\bGet-DeferHistory\b/g, 'Get-ADTDeferHistory')
+    .replace(/\bSet-DeferHistory\b/g, 'Set-ADTDeferHistory')
+    // ── File/version utilities ────────────────────────────────────────────
+    .replace(/\bGet-FileVersion\b/g, 'Get-ADTFileVersion')
+    .replace(/\bGet-PEFileArchitecture\b/g, 'Get-ADTPEFileArchitecture')
+    .replace(/\bRemove-InvalidFileNameChars\b/g, 'Remove-ADTInvalidFileNameChars')
+    .replace(/\bGet-UniversalDate\b/g, 'Get-ADTUniversalDate')
+    // ── Process/scheduler ─────────────────────────────────────────────────
+    .replace(/\bGet-RunningProcesses\b/g, 'Get-ADTRunningProcesses')
+    .replace(/\bGet-SchedulerTask\b/g, 'Get-ADTSchedulerTask')
+    .replace(/\bTest-IsMutexAvailable\b/g, 'Test-ADTMutexAvailability')
+    // ── Object/reflection helpers ─────────────────────────────────────────
+    .replace(/\bGet-ObjectProperty\b/g, 'Get-ADTObjectProperty')
+    .replace(/\bInvoke-ObjectMethod\b/g, 'Invoke-ADTObjectMethod')
+    .replace(/\bConvertTo-NTAccountOrSID\b/g, 'ConvertTo-ADTNTAccountOrSID')
+    .replace(/\bResolve-Parameters\b/g, 'Resolve-ADTBoundParameters')
+    // ── SCCM integration ──────────────────────────────────────────────────
+    .replace(/\bInstall-SCCMSoftwareUpdates\b/g, 'Install-ADTSCCMSoftwareUpdates')
+    .replace(/\bInvoke-SCCMTask\b/g, 'Invoke-ADTSCCMTask')
+    // ── Active Setup / permissions / UI ───────────────────────────────────
+    .replace(/\bSet-ActiveSetup\b/g, 'Set-ADTActiveSetup')
+    .replace(/\bSet-ItemPermission\b/g, 'Set-ADTItemPermission')
+    .replace(/\bSend-Keys\b/g, 'Send-ADTKeys')
+    // ── DLL registration (best-effort: maps to primary v4 equivalent) ─────
+    // v3: Invoke-RegisterOrUnregisterDLL  →  v4: Invoke-ADTRegSvr32 (Register-ADTDll / Unregister-ADTDll also available)
+    .replace(/\bInvoke-RegisterOrUnregisterDLL\b/g, 'Invoke-ADTRegSvr32')
+    // ── Edge extensions (best-effort: 1 v3 fn → 2 v4 fns; map to Add variant) ──
+    // v3: Configure-EdgeExtension  →  v4: Add-ADTEdgeExtension or Remove-ADTEdgeExtension
+    .replace(/\bConfigure-EdgeExtension\b/g, 'Add-ADTEdgeExtension')
+    // ── Deprecated in v4 — left as-is so they land in raw_ps blocks ───────
+    // Get-HardwarePlatform → Deprecated (no v4 equivalent)
+    // Set-PinnedApplication → Deprecated (no v4 equivalent)
+    // Write-FunctionHeaderOrFooter → Initialize-ADTFunction / Complete-ADTFunction (ambiguous; skip)
+    // NOTE: $env* variables ($envProgramFiles, $envCommonDesktop, $envTemp, etc.) are intentionally
+    // NOT converted — PSADT v4 still exports them to the PS session via Export-ADTEnvironmentTableToSessionState.
 }
+
 
 /** Scan a script block for all recognizable PowerShell commands and return action objects. */
 function extractBlockActions(block) {
