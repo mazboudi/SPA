@@ -37,24 +37,30 @@ export default function generatePsadtScript(s, clean = false) {
    * boilerplate that the generator already injects. These must NOT be emitted
    * as user actions, otherwise the boilerplate appears twice in the output.
    *
-   * IMPORTANT: Only flag as boilerplate if the block has NO executable code.
-   * A block like "## Show Welcome Message\n$saiwParams = @{...}" contains real
-   * code and must pass through even though the first comment looks like a header.
+   * TWO-TIER logic:
+   *  1. BOILERPLATE_FINGERPRINTS — precise regex matches for known template
+   *     blocks (e.g. Zero-Config MSI handler). Always filter, even when the
+   *     block contains executable code.
+   *  2. Comment-header patterns — only filter when the block has NO executable
+   *     code, to avoid suppressing user blocks that happen to start with a
+   *     boilerplate-looking comment (e.g. ## Show Welcome Message + $saiwParams).
    */
   function isBoilerplateBlock(action) {
     if (action.type !== 'raw_ps' || !action.script) return false;
     const s = action.script.trim();
 
-    // If any line is executable (non-comment, non-empty), never filter it out.
+    // Tier 1: precise fingerprints — always filter regardless of executable content
+    if (BOILERPLATE_FINGERPRINTS.some(rx => rx.test(s))) return true;
+
+    // Tier 2: comment/header-only blocks — only filter when no executable lines present
     const hasExecutable = s.split('\n').some(line => {
       const t = line.trim();
       return t && !t.startsWith('#') && !t.startsWith('<#');
     });
     if (hasExecutable) return false;
 
-    // Pure comment/header-only blocks: check for boilerplate markers
-    if (/^\s*(##=+\s*$|##\s*(MARK|Show Welcome|Show Progress|Handle Zero|Display a message|If there are processes))/im.test(s)) return true;
-    return BOILERPLATE_FINGERPRINTS.some(rx => rx.test(s));
+    // Pure comment/header-only: check for boilerplate section markers
+    return /^\s*(##=+\s*$|##\s*(MARK|Show Welcome|Show Progress|Handle Zero|Display a message|If there are processes))/im.test(s);
   }
 
 
