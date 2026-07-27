@@ -539,7 +539,11 @@ export default function useWizardState() {
         const hasRequired = !!(state.displayName.trim() && state.version.trim() && state.category && state.platform);
         if (!hasRequired) return false;
         if (validatePackageId(state.packageId) !== null) return false;
-        if (state.existingProject && state.wizardMode !== 'edit' && !state.duplicateAcknowledge) return false;
+        // Duplicate acknowledgment is only required for 'new' and 'clone' modes.
+        // In 'refactor' mode, finding the existing project is expected — no gate.
+        // In 'edit' mode, the project is known — no gate.
+        const needsAck = state.wizardMode === 'new' || state.wizardMode === 'clone';
+        if (needsAck && state.existingProject && !state.duplicateAcknowledge) return false;
         return true;
       }
 

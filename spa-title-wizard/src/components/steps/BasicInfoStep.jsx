@@ -190,6 +190,28 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
         </div>
       )}
 
+      {/* REFACTOR mode — existing project found: informational only, not blocking */}
+      {existingProject && state.wizardMode === 'refactor' && (
+        <div className="duplicate-alert duplicate-alert--info animate-in" style={{ borderColor: 'var(--accent-blue, #3b82f6)', background: 'rgba(59,130,246,0.06)' }}>
+          <div className="duplicate-alert__header">
+            <span className="duplicate-alert__icon">ℹ️</span>
+            <div className="duplicate-alert__title-group">
+              <h3 className="duplicate-alert__title" style={{ color: 'var(--accent-blue, #3b82f6)' }}>GitLab Project Found</h3>
+              <p className="duplicate-alert__subtitle">
+                A repository for <code>{state.packageId}</code> already exists. Publishing the refactored scripts will push to this project.
+              </p>
+            </div>
+          </div>
+          <div className="duplicate-alert__meta" style={{ paddingLeft: 0, marginTop: 'var(--space-sm)' }}>
+            <span><strong>Path:</strong> <code>{existingProject.path_with_namespace}</code></span>
+            <span><strong>GitLab URL:</strong> <a href={existingProject.web_url} target="_blank" rel="noreferrer" className="duplicate-alert__link">{existingProject.web_url}</a></span>
+            {existingProject.tags && existingProject.tags.length > 0 && (
+              <span><strong>Latest Tag:</strong> <code className="duplicate-alert__version">{existingProject.tags[0].name}</code></span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* CLONE mode — derived Package ID already exists: lighter warning */}
       {existingProject && isCloneMode && (
         <div className="duplicate-alert duplicate-alert--clone animate-in">
