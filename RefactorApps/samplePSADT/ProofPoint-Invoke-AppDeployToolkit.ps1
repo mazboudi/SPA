@@ -90,7 +90,7 @@ $adtSession = @{
     # App variables.
     AppVendor = 'Proofpoint'
     AppName = 'Proofpoint DLP Agent'
-    AppVersion = '4.3.3.530'
+    AppVersion = '5.1.1.3'
     AppArch = 'x64'
     AppLang = 'EN'
     AppRevision = '01'
@@ -98,7 +98,7 @@ $adtSession = @{
     AppRebootExitCodes = @(1641, 3010)
     AppProcessesToClose = @()  # Example: @('excel', @{ Name = 'winword'; Description = 'Microsoft Word' })
     AppScriptVersion = '1.0.0'
-    AppScriptDate = '2026-02-16'
+    AppScriptDate = '2026-07-23'
     AppScriptAuthor = 'Joe Cassera'
     RequireAdmin = $true
 
@@ -142,42 +142,32 @@ function Install-ADTDeployment
 
     ## <Perform Pre-Installation tasks here>
 	
+	Uninstall-ADTApplication -Name 'Updater Utility' -ApplicationType 'MSI' -ErrorAction Stop
+	
 	Remove-ADTFile -LiteralPath 'C:\temp\fiserv-production_agent_install_config.json' -ErrorAction SilentlyContinue 
 	Remove-ADTFile -LiteralPath 'C:\temp\fiserv-production_updater_install_config.json' -ErrorAction SilentlyContinue
 	Remove-ADTFile -LiteralPath 'C:\temp\fiserv_emea_prod_agent_install_config.json' -ErrorAction SilentlyContinue
 	Remove-ADTFile -LiteralPath 'C:\temp\fiserv_emea_prod_updater_install_config.json' -ErrorAction SilentlyContinue
 	
-	If (Test-Path -Path "HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.0.461") {
-		Try {
-			Remove-Item "HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.0.461" -Recurse -Force -ErrorAction SilentlyContinue
-			Write-ADTLogEntry -Message "Successfully removed HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.0.461..."
-		}
-		Catch {
-			Write-ADTLogEntry -Message "Failed to remove HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.0.461..."
-		}
-	}
+	Remove-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.0.461' 
+	Remove-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.1.5' 
+	Remove-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{6043b50e-68fe-41fa-a797-4cdeab582c2e}' 
 	
-	If (Test-Path -Path "HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.1.5") {
-		Try {
-			Remove-Item "HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.1.5" -Recurse -Force -ErrorAction SilentlyContinue
-			Write-ADTLogEntry -Message "Successfully removed HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.1.5..."
-		}
-		Catch {
-			Write-ADTLogEntry -Message "Failed to remove HKLM:\SOFTWARE\Fiserv\Applications\Proofpoint_DataLossPrevention-Global_2.8.1.5..."
-		}
+	$LocationCheck1 = (Get-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\EUCOps_LocationInfo -ErrorAction SilentlyContinue)
+	$LocationCheck2 = (Get-ItemProperty -Path HKLM:\SOFTWARE\Fiserv\EUCOps -ErrorAction SilentlyContinue)
+
+	function Get-EMEA {
+
+	if(($LocationCheck1.Publisher -like 'Europe*') -or ($LocationCheck2.Timezone -like 'Europe*') -or ($LocationCheck1.Publisher -like 'Africa*') -or ($LocationCheck2.Timezone -like 'Africa*') -or ($LocationCheck1.Publisher -eq 'Asia/Jerusalem') -or ($LocationCheck2.Timezone -eq 'Asia/Jerusalem') -or ($LocationCheck1.Publisher -eq 'Asia/Dubai') -or ($LocationCheck2.Timezone -eq 'Asia/Dubai')){
+		Write-ADTLogEntry -Message "Device location is EMEA..."
+		return 1
+	}else{
+		Write-ADTLogEntry -Message "Device location is GLOBAL..."
+		return 0
 	}
-	
-	If (Test-Path -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{6043b50e-68fe-41fa-a797-4cdeab582c2e}") {
-		Try {
-			Remove-Item "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{6043b50e-68fe-41fa-a797-4cdeab582c2e}" -Recurse -Force -ErrorAction SilentlyContinue
-			Write-ADTLogEntry -Message "Successfully removed HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{6043b50e-68fe-41fa-a797-4cdeab582c2e}..."
-		}
-		Catch {
-			Write-ADTLogEntry -Message "Failed to remove HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{6043b50e-68fe-41fa-a797-4cdeab582c2e}..."
-		}
 	}
-	
-	Uninstall-ADTApplication -Name 'Updater Utility' -ApplicationType 'MSI' -ErrorAction Stop
+
+	$EMEA = Get-EMEA
 
     ##================================================
     ## MARK: Install
@@ -200,30 +190,15 @@ function Install-ADTDeployment
     }
 
     ## <Perform Installation tasks here>
-	
-	$LocationKeyCheck = (Get-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\EUCOps_LocationInfo -ErrorAction SilentlyContinue)
-
-	function Get-EMEA {
-
-	if(($LocationKeyCheck.Publisher -like 'Europe*') -or ($LocationKeyCheck.Publisher -like 'Africa*') -or ($LocationKeyCheck.Publisher -eq 'Asia/Jerusalem') -or ($LocationKeyCheck.Publisher -eq 'Asia/Dubai')){
-		Write-ADTLogEntry -Message "Device location is EMEA..."
-		return 1
-	}else{
-		Write-ADTLogEntry -Message "Device location is GLOBAL..."
-		return 0
-	}
-	}
-
-	$EMEA = Get-EMEA
 
 	if($EMEA -eq '1'){
 		Write-ADTLogEntry -Message "Installing with EMEA config..."
-		Start-ADTProcess -FilePath 'ITMSaaSBundle-4.3.3.530-x64.exe' -ArgumentList "TargetDir=`"C:\Program Files\IT Client Utility\Client Utility`" PreConfigPath=`"$($adtSession.DirFiles)\fiserv_emea_prod_agent_install_config.json`" /install /quiet contentdetection=1 /log C:\Windows\Temp\FISV\Logs\ITMSaaSBundle_SetupLog.log" -ErrorAction Stop 
+		Start-ADTProcess -FilePath 'ITMSaaSBundle-5.1.1.3-x64.exe' -ArgumentList "TargetDir=`"C:\Program Files\IT Client Utility\Client Utility`" PreConfigPath=`"$($adtSession.DirFiles)\fiserv_emea_prod_agent_install_config.json`" /install /quiet contentdetection=1 /log C:\Windows\Temp\FISV\Logs\ITMSaaSBundle_SetupLog.log" -ErrorAction Stop 
 		Start-Sleep -Seconds 10
 		Start-ADTMsiProcess -Action 'Install' -FilePath 'UpdaterSetup-2.3.0.97.msi' -ArgumentList "INSTALLDIR=`"C:\Program Files\Windows Client Utility\Saas Updater Utility`" PRECONFIGPATH=`"$($adtSession.DirFiles)\fiserv_emea_prod_updater_install_config.json`" ARPNOREMOVE=1 /quiet /norestart" -ErrorAction Stop
 	}else{
 		Write-ADTLogEntry -Message "Installing with GLOBAL config..."
-		Start-ADTProcess -FilePath 'ITMSaaSBundle-4.3.3.530-x64.exe' -ArgumentList "TargetDir=`"C:\Program Files\IT Client Utility\Client Utility`" PreConfigPath=`"$($adtSession.DirFiles)\fiserv-production_agent_install_config.json`" /install /quiet contentdetection=1 /log C:\Windows\Temp\FISV\Logs\ITMSaaSBundle_SetupLog.log" -ErrorAction Stop
+		Start-ADTProcess -FilePath 'ITMSaaSBundle-5.1.1.3-x64.exe' -ArgumentList "TargetDir=`"C:\Program Files\IT Client Utility\Client Utility`" PreConfigPath=`"$($adtSession.DirFiles)\fiserv-production_agent_install_config.json`" /install /quiet contentdetection=1 /log C:\Windows\Temp\FISV\Logs\ITMSaaSBundle_SetupLog.log" -ErrorAction Stop
 		Start-Sleep -Seconds 10
 		Start-ADTMsiProcess -Action 'Install' -FilePath 'UpdaterSetup-2.3.0.97.msi' -ArgumentList "INSTALLDIR=`"C:\Program Files\Windows Client Utility\Saas Updater Utility`" PRECONFIGPATH=`"$($adtSession.DirFiles)\fiserv-production_updater_install_config.json`" ARPNOREMOVE=1 /quiet /norestart" -ErrorAction Stop
 	}
@@ -235,50 +210,7 @@ function Install-ADTDeployment
 
     ## <Perform Post-Installation tasks here>
 	
-	$OldCache1 = "C:\ProgramData\Package Cache\{6043b50e-68fe-41fa-a797-4cdeab582c2e}"
-	$OldCache2 = "C:\ProgramData\Package Cache\{02060b4d-2c4c-4f17-8938-fb3e0226fa10}"
-		
-	if((Test-Path -Path $OldCache1) -or (Test-Path -Path $OldCache2)){
-		Remove-Item -Path $OldCache1 -Recurse -Force -ErrorAction SilentlyContinue
-		Remove-Item -Path $OldCache2 -Recurse -Force -ErrorAction SilentlyContinue
-	}
-	
-	#Create Proofpoint UninstallKey
-	
-	Write-ADTLogEntry -Message "Creating Proofpoint Uninstall Key..."
-	
-	$InstallSource = Get-Location
-	$InstallDate = Get-Date -Format 'yyyyMMdd'
-	$DisplayVersion = (Get-Item "C:\Program Files\IT Client Utility\Client Utility\it-agent.exe").VersionInfo.FileVersion
-	$Path = (Get-ChildItem -Path "C:\ProgramData\Package Cache\*" -Include ITMSaaSBundle.exe -Recurse -ErrorAction SilentlyContinue).Directory
-	$DisplayName_GBL = "Proofpoint DLP Agent – GLOBAL"
-	$DisplayName_EMEA = "Proofpoint DLP Agent – EMEA"
-	$InstallLocation = "C:\Program Files\IT Client Utility\Client Utility"
-	$Publisher = "Proofpoint"
-	$UninstallString = "$Path\ITMSaaSBundle.exe"
-
-	if(!(Test-Path -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent)){
-		New-Item -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Force
-	}
-	
-	if($EMEA -eq '1'){		
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "DisplayName" -Value $DisplayName_EMEA -Force
-	}else{
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "DisplayName" -Value $DisplayName_GBL -Force
-	}
-	
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "DisplayVersion" -Value $DisplayVersion -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "InstallLocation" -Value $InstallLocation -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "Publisher" -Value $Publisher -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "InstallSource" -Value $InstallSource -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "InstallDate" -Value $InstallDate -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "UninstallString" -Value $UninstallString -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "NoModify" -PropertyType DWord -Value "1" -Force
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "NoRepair" -PropertyType DWord -Value "1" -Force
-
-	#Hide from Programs and Features
-	New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent -Name "SystemComponent" -PropertyType DWord -Value "1" -Force
-
+	Remove-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent' 
 
     ## Display a message at the end of the install.
     if (!$adtSession.UseDefaultMsi)
@@ -329,26 +261,16 @@ function Uninstall-ADTDeployment
 
     ## <Perform Uninstallation tasks here>
 	
-	$UninstallString = "C:\ProgramData\Package Cache\{f31def60-ad95-43e0-a79a-bec92020d5fe}\ITMSaaSBundle.exe"
-	
 	#Uninstall ITMSaaSBundle
-	Start-ADTProcess -FilePath $UninstallString -ArgumentList "/silent /uninstall UninstallKey=M-geEqKi /norestart /log C:\Windows\Temp\FISV\Logs\ITMSaaSBundle-Uninstall.log" -ErrorAction Stop
+	Start-ADTProcess -FilePath 'ITMSaaSBundle-5.1.1.3-x64.exe' -ArgumentList "/silent /uninstall UninstallKey=M-geEqKi /norestart /log C:\Windows\Temp\FISV\Logs\ITMSaaSBundle-Uninstall.log" -ErrorAction Stop
 	
 	Start-Sleep -Seconds 15
 	
 	#Uninstall Updater Utility
 	Uninstall-ADTApplication -Name 'Updater Utility' -ApplicationType 'MSI' -ErrorAction Stop
 	
-	#Check for and delete uninstall key
-	If (Test-Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent) {
-		Try {
-			Remove-ADTRegistryKey -LiteralPath 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\EUCOps_DellCUConfig' -ErrorAction Stop
-			Write-ADTLogEntry -Message "ProofpointDLPAgent Uninstall Key has been deleted successfully..."
-		}
-		Catch {
-			Write-ADTLogEntry -Message "Failed to remove HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent..."
-		}
-	}
+	#Check for and delete legacy uninstall key
+	Remove-ADTRegistryKey -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProofpointDLPAgent' 
 	
 	#Cleanup folders
 	Remove-Item -Path "C:\Program Files\IT Client Utility" -Recurse -Force -ErrorAction SilentlyContinue
