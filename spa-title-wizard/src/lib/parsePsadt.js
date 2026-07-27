@@ -1244,14 +1244,25 @@ function extractBlockActions(block) {
       }
     }
 
-    // Native PowerShell: Start-Process -FilePath ...
+    // Native PowerShell: Start-Process -FilePath ...\n    // Convert to Start-ADTProcess. Notes:\n    //  - FilePath must use extractPsParamValue to handle quoted paths with spaces\n    //    (the old [^\\s'\"}{]+ stopped at the first space in "C:\\Program Files\\...")\n    //  - -Wait is intentionally not emitted: Start-ADTProcess is always synchronous
     if (!matched) {
-      const startProcMatch = t.match(/Start-Process\s+.*-FilePath\s+['"]?([^\s'"}{]+)/i);
-      if (startProcMatch) {
-        flushCustomBuffer();
-        const spArgVal = extractPsParamValue(t, 'ArgumentList');
-        actions.push({ type: 'start_process', desc: `Run (native): ${startProcMatch[1].replace(/.*[\\]/, '')}`, file: startProcMatch[1], args: spArgVal || '', raw: t });
-        matched = true;
+      if (/\bStart-Process\b/i.test(t) && /-FilePath\b/i.test(t)) {
+        const spFile = extractPsParamValue(t, 'FilePath');
+        if (spFile) {
+          flushCustomBuffer();
+          const spArgVal = extractPsParamValue(t, 'ArgumentList') || extractPsParamValue(t, 'Args') || '';
+          // -Wait is implicit in Start-ADTProcess (always synchronous) — no flag needed
+          const hadWait = /-Wait\b/i.test(t);
+          actions.push({
+            type: 'start_process',
+            desc: `Run (native): ${spFile.replace(/.*[\\/]/, '')}`,
+            file: spFile,
+            args: spArgVal,
+            note: hadWait ? 'Converted from Start-Process -Wait; Start-ADTProcess is always synchronous' : '',
+            raw: t,
+          });
+          matched = true;
+        }
       }
     }
 
