@@ -547,9 +547,16 @@ export default function useWizardState() {
         // PSADT lifecycle is pre-seeded; no user-facing required field gates it
         return true;
 
-      case 'installer':
-        // The installer source file path is the only required field (marked "required" in the UI)
-        return !!(state.installerSourceFile || '').trim();
+      case 'installer': {
+        // All three are required for the generator to produce a working PSADT script:
+        //  - installerSourceFile: the filename (e.g. setup.msi / setup.exe)
+        //  - installerSourceDir:  the runner-side directory containing Files\
+        //  - installerType:       'msi' or 'exe' — without this the generator can't build the cmdlet
+        const hasFile = !!(state.installerSourceFile || '').trim();
+        const hasDir  = !!(state.installerSourceDir  || '').trim();
+        const hasType = state.installerType === 'msi' || state.installerType === 'exe';
+        return hasFile && hasDir && hasType;
+      }
 
       case 'intune': {
         const intuneAppName = state.intuneAppName || `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');

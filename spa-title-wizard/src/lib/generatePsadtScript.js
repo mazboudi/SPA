@@ -36,11 +36,23 @@ export default function generatePsadtScript(s, clean = false) {
    * Returns true if a raw_ps action's script content matches standard template
    * boilerplate that the generator already injects. These must NOT be emitted
    * as user actions, otherwise the boilerplate appears twice in the output.
+   *
+   * IMPORTANT: Only flag as boilerplate if the block has NO executable code.
+   * A block like "## Show Welcome Message\n$saiwParams = @{...}" contains real
+   * code and must pass through even though the first comment looks like a header.
    */
   function isBoilerplateBlock(action) {
     if (action.type !== 'raw_ps' || !action.script) return false;
     const s = action.script.trim();
-    // Short standalone lines that are pure boilerplate
+
+    // If any line is executable (non-comment, non-empty), never filter it out.
+    const hasExecutable = s.split('\n').some(line => {
+      const t = line.trim();
+      return t && !t.startsWith('#') && !t.startsWith('<#');
+    });
+    if (hasExecutable) return false;
+
+    // Pure comment/header-only blocks: check for boilerplate markers
     if (/^\s*(##=+\s*$|##\s*(MARK|Show Welcome|Show Progress|Handle Zero|Display a message|If there are processes))/im.test(s)) return true;
     return BOILERPLATE_FINGERPRINTS.some(rx => rx.test(s));
   }

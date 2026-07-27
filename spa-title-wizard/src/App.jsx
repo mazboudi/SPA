@@ -543,6 +543,13 @@ export default function App() {
               colorThemeId={themeId}
               colorThemes={themes}
               onColorThemeChange={selectTheme}
+              onBack={() => setView(
+                wizard.state.displayName || wizard.state.packageId
+                  ? VIEW.PACKAGE
+                  : wizard.state.platform
+                    ? VIEW.LANDING
+                    : VIEW.HOME
+              )}
             />
           )}
 

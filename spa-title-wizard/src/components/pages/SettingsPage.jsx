@@ -10,6 +10,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 // ── Field definitions ────────────────────────────────────────────────────
@@ -114,7 +115,7 @@ function SecretField({ fieldKey, label, hint, placeholder, value, onChange }) {
 }
 
 // ── Main Settings Page ────────────────────────────────────────────────────
-export default function SettingsPage({ workbenchWidth, onWidthChange, colorThemeId, colorThemes, onColorThemeChange }) {
+export default function SettingsPage({ workbenchWidth, onWidthChange, colorThemeId, colorThemes, onColorThemeChange, onBack }) {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -175,8 +176,18 @@ export default function SettingsPage({ workbenchWidth, onWidthChange, colorTheme
 
   return (
     <Box sx={{ maxWidth: 720, mx: 'auto', py: 4, px: 2 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>Settings</Typography>
-      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+      {/* Header row: back button + title */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+        {onBack && (
+          <Tooltip title="Back" placement="bottom">
+            <IconButton onClick={onBack} size="small" sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
+              <ArrowBackIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>Settings</Typography>
+      </Box>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3, ml: onBack ? 5 : 0 }}>
         Configure server and integration settings. Changes are written to the server <code>.env</code> file and require a server restart to take effect.
       </Typography>
 

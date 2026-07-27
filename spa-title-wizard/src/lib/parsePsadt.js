@@ -943,6 +943,15 @@ function extractBlockActions(block) {
       while (end >= start && !customBuffer[end].trim()) {
         end--;
       }
+      // Also strip trailing ##=== / ## MARK: section-header lines that may have
+      // leaked in from the next phase boundary — they belong to the template.
+      while (end >= start && /^\s*##/.test(customBuffer[end])) {
+        end--;
+      }
+      // Re-trim trailing empty lines after header removal
+      while (end >= start && !customBuffer[end].trim()) {
+        end--;
+      }
       const trimmedLines = customBuffer.slice(start, end + 1);
       if (trimmedLines.length > 0) {
         // Only flush if there is at least one line with executable code (not comment only)
