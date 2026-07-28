@@ -826,7 +826,7 @@ function extractTryCatchBlock(lines, startIdx) {
 
 
 /** Modernize legacy PSADT v3 cmdlets to standard v4 cmdlets inside custom blocks. */
-function modernizeLegacyScriptParts(scriptText) {
+export function modernizeLegacyScriptParts(scriptText) {
   if (!scriptText) return '';
   return scriptText
     // ── Core deployment commands ─────────────────────────────────────────

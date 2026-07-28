@@ -9,7 +9,7 @@
  * in parsePsadt.js — the single source of truth for $adtSession variable parsing.
  */
 
-import { extractVarDeclarationsV4 } from './parsePsadt.js';
+import { extractVarDeclarationsV4, modernizeLegacyScriptParts } from './parsePsadt.js';
 
 function dedentLines(blockLines) {
   return blockLines.map(line => {
@@ -221,7 +221,7 @@ export default function parsePsadtBlocks(content) {
               actions.push({
                 type: 'raw_ps',
                 enabled: true,
-                script: cleanRaw,
+                script: modernizeLegacyScriptParts(cleanRaw),
                 note: 'Legacy or custom script block',
                 isManuallyEdited: true
               });
@@ -276,7 +276,7 @@ export default function parsePsadtBlocks(content) {
           actions.push({
             type: 'raw_ps',
             enabled: true,
-            script: cleanCode,
+            script: modernizeLegacyScriptParts(cleanCode),
             note: `Packager Custom Code (${phaseKey})`,
             isManuallyEdited: true,
             isCustomCodeBlock: true
