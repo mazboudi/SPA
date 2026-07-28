@@ -181,22 +181,32 @@ export default function App() {
   });
 
   // ── New from queue ────────────────────────────────────────────────────────
-  const handleNewFromQueue = () => withUnsavedWorkGuard(() => setView(VIEW.QUEUE));
+  const handleNewFromQueue = () => withUnsavedWorkGuard(() => {
+    wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
+    clearEdits();
+    setView(VIEW.QUEUE);
+  });
 
   // ── Refactor ──────────────────────────────────────────────────────────────
   const handleRefactor = () => withUnsavedWorkGuard(() => {
+    wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
     clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
+    setPsadtResult(null);
+    setPsadtError(null);
+    setPsadtParsing(false);
     setView(VIEW.REFACTOR);
   });
 
   // ── Edit packages ─────────────────────────────────────────────────────────
   const handleEditPackages = () => withUnsavedWorkGuard(() => {
+    wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
     clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
     setView(VIEW.EDIT);
   });
 
   // ── Clone app ─────────────────────────────────────────────────────────────
   const handleClonePackages = () => withUnsavedWorkGuard(() => {
+    wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
     clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
     setView(VIEW.CLONE);
   });

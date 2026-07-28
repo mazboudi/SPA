@@ -1,3 +1,5 @@
+import v3ToV4 from '../config/v3ToV4.json' with { type: 'json' };
+
 /**
  * parsePsadt.js
  * Parses PSADT v3 (Deploy-Application.ps1) and v4 (Invoke-AppDeployToolkit.ps1)
@@ -826,144 +828,50 @@ function extractTryCatchBlock(lines, startIdx) {
 
 
 /** Modernize legacy PSADT v3 cmdlets to standard v4 cmdlets inside custom blocks. */
+/**
+ * Modernize a v3 PSADT script fragment to v4 naming conventions.
+ * Driven by src/config/v3ToV4.json — add new renames there, not here.
+ *
+ * Order is critical:
+ *   1. Cmdlet renames  (word-boundary, case-insensitive)
+ *   2. Variable renames ($dirFiles → $($adtSession.DirFiles), etc.)
+ *   3. Parameter renames (-Parameters → -ArgumentList, applied AFTER cmdlets so patterns match v4 names)
+ *
+ * NOTE: $env* variables are intentionally NOT converted — PSADT v4 still exports them
+ * to the PS session via Export-ADTEnvironmentTableToSessionState.
+ */
 export function modernizeLegacyScriptParts(scriptText) {
   if (!scriptText) return '';
-  return scriptText
-    // ── Core deployment commands ─────────────────────────────────────────
-    .replace(/\bExecute-MSI\b/g, 'Start-ADTMsiProcess')
-    .replace(/\bExecute-MSP\b/g, 'Start-ADTMspProcess')
-    .replace(/\bExecute-Process\b/g, 'Start-ADTProcess')
-    .replace(/\bExecute-ProcessAsUser\b/g, 'Start-ADTProcessAsUser')
-    .replace(/\bExit-Script\b/g, 'Close-ADTSession')
-    // ── Registry ─────────────────────────────────────────────────────────
-    .replace(/\bGet-RegistryKey\b/g, 'Get-ADTRegistryKey')
-    .replace(/\bSet-RegistryKey\b/g, 'Set-ADTRegistryKey')
-    .replace(/\bRemove-RegistryKey\b/g, 'Remove-ADTRegistryKey')
-    .replace(/\bTest-RegistryValue\b/g, 'Test-ADTRegistryValue')
-    .replace(/\bConvert-RegistryPath\b/g, 'Convert-ADTRegistryPath')
-    .replace(/\bInvoke-HKCURegistrySettingsForAllUsers\b/g, 'Invoke-ADTAllUsersRegistryAction')
-    // ── File and folder operations ────────────────────────────────────────
-    .replace(/\bCopy-File\b/g, 'Copy-ADTFile')
-    .replace(/\bCopy-FileToUserProfiles\b/g, 'Copy-ADTFileToUserProfiles')
-    .replace(/\bRemove-File\b/g, 'Remove-ADTFile')
-    .replace(/\bRemove-FileFromUserProfiles\b/g, 'Remove-ADTFileFromUserProfiles')
-    .replace(/\bRemove-Folder\b/g, 'Remove-ADTFolder')
-    .replace(/\bNew-Folder\b/g, 'New-ADTFolder')
-    .replace(/\bNew-ZipFile\b/g, 'New-ADTZipFile')
-    // ── Application management ────────────────────────────────────────────
-    .replace(/\bRemove-MSIApplications\b/g, 'Uninstall-ADTApplication')
-    .replace(/\bGet-InstalledApplication\b/g, 'Get-ADTApplication')
-    // ── INI file operations ───────────────────────────────────────────────
-    .replace(/\bSet-IniValue\b/g, 'Set-ADTIniValue')
-    .replace(/\bGet-IniValue\b/g, 'Get-ADTIniValue')
-    // ── Shortcuts ─────────────────────────────────────────────────────────
-    .replace(/\bNew-Shortcut\b/g, 'New-ADTShortcut')
-    .replace(/\bGet-Shortcut\b/g, 'Get-ADTShortcut')
-    .replace(/\bSet-Shortcut\b/g, 'Set-ADTShortcut')
-    // ── Services ─────────────────────────────────────────────────────────
-    .replace(/\bStart-ServiceAndDependencies\b/g, 'Start-ADTServiceAndDependencies')
-    .replace(/\bStop-ServiceAndDependencies\b/g, 'Stop-ADTServiceAndDependencies')
-    .replace(/\bGet-ServiceStartMode\b/g, 'Get-ADTServiceStartMode')
-    .replace(/\bSet-ServiceStartMode\b/g, 'Set-ADTServiceStartMode')
-    .replace(/\bTest-ServiceExists\b/g, 'Test-ADTServiceExists')
-    // ── UI/progress dialogs ───────────────────────────────────────────────
-    .replace(/\bShow-InstallationWelcome\b/g, 'Show-ADTInstallationWelcome')
-    .replace(/\bShow-WelcomePrompt\b/g, 'Show-ADTInstallationWelcome')
-    .replace(/\bShow-InstallationProgress\b/g, 'Show-ADTInstallationProgress')
-    .replace(/\bClose-InstallationProgress\b/g, 'Close-ADTInstallationProgress')
-    .replace(/\bShow-InstallationPrompt\b/g, 'Show-ADTInstallationPrompt')
-    .replace(/\bShow-InstallationRestartPrompt\b/g, 'Show-ADTInstallationRestartPrompt')
-    .replace(/\bShow-BalloonTip\b/g, 'Show-ADTBalloonTip')
-    .replace(/\bShow-DialogBox\b/g, 'Show-ADTDialogBox')
-    // ── App execution blocking ────────────────────────────────────────────
-    .replace(/\bBlock-AppExecution\b/g, 'Block-ADTAppExecution')
-    .replace(/\bUnblock-AppExecution\b/g, 'Unblock-ADTAppExecution')
-    // ── Logging ───────────────────────────────────────────────────────────
-    .replace(/\bWrite-Log\b/g, 'Write-ADTLogEntry')
-    .replace(/\bResolve-Error\b/g, 'Resolve-ADTErrorRecord')
-    // ── User/environment helpers ──────────────────────────────────────────
-    .replace(/\bGet-UserProfiles\b/g, 'Get-ADTUserProfiles')
-    .replace(/\bGet-LoggedOnUser\b/g, 'Get-ADTLoggedOnUser')
-    .replace(/\bUpdate-Desktop\b/g, 'Update-ADTDesktop')
-    .replace(/\bUpdate-GroupPolicy\b/g, 'Update-ADTGroupPolicy')
-    .replace(/\bUpdate-SessionEnvironmentVariables\b/g, 'Update-ADTEnvironmentPsProvider')
-    // ── Disk/system info ─────────────────────────────────────────────────
-    .replace(/\bGet-FreeDiskSpace\b/g, 'Get-ADTFreeDiskSpace')
-    .replace(/\bGet-PendingReboot\b/g, 'Get-ADTPendingReboot')
-    .replace(/\bTest-Battery\b/g, 'Test-ADTBattery')
-    .replace(/\bTest-NetworkConnection\b/g, 'Test-ADTNetworkConnection')
-    .replace(/\bTest-PowerPoint\b/g, 'Test-ADTPowerPoint')
-    .replace(/\bGet-WindowTitle\b/g, 'Get-ADTWindowTitle')
-    // ── MSI helpers ───────────────────────────────────────────────────────
-    .replace(/\bGet-MsiExitCodeMessage\b/g, 'Get-ADTMsiExitCodeMessage')
-    .replace(/\bGet-MsiTableProperty\b/g, 'Get-ADTMsiTableProperty')
-    .replace(/\bNew-MsiTransform\b/g, 'New-ADTMsiTransform')
-    .replace(/\bSet-MsiProperty\b/g, 'Set-ADTMsiProperty')
-    .replace(/\bTest-MSUpdates\b/g, 'Test-ADTMSUpdates')
-    .replace(/\bInstall-MSUpdates\b/g, 'Install-ADTMSUpdates')
-    // ── Variable paths (session-gated) ────────────────────────────────────
-    // $dirFiles / $dirSupportFiles are v3 global variables; in v4 they live on $adtSession
-    .replace(/\$dirFiles\b/g, '$($adtSession.DirFiles)')
-    .replace(/\$dirSupportFiles\b/g, '$($adtSession.DirSupportFiles)')
-    // $scriptDirectory was a v3 idiom for the script root; use $PSScriptRoot in v4
-    .replace(/\$scriptDirectory\b/g, '$PSScriptRoot')
-    // ── Session property variables ─────────────────────────────────────────
-    // v3 stored app identity as local script-level variables; in v4 they're on $adtSession.
-    // These are common in conditional logic, log messages, and path strings in v3 scripts.
-    .replace(/\$deploymentType\b/g, '$adtSession.DeploymentType')
-    .replace(/\$appName\b/g, '$adtSession.AppName')
-    .replace(/\$appVendor\b/g, '$adtSession.AppVendor')
-    .replace(/\$appVersion\b/g, '$adtSession.AppVersion')
-    .replace(/\$appLang\b/g, '$adtSession.AppLang')
-    .replace(/\$appArch\b/g, '$adtSession.AppArch')
-    .replace(/\$appScriptVersion\b/g, '$adtSession.AppScriptVersion')
-    // ── Parameter rename: -Parameters → -ArgumentList ─────────────────────
-    // v3 Execute-Process / Execute-MSI used -Parameters; v4 Start-ADTProcess uses -ArgumentList
-    // Apply AFTER cmdlet renames above so we match on the already-renamed v4 cmdlet name.
-    .replace(/(Start-ADTProcess(?:AsUser)?[^\n]*)-Parameters\b/gi, '$1-ArgumentList')
-    .replace(/(Start-ADTMsiProcess[^\n]*)-Parameters\b/gi, '$1-ArgumentList')
-    // ── Terminal server mode ───────────────────────────────────────────────
-    .replace(/\bDisable-TerminalServerInstallMode\b/g, 'Disable-ADTTerminalServerInstallMode')
-    .replace(/\bEnable-TerminalServerInstallMode\b/g, 'Enable-ADTTerminalServerInstallMode')
-    // ── Content cache ─────────────────────────────────────────────────────
-    .replace(/\bCopy-ContentToCache\b/g, 'Copy-ADTContentToCache')
-    .replace(/\bRemove-ContentFromCache\b/g, 'Remove-ADTContentFromCache')
-    // ── Deferred install history ───────────────────────────────────────────
-    .replace(/\bGet-DeferHistory\b/g, 'Get-ADTDeferHistory')
-    .replace(/\bSet-DeferHistory\b/g, 'Set-ADTDeferHistory')
-    // ── File/version utilities ────────────────────────────────────────────
-    .replace(/\bGet-FileVersion\b/g, 'Get-ADTFileVersion')
-    .replace(/\bGet-PEFileArchitecture\b/g, 'Get-ADTPEFileArchitecture')
-    .replace(/\bRemove-InvalidFileNameChars\b/g, 'Remove-ADTInvalidFileNameChars')
-    .replace(/\bGet-UniversalDate\b/g, 'Get-ADTUniversalDate')
-    // ── Process/scheduler ─────────────────────────────────────────────────
-    .replace(/\bGet-RunningProcesses\b/g, 'Get-ADTRunningProcesses')
-    .replace(/\bGet-SchedulerTask\b/g, 'Get-ADTSchedulerTask')
-    .replace(/\bTest-IsMutexAvailable\b/g, 'Test-ADTMutexAvailability')
-    // ── Object/reflection helpers ─────────────────────────────────────────
-    .replace(/\bGet-ObjectProperty\b/g, 'Get-ADTObjectProperty')
-    .replace(/\bInvoke-ObjectMethod\b/g, 'Invoke-ADTObjectMethod')
-    .replace(/\bConvertTo-NTAccountOrSID\b/g, 'ConvertTo-ADTNTAccountOrSID')
-    .replace(/\bResolve-Parameters\b/g, 'Resolve-ADTBoundParameters')
-    // ── SCCM integration ──────────────────────────────────────────────────
-    .replace(/\bInstall-SCCMSoftwareUpdates\b/g, 'Install-ADTSCCMSoftwareUpdates')
-    .replace(/\bInvoke-SCCMTask\b/g, 'Invoke-ADTSCCMTask')
-    // ── Active Setup / permissions / UI ───────────────────────────────────
-    .replace(/\bSet-ActiveSetup\b/g, 'Set-ADTActiveSetup')
-    .replace(/\bSet-ItemPermission\b/g, 'Set-ADTItemPermission')
-    .replace(/\bSend-Keys\b/g, 'Send-ADTKeys')
-    // ── DLL registration (best-effort: maps to primary v4 equivalent) ─────
-    // v3: Invoke-RegisterOrUnregisterDLL  →  v4: Invoke-ADTRegSvr32 (Register-ADTDll / Unregister-ADTDll also available)
-    .replace(/\bInvoke-RegisterOrUnregisterDLL\b/g, 'Invoke-ADTRegSvr32')
-    // ── Edge extensions (best-effort: 1 v3 fn → 2 v4 fns; map to Add variant) ──
-    // v3: Configure-EdgeExtension  →  v4: Add-ADTEdgeExtension or Remove-ADTEdgeExtension
-    .replace(/\bConfigure-EdgeExtension\b/g, 'Add-ADTEdgeExtension')
-    // ── Deprecated in v4 — left as-is so they land in raw_ps blocks ───────
-    // Get-HardwarePlatform → Deprecated (no v4 equivalent)
-    // Set-PinnedApplication → Deprecated (no v4 equivalent)
-    // Write-FunctionHeaderOrFooter → Initialize-ADTFunction / Complete-ADTFunction (ambiguous; skip)
-    // NOTE: $env* variables ($envProgramFiles, $envCommonDesktop, $envTemp, etc.) are intentionally
-    // NOT converted — PSADT v4 still exports them to the PS session via Export-ADTEnvironmentTableToSessionState.
+  let result = scriptText;
+
+  // 1. Cmdlet renames — \b word-boundary, global, case-insensitive
+  for (const { v3, v4 } of v3ToV4.cmdlets) {
+    result = result.replace(new RegExp(`\\b${escapeRe(v3)}\\b`, 'g'), v4);
+  }
+
+  // 2. Variable renames — $ is literal in regex (not a word-boundary anchor)
+  for (const { v3, v4 } of v3ToV4.variables) {
+    // v3 entry starts with '$'; escape it and require a word boundary after
+    const escaped = v3.replace('$', '\\$');
+    result = result.replace(new RegExp(`${escaped}\\b`, 'g'), v4);
+  }
+
+  // 3. Parameter renames — applied AFTER cmdlet renames so patterns match v4 cmdlet names
+  for (const { matchCmdlets, v3, v4 } of v3ToV4.parameters) {
+    const cmdPat = matchCmdlets.map(escapeRe).join('|');
+    // Match: (<any of the cmdlets><rest of the same line>)<param>
+    result = result.replace(
+      new RegExp(`((?:${cmdPat})[^\\n]*)${escapeRe(v3)}\\b`, 'gi'),
+      `$1${v4}`
+    );
+  }
+
+  return result;
+}
+
+/** Escape a literal string for use in a RegExp */
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 
@@ -1232,8 +1140,21 @@ function extractBlockActions(block) {
       const procMatch = t.match(/(?:Execute-Process|Start-ADTProcess(?:AsUser)?)\s+.*-(?:Path|FilePath)\s+['"]([^'"]+)['"]/i);
       if (procMatch) {
         flushCustomBuffer();
+        const rawFilePath = procMatch[1];
+        // Detect and strip legacy $dirFiles\ or $dirSupportFiles\ prefix.
+        // The generator will re-add the correct $($adtSession.DirFiles)\ prefix when dirFilesRelative is set.
+        const hasDirFilesPrefix = /^\$(?:dirFiles|dirSupportFiles)[/\\]/i.test(rawFilePath);
+        const hasDirSupportFilesPrefix = /^\$dirSupportFiles[/\\]/i.test(rawFilePath);
+        const bareFile = stripDirPrefix(rawFilePath);
         const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
-        actions.push({ type: 'start_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramVal || '', raw: modernizedLine });
+        actions.push({
+          type: 'start_process',
+          desc: `Run: ${bareFile.replace(/.*[\\]/, '')}`,
+          file: bareFile,
+          dirFilesRelative: hasDirFilesPrefix && !hasDirSupportFilesPrefix,
+          args: paramVal || '',
+          raw: modernizedLine
+        });
         matched = true;
       }
     }
@@ -1379,7 +1300,10 @@ function extractBlockActions(block) {
       if (regSetMatch) {
         flushCustomBuffer();
         const regType = extractPsParamValue(t, 'Type') || 'String';
-        actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], regType, raw: modernizedLine });
+        const modernizedKey = modernizeLegacyScriptParts(regSetMatch[1]);
+        const modernizedName = modernizeLegacyScriptParts(regSetMatch[2]);
+        const modernizedValue = modernizeLegacyScriptParts(regSetMatch[3]);
+        actions.push({ type: 'registry_set', desc: `Registry: ${modernizedName} = ${modernizedValue}`, key: modernizedKey, name: modernizedName, value: modernizedValue, regType, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1793,8 +1717,98 @@ function extractBlockActions(block) {
       }
     }
 
-    // Write-ADTLogEntry
-    
+    // ── Phase 1 gap-fill matchers ─────────────────────────────────────────
+    // These were previously falling through to raw_ps. Added additively at end of chain.
+
+    // Execute-ProcessAsUser / Start-ADTProcessAsUser
+    if (!matched) {
+      const puMatch = t.match(/(?:Execute-ProcessAsUser|Start-ADTProcessAsUser)\s+.*-(?:Path|FilePath)\s+['"]([^'"]+)['"]/i);
+      if (puMatch) {
+        flushCustomBuffer();
+        const rawFile = puMatch[1];
+        const bareFile = stripDirPrefix(rawFile);
+        const dirFilesRelative = /^\$(?:dirFiles|dirSupportFiles)[/\\]/i.test(rawFile);
+        const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
+        actions.push({
+          type: 'execute_process_as_user',
+          desc: `Run as user: ${bareFile.replace(/.*[\\]/, '')}`,
+          file: bareFile,
+          dirFilesRelative,
+          args: paramVal || '',
+          raw: modernizedLine,
+        });
+        matched = true;
+      }
+    }
+
+    // Start-ADTMsiProcessAsUser
+    if (!matched) {
+      const mpuMatch = t.match(/Start-ADTMsiProcessAsUser\s+.*-(?:FilePath|Path)\s+['"]([^'"]+)['"]/i);
+      if (mpuMatch) {
+        flushCustomBuffer();
+        const actionMatch = t.match(/-Action\s+['"](\w+)['"]/i);
+        const argVal = extractPsParamValue(t, 'ArgumentList') || extractPsParamValue(t, 'Parameters');
+        const fname = stripDirPrefix(mpuMatch[1]);
+        actions.push({
+          type: 'msi_process_as_user',
+          desc: `MSI as user: ${fname.replace(/.*[\\]/, '')}`,
+          action: actionMatch?.[1] || 'Install',
+          file: fname,
+          args: argVal || '',
+          raw: modernizedLine,
+        });
+        matched = true;
+      }
+    }
+
+    // Remove-Folder / Remove-ADTFolder
+    if (!matched) {
+      const rmFolderMatch = t.match(/(?:Remove-Folder|Remove-ADTFolder)\s+.*-(?:Path|LiteralPath)\s+['"]([^'"]+)['"]/i);
+      if (rmFolderMatch) {
+        flushCustomBuffer();
+        const hasDisableRecursion = /-DisableRecursion\b/i.test(t);
+        actions.push({
+          type: 'folder_remove',
+          desc: `Remove folder: ${rmFolderMatch[1]}`,
+          path: rmFolderMatch[1],
+          disableRecursion: hasDisableRecursion,
+          raw: modernizedLine,
+        });
+        matched = true;
+      }
+    }
+
+    // Get-PendingReboot / Get-ADTPendingReboot
+    if (!matched) {
+      const pendingMatch = t.match(/(?:\$(\w+)\s*=\s*)?Get-(?:ADT)?PendingReboot\b/i);
+      if (pendingMatch) {
+        flushCustomBuffer();
+        actions.push({
+          type: 'pending_reboot',
+          desc: 'Check pending reboot',
+          varName: pendingMatch[1] || 'pendingReboot',
+          raw: modernizedLine,
+        });
+        matched = true;
+      }
+    }
+
+    // Invoke-HKCURegistrySettingsForAllUsers / Invoke-ADTAllUsersRegistryAction
+    if (!matched) {
+      const allUsersMatch = t.match(/(?:Invoke-HKCURegistrySettingsForAllUsers|Invoke-ADTAllUsersRegistryAction)\b/i);
+      if (allUsersMatch) {
+        flushCustomBuffer();
+        // Capture the scriptblock argument if supplied inline
+        const scriptBlockMatch = t.match(/-(?:RegistrySettings|ScriptBlock)\s+(\{[^}]*\}|\$\w+)/i);
+        actions.push({
+          type: 'all_users_registry',
+          desc: 'All users registry action',
+          scriptBlock: scriptBlockMatch?.[1] || '',
+          raw: modernizedLine,
+        });
+        matched = true;
+      }
+    }
 
     // ── Unmatched line — buffer or skip ────────────────────────────────
     if (!matched) {

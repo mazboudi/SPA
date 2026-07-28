@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "server": "node --env-file=server/.env server/index.js",
     "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
-    "fetch-jamf-categories": "node scripts/fetch-jamf-categories.js"
+    "fetch-jamf-categories": "node scripts/fetch-jamf-categories.js",
+    "test": "node test/regression.mjs",
+    "test:watch": "node --watch test/regression.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

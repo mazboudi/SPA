@@ -1,0 +1,135 @@
+{
+  "variableDeclaration": [
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    }
+  ],
+  "preInstall": [
+    {
+      "type": "show_progress"
+    },
+    {
+      "type": "uninstall_application"
+    },
+    {
+      "type": "uninstall_application"
+    },
+    {
+      "type": "file_remove"
+    }
+  ],
+  "install": [
+    {
+      "type": "start_msi_process",
+      "file": "PK Protect 20.35.0008.msi"
+    },
+    {
+      "type": "sleep"
+    }
+  ],
+  "postInstall": [
+    {
+      "type": "registry_remove"
+    },
+    {
+      "type": "registry_remove"
+    },
+    {
+      "type": "registry_remove"
+    },
+    {
+      "type": "registry_set"
+    },
+    {
+      "type": "sleep"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "\t\t$Check = (Get-ItemProperty -Path \"HKLM:\\SOFTWARE\\PKWARE\\Smartcrypt\")"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "if(($Check.SMDS -ne \"https://syxp2pscadm0001.ess.fiserv.one/mds\") -OR ($Check.useIWA -ne \"0\") -OR ($"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "if(Test-Path -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PKWare_PKProtect_17.60"
+    },
+    {
+      "type": "file_remove"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "\t\t#Find App & PK Protect 20.35.0008 Uninstall Key\n\n\t\t$adtSession.AppName = 'PK Protect 20.35.0008'\n\n"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "If ($foundApp){\n\n        New-ItemProperty -Path $Replace -Name \"UninstallString\" -Value $UninstallSt"
+    }
+  ],
+  "preUninstall": [
+    {
+      "type": "show_progress"
+    }
+  ],
+  "uninstall": [
+    {
+      "type": "uninstall_application"
+    },
+    {
+      "type": "file_remove"
+    }
+  ],
+  "postUninstall": []
+}

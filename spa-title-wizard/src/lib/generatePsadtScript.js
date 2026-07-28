@@ -106,387 +106,19 @@ export default function generatePsadtScript(s, clean = false) {
     actions.forEach(action => {
       if (action.enabled === false) return;
 
-      const actionLines = [];
-      switch (action.type) {
-        case 'start_msi_process': {
-          const msiAction = action.action || 'Install';
-          const resolvedFile = resolveFilePath(action.file);
-          const filePart = filePathParam(resolvedFile);
-          const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
-          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
-          const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
-          const patches = action.patches ? ` -Patches '${action.patches}'` : '';
-          const logName = action.logName ? ` -LogName '${action.logName}'` : '';
-          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          const pt = action.passThru ? ' -PassThru' : '';
-          let cmd = `Start-ADTMsiProcess -Action '${msiAction}'${filePart}${pcPart}${args}${transform}${addlArgs}${patches}${logName}${successCodes}${rebootCodes}${pt}`;
-          if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-          }
-          actionLines.push(`        ${cmd}`);
-          break;
-        }
+      // generateActionCmd returns raw lines (no leading spaces).
+      const rawLines = generateActionCmd(action, { resolveFilePath, filePathParam });
+      if (rawLines.length === 0) return;
 
-        // Batch MSI uninstall/install: array of GUIDs piped through ForEach-Object
-        // V3: "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI -Action 'Uninstall' -Path "$_" }
-        // V4: @('{GUID1}', '{GUID2}') | ForEach-Object { Start-ADTMsiProcess -Action 'Uninstall' -ProductCode $_ }
-        case 'msi_uninstall_batch':
-        case 'msi_install_batch': {
-          const batchAction = action.type === 'msi_uninstall_batch' ? 'Uninstall' : 'Install';
-          const guids = Array.isArray(action.guids) && action.guids.length > 0
-            ? action.guids
-            : [];
-          if (guids.length > 0) {
-            const guidList = guids.map(g => `'${g}'`).join(', ');
-            actionLines.push(`        @(${guidList}) | ForEach-Object { Start-ADTMsiProcess -Action '${batchAction}' -ProductCode $_ }`);
-          } else {
-            // No GUIDs captured — emit a clearly labelled comment so the packager can fill them in
-            actionLines.push(`        # TODO: Batch MSI ${batchAction} — GUIDs not captured from v3 script. Replace the placeholders below:`);
-            actionLines.push(`        # @('{GUID1}', '{GUID2}') | ForEach-Object { Start-ADTMsiProcess -Action '${batchAction}' -ProductCode $_ }`);
-          }
-          break;
-        }
-
-        case 'start_process': {
-          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          const pt = action.passThru ? ' -PassThru' : '';
-          const resolvedFile = resolveFilePath(action.file);
-          const fp = filePathParam(resolvedFile);
-          let cmd = `Start-ADTProcess${fp}${args}${successCodes}${rebootCodes}${pt}`;
-          if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-          }
-          actionLines.push(`        ${cmd}`);
-          break;
-        }
-        case 'uninstall_application': {
-          const appNameVal = action.appName || action.name || '';
-          const namePart = appNameVal ? ` -Name '${appNameVal}'` : '';
-          const nameMatchPart = (appNameVal && action.nameMatch && action.nameMatch !== 'Exact') ? ` -NameMatch '${action.nameMatch}'` : '';
-          const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
-          const typePart = (action.applicationType && action.applicationType !== 'All') ? ` -ApplicationType '${action.applicationType}'` : '';
-          const filterScriptPart = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
-          const argsPart = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const addlArgsPart = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
-          const succCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-          const rebtCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          const pt = action.passThru ? ' -PassThru' : '';
-          let cmd = `Uninstall-ADTApplication${namePart}${nameMatchPart}${pcPart}${typePart}${filterScriptPart}${argsPart}${addlArgsPart}${succCodes}${rebtCodes}${pt}`;
-          if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-          }
-          actionLines.push(`        ${cmd}`);
-          break;
-        }
-
-        case 'file_copy': {
-          const recurse = action.recurse !== false ? ' -Recurse' : '';
-          const flatten = action.flatten ? ' -Flatten' : '';
-          const mode = action.fileCopyMode ? ` -FileCopyMode '${action.fileCopyMode}'` : '';
-          const contErr = action.continueOnError ? ' -ContinueFileCopyOnError' : '';
-          const rbcParams = action.robocopyParams ? ` -RobocopyParams '${action.robocopyParams}'` : '';
-          const rbcAdd = action.robocopyAdditionalParams ? ` -RobocopyAdditionalParams '${action.robocopyAdditionalParams}'` : '';
-          // Support both old field names (source/dest) and new field names (path/destination) for backwards compat
-          const srcPath = action.path || action.source || '';
-          const destPath = action.destination || action.dest || '';
-          actionLines.push(`        Copy-ADTFile -Path '${srcPath}' -Destination '${destPath}'${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}`);
-          break;
-        }
-        case 'file_remove': {
-          const rmRecurse = action.recurse ? ' -Recurse' : '';
-          if (action.literalPath) {
-            actionLines.push(`        Remove-ADTFile -LiteralPath '${action.literalPath}'${rmRecurse}`);
-          } else {
-            actionLines.push(`        Remove-ADTFile -Path '${action.path || ''}'${rmRecurse}`);
-          }
-          break;
-        }
-        case 'folder_remove': {
-          const disableRec = action.disableRecursion ? ' -DisableRecursion' : '';
-          actionLines.push(`        Remove-ADTFolder -Path '${action.path}'${disableRec}`);
-          break;
-        }
-        case 'pending_reboot': {
-          const cleanVar = (action.varName || 'isRebootPending').replace(/^\\$/, '');
-          actionLines.push(`        $${cleanVar} = (Get-ADTPendingReboot).IsSystemRebootPending`);
-          break;
-        }
-        case 'create_folder': {
-          actionLines.push(`        New-ADTFolder -Path '${action.path}'`);
-          break;
-        }
-        
-        
-        case 'registry_set': {
-          const regType = action.regType ? ` -Type '${action.regType}'` : " -Type 'String'";
-          const sid = action.sid ? ` -SID '${action.sid}'` : '';
-          actionLines.push(`        Set-ADTRegistryKey -Key '${action.key}' -Name '${action.name}'${regType} -Value '${action.value}'${sid}`);
-          break;
-        }
-        case 'registry_remove': {
-          const name = action.name ? ` -Name '${action.name}'` : '';
-          actionLines.push(`        Remove-ADTRegistryKey -Key '${action.key}'${name}`);
-          break;
-        }
-        
-        
-        case 'show_completion': {
-          actionLines.push(`        Show-ADTInstallationPrompt -Message 'The install has completed.' -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
-          break;
-        }
-        case 'show_welcome': {
-          // Build the $saiwParams splatting hashtable dynamically
-          const swParams = [];
-          if (action.allowDefer) {
-            swParams.push('            AllowDefer = $true');
-            if (action.deferTimes && action.deferTimes > 0) swParams.push(`            DeferTimes = ${action.deferTimes}`);
-            if (action.deferDays && action.deferDays > 0) swParams.push(`            DeferDays = ${action.deferDays}`);
-            if (action.deferDeadline) swParams.push(`            DeferDeadline = '${action.deferDeadline}'`);
-          }
-          if (action.checkDiskSpace) swParams.push('            CheckDiskSpace = $true');
-          if (action.persistPrompt) swParams.push('            PersistPrompt = $true');
-          if (action.closeProcessesCountdown && action.closeProcessesCountdown > 0) {
-            swParams.push(`            CloseProcessesCountdown = ${action.closeProcessesCountdown}`);
-          }
-          if (action.forceCloseProcessesCountdown && action.forceCloseProcessesCountdown > 0) {
-            swParams.push(`            ForceCloseProcessesCountdown = ${action.forceCloseProcessesCountdown}`);
-          }
-          if (action.blockExecution) swParams.push('            BlockExecution = $true');
-
-          // Build a descriptive comment
-          const commentParts = [];
-          if (action.allowDefer) commentParts.push(`allow up to ${action.deferTimes || 3} deferrals`);
-          if (action.checkDiskSpace) commentParts.push('verify disk space');
-          if (action.persistPrompt) commentParts.push('persist the prompt');
-          const commentSuffix = commentParts.length > 0 ? `, ${commentParts.join(', ')}` : '';
-
-          actionLines.push(`        ## Show Welcome Message, close processes if specified${commentSuffix}.`);
-          actionLines.push('        $saiwParams = @{');
-          swParams.forEach(p => actionLines.push(p));
-          actionLines.push('        }');
-          actionLines.push('        if ($adtSession.AppProcessesToClose.Count -gt 0)');
-          actionLines.push('        {');
-          actionLines.push("            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)");
-          actionLines.push('        }');
-          actionLines.push('        Show-ADTInstallationWelcome @saiwParams');
-          break;
-        }
-        case 'show_progress': {
-          const msg = action.statusMessage ? ` -StatusMessage '${action.statusMessage}'` : '';
-          const winLoc = action.windowLocation ? ` -WindowLocation '${action.windowLocation}'` : '';
-          const notTop = (action.topMost === false) ? ' -NotTopMost' : '';
-          actionLines.push(`        ## Show Progress Message${action.statusMessage ? '' : ' (with the default message)'}.`);
-          actionLines.push(`        Show-ADTInstallationProgress${msg}${winLoc}${notTop}`);
-          break;
-        }
-        case 'sleep': {
-          actionLines.push(`        Start-Sleep -Seconds ${action.seconds || 5}`);
-          break;
-        }
-        case 'custom_variable': {
-          const cleanName = (action.name || '').replace(/^\$/, '');
-          if (cleanName) {
-            actionLines.push(`        $${cleanName} = "${action.value || ''}"`);
-          }
-          break;
-        }
-        case 'custom_script': {
-          if (action.note) actionLines.push(`        # Custom script: ${action.note}`);
-          if (action.code) {
-            action.code.split('\n').forEach(line => {
-              actionLines.push(`        ${line.trimRight()}`);
-            });
-          }
-          break;
-        }
-        case 'raw_ps': {
-          if (action.note) actionLines.push(`        # Raw PowerShell: ${action.note}`);
-          if (action.script) {
-            // Step 1: Normalize all tabs → 4 spaces for consistent indentation
-            const scriptLines = action.script.split('\n')
-              .map(l => l.replace(/\t/g, '    ').trimRight());
-
-            // Step 2: Compute minimum indent from BODY content lines.
-            // Skip: opener (always col-0 after blockText.trim()), empty lines,
-            // and pure structural lines (}, catch, finally) which sit one level
-            // shallower than content and would wrongly reduce minIndent.
-            const STRUCTURAL = /^\s*(\}|catch\s*\{?|finally\s*\{?)$/i;
-            const bodyLines = scriptLines.slice(1).filter(l => l.trim() && !STRUCTURAL.test(l));
-            const indentLengths = bodyLines.map(l => (l.match(/^( *)/)?.[1] || '').length);
-            const minIndent = indentLengths.length > 0 ? Math.min(...indentLengths) : 0;
-
-            // Step 3: Strip minIndent spaces and apply generator 8-space prefix
-            scriptLines.forEach(line => {
-              if (!line.trim()) {
-                actionLines.push('');
-              } else {
-                const lineIndent = (line.match(/^( *)/)?.[1] || '').length;
-                const stripAmt = Math.min(minIndent, lineIndent);
-                const stripped = line.substring(stripAmt);
-                actionLines.push(`        ${stripped}`);
-              }
-            });
-          }
-          break;
-        }
-        case 'execute_process_as_user': {
-          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          const pt = action.passThru ? ' -PassThru' : '';
-          let cmd = `Start-ADTProcessAsUser -FilePath '${action.file}'${args}${successCodes}${rebootCodes}${pt}`;
-          if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-          }
-          actionLines.push(`        ${cmd}`);
-          break;
-        }
-        case 'msi_process_as_user': {
-          const msiAction = action.action || 'Install';
-          const filePart = action.file ? ` -FilePath '${action.file}'` : '';
-          const pcPart = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
-          const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
-          const transform = action.transform ? ` -Transforms '${action.transform}'` : '';
-          const patches = action.patches ? ` -Patches '${action.patches}'` : '';
-          const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-          const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-          const pt = action.passThru ? ' -PassThru' : '';
-          let cmd = `Start-ADTMsiProcessAsUser -Action '${msiAction}'${filePart}${pcPart}${args}${addlArgs}${transform}${patches}${successCodes}${rebootCodes}${pt}`;
-          if (action.passThru && action.passThruVar) {
-            cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-          }
-          actionLines.push(`        ${cmd}`);
-          break;
-        }
-        
-        
-        case 'copy_file_to_user_profiles': {
-          actionLines.push(`        Copy-ADTFileToUserProfiles -Path "$($adtSession.DirFiles)\\${action.source}" -Destination '${action.destination}'`);
-          break;
-        }
-        case 'new_shortcut': {
-          const args = action.arguments ? ` -Arguments '${action.arguments}'` : '';
-          const icon = action.iconLocation ? ` -IconLocation '${action.iconLocation}'` : '';
-          const desc = action.description ? ` -Description '${action.description}'` : '';
-          const workDir = action.workingDirectory ? ` -WorkingDirectory '${action.workingDirectory}'` : '';
-          const ws = action.windowStyle ? ` -WindowStyle '${action.windowStyle}'` : '';
-          const admin = action.runAsAdmin ? ' -RunAsAdmin' : '';
-          const hotkey = action.hotkey ? ` -Hotkey '${action.hotkey}'` : '';
-          actionLines.push(`        New-ADTShortcut -Path '${action.shortcutPath}' -TargetPath '${action.targetPath}'${args}${icon}${desc}${workDir}${ws}${admin}${hotkey}`);
-          break;
-        }
-        
-        
-        
-        
-        
-        // ── Phase 3: New action types ──────────────────────────────────────
-        case 'restart_prompt': {
-          const countdown = action.countdownSeconds ? ` -CountdownSeconds ${action.countdownSeconds}` : ' -CountdownSeconds 600';
-          const noHide = action.countdownNoHideSeconds ? ` -CountdownNoHideSeconds ${action.countdownNoHideSeconds}` : '';
-          const silent = action.silentRestart ? ' -SilentRestart' : '';
-          actionLines.push(`        Show-ADTInstallationRestartPrompt${countdown}${noHide}${silent}`);
-          break;
-        }
-        
-        
-        
-        
-        
-        
-        case 'stop_process': {
-          const names = (action.processName || '').split(',').map(n => n.trim()).filter(Boolean);
-          const force = action.force !== false ? ' -Force' : '';
-          names.forEach(name => {
-            actionLines.push(`        Stop-Process -Name '${name}'${force} -ErrorAction SilentlyContinue`);
-          });
-          break;
-        }
-        
-        
-        
-        case 'remove_file_from_profiles': {
-          actionLines.push(`        Remove-ADTFileFromUserProfiles -Path '${action.path}'`);
-          break;
-        }
-
-        case 'stop_service': {
-          const pt = action.passThru ? ' -PassThru' : '';
-          let svcCmd = `Stop-ADTServiceAndDependencies -Name '${action.name || ''}'${pt}`;
-          if (action.passThru && action.passThruVar) {
-            svcCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${svcCmd}`;
-          }
-          actionLines.push(`        ${svcCmd}`);
-          break;
-        }
-
-        case 'start_service': {
-          const pt = action.passThru ? ' -PassThru' : '';
-          let svcCmd = `Start-ADTServiceAndDependencies -Name '${action.name || ''}'${pt}`;
-          if (action.passThru && action.passThruVar) {
-            svcCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${svcCmd}`;
-          }
-          actionLines.push(`        ${svcCmd}`);
-          break;
-        }
-
-        case 'start_msp_process': {
-          const mspArgs = action.args ? ` -ArgumentList '${action.args}'` : '';
-          const mspPt = action.passThru ? ' -PassThru' : '';
-          let mspCmd = `Start-ADTMspProcess -FilePath '${action.file || ''}'${mspArgs}${mspPt}`;
-          if (action.passThru && action.passThruVar) {
-            mspCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${mspCmd}`;
-          }
-          actionLines.push(`        ${mspCmd}`);
-          break;
-        }
-
-        case 'write_log': {
-          const severity = action.severity || '1';
-          actionLines.push(`        Write-ADTLogEntry -Message '${(action.message || '').replace(/'/g, "''")}' -Severity ${severity}`);
-          break;
-        }
-
-        case 'set_ini': {
-          actionLines.push(`        Set-ADTIniValue -FilePath '${action.filePath || ''}' -Section '${action.section || ''}' -Key '${action.key || ''}' -Value '${action.value || ''}'`);
-          break;
-        }
-
-        case 'all_users_registry': {
-          const scriptBlock = (action.scriptBlock || '').trim();
-          if (scriptBlock) {
-            const indented = scriptBlock.split('\n').map(l => `            ${l}`).join('\n');
-            actionLines.push(`        Invoke-ADTAllUsersRegistryAction -ScriptBlock {\n${indented}\n        }`);
-          } else {
-            actionLines.push(`        Invoke-ADTAllUsersRegistryAction -ScriptBlock { }`);
-          }
-          break;
-        }
-
-        case 'get_registry_key': {
-          const regName = action.name ? ` -Name '${action.name}'` : '';
-          actionLines.push(`        Get-ADTRegistryKey -Key '${action.key || ''}'${regName}`);
-          break;
-        }
-
-default:
-          break;
-      }
-
-      if (actionLines.length > 0) {
-        if (isClean) {
-          actionLines.forEach(l => lines.push(l));
-        } else {
-          const actionData = encodeURIComponent(JSON.stringify(action));
-          lines.push(`        # <SPA:Action Data="${actionData}">`);
-          actionLines.forEach(l => lines.push(l));
-          lines.push(`        # </SPA:Action>`);
-        }
+      // Apply 8-space generator indent and wrap with SPA:Action tags if needed.
+      const indented = rawLines.map(l => (l === '' ? '' : `        ${l}`));
+      if (isClean) {
+        indented.forEach(l => lines.push(l));
+      } else {
+        const actionData = encodeURIComponent(JSON.stringify(action));
+        lines.push(`        # <SPA:Action Data="${actionData}">`);
+        indented.forEach(l => lines.push(l));
+        lines.push(`        # </SPA:Action>`);
       }
     });
 
@@ -852,4 +484,406 @@ catch
     Close-ADTSession -ExitCode 60001
 }
 `;
+}
+
+
+/**
+ * Helper to smart quote strings containing PS variables
+ */
+export function psString(str) {
+  if (str == null || str === '') return '';
+  if (str.startsWith("'") || str.startsWith('"')) return str;
+  return str.includes('$') ? `"${str}"` : `'${str}'`;
+}
+
+/**
+ * Generate the raw PowerShell command line(s) for a single lifecycle action.
+ *
+ * Returns an array of strings (NO leading spaces). The caller is responsible
+ * for indentation and wrapping (SPA:Action tags or preview formatting).
+ *
+ * @param {Object} action   - The action object from the wizard state
+ * @param {Object} pathCtx  - Path helpers:
+ *   .resolveFilePath(f)   — returns the final filepath string (may add subfolder prefix)
+ *   .filePathParam(r)     — returns ' -FilePath ...' fragment with correct quoting
+ *
+ * For the generator, pathCtx = { resolveFilePath, filePathParam } (the closures above).
+ * For the UI preview, pass a simple passthrough that returns the file as-is.
+ */
+export function generateActionCmd(action, pathCtx = {}) {
+  const { resolveFilePath = f => f, filePathParam: fpParam = r => (r ? ` -FilePath ${psString(r)}` : '') } = pathCtx;
+  const lines = [];
+
+  switch (action.type) {
+    case 'start_msi_process': {
+      const msiAction = action.action || 'Install';
+      const resolvedFile = resolveFilePath(action.file);
+      const filePart = fpParam(resolvedFile);
+      const pcPart = action.productCode ? ` -ProductCode ${psString(action.productCode)}` : '';
+      const args = action.args ? ` -ArgumentList ${psString(action.args)}` : '';
+      const transform = action.transform ? ` -Transforms ${psString(action.transform)}` : '';
+      const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList ${psString(action.additionalArgs)}` : '';
+      const patches = action.patches ? ` -Patches ${psString(action.patches)}` : '';
+      const logName = action.logName ? ` -LogName ${psString(action.logName)}` : '';
+      const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+      const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+      const pt = action.passThru ? ' -PassThru' : '';
+      let cmd = `Start-ADTMsiProcess -Action ${psString(msiAction)}${filePart}${pcPart}${args}${transform}${addlArgs}${patches}${logName}${successCodes}${rebootCodes}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+      }
+      lines.push(cmd);
+      break;
+    }
+
+    // Batch MSI uninstall/install: array of GUIDs piped through ForEach-Object
+    // V3: "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI -Action 'Uninstall' -Path "$_" }
+    // V4: @('{GUID1}', '{GUID2}') | ForEach-Object { Start-ADTMsiProcess -Action 'Uninstall' -ProductCode $_ }
+    case 'msi_uninstall_batch':
+    case 'msi_install_batch': {
+      const batchAction = action.type === 'msi_uninstall_batch' ? 'Uninstall' : 'Install';
+      const guids = Array.isArray(action.guids) && action.guids.length > 0 ? action.guids : [];
+      if (guids.length > 0) {
+        const guidList = guids.map(g => `'${g}'`).join(', ');
+        lines.push(`@(${guidList}) | ForEach-Object { Start-ADTMsiProcess -Action ${psString(batchAction)} -ProductCode $_ }`);
+      } else {
+        // No GUIDs captured — emit a clearly labelled comment so the packager can fill them in
+        lines.push(`# TODO: Batch MSI ${batchAction} — GUIDs not captured from v3 script. Replace the placeholders below:`);
+        lines.push(`# @('{GUID1}', '{GUID2}') | ForEach-Object { Start-ADTMsiProcess -Action ${psString(batchAction)} -ProductCode $_ }`);
+      }
+      break;
+    }
+
+    case 'start_process': {
+      const args = action.args ? ` -ArgumentList ${psString(action.args)}` : '';
+      const winStyle = action.windowStyle && action.windowStyle !== 'Normal' ? ` -WindowStyle ${psString(action.windowStyle)}` : '';
+      const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+      const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+      const pt = action.passThru ? ' -PassThru' : '';
+      let resolvedFile = resolveFilePath(action.file);
+      // If the original path had a $dirFiles\ prefix, re-apply the v4 equivalent.
+      // Use double-quotes so PowerShell expands the subexpression at runtime.
+      if (action.dirFilesRelative && resolvedFile && !resolvedFile.startsWith('"')) {
+        resolvedFile = `"$($adtSession.DirFiles)\\${resolvedFile}"`;
+      }
+      const fp = fpParam(resolvedFile);
+      let cmd = `Start-ADTProcess${fp}${args}${winStyle}${successCodes}${rebootCodes}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+      }
+      lines.push(cmd);
+      break;
+    }
+
+    case 'uninstall_application': {
+      const appNameVal = action.appName || action.name || '';
+      const namePart = appNameVal ? ` -Name ${psString(appNameVal)}` : '';
+      const nameMatchPart = (appNameVal && action.nameMatch && action.nameMatch !== 'Exact') ? ` -NameMatch ${psString(action.nameMatch)}` : '';
+      const pcPart = action.productCode ? ` -ProductCode ${psString(action.productCode)}` : '';
+      const typePart = (action.applicationType && action.applicationType !== 'All') ? ` -ApplicationType ${psString(action.applicationType)}` : '';
+      const filterScriptPart = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
+      const argsPart = action.args ? ` -ArgumentList ${psString(action.args)}` : '';
+      const addlArgsPart = action.additionalArgs ? ` -AdditionalArgumentList ${psString(action.additionalArgs)}` : '';
+      const succCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+      const rebtCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+      const pt = action.passThru ? ' -PassThru' : '';
+      let cmd = `Uninstall-ADTApplication${namePart}${nameMatchPart}${pcPart}${typePart}${filterScriptPart}${argsPart}${addlArgsPart}${succCodes}${rebtCodes}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+      }
+      lines.push(cmd);
+      break;
+    }
+
+    case 'file_copy': {
+      const recurse = action.recurse !== false ? ' -Recurse' : '';
+      const flatten = action.flatten ? ' -Flatten' : '';
+      const mode = action.fileCopyMode ? ` -FileCopyMode ${psString(action.fileCopyMode)}` : '';
+      const contErr = action.continueOnError ? ' -ContinueFileCopyOnError' : '';
+      const rbcParams = action.robocopyParams ? ` -RobocopyParams ${psString(action.robocopyParams)}` : '';
+      const rbcAdd = action.robocopyAdditionalParams ? ` -RobocopyAdditionalParams ${psString(action.robocopyAdditionalParams)}` : '';
+      const srcPath = action.path || action.source || '';
+      const destPath = action.destination || action.dest || '';
+      lines.push(`Copy-ADTFile -Path ${psString(srcPath)} -Destination ${psString(destPath)}${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}`);
+      break;
+    }
+
+    case 'file_remove': {
+      const rmRecurse = action.recurse ? ' -Recurse' : '';
+      if (action.literalPath) {
+        lines.push(`Remove-ADTFile -LiteralPath ${psString(action.literalPath)}${rmRecurse}`);
+      } else {
+        lines.push(`Remove-ADTFile -Path ${psString(action.path || '')}${rmRecurse}`);
+      }
+      break;
+    }
+
+    case 'folder_remove': {
+      const disableRec = action.disableRecursion ? ' -DisableRecursion' : '';
+      lines.push(`Remove-ADTFolder -Path ${psString(action.path)}${disableRec}`);
+      break;
+    }
+
+    case 'pending_reboot': {
+      const cleanVar = (action.varName || 'isRebootPending').replace(/^\$/, '');
+      lines.push(`$${cleanVar} = (Get-ADTPendingReboot).IsSystemRebootPending`);
+      break;
+    }
+
+    case 'create_folder': {
+      lines.push(`New-ADTFolder -Path ${psString(action.path)}`);
+      break;
+    }
+
+    case 'registry_set': {
+      const regType = action.regType ? ` -Type ${psString(action.regType)}` : " -Type 'String'";
+      const sid = action.sid ? ` -SID ${psString(action.sid)}` : '';
+      lines.push(`Set-ADTRegistryKey -Key ${psString(action.key)} -Name ${psString(action.name)}${regType} -Value ${psString(action.value)}${sid}`);
+      break;
+    }
+
+    case 'registry_remove': {
+      const name = action.name ? ` -Name ${psString(action.name)}` : '';
+      lines.push(`Remove-ADTRegistryKey -Key ${psString(action.key)}${name}`);
+      break;
+    }
+
+    case 'show_completion': {
+      lines.push(`Show-ADTInstallationPrompt -Message 'The install has completed.' -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
+      break;
+    }
+
+    case 'show_welcome': {
+      // Build the $saiwParams splatting hashtable dynamically
+      const swParams = [];
+      if (action.allowDefer) {
+        swParams.push('    AllowDefer = $true');
+        if (action.deferTimes && action.deferTimes > 0) swParams.push(`    DeferTimes = ${action.deferTimes}`);
+        if (action.deferDays && action.deferDays > 0) swParams.push(`    DeferDays = ${action.deferDays}`);
+        if (action.deferDeadline) swParams.push(`    DeferDeadline = '${action.deferDeadline}'`);
+      }
+      if (action.checkDiskSpace) swParams.push('    CheckDiskSpace = $true');
+      if (action.persistPrompt) swParams.push('    PersistPrompt = $true');
+      if (action.closeProcessesCountdown && action.closeProcessesCountdown > 0) {
+        swParams.push(`    CloseProcessesCountdown = ${action.closeProcessesCountdown}`);
+      }
+      if (action.forceCloseProcessesCountdown && action.forceCloseProcessesCountdown > 0) {
+        swParams.push(`    ForceCloseProcessesCountdown = ${action.forceCloseProcessesCountdown}`);
+      }
+      if (action.blockExecution) swParams.push('    BlockExecution = $true');
+
+      const commentParts = [];
+      if (action.allowDefer) commentParts.push(`allow up to ${action.deferTimes || 3} deferrals`);
+      if (action.checkDiskSpace) commentParts.push('verify disk space');
+      if (action.persistPrompt) commentParts.push('persist the prompt');
+      const commentSuffix = commentParts.length > 0 ? `, ${commentParts.join(', ')}` : '';
+
+      lines.push(`## Show Welcome Message, close processes if specified${commentSuffix}.`);
+      lines.push('$saiwParams = @{');
+      swParams.forEach(p => lines.push(p));
+      lines.push('}');
+      lines.push('if ($adtSession.AppProcessesToClose.Count -gt 0)');
+      lines.push('{');
+      lines.push("    $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)");
+      lines.push('}');
+      lines.push('Show-ADTInstallationWelcome @saiwParams');
+      break;
+    }
+
+    case 'show_progress': {
+      const msg = action.statusMessage ? ` -StatusMessage ${psString(action.statusMessage)}` : '';
+      const winLoc = action.windowLocation ? ` -WindowLocation ${psString(action.windowLocation)}` : '';
+      const notTop = (action.topMost === false) ? ' -NotTopMost' : '';
+      lines.push(`## Show Progress Message${action.statusMessage ? '' : ' (with the default message)'}.`);
+      lines.push(`Show-ADTInstallationProgress${msg}${winLoc}${notTop}`);
+      break;
+    }
+
+    case 'sleep': {
+      lines.push(`Start-Sleep -Seconds ${action.seconds || 5}`);
+      break;
+    }
+
+    case 'custom_variable': {
+      const cleanName = (action.name || '').replace(/^\$/, '');
+      if (cleanName) {
+        lines.push(`$${cleanName} = "${action.value || ''}"`);
+      }
+      break;
+    }
+
+    case 'custom_script': {
+      if (action.note) lines.push(`# Custom script: ${action.note}`);
+      if (action.code) {
+        action.code.split('\n').forEach(line => lines.push(line.trimRight()));
+      }
+      break;
+    }
+
+    case 'raw_ps': {
+      if (action.note) lines.push(`# Raw PowerShell: ${action.note}`);
+      if (action.script) {
+        // Normalize tabs → 4 spaces, strip minimum indent from block body
+        const scriptLines = action.script.split('\n').map(l => l.replace(/\t/g, '    ').trimRight());
+        const STRUCTURAL = /^\s*(\}|catch\s*\{?|finally\s*\{?)$/i;
+        const bodyLines = scriptLines.slice(1).filter(l => l.trim() && !STRUCTURAL.test(l));
+        const indentLengths = bodyLines.map(l => (l.match(/^( *)/)?.[1] || '').length);
+        const minIndent = indentLengths.length > 0 ? Math.min(...indentLengths) : 0;
+        scriptLines.forEach(line => {
+          if (!line.trim()) {
+            lines.push('');
+          } else {
+            const lineIndent = (line.match(/^( *)/)?.[1] || '').length;
+            const stripAmt = Math.min(minIndent, lineIndent);
+            lines.push(line.substring(stripAmt));
+          }
+        });
+      }
+      break;
+    }
+
+    case 'execute_process_as_user': {
+      const args = action.args ? ` -ArgumentList ${psString(action.args)}` : '';
+      const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+      const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+      const pt = action.passThru ? ' -PassThru' : '';
+      let cmd = `Start-ADTProcessAsUser -FilePath ${psString(action.file)}${args}${successCodes}${rebootCodes}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+      }
+      lines.push(cmd);
+      break;
+    }
+
+    case 'msi_process_as_user': {
+      const msiAction = action.action || 'Install';
+      const filePart = action.file ? ` -FilePath ${psString(action.file)}` : '';
+      const pcPart = action.productCode ? ` -ProductCode ${psString(action.productCode)}` : '';
+      const args = action.args ? ` -ArgumentList ${psString(action.args)}` : '';
+      const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList ${psString(action.additionalArgs)}` : '';
+      const transform = action.transform ? ` -Transforms ${psString(action.transform)}` : '';
+      const patches = action.patches ? ` -Patches ${psString(action.patches)}` : '';
+      const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
+      const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
+      const pt = action.passThru ? ' -PassThru' : '';
+      let cmd = `Start-ADTMsiProcessAsUser -Action ${psString(msiAction)}${filePart}${pcPart}${args}${addlArgs}${transform}${patches}${successCodes}${rebootCodes}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
+      }
+      lines.push(cmd);
+      break;
+    }
+
+    case 'copy_file_to_user_profiles': {
+      lines.push(`Copy-ADTFileToUserProfiles -Path "$($adtSession.DirFiles)\\${action.source}" -Destination ${psString(action.destination)}`);
+      break;
+    }
+
+    case 'new_shortcut': {
+      const args = action.arguments ? ` -Arguments ${psString(action.arguments)}` : '';
+      const icon = action.iconLocation ? ` -IconLocation ${psString(action.iconLocation)}` : '';
+      const desc = action.description ? ` -Description ${psString(action.description)}` : '';
+      const workDir = action.workingDirectory ? ` -WorkingDirectory ${psString(action.workingDirectory)}` : '';
+      const ws = action.windowStyle ? ` -WindowStyle ${psString(action.windowStyle)}` : '';
+      const admin = action.runAsAdmin ? ' -RunAsAdmin' : '';
+      const hotkey = action.hotkey ? ` -Hotkey ${psString(action.hotkey)}` : '';
+      lines.push(`New-ADTShortcut -Path ${psString(action.shortcutPath)} -TargetPath ${psString(action.targetPath)}${args}${icon}${desc}${workDir}${ws}${admin}${hotkey}`);
+      break;
+    }
+
+    case 'restart_prompt': {
+      const countdown = action.countdownSeconds ? ` -CountdownSeconds ${action.countdownSeconds}` : ' -CountdownSeconds 600';
+      const noHide = action.countdownNoHideSeconds ? ` -CountdownNoHideSeconds ${action.countdownNoHideSeconds}` : '';
+      const silent = action.silentRestart ? ' -SilentRestart' : '';
+      lines.push(`Show-ADTInstallationRestartPrompt${countdown}${noHide}${silent}`);
+      break;
+    }
+
+    case 'stop_process': {
+      const names = (action.processName || '').split(',').map(n => n.trim()).filter(Boolean);
+      const force = action.force !== false ? ' -Force' : '';
+      names.forEach(name => {
+        lines.push(`Stop-Process -Name ${psString(name)}${force} -ErrorAction SilentlyContinue`);
+      });
+      break;
+    }
+
+    case 'remove_file_from_profiles': {
+      lines.push(`Remove-ADTFileFromUserProfiles -Path ${psString(action.path)}`);
+      break;
+    }
+
+    case 'stop_service': {
+      const pt = action.passThru ? ' -PassThru' : '';
+      let svcCmd = `Stop-ADTServiceAndDependencies -Name ${psString(action.name || '')}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        svcCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${svcCmd}`;
+      }
+      lines.push(svcCmd);
+      break;
+    }
+
+    case 'start_service': {
+      const pt = action.passThru ? ' -PassThru' : '';
+      let svcCmd = `Start-ADTServiceAndDependencies -Name ${psString(action.name || '')}${pt}`;
+      if (action.passThru && action.passThruVar) {
+        svcCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${svcCmd}`;
+      }
+      lines.push(svcCmd);
+      break;
+    }
+
+    case 'start_msp_process': {
+      const mspArgs = action.args ? ` -ArgumentList ${psString(action.args)}` : '';
+      const mspPt = action.passThru ? ' -PassThru' : '';
+      let mspCmd = `Start-ADTMspProcess -FilePath ${psString(action.file || '')}${mspArgs}${mspPt}`;
+      if (action.passThru && action.passThruVar) {
+        mspCmd = `$${action.passThruVar.replace(/^\$/, '')} = ${mspCmd}`;
+      }
+      lines.push(mspCmd);
+      break;
+    }
+
+    case 'write_log': {
+      const severity = action.severity || '1';
+      lines.push(`Write-ADTLogEntry -Message ${psString((action.message || '').replace(/'/g, "''"))} -Severity ${severity}`);
+      break;
+    }
+
+    case 'set_ini': {
+      lines.push(`Set-ADTIniValue -FilePath ${psString(action.filePath || '')} -Section ${psString(action.section || '')} -Key ${psString(action.key || '')} -Value ${psString(action.value || '')}`);
+      break;
+    }
+
+    case 'all_users_registry': {
+      const scriptBlock = (action.scriptBlock || '').trim();
+      if (scriptBlock) {
+        const indented = scriptBlock.split('\n').map(l => `    ${l}`).join('\n');
+        lines.push(`Invoke-ADTAllUsersRegistryAction -ScriptBlock {\n${indented}\n}`);
+      } else {
+        lines.push(`Invoke-ADTAllUsersRegistryAction -ScriptBlock { }`);
+      }
+      break;
+    }
+
+    case 'get_registry_key': {
+      const regName = action.name ? ` -Name ${psString(action.name)}` : '';
+      lines.push(`Get-ADTRegistryKey -Key ${psString(action.key || '')}${regName}`);
+      break;
+    }
+
+    case 'remove_firewall_rule': {
+      const byDisplayName = action.displayName ? ` -DisplayName ${psString(action.displayName)}` : '';
+      const byName = action.name ? ` -Name ${psString(action.name)}` : '';
+      if (byDisplayName || byName) {
+        lines.push(`Remove-NetFirewallRule${byDisplayName}${byName}`);
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  return lines;
 }

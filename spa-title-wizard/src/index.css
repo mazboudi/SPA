@@ -485,7 +485,7 @@ button.mode-card:disabled {
 .platform-landing__section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -536,7 +536,7 @@ button.mode-card:disabled {
 
 .platform-landing__card-desc {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: rgba(232, 236, 244, 0.85); /* Improved contrast over text-secondary */
   line-height: 1.45;
   margin: 0;
   flex: 1;

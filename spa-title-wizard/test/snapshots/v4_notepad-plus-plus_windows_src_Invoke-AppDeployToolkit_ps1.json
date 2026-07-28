@@ -1,0 +1,84 @@
+{
+  "variableDeclaration": [
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    }
+  ],
+  "preInstall": [
+    {
+      "type": "show_welcome"
+    },
+    {
+      "type": "show_progress"
+    }
+  ],
+  "install": [
+    {
+      "type": "start_msi_process",
+      "file": "test.msi"
+    }
+  ],
+  "postInstall": [],
+  "preUninstall": [
+    {
+      "type": "show_welcome"
+    },
+    {
+      "type": "show_progress"
+    }
+  ],
+  "uninstall": [
+    {
+      "type": "uninstall_application"
+    }
+  ],
+  "postUninstall": []
+}

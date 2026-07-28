@@ -195,6 +195,9 @@ const INITIAL_STATE = {
   supportFilesSource: '',            // e.g. 'C:\\files\\7-zip' (defaults to installerSourceDir)
 };
 
+// Helper to return a deep clone of the initial state so we do not mutate the constant
+const getInitialState = () => JSON.parse(JSON.stringify(INITIAL_STATE));
+
 const CATEGORIES = [
   { value: 'browsers', label: 'Browsers' },
   { value: 'productivity', label: 'Productivity' },
@@ -330,7 +333,7 @@ function syncInstallerActions(next, prevInstallerType) {
 }
 
 export default function useWizardState() {
-  const [rawState, setRawState] = useState(INITIAL_STATE);
+  const [rawState, setRawState] = useState(getInitialState);
   const state = useMemo(() => deriveState(rawState), [rawState]);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -756,7 +759,7 @@ export default function useWizardState() {
   }, [steps, seedDefaultLifecycleActions]);
 
   const reset = useCallback(() => {
-    setState(INITIAL_STATE);
+    setState(getInitialState());
     setCurrentStep(0);
     markClean();
   }, [markClean]);
@@ -781,7 +784,7 @@ export default function useWizardState() {
       if (platform === 'macos'   && macGroup) gitLabGroup = macGroup;
 
       return {
-        ...INITIAL_STATE,
+        ...getInitialState(),
         platform,
         gitLabWinGroup: winGroup,
         gitLabMacGroup: macGroup,
@@ -889,7 +892,7 @@ export default function useWizardState() {
       // one Intune app to another doesn't leave stale fields from the previous app.
       // Only carry over the fields that should survive a title switch.
       const next = {
-        ...INITIAL_STATE,
+        ...getInitialState(),
         // Preserve platform selection and server-configured group paths
         platform:                  prev.platform                  || INITIAL_STATE.platform,
         gitLabGroup:               prev.gitLabGroup               || INITIAL_STATE.gitLabGroup,

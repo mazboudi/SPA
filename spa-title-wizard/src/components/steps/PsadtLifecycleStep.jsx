@@ -6,7 +6,7 @@ import FormField from '../ui/FormField';
 import windowsOptions from '../../config/windowsOptions.json';
 import { PHASE_KEYS, PHASE_META, ACTION_TYPE_MAP, getActionsForPhase, getCategoriesForPhase, createAction } from '../../config/actionTypes';
 import { checkV3Compatibility } from '../../lib/psadtCompatCheck';
-import generatePsadtScript from '../../lib/generatePsadtScript';
+import generatePsadtScript, { generateActionCmd } from '../../lib/generatePsadtScript';
 import parsePsadtBlocks from '../../lib/parsePsadtBlocks';
 import CodePreview from '../ui/CodePreview';
 import './windows-steps.css';
@@ -340,147 +340,15 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
             </div>
           )}
           {(() => {
-            let v4Cmd = '';
-            switch (action.type) {
-              case 'start_process': {
-                const resolvedFile = resolvePreviewFilePath(action.file);
-                const fp = filePathPreviewParam(resolvedFile);
-                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                const win = action.windowStyle && action.windowStyle !== 'Normal' ? ` -WindowStyle '${action.windowStyle}'` : '';
-                const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-                const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-                const pt = action.passThru ? ' -PassThru' : '';
-                let cmd = `Start-ADTProcess${fp}${a}${win}${sc}${rc}${pt}`;
-                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-                v4Cmd = cmd;
-                break;
-              }
-              case 'start_msi_process': {
-                const msiAction = action.action || 'Install';
-                const resolvedFile = resolvePreviewFilePath(action.file);
-                const fp = filePathPreviewParam(resolvedFile);
-                const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
-                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                const t = action.transform ? ` -Transforms '${action.transform}'` : '';
-                const addl = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
-                const p = action.patches ? ` -Patches '${action.patches}'` : '';
-                const log = action.logName ? ` -LogName '${action.logName}'` : '';
-                const sc = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-                const rc = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-                const pt = action.passThru ? ' -PassThru' : '';
-                let cmd = `Start-ADTMsiProcess -Action '${msiAction}'${fp}${pc}${a}${t}${addl}${p}${log}${sc}${rc}${pt}`;
-                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-                v4Cmd = cmd;
-                break;
-              }
-              case 'uninstall_application': {
-                const name = action.name ? ` -Name '${action.name}'` : '';
-                const nameMatch = action.nameMatch && action.nameMatch !== 'Contains' ? ` -NameMatch '${action.nameMatch}'` : '';
-                const pc = action.productCode ? ` -ProductCode '${action.productCode}'` : '';
-                const appType = action.applicationType && action.applicationType !== 'All' ? ` -ApplicationType '${action.applicationType}'` : '';
-                const filter = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';
-                const args = action.args ? ` -ArgumentList '${action.args}'` : '';
-                const addlArgs = action.additionalArgs ? ` -AdditionalArgumentList '${action.additionalArgs}'` : '';
-                const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
-                const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
-                const pt = action.passThru ? ' -PassThru' : '';
-                let cmd = `Uninstall-ADTApplication${name}${nameMatch}${pc}${appType}${filter}${args}${addlArgs}${successCodes}${rebootCodes}${pt}`;
-                if (action.passThru && action.passThruVar) cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
-                v4Cmd = cmd;
-                break;
-              }
-              case 'execute_process_as_user': {
-                const fp = action.file ? ` -FilePath '${action.file}'` : '';
-                const a = action.args ? ` -ArgumentList '${action.args}'` : '';
-                v4Cmd = `Start-ADTProcessAsUser${fp}${a} -Wait`;
-                break;
-              }
-              case 'show_welcome': {
-                let swParts = [];
-                if (action.appName) swParts.push(`-ApplicationName '${action.appName}'`);
-                if (action.closeApps) swParts.push(`-CloseApps '${action.closeApps}'`);
-                if (action.allowDefer) swParts.push(`-AllowDefer`);
-                if (action.deferTimes) swParts.push(`-DeferTimes ${action.deferTimes}`);
-                if (action.deferDays) swParts.push(`-DeferDays ${action.deferDays}`);
-                if (action.deferDeadline) swParts.push(`-DeferDeadline '${action.deferDeadline}'`);
-                if (action.minimize) swParts.push('-MinimizeWindows');
-                if (action.forceClose) swParts.push('-ForceCloseAppsCountdown 60');
-                if (action.blockExecution) swParts.push('-BlockExecution');
-                v4Cmd = `Show-ADTInstallationWelcome${swParts.length ? ' ' + swParts.join(' ') : ''}`;
-                break;
-              }
-              case 'show_progress': {
-                const msg = action.statusMessage ? ` -StatusMessage '${action.statusMessage}'` : '';
-                const nt = action.topMost === false ? ' -NotTopMost' : '';
-                v4Cmd = `Show-ADTInstallationProgress${msg}${nt}`;
-                break;
-              }
-              case 'stop_service': {
-                const pt = action.passThru ? ' -PassThru' : '';
-                v4Cmd = `Stop-ADTServiceAndDependencies -Name '${action.name}'${pt}`;
-                break;
-              }
-              case 'start_service': {
-                const pt = action.passThru ? ' -PassThru' : '';
-                v4Cmd = `Start-ADTServiceAndDependencies -Name '${action.name}'${pt}`;
-                break;
-              }
-              case 'registry_remove':
-                v4Cmd = `Remove-ADTRegistryKey -Key '${action.key}'`;
-                break;
-              case 'file_remove':
-                v4Cmd = `Remove-ADTFile -Path '${action.path}'`;
-                break;
-              case 'write_log':
-                v4Cmd = `Write-ADTLogEntry -Message '${action.message}' -Severity ${action.severity || 1}`;
-                break;
-              case 'start_msp_process': {
-                const pt = action.passThru ? ' -PassThru' : '';
-                v4Cmd = `Start-ADTMspProcess -FilePath '${action.file}'${pt}`;
-                break;
-              }
-              case 'file_copy': {
-                const dest = action.destination ? ` -Destination '${action.destination}'` : '';
-                v4Cmd = `Copy-ADTFile -Path '${action.path}'${dest}`;
-                break;
-              }
-              case 'create_folder':
-                v4Cmd = `New-ADTFolder -Path '${action.path}'`;
-                break;
-              case 'registry_set':
-                v4Cmd = `Set-ADTRegistryKey -Key '${action.key}' -Name '${action.name}' -Value '${action.value}'`;
-                break;
-              case 'new_shortcut':
-                v4Cmd = `New-ADTShortcut -Path '${action.shortcutPath}' -TargetPath '${action.targetPath}'`;
-                break;
-              case 'set_ini':
-                v4Cmd = `Set-ADTIniSection -FilePath '${action.filePath}' -Section '${action.section}' -Key '${action.key}' -Value '${action.value}'`;
-                break;
-              case 'all_users_registry':
-                v4Cmd = `Invoke-ADTAllUsersRegistryAction -ScriptBlock { ... }`;
-                break;
-              case 'show_completion':
-                v4Cmd = `Show-ADTInstallationPrompt -Message 'The install has completed.' -ButtonRightText 'OK' -Icon Information -NoWait`;
-                break;
-              case 'get_registry_key':
-                v4Cmd = `Get-ADTRegistryKey -Key '${action.key}'`;
-                break;
-              case 'folder_remove':
-                v4Cmd = `Remove-ADTFolder -Path '${action.path}'`;
-                break;
-              case 'remove_firewall_rule':
-                v4Cmd = action.displayName ? `Remove-NetFirewallRule -DisplayName '${action.displayName}'` : `Remove-NetFirewallRule -Name '${action.name}'`;
-                break;
-              case 'custom_variable': {
-                const cn = (action.name || '').replace(/^\$/, '');
-                v4Cmd = cn ? `$${cn} = "${action.value || ''}"` : '';
-                break;
-              }
-              case 'custom_script':
-                v4Cmd = action.code ? action.code.split('\\n')[0] + (action.code.includes('\\n') ? ' ...' : '') : '';
-                break;
-              default:
-                v4Cmd = action.raw || '';
+            const pathCtx = {
+              resolveFilePath: resolvePreviewFilePath,
+              filePathParam: filePathPreviewParam
+            };
+            const rawLines = generateActionCmd(action, pathCtx);
+            let v4Cmd = rawLines.join('\n');
+            
+            if (!v4Cmd && action.raw) {
+              v4Cmd = action.raw;
             }
             return v4Cmd ? (
               <CmdPreview cmd={v4Cmd} />

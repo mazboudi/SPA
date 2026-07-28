@@ -1,0 +1,89 @@
+{
+  "variableDeclaration": [
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    }
+  ],
+  "preInstall": [
+    {
+      "type": "raw_ps",
+      "script_preview": "try {\n\t\t\t\t\t\"{203D4C43-6485-4641-B928-36D4D5FF4987}\", <# Cyberark EPM 24.4.0.1980 #>`\n\t\t\t\t\t\"{B339080F"
+    }
+  ],
+  "install": [
+    {
+      "type": "raw_ps",
+      "script_preview": "Try{\n\t\t\t$EPMversion = Get-ItemPropertyValue -Path \"HKLM:\\SOFTWARE\\Viewfinity\\Agent\" -Name \"Version\"\n"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "If ($EPMversion -eq '25.12.02827')\n\t\t\t{\n\t\t\tCopy-Item -Path \"$($adtSession.DirFiles)\\CyberArkEPMAgent"
+    },
+    {
+      "type": "raw_ps",
+      "script_preview": "Else {Copy-Item -Path \"$($adtSession.DirFiles)\\CyberArkEPMAgentSetupWindows.config\" -Destination \"C:"
+    }
+  ],
+  "postInstall": [],
+  "preUninstall": [
+    {
+      "type": "show_welcome"
+    },
+    {
+      "type": "show_progress"
+    }
+  ],
+  "uninstall": [],
+  "postUninstall": []
+}

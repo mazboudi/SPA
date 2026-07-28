@@ -1,0 +1,64 @@
+{
+  "variableDeclaration": [
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    }
+  ],
+  "preInstall": [],
+  "install": [],
+  "postInstall": [],
+  "preUninstall": [],
+  "uninstall": [],
+  "postUninstall": []
+}

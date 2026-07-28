@@ -1,0 +1,97 @@
+{
+  "variableDeclaration": [
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    },
+    {
+      "type": "custom_variable"
+    }
+  ],
+  "preInstall": [
+    {
+      "type": "show_progress"
+    }
+  ],
+  "install": [
+    {
+      "type": "start_process",
+      "file": "teamsbootstrapper.exe",
+      "dirFilesRelative": true
+    }
+  ],
+  "postInstall": [
+    {
+      "type": "registry_set"
+    },
+    {
+      "type": "registry_set"
+    },
+    {
+      "type": "registry_set"
+    }
+  ],
+  "preUninstall": [
+    {
+      "type": "show_progress"
+    }
+  ],
+  "uninstall": [
+    {
+      "type": "raw_ps",
+      "script_preview": "\t\t# <Perform Uninstallation tasks here>\n\t\t\n\t\tGet-AppxPackage MSTeams -AllUsers | Remove-AppxPackage "
+    }
+  ],
+  "postUninstall": [
+    {
+      "type": "registry_remove"
+    }
+  ]
+}
