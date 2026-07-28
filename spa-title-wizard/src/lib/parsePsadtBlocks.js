@@ -155,14 +155,17 @@ export default function parsePsadtBlocks(content) {
         if (ch === '}') tempBraces--;
       }
 
-      // Detect sub-phase marker overrides
-      if (currentPhase.startsWith('pre') && /##\s*MARK:\s*(Install|Uninstall)\b/.test(line)) {
+      // Detect sub-phase marker overrides.
+      // IMPORTANT: use negative lookbehind to avoid matching '## MARK: Pre-Install'
+      // as an 'Install' phase transition — that bug caused pre-install to immediately
+      // jump to install, losing all pre-install AND install actions on VS Code sync.
+      if (currentPhase.startsWith('pre') && /##\s*MARK:\s*(?!Pre-)(?!Post-)(Install|Uninstall)\b/i.test(line)) {
         currentPhase = currentPhase.replace('pre', '').toLowerCase();
         bracesCount = tempBraces;
         continue;
       }
-      if (!currentPhase.startsWith('post') && /##\s*MARK:\s*Post-/.test(line)) {
-        const type = currentPhase.includes('uninstall') ? 'uninstall' : 'install';
+      if (!currentPhase.startsWith('post') && /##\s*MARK:\s*Post-/i.test(line)) {
+        const type = currentPhase.includes('ninstall') ? 'uninstall' : 'install';
         currentPhase = 'post' + type.charAt(0).toUpperCase() + type.slice(1);
         bracesCount = tempBraces;
         continue;

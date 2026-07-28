@@ -245,16 +245,22 @@ export function validatePackageId(slug) {
  * installerType to change.
  */
 function syncActionFileReferences(next, oldFile) {
-  if (!oldFile) return next;
   const newFile = next.installerSourceFile || '';
-  const oldBase = oldFile.split(/[\\/]/).pop(); // basename only
+  const oldBase = (oldFile || '').split(/[\\/]/).pop(); // basename only
   const newBase = newFile.split(/[\\/]/).pop();
+
+  // Generic placeholder filenames seeded before user set the source path — treat
+  // them as equivalent to 'no prior value' so they always get replaced.
+  const PLACEHOLDERS = new Set(['installer.msi', 'setup.exe', 'setup.msi', 'install.exe', 'install.msi']);
+
   const phases = { ...next.lifecycle.phases };
   Object.keys(phases).forEach(phaseKey => {
     phases[phaseKey] = {
       ...phases[phaseKey],
       actions: (phases[phaseKey].actions || []).map(action => {
-        if (action.file === oldFile || action.file === oldBase) {
+        const matchesOld = action.file === oldFile || action.file === oldBase;
+        const matchesPlaceholder = !oldFile && PLACEHOLDERS.has(action.file);
+        if (matchesOld || matchesPlaceholder) {
           return { ...action, file: newBase || newFile };
         }
         return action;
@@ -437,7 +443,14 @@ export default function useWizardState() {
       }
 
       if (fields.hasOwnProperty('installerType')) {
-        return syncInstallerActions(next, prev.installerType);
+        // Run installer-type sync first (swaps MSI↔EXE action card types)
+        let synced = syncInstallerActions(next, prev.installerType);
+        // Then also sync the file reference if installerSourceFile changed in the same call
+        // (handlePathChange sends both in one updateFields — skipping this caused filename truncation)
+        if (fields.hasOwnProperty('installerSourceFile') && fields.installerSourceFile !== prev.installerSourceFile) {
+          synced = syncActionFileReferences(synced, prev.installerSourceFile || '');
+        }
+        return synced;
       }
 
       // Keep action card file references in sync as the user edits the installer filename

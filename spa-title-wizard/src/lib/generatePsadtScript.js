@@ -277,9 +277,10 @@ export default function generatePsadtScript(s, clean = false) {
         }
         case 'show_progress': {
           const msg = action.statusMessage ? ` -StatusMessage '${action.statusMessage}'` : '';
+          const winLoc = action.windowLocation ? ` -WindowLocation '${action.windowLocation}'` : '';
           const notTop = (action.topMost === false) ? ' -NotTopMost' : '';
           actionLines.push(`        ## Show Progress Message${action.statusMessage ? '' : ' (with the default message)'}.`);
-          actionLines.push(`        Show-ADTInstallationProgress${msg}${notTop}`);
+          actionLines.push(`        Show-ADTInstallationProgress${msg}${winLoc}${notTop}`);
           break;
         }
         case 'sleep': {

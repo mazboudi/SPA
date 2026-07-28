@@ -1346,11 +1346,19 @@ function extractBlockActions(block) {
     }
 
     // Piped removal: Get-ChildItem '...' | Remove-Item
+    // This pattern uses pipeline semantics with -Recurse/-Force/-ErrorAction that cannot
+    // be safely mapped to a single Remove-ADTFile call — preserve verbatim as raw_ps.
     if (!matched) {
       const pipedRemoveMatch = t.match(/Get-ChildItem\s+['"]([^'"]+)['"]\s*\|\s*Remove-Item/i);
       if (pipedRemoveMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'file_remove', desc: `Remove (piped): ${pipedRemoveMatch[1]}`, path: pipedRemoveMatch[1], raw: modernizedLine });
+        actions.push({
+          type: 'raw_ps',
+          desc: `Piped folder removal: ${pipedRemoveMatch[1]}`,
+          script: modernizedLine,
+          note: 'Piped Get-ChildItem | Remove-Item preserved as-is (use Remove-ADTFolder if appropriate)',
+          enabled: true,
+        });
         matched = true;
       }
     }
@@ -1488,10 +1496,12 @@ function extractBlockActions(block) {
     if (!matched && /Show-(?:ADT)?InstallationProgress/i.test(t)) {
       flushCustomBuffer();
       const msgMatch = t.match(/-(?:StatusMessage|Message)\s+['"]([^'"]+)['"]/i);
+      const winLocMatch = t.match(/-WindowLocation\s+['"]([^'"]+)['"]/i);
       actions.push({
         type: 'show_progress',
         enabled: true,
         statusMessage: msgMatch ? msgMatch[1] : '',
+        windowLocation: winLocMatch ? winLocMatch[1] : '',
         topMost: !/-NotTopMost/i.test(t),
         raw: modernizedLine,
       });

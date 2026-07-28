@@ -162,6 +162,12 @@ export default function App() {
   const handleGoHome = () => withUnsavedWorkGuard(() => {
     wizard.reset();
     clearEdits();
+    // Re-apply server config so GitLab group fields are populated immediately
+    applyServerGroups();
+    // Clear any lingering refactor / PSADT parse state from the previous session
+    setPsadtResult(null);
+    setPsadtError(null);
+    setPsadtParsing(false);
     setView(VIEW.HOME);
   });
 
@@ -600,7 +606,17 @@ export default function App() {
               {/* Main step content — any interaction marks project as having edits */}
               <main
                 className="app-main glass-panel"
-                onPointerDown={() => { hasEditsRef.current = true; }}
+                onPointerDown={(e) => {
+                  // Only mark dirty when the user actually interacts with a form element.
+                  // Scrollbar clicks on Windows/Chromium fire pointerdown on the container
+                  // rather than on any real element — we must ignore those to avoid a
+                  // false "Unsaved work" dialog when the user simply scrolls and then
+                  // navigates home.
+                  const tag = e.target?.tagName?.toLowerCase?.() ?? '';
+                  const interactive = ['input', 'select', 'textarea', 'button', 'a', 'label'].includes(tag)
+                    || e.target?.closest?.('[data-field], [role="combobox"], [role="listbox"], [role="option"]');
+                  if (interactive) hasEditsRef.current = true;
+                }}
               >
                 {renderStep()}
               </main>
