@@ -305,8 +305,29 @@ export default function generatePsadtScript(s, clean = false) {
         case 'raw_ps': {
           if (action.note) actionLines.push(`        # Raw PowerShell: ${action.note}`);
           if (action.script) {
-            action.script.split('\n').forEach(line => {
-              actionLines.push(`        ${line.trimRight()}`);
+            // Step 1: Normalize all tabs → 4 spaces for consistent indentation
+            const scriptLines = action.script.split('\n')
+              .map(l => l.replace(/\t/g, '    ').trimRight());
+
+            // Step 2: Compute minimum indent from BODY content lines.
+            // Skip: opener (always col-0 after blockText.trim()), empty lines,
+            // and pure structural lines (}, catch, finally) which sit one level
+            // shallower than content and would wrongly reduce minIndent.
+            const STRUCTURAL = /^\s*(\}|catch\s*\{?|finally\s*\{?)$/i;
+            const bodyLines = scriptLines.slice(1).filter(l => l.trim() && !STRUCTURAL.test(l));
+            const indentLengths = bodyLines.map(l => (l.match(/^( *)/)?.[1] || '').length);
+            const minIndent = indentLengths.length > 0 ? Math.min(...indentLengths) : 0;
+
+            // Step 3: Strip minIndent spaces and apply generator 8-space prefix
+            scriptLines.forEach(line => {
+              if (!line.trim()) {
+                actionLines.push('');
+              } else {
+                const lineIndent = (line.match(/^( *)/)?.[1] || '').length;
+                const stripAmt = Math.min(minIndent, lineIndent);
+                const stripped = line.substring(stripAmt);
+                actionLines.push(`        ${stripped}`);
+              }
             });
           }
           break;

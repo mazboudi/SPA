@@ -972,9 +972,11 @@ function extractBlockActions(block) {
   if (!block) return [];
   const actions = [];
 
-  // ── Step 1: Join backtick-continuation lines ────────────────────────────
+  // ── Step 1: Join backtick-continuation lines for single-line matchers ──
+  // joinedLines: backtick-joined (used by single-line matchers so "Exec `\n  -Path" is matched)
+  // rawLines: original line-for-line (used by block extractors to preserve multi-line arrays verbatim)
   const rawLines = block.split('\n');
-  const lines = [];
+  const joinedLines = [];
   let pending = '';
   for (const line of rawLines) {
     const trimmed = line.trimEnd();
@@ -982,14 +984,14 @@ function extractBlockActions(block) {
       pending += (pending ? ' ' : '') + trimmed.slice(0, -1).trim();
     } else {
       if (pending) {
-        lines.push(pending + ' ' + trimmed.trim());
+        joinedLines.push(pending + ' ' + trimmed.trim());
         pending = '';
       } else {
-        lines.push(line);
+        joinedLines.push(line);
       }
     }
   }
-  if (pending) lines.push(pending);
+  if (pending) joinedLines.push(pending);
 
   // Buffer to accumulate consecutive lines of custom PowerShell code
   const customBuffer = [];
@@ -1041,8 +1043,8 @@ function extractBlockActions(block) {
   // Show-ADTInstallationWelcome @saiwParams) fall through to the customBuffer
   // and are emitted as raw_ps blocks. This is intentional — best-effort
   // import keeps the code intact without risking regex-based line splicing.
-  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-    const line = lines[lineIdx];
+  for (let lineIdx = 0; lineIdx < joinedLines.length; lineIdx++) {
+    const line = joinedLines[lineIdx];
     const t = line.trim();
 
     // Skip empty lines at the very beginning of parsing to avoid leading raw blocks
@@ -1054,7 +1056,7 @@ function extractBlockActions(block) {
     // Extract the entire function as one raw_ps block so the opening line,
     // body, and closing brace stay together and are not split across actions.
     if (FUNCTION_OPENER.test(t)) {
-      const { blockText, endIndex } = extractBraceBlock(lines, lineIdx);
+      const { blockText, endIndex } = extractBraceBlock(rawLines, lineIdx);
       lineIdx = endIndex;
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
@@ -1073,7 +1075,7 @@ function extractBlockActions(block) {
 
     // Try block opener
     if (TRY_OPENERS.test(t)) {
-      const { blockText, endIndex } = extractTryCatchBlock(lines, lineIdx);
+      const { blockText, endIndex } = extractTryCatchBlock(rawLines, lineIdx);
       lineIdx = endIndex;
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
@@ -1091,7 +1093,7 @@ function extractBlockActions(block) {
 
     // Flow block opener (if/foreach/etc.) - always treat as raw_ps to preserve exact control-flow scope and balance braces
     if (FLOW_OPENERS.test(t)) {
-      const { blockText, endIndex } = extractBraceBlock(lines, lineIdx);
+      const { blockText, endIndex } = extractBraceBlock(rawLines, lineIdx);
       lineIdx = endIndex;
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
@@ -1117,6 +1119,11 @@ function extractBlockActions(block) {
     }
 
     let matched = false;
+    // modernizedLine: a v4-modernized copy of the source line used for action.raw.
+    // Regex matchers below continue to use the original `t` so their patterns are unaffected.
+    // This ensures the Lifecycle Editor card previews show v4 syntax ($($adtSession.DirFiles),
+    // Start-ADTProcess, etc.) instead of the original v3 syntax.
+    const modernizedLine = modernizeLegacyScriptParts(t);
 
     // Check for ADT cmdlet matches
     // Execute-MSI (v3) — convert to start_msi_process so the generator can render it.
@@ -1141,7 +1148,7 @@ function extractBlockActions(block) {
         productCode,
         args: params,
         transform,
-        raw: t,
+        raw: modernizedLine,
       };
       actions.push(actionObj);
       matched = true;
@@ -1156,7 +1163,7 @@ function extractBlockActions(block) {
         const argVal = extractPsParamValue(t, 'ArgumentList');
         const transformVal = extractPsParamValue(t, 'Transforms?');
         const fname = adtMsiMatch[1].replace(/.*[\\]/, '');
-        const actionObj = { type: 'start_msi_process', action: actionMatch?.[1] || 'Install', desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argVal || '', raw: t };
+        const actionObj = { type: 'start_msi_process', action: actionMatch?.[1] || 'Install', desc: `MSI ${actionMatch?.[1] || 'Install'}: ${fname}`, file: fname, args: argVal || '', raw: modernizedLine };
         if (transformVal) actionObj.transform = transformVal;
         actions.push(actionObj);
         matched = true;
@@ -1178,7 +1185,7 @@ function extractBlockActions(block) {
           productCode: adtMsiPcMatch[1],
           args: argVal || '',
           desc: `MSI ${action} by ProductCode: ${adtMsiPcMatch[1]}`,
-          raw: t,
+          raw: modernizedLine,
         });
         matched = true;
       }
@@ -1197,7 +1204,7 @@ function extractBlockActions(block) {
         const actionObj  = {
           type: 'uninstall_application',
           desc: appName ? `Uninstall by name: ${appName}` : 'Uninstall-ADTApplication',
-          raw: t,
+          raw: modernizedLine,
         };
         if (appName)     actionObj.name            = appName;
         if (appType)     actionObj.applicationType  = appType;
@@ -1215,7 +1222,7 @@ function extractBlockActions(block) {
       const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
       if (rmMsiMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], applicationType: 'MSI', raw: t });
+        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], applicationType: 'MSI', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1226,7 +1233,7 @@ function extractBlockActions(block) {
       if (procMatch) {
         flushCustomBuffer();
         const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
-        actions.push({ type: 'start_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramVal || '', raw: t });
+        actions.push({ type: 'start_process', desc: `Run: ${procMatch[1].replace(/.*[\\]/, '')}`, file: procMatch[1], args: paramVal || '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1238,7 +1245,7 @@ function extractBlockActions(block) {
       if (svcMatch) {
         flushCustomBuffer();
         const varMatch = t.match(/^\s*\$(\w+)\s*=/);
-        actions.push({ type: 'stop_service', desc: `Stop service: ${svcMatch[1]}`, name: svcMatch[1], passThruVar: varMatch ? varMatch[1] : '', raw: t });
+        actions.push({ type: 'stop_service', desc: `Stop service: ${svcMatch[1]}`, name: svcMatch[1], passThruVar: varMatch ? varMatch[1] : '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1250,7 +1257,7 @@ function extractBlockActions(block) {
         flushCustomBuffer();
         const fname = mspMatch[1].replace(/.*[\\]/, '');
         const argVal = extractPsParamValue(t, 'ArgumentList');
-        actions.push({ type: 'start_msp_process', desc: `Run MSP: ${fname}`, file: mspMatch[1], args: argVal || '', raw: t });
+        actions.push({ type: 'start_msp_process', desc: `Run MSP: ${fname}`, file: mspMatch[1], args: argVal || '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1260,7 +1267,7 @@ function extractBlockActions(block) {
       const logMatch = t.match(/Write-ADTLogEntry\b.*-Message\s+['"]([^'"]*)['"](?:.*-Severity\s+(\d+))?/i);
       if (logMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'write_log', desc: `Log: ${logMatch[1].slice(0, 40)}`, message: logMatch[1], severity: logMatch[2] || '1', raw: t });
+        actions.push({ type: 'write_log', desc: `Log: ${logMatch[1].slice(0, 40)}`, message: logMatch[1], severity: logMatch[2] || '1', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1274,7 +1281,7 @@ function extractBlockActions(block) {
         const sec = extractPsParamValue(t, 'Section');
         const k = extractPsParamValue(t, 'Key');
         const v = extractPsParamValue(t, 'Value');
-        actions.push({ type: 'set_ini', desc: `Set INI: ${k}=${v}`, filePath: fp || '', section: sec || '', key: k || '', value: v || '', raw: t });
+        actions.push({ type: 'set_ini', desc: `Set INI: ${k}=${v}`, filePath: fp || '', section: sec || '', key: k || '', value: v || '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1288,7 +1295,7 @@ function extractBlockActions(block) {
         flushCustomBuffer();
         const val = extractPsParamValue(t, 'Value');
         const varMatch = t.match(/^\s*\$(\w+)\s*=/);
-        actions.push({ type: 'get_registry_key', desc: `Get Reg: ${getRegMatch[1]}`, key: getRegMatch[1], value: val || '', passThruVar: varMatch ? varMatch[1] : '', raw: t });
+        actions.push({ type: 'get_registry_key', desc: `Get Reg: ${getRegMatch[1]}`, key: getRegMatch[1], value: val || '', passThruVar: varMatch ? varMatch[1] : '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1300,7 +1307,7 @@ function extractBlockActions(block) {
         flushCustomBuffer();
         const dn = extractPsParamValue(t, 'DisplayName');
         const n = extractPsParamValue(t, 'Name');
-        actions.push({ type: 'remove_firewall_rule', desc: `Remove Firewall Rule`, displayName: dn || '', name: n || '', raw: t });
+        actions.push({ type: 'remove_firewall_rule', desc: `Remove Firewall Rule`, displayName: dn || '', name: n || '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1320,7 +1327,7 @@ function extractBlockActions(block) {
             file: spFile,
             args: spArgVal,
             note: hadWait ? 'Converted from Start-Process -Wait; Start-ADTProcess is always synchronous' : '',
-            raw: t,
+            raw: modernizedLine,
           });
           matched = true;
         }
@@ -1333,7 +1340,7 @@ function extractBlockActions(block) {
       const copyDst = extractPsParamValue(t, 'Destination');
       if (copySrc && copyDst) {
         flushCustomBuffer();
-        actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: stripDirPrefix(copySrc), dest: copyDst, raw: t });
+        actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: stripDirPrefix(copySrc), dest: copyDst, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1343,7 +1350,7 @@ function extractBlockActions(block) {
       const pipedRemoveMatch = t.match(/Get-ChildItem\s+['"]([^'"]+)['"]\s*\|\s*Remove-Item/i);
       if (pipedRemoveMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'file_remove', desc: `Remove (piped): ${pipedRemoveMatch[1]}`, path: pipedRemoveMatch[1], raw: t });
+        actions.push({ type: 'file_remove', desc: `Remove (piped): ${pipedRemoveMatch[1]}`, path: pipedRemoveMatch[1], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1353,7 +1360,7 @@ function extractBlockActions(block) {
       const removePath = extractPsParamValue(t, '(?:Path|LiteralPath)');
       if (removePath) {
         flushCustomBuffer();
-        actions.push({ type: 'file_remove', desc: `Remove: ${removePath}`, path: removePath, raw: t });
+        actions.push({ type: 'file_remove', desc: `Remove: ${removePath}`, path: removePath, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1364,7 +1371,7 @@ function extractBlockActions(block) {
       if (regSetMatch) {
         flushCustomBuffer();
         const regType = extractPsParamValue(t, 'Type') || 'String';
-        actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], regType, raw: t });
+        actions.push({ type: 'registry_set', desc: `Registry: ${regSetMatch[2]} = ${regSetMatch[3]}`, key: regSetMatch[1], name: regSetMatch[2], value: regSetMatch[3], regType, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1374,7 +1381,7 @@ function extractBlockActions(block) {
       const setIPMatch = t.match(/Set-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
       if (setIPMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'registry_set', desc: `Registry (native): ${setIPMatch[2]} = ${setIPMatch[3]}`, key: setIPMatch[1], name: setIPMatch[2], value: setIPMatch[3], raw: t });
+        actions.push({ type: 'registry_set', desc: `Registry (native): ${setIPMatch[2]} = ${setIPMatch[3]}`, key: setIPMatch[1], name: setIPMatch[2], value: setIPMatch[3], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1384,7 +1391,7 @@ function extractBlockActions(block) {
       const newIPMatch = t.match(/New-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
       if (newIPMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'registry_set', desc: `Registry (new): ${newIPMatch[2]} = ${newIPMatch[3]}`, key: newIPMatch[1], name: newIPMatch[2], value: newIPMatch[3], raw: t });
+        actions.push({ type: 'registry_set', desc: `Registry (new): ${newIPMatch[2]} = ${newIPMatch[3]}`, key: newIPMatch[1], name: newIPMatch[2], value: newIPMatch[3], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1397,7 +1404,7 @@ function extractBlockActions(block) {
         const regNameMatch = t.match(/-Name\s+['"]([^'"]+)['"]/i);
         const nameVal = regNameMatch ? regNameMatch[1] : '';
         const descSuffix = nameVal ? ` \u2192 ${nameVal}` : '';
-        actions.push({ type: 'registry_remove', desc: `Remove reg: ${regRemoveMatch[1]}${descSuffix}`, key: regRemoveMatch[1], name: nameVal, raw: t });
+        actions.push({ type: 'registry_remove', desc: `Remove reg: ${regRemoveMatch[1]}${descSuffix}`, key: regRemoveMatch[1], name: nameVal, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1407,7 +1414,7 @@ function extractBlockActions(block) {
       const removeIPMatch = t.match(/Remove-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]?([^\s'"}{]+)/i);
       if (removeIPMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'registry_remove', desc: `Remove reg value (native): ${removeIPMatch[2]}`, key: removeIPMatch[1], name: removeIPMatch[2], raw: t });
+        actions.push({ type: 'registry_remove', desc: `Remove reg value (native): ${removeIPMatch[2]}`, key: removeIPMatch[1], name: removeIPMatch[2], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1417,7 +1424,7 @@ function extractBlockActions(block) {
       const mkdirPath = extractPsParamValue(t, '(?:Path|LiteralPath)');
       if (mkdirPath) {
         flushCustomBuffer();
-        actions.push({ type: 'create_folder', desc: `Create: ${mkdirPath}`, path: mkdirPath, raw: t });
+        actions.push({ type: 'create_folder', desc: `Create: ${mkdirPath}`, path: mkdirPath, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1429,7 +1436,7 @@ function extractBlockActions(block) {
       const em = envMatch || adtEnvMatch;
       if (em) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `Env: ${em[1]} = ${em[2]}`, name: em[1], value: em[2], raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Env: ${em[1]} = ${em[2]}`, name: em[1], value: em[2], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1439,7 +1446,7 @@ function extractBlockActions(block) {
       const removeEnvMatch = t.match(/Remove-ADTEnvironmentVariable\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (removeEnvMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `Remove env: ${removeEnvMatch[1]}`, name: removeEnvMatch[1], raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Remove env: ${removeEnvMatch[1]}`, name: removeEnvMatch[1], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1470,7 +1477,7 @@ function extractBlockActions(block) {
           closeProcessesCountdown: getNumParam('CloseProcessesCountdown'),
           forceCloseProcessesCountdown: getNumParam('ForceCloseProcessesCountdown') || getNumParam('ForceCountdown'),
           blockExecution: hasParam('BlockExecution'),
-          raw: t,
+          raw: modernizedLine,
         });
         matched = true;
       }
@@ -1486,7 +1493,7 @@ function extractBlockActions(block) {
         enabled: true,
         statusMessage: msgMatch ? msgMatch[1] : '',
         topMost: !/-NotTopMost/i.test(t),
-        raw: t,
+        raw: modernizedLine,
       });
       matched = true;
     }
@@ -1496,7 +1503,7 @@ function extractBlockActions(block) {
       const promptMatch = t.match(/Show-(?:ADT)?InstallationPrompt\b/i);
       if (promptMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'show_completion', desc: 'Show completion dialog', raw: t });
+        actions.push({ type: 'show_completion', desc: 'Show completion dialog', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1509,7 +1516,7 @@ function extractBlockActions(block) {
       if (stopProcMatch) {
         flushCustomBuffer();
         const procName = stopProcMatch[1] || 'process';
-        actions.push({ type: 'stop_process', enabled: true, processName: procName, force: /-Force/i.test(t), raw: t });
+        actions.push({ type: 'stop_process', enabled: true, processName: procName, force: /-Force/i.test(t), raw: modernizedLine });
         matched = true;
       }
     }
@@ -1523,7 +1530,7 @@ function extractBlockActions(block) {
         const sec = extractPsParamValue(t, 'Section') || '';
         const key = extractPsParamValue(t, 'Key') || '';
         const val = extractPsParamValue(t, 'Value') || '';
-        actions.push({ type: 'custom_script', code: t, enabled: true, filePath: fp, section: sec, key, value: val, raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, enabled: true, filePath: fp, section: sec, key, value: val, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1536,7 +1543,7 @@ function extractBlockActions(block) {
         const fp = extractPsParamValue(t, 'FilePath') || '';
         const sec = extractPsParamValue(t, 'Section') || '';
         const key = extractPsParamValue(t, 'Key') || '';
-        actions.push({ type: 'custom_script', code: t, enabled: true, filePath: fp, section: sec, key, raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, enabled: true, filePath: fp, section: sec, key, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1544,7 +1551,7 @@ function extractBlockActions(block) {
     // Close-ADTInstallationProgress / Close-InstallationProgress
     if (!matched && /Close-(?:ADT)?InstallationProgress/i.test(t)) {
       flushCustomBuffer();
-      actions.push({ type: 'custom_script', code: t, enabled: true, raw: t });
+      actions.push({ type: 'custom_script', code: modernizedLine, enabled: true, raw: modernizedLine });
       matched = true;
     }
 
@@ -1553,7 +1560,7 @@ function extractBlockActions(block) {
       const removeProfileMatch = t.match(/Remove-ADTFileFromUserProfiles\s+.*-Path\s+['"]([^'"]+)['"]/i);
       if (removeProfileMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'remove_file_from_profiles', enabled: true, path: removeProfileMatch[1], raw: t });
+        actions.push({ type: 'remove_file_from_profiles', enabled: true, path: removeProfileMatch[1], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1566,7 +1573,7 @@ function extractBlockActions(block) {
         const fpMatch = t.match(/-FilePath\s+['"]([^'"]+)['"]/i);
         const argMatch = t.match(/-ArgumentList\s+['"]([^'"]+)['"]/i);
         const fname = fpMatch ? fpMatch[1].replace(/.*[\\]/, '') : '';
-        actions.push({ type: 'custom_script', code: t, enabled: true, file: fname, args: argMatch?.[1] || '', raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, enabled: true, file: fname, args: argMatch?.[1] || '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1582,7 +1589,7 @@ function extractBlockActions(block) {
         const inherit = extractPsParamValue(t, 'Inheritance') || '';
         const prop = extractPsParamValue(t, 'Propagation') || '';
         const acType = extractPsParamValue(t, 'AccessControlType') || 'Allow';
-        actions.push({ type: 'custom_script', code: t, enabled: true, path, user, permission: perm, inheritance: inherit, propagation: prop, accessControlType: acType, raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, enabled: true, path, user, permission: perm, inheritance: inherit, propagation: prop, accessControlType: acType, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1608,7 +1615,7 @@ function extractBlockActions(block) {
             ? `Batch MSI ${action} (${guids.length} GUID${guids.length !== 1 ? 's' : ''})`
             : `Batch MSI ${action} (multiple GUIDs)`,
           guids: [...new Set(guids)],
-          raw: t,
+          raw: modernizedLine,
         });
         matched = true;
       }
@@ -1619,7 +1626,7 @@ function extractBlockActions(block) {
       const sleepMatch = t.match(/Start-Sleep\s+-Seconds\s+(\d+)/i);
       if (sleepMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'sleep', desc: `Wait ${sleepMatch[1]}s`, seconds: parseInt(sleepMatch[1]), raw: t });
+        actions.push({ type: 'sleep', desc: `Wait ${sleepMatch[1]}s`, seconds: parseInt(sleepMatch[1]), raw: modernizedLine });
         matched = true;
       }
     }
@@ -1635,7 +1642,7 @@ function extractBlockActions(block) {
       if (stopProcMatch) {
         flushCustomBuffer();
         const procName = stopProcMatch[1] || stopProcMatch[2] || stopProcMatch[3] || 'process';
-        actions.push({ type: 'stop_process', desc: `Stop: ${procName}`, closeApps: procName, raw: t });
+        actions.push({ type: 'stop_process', desc: `Stop: ${procName}`, closeApps: procName, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1645,7 +1652,7 @@ function extractBlockActions(block) {
       const copyADTMatch = t.match(/Copy-ADTFile\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
       if (copyADTMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'file_copy', desc: `Copy: ${copyADTMatch[1]}`, source: copyADTMatch[1], dest: copyADTMatch[2], raw: t });
+        actions.push({ type: 'file_copy', desc: `Copy: ${copyADTMatch[1]}`, source: copyADTMatch[1], dest: copyADTMatch[2], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1655,7 +1662,7 @@ function extractBlockActions(block) {
       const copyUserMatch = t.match(/Copy-ADTFileToUserProfiles\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
       if (copyUserMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'copy_file_to_user_profiles', desc: `Copy to profiles: ${copyUserMatch[1]}`, source: copyUserMatch[1], destination: copyUserMatch[2], raw: t });
+        actions.push({ type: 'copy_file_to_user_profiles', desc: `Copy to profiles: ${copyUserMatch[1]}`, source: copyUserMatch[1], destination: copyUserMatch[2], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1665,7 +1672,7 @@ function extractBlockActions(block) {
       const shortcutMatch = t.match(/New-ADTShortcut\s+.*-Path\s+['"]([^'"]+)['"]\s+.*-TargetPath\s+['"]([^'"]+)['"]/i);
       if (shortcutMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'new_shortcut', desc: `Shortcut: ${shortcutMatch[1]}`, shortcutPath: shortcutMatch[1], targetPath: shortcutMatch[2], raw: t });
+        actions.push({ type: 'new_shortcut', desc: `Shortcut: ${shortcutMatch[1]}`, shortcutPath: shortcutMatch[1], targetPath: shortcutMatch[2], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1675,7 +1682,7 @@ function extractBlockActions(block) {
       const getAppMatch = t.match(/\$([\w]+)\s*=\s*Get-ADTApplication\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (getAppMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `Query: ${getAppMatch[2]}`, varName: getAppMatch[1], name: getAppMatch[2], raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Query: ${getAppMatch[2]}`, varName: getAppMatch[1], name: getAppMatch[2], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1694,7 +1701,7 @@ function extractBlockActions(block) {
         countdownSeconds: countdownMatch ? parseInt(countdownMatch[1]) : 600,
         countdownNoHideSeconds: noHideMatch ? parseInt(noHideMatch[1]) : 0,
         silentRestart: hasSilentRestart && !hasNoSilentRestart,
-        raw: t,
+        raw: modernizedLine,
       });
       matched = true;
     }
@@ -1705,7 +1712,7 @@ function extractBlockActions(block) {
       if (activeSetupMatch) {
         flushCustomBuffer();
         const keyMatch = t.match(/-Key\s+['"]([^'"]+)['"]/i);
-        actions.push({ type: 'custom_script', code: t, desc: `Active Setup: ${activeSetupMatch[1]}`, stubExePath: activeSetupMatch[1], key: keyMatch?.[1] || '', raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Active Setup: ${activeSetupMatch[1]}`, stubExePath: activeSetupMatch[1], key: keyMatch?.[1] || '', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1716,7 +1723,7 @@ function extractBlockActions(block) {
       if (addEdgeMatch) {
         flushCustomBuffer();
         const modeMatch = t.match(/-InstallationMode\s+['"]([^'"]+)['"]/i);
-        actions.push({ type: 'custom_script', code: t, desc: `Edge ext: ${addEdgeMatch[1]}`, extensionId: addEdgeMatch[1], installationMode: modeMatch?.[1] || 'force_installed', raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Edge ext: ${addEdgeMatch[1]}`, extensionId: addEdgeMatch[1], installationMode: modeMatch?.[1] || 'force_installed', raw: modernizedLine });
         matched = true;
       }
     }
@@ -1726,7 +1733,7 @@ function extractBlockActions(block) {
       const removeEdgeMatch = t.match(/Remove-ADTEdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
       if (removeEdgeMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `Remove Edge ext: ${removeEdgeMatch[1]}`, extensionId: removeEdgeMatch[1], raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Remove Edge ext: ${removeEdgeMatch[1]}`, extensionId: removeEdgeMatch[1], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1736,7 +1743,7 @@ function extractBlockActions(block) {
       const regDllMatch = t.match(/(Register|Unregister)-ADTDll\s+.*-FilePath\s+['"]([^'"]+)['"]/i);
       if (regDllMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `${regDllMatch[1]} DLL: ${regDllMatch[2]}`, filePath: regDllMatch[2], action: regDllMatch[1], raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `${regDllMatch[1]} DLL: ${regDllMatch[2]}`, filePath: regDllMatch[2], action: regDllMatch[1], raw: modernizedLine });
         matched = true;
       }
     }
@@ -1745,7 +1752,7 @@ function extractBlockActions(block) {
     if (!matched && /Install-ADTMSUpdates\b/i.test(t)) {
       flushCustomBuffer();
       const dirMatch = t.match(/-Directory\s+['"]([^'"]+)['"]/i);
-      actions.push({ type: 'custom_script', code: t, desc: 'Install MS Updates', directory: dirMatch?.[1] || '', raw: t });
+      actions.push({ type: 'custom_script', code: modernizedLine, desc: 'Install MS Updates', directory: dirMatch?.[1] || '', raw: modernizedLine });
       matched = true;
     }
 
@@ -1761,7 +1768,7 @@ function extractBlockActions(block) {
           name: startSvcMatch[1],
           passThru: !!passThruMatch || /\-PassThru/i.test(t),
           passThruVar: passThruMatch ? passThruMatch[1] : '',
-          raw: t,
+          raw: modernizedLine,
         });
         matched = true;
       }
@@ -1771,7 +1778,7 @@ function extractBlockActions(block) {
       const setStartModeMatch = t.match(/Set-ADTServiceStartMode\s+.*-Name\s+['"]([^'"]+)['"].*-StartMode\s+['"]([^'"]+)['"]/i);
       if (setStartModeMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'custom_script', code: t, desc: `Service ${setStartModeMatch[1]} → ${setStartModeMatch[2]}`, name: setStartModeMatch[1], mode: setStartModeMatch[2], startMode: setStartModeMatch[2], raw: t });
+        actions.push({ type: 'custom_script', code: modernizedLine, desc: `Service ${setStartModeMatch[1]} → ${setStartModeMatch[2]}`, name: setStartModeMatch[1], mode: setStartModeMatch[2], startMode: setStartModeMatch[2], raw: modernizedLine });
         matched = true;
       }
     }

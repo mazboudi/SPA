@@ -88,7 +88,17 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
 
   const isLocked = !!action.isManuallyEdited;
   const isCardDisabled = !action.enabled;
-  const preview = (action.note || action.script || '').split('\n')[0].substring(0, 60);
+
+  // Build a meaningful collapsed preview from the actual script content:
+  // Skip comment-only lines and grab up to 2 real executable lines.
+  const scriptLines = (action.script || '').split('\n');
+  const totalLines = scriptLines.length;
+  const execLines = scriptLines
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#') && !l.startsWith('<#') && l !== '{' && l !== '}');
+  const previewText = execLines.slice(0, 2).join('  ·  ') || (action.note || '');
+  const preview = previewText.length > 120 ? previewText.substring(0, 117) + '…' : previewText;
+  const linesBadge = totalLines > 1 ? `${totalLines} lines` : '';
 
   return (
     <div
@@ -104,7 +114,12 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
         <span className="action-card__chevron">{expanded ? '▾' : '▸'}</span>
         <span className="action-card__icon">🔷</span>
         <span className="action-card__label">Raw PowerShell Block</span>
-        {!expanded && preview && <span className="action-card__preview">{preview}</span>}
+        {!expanded && (
+          <span className="action-card__preview raw-ps-preview">
+            {preview && <code style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.75rem', opacity: 0.9 }}>{preview}</code>}
+            {linesBadge && <span className="raw-ps-lines-badge">{linesBadge}</span>}
+          </span>
+        )}
         {isLocked ? (
           <span className="action-card__badge-locked" title="Manually modified in code mode. Form inputs are locked to preserve edits.">🔒 Locked</span>
         ) : (
@@ -131,25 +146,41 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
               ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
             </div>
           )}
+          {action.note && (
+            <div className="action-field">
+              <label className="action-field__label">Description</label>
+              <input type="text" placeholder="Brief description of what this block does"
+                value={action.note || ''}
+                disabled={isLocked || isCardDisabled}
+                readOnly={isLocked || isCardDisabled}
+                onChange={e => onUpdate(phaseKey, index, { note: e.target.value })} />
+            </div>
+          )}
           <div className="action-field">
-            <label className="action-field__label">Note</label>
-            <input type="text" placeholder="Brief description of what this block does"
-              value={action.note || ''}
-              disabled={isLocked || isCardDisabled}
-              readOnly={isLocked || isCardDisabled}
-              onChange={e => onUpdate(phaseKey, index, { note: e.target.value })} />
-          </div>
-          <div className="action-field">
-            <label className="action-field__label">PowerShell Script</label>
-            <textarea
-              rows={Math.max(4, (action.script || '').split('\n').length + 1)}
-              value={action.script || ''}
-              disabled={isLocked || isCardDisabled}
-              readOnly={isLocked || isCardDisabled}
-              onChange={e => onUpdate(phaseKey, index, { script: e.target.value })}
-              style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.78rem', lineHeight: 1.5, background: (isLocked || isCardDisabled) ? 'rgba(255,255,255,0.01)' : undefined }}
-              placeholder="# Raw PowerShell block"
-            />
+            <label className="action-field__label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              PowerShell Script
+              <span style={{ fontWeight: 400, fontSize: '0.72rem', opacity: 0.55 }}>{totalLines} lines · included verbatim in generated script</span>
+            </label>
+            <pre
+              style={{
+                margin: 0,
+                padding: '10px 12px',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '6px',
+                fontFamily: 'var(--font-mono, monospace)',
+                fontSize: '0.78rem',
+                lineHeight: 1.6,
+                color: '#b0f0c0',
+                whiteSpace: 'pre',
+                overflowX: 'auto',
+                maxHeight: '320px',
+                overflowY: 'auto',
+                userSelect: 'text',
+              }}
+            >
+              {action.script || ''}
+            </pre>
           </div>
         </div>
       )}
