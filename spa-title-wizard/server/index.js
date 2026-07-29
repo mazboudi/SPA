@@ -44,6 +44,12 @@ const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '';
 const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '';
 const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET || '';
 
+// Jamf Pro
+const JAMF_INSTANCE_URL = process.env.JAMF_INSTANCE_URL || '';
+const JAMF_CLIENT_ID = process.env.JAMF_CLIENT_ID || '';
+const JAMF_CLIENT_SECRET = process.env.JAMF_CLIENT_SECRET || '';
+const jamfConfigured = !!(JAMF_INSTANCE_URL && JAMF_CLIENT_ID && JAMF_CLIENT_SECRET);
+
 if (!GITLAB_TOKEN) {
   console.error('⚠️  GITLAB_TOKEN not set — publish will fail. Copy server/.env.example → server/.env');
 }
@@ -1780,6 +1786,7 @@ app.get('/api/health', (req, res) => {
     gitlab: GITLAB_URL,
     hasToken: !!GITLAB_TOKEN,
     intune: graphConfigured,
+    jamf: jamfConfigured,
     gitLabGroup: GITLAB_DEFAULT_GROUP,
     gitLabWinGroup: GITLAB_WIN_GROUP,
     gitLabMacGroup: GITLAB_MAC_GROUP,
@@ -1789,12 +1796,13 @@ app.get('/api/health', (req, res) => {
 
 // ── Settings API ─────────────────────────────────────────────────────────────
 const ENV_PATH = join(__dirname, '.env');
-const SENSITIVE_KEYS = new Set(['GITLAB_TOKEN', 'AZURE_CLIENT_SECRET']);
+const SENSITIVE_KEYS = new Set(['GITLAB_TOKEN', 'AZURE_CLIENT_SECRET', 'JAMF_CLIENT_SECRET']);
 const ALLOWED_KEYS = new Set([
   'GITLAB_URL', 'GITLAB_TOKEN', 'GITLAB_DEFAULT_GROUP',
   'GITLAB_WIN_GROUP', 'GITLAB_MAC_GROUP', 'GITLAB_CI_TEMPLATES_PROJECT',
   'AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET',
   'INTUNE_GROUP_PREFIXES',
+  'JAMF_INSTANCE_URL', 'JAMF_CLIENT_ID', 'JAMF_CLIENT_SECRET',
   'PORT',
 ]);
 
@@ -2378,10 +2386,86 @@ app.post('/api/winget-download', express.json(), async (req, res) => {
   }
 });
 
+// ██  Jamf Pro API ────────────────────────────────────────────────────────────
+
+let jamfToken = null;
+let jamfTokenExpiresAt = 0;
+
+async function getJamfToken() {
+  if (jamfToken && Date.now() < jamfTokenExpiresAt) return jamfToken;
+  if (!jamfConfigured) {
+    throw new Error('Jamf integration not configured. Set JAMF_* vars.');
+  }
+  const tokenUrl = `${JAMF_INSTANCE_URL}/api/oauth/token`;
+  const params = new URLSearchParams();
+  params.append('client_id', JAMF_CLIENT_ID);
+  params.append('client_secret', JAMF_CLIENT_SECRET);
+  params.append('grant_type', 'client_credentials');
+
+  const res = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+
+  if (!res.ok) {
+    throw new Error(`Jamf auth failed: ${res.status}`);
+  }
+  const data = await res.json();
+  jamfToken = data.access_token;
+  // Subtract 30 seconds for safety margin
+  jamfTokenExpiresAt = Date.now() + (data.expires_in * 1000) - 30000;
+  return jamfToken;
+}
+
+app.get('/api/jamf/packages', async (req, res) => {
+  try {
+    if (!jamfConfigured) return res.status(501).json({ error: 'Jamf not configured' });
+    const { name } = req.query;
+    if (!name) return res.status(400).json({ error: 'name query param is required' });
+    
+    const token = await getJamfToken();
+    const url = `${JAMF_INSTANCE_URL}/api/v1/packages?filter=packageName=="${encodeURIComponent(name)}"`;
+    
+    const fetchRes = await fetch(url, { 
+      headers: { 
+        'Authorization': `Bearer ${token}`, 
+        'Accept': 'application/json' 
+      } 
+    });
+    
+    if (!fetchRes.ok) throw new Error(`Jamf API returned ${fetchRes.status}`);
+    const data = await fetchRes.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Jamf API error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ██  Apple iTunes Search API (App Store / VPP) ──────────────────────────────
+app.get('/api/appstore/search', async (req, res) => {
+  try {
+    const { term } = req.query;
+    if (!term) return res.status(400).json({ error: 'term query param is required' });
+    
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=macSoftware&limit=5`;
+    const fetchRes = await fetch(url, { headers: { 'User-Agent': 'SPA-Workbench' } });
+    
+    if (!fetchRes.ok) throw new Error(`iTunes API returned ${fetchRes.status}`);
+    const data = await fetchRes.json();
+    res.json(data);
+  } catch (err) {
+    console.error('iTunes API error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Start ───────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 SPA Publish API running on http://localhost:${PORT}`);
   console.log(`   GitLab: ${GITLAB_URL}`);
   console.log(`   Token:  ${GITLAB_TOKEN ? '✅ configured' : '❌ NOT SET'}`);
-  console.log(`   Intune: ${graphConfigured ? '✅ configured' : '⚠️  NOT SET (set AZURE_* vars)'}\n`);
+  console.log(`   Intune: ${graphConfigured ? '✅ configured' : '⚠️  NOT SET (set AZURE_* vars)'}`);
+  console.log(`   Jamf:   ${jamfConfigured ? '✅ configured' : '⚠️  NOT SET (set JAMF_* vars)'}\n`);
 });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import FormField from '../ui/FormField';
 import ToggleSwitch from '../ui/ToggleSwitch';
+import MacPreflightPanel from '../ui/MacPreflightPanel';
 import './windows-steps.css';
 
 // ── Mac path parser ──────────────────────────────────────────────────────────
@@ -128,6 +129,8 @@ export default function MacInstallerStep({ state, updateField, updateFields }) {
         <h2>🍎 macOS Install Source</h2>
         <p>Choose how the installer file reaches the pipeline runner.</p>
       </div>
+
+      <MacPreflightPanel appName={state.displayName} />
 
       {/* ═══ SOURCE MODE SELECTOR ═══ */}
       <div className="mac-source-mode-row">
