@@ -192,16 +192,9 @@ export default function parsePsadtBlocks(content) {
           .map(l => l.trimRight())
           .filter(l => {
             const trimmed = l.trim();
-            if (!trimmed) return false;
-            // Filter out boilerplate skeleton lines and section title markers
-            if (/^\[CmdletBinding\(\)\]$/i.test(trimmed)) return false;
-            if (/^param$/i.test(trimmed)) return false;
-            if (/^\($/.test(trimmed)) return false;
-            if (/^\)$/.test(trimmed)) return false;
-            if (/^##/.test(trimmed)) return false; // Filters ##======= and ## MARK:
-            if (trimmed.includes('adtSession.InstallPhase')) return false;
-            if (trimmed.includes('## No')) return false;
-            if (trimmed.includes("Write-ADTLogEntry -Message 'TODO")) return false;
+            // Filter out exact phase boilerplate markers that are not skipped by the regexes
+            if (/^##================================================$/.test(trimmed)) return false;
+            if (trimmed.includes('adtSession.InstallPhase =')) return false;
             return true;
           })
           .join('\n')
