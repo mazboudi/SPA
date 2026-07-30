@@ -336,7 +336,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
       {expanded && (
         <>
           {def?.fields?.length > 0 && (
-            <div className="action-card__fields">
+            <div className={`action-card__fields ${isCustom || action.type === 'raw_ps' ? 'action-card__fields--single-col' : ''}`}>
               {isCardDisabled && (
                 <div className="action-card__disabled-msg">
                   ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
@@ -974,12 +974,19 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
               {/* Display view based on legacy script presence and layout choice */}
               {!hasLegacyScript ? (
-                <div style={{ minHeight: '550px' }}>
-                  <CodePreview
-                    code={activeScript}
-                    filename="Invoke-AppDeployToolkit.ps1"
-                    activePhase={activePhase}
-                    maxHeight="600px"
+                <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
+                  <Editor
+                    height="100%"
+                    language="powershell"
+                    theme="vs-dark"
+                    value={activeScript || ''}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on'
+                    }}
                   />
                 </div>
               ) : (
