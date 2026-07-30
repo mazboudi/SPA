@@ -78,6 +78,7 @@
 .action-btn--toggle { color: var(--color-success, #22c55e); font-weight: bold; }
 .action-btn--del { color: var(--color-error, #ef4444); }
 .action-card__fields { padding: 6px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.action-card__fields--single-col { padding: 6px 10px; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .action-field { display: flex; flex-direction: column; gap: 2px; }
 .action-field__label { font-size: 0.68rem; font-weight: 600; color: var(--text-muted); }
 .action-field input[type="text"], .action-field input[type="number"], .action-field textarea { font-size: 0.75rem; padding: 4px 6px; background: var(--bg-surface, rgba(0,0,0,0.3)); border: 1px solid var(--border-subtle); border-radius: 3px; color: var(--text-primary); font-family: var(--font-mono, monospace); }

@@ -41,9 +41,16 @@ const MAC_STAGES = [
 ];
 
 // ── NavSection wrapper ─────────────────────────────────────────────────────
-function NavSection({ icon, label, selected, onClick, children, chip, open: openProp, sidebarOpen, disabled }) {
+function NavSection({ icon, label, selected, onClick, children, chip, open: openProp, sidebarOpen, disabled, activeColor = 'primary.main' }) {
   const [open, setOpen] = useState(openProp ?? false);
   const hasChildren = Boolean(children);
+
+  import('react').then(React => {
+    React.useEffect(() => {
+      if (disabled) setOpen(false);
+      else if (openProp !== undefined) setOpen(openProp);
+    }, [disabled, openProp]);
+  });
 
   const handleClick = () => {
     if (disabled) return;
@@ -65,7 +72,7 @@ function NavSection({ icon, label, selected, onClick, children, chip, open: open
             disabled={disabled}
             sx={{ py: 0.75, opacity: disabled ? 0.45 : 1, pointerEvents: disabled ? 'none' : undefined }}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: selected ? 'primary.main' : 'text.secondary' }}>
+            <ListItemIcon sx={{ minWidth: 36, color: selected ? activeColor : 'text.secondary' }}>
               {icon}
             </ListItemIcon>
             {sidebarOpen && (
@@ -80,7 +87,7 @@ function NavSection({ icon, label, selected, onClick, children, chip, open: open
                       },
                     },
                   }}
-                  sx={{ '& .MuiListItemText-primary': { color: selected ? 'primary.main' : 'text.primary' } }}
+                  sx={{ '& .MuiListItemText-primary': { color: selected ? activeColor : 'text.primary' } }}
                 />
                 {chip && <Chip label={chip} size="small" sx={{ height: 18, fontSize: '0.65rem', mr: 0.5 }} />}
                 {hasChildren && (open ? <ExpandLessIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 16, color: 'text.disabled' }} />)}
@@ -106,14 +113,14 @@ function NavSection({ icon, label, selected, onClick, children, chip, open: open
 }
 
 // ── Stage sub-item ───────────────────────────────────────────────────────────────────
-function StageItem({ icon, label, active, completed, hasError, onClick, sidebarOpen }) {
+function StageItem({ icon, label, active, completed, hasError, onClick, sidebarOpen, activeColor = 'primary.main' }) {
   // Determine icon and colour:
-  // - active step: primary colour, uses icon
+  // - active step: uses activeColor
   // - completed + valid: success green ✓
   // - completed + invalid (has required fields missing): error red ✗
   // - future step: muted, uses icon
   const iconColor = active
-    ? 'primary.main'
+    ? activeColor
     : hasError
       ? 'error.main'
       : completed
@@ -121,7 +128,7 @@ function StageItem({ icon, label, active, completed, hasError, onClick, sidebarO
         : 'text.disabled';
 
   const textColor = active
-    ? 'primary.main'
+    ? activeColor
     : hasError
       ? 'error.main'
       : completed
@@ -183,6 +190,7 @@ export default function Sidebar({
   onEditPackages,
   onClonePackages,
   onSettings,
+  packageSource,       // 'blank' | 'queue' | 'import' | 'edit' | 'clone'
 }) {
   const stages = platform === 'macos' ? MAC_STAGES : WIN_STAGES;
 
@@ -242,14 +250,16 @@ export default function Sidebar({
           <StageItem
             icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
             label="Blank"
-            active={false}
+            active={packageSource === 'blank'}
+            activeColor="#facc15"
             onClick={onNewBlank}
             sidebarOpen={sidebarOpen}
           />
           <StageItem
             icon={<QueueIcon sx={{ fontSize: 16 }} />}
             label="From Queue"
-            active={false}
+            active={packageSource === 'queue'}
+            activeColor="#facc15"
             onClick={onNewFromQueue}
             sidebarOpen={sidebarOpen}
           />
@@ -257,7 +267,8 @@ export default function Sidebar({
             <StageItem
               icon={<SyncAltIcon sx={{ fontSize: 16 }} />}
               label="Intune Import"
-              active={false}
+              active={packageSource === 'import'}
+              activeColor="#facc15"
               onClick={onRefactor}
               sidebarOpen={sidebarOpen}
             />
@@ -270,7 +281,8 @@ export default function Sidebar({
         <NavSection
           icon={<EditIcon sx={{ fontSize: 18 }} />}
           label="Edit Title"
-          selected={activeView === 'edit'}
+          selected={activeView === 'edit' || packageSource === 'edit'}
+          activeColor="#facc15"
           onClick={onEditPackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
@@ -280,7 +292,8 @@ export default function Sidebar({
         <NavSection
           icon={<ContentCopyIcon sx={{ fontSize: 18 }} />}
           label="Clone Title"
-          selected={activeView === 'clone'}
+          selected={activeView === 'clone' || packageSource === 'clone'}
+          activeColor="#facc15"
           onClick={onClonePackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}

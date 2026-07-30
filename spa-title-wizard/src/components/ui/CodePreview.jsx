@@ -186,10 +186,10 @@ export default function CodePreview({ code, filename, activePhase, hideHeader = 
                 <div className="cp-block__header">
                   <span className="cp-block__icon">{isManual ? '🔓' : '🔒'}</span>
                   <span className="cp-block__title">
-                    {isManual ? `Manual Customization: ${cardName}` : `Form-Synchronized Action: ${cardName}`}
+                    {isManual ? `Manual Customization: ${cardName}` : `Generated Action: ${cardName}`}
                   </span>
                   <span className="cp-block__badge">
-                    {isManual ? 'Manual Script Code' : 'Locked Form Sync'}
+                    {isManual ? 'Manual Script Code' : 'Locked Visual Block'}
                   </span>
                 </div>
                 <div className="code-preview__row">

@@ -9,6 +9,7 @@ import { checkV3Compatibility } from '../../lib/psadtCompatCheck';
 import generatePsadtScript, { generateActionCmd } from '../../lib/generatePsadtScript';
 import parsePsadtBlocks from '../../lib/parsePsadtBlocks';
 import CodePreview from '../ui/CodePreview';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 import './windows-steps.css';
 
 /**
@@ -80,11 +81,27 @@ function DraggableActionList({ phaseKey, actions, onMove, children }) {
 function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove, forceExpand,
   isDragOver, onDragStart, onDragEnd, onDragOver, onDrop }) {
   const [expanded, setExpanded] = useState(false);
+  const [showToolbar, setShowToolbar] = useState(false);
+  const editorRef = useRef(null);
 
   // Sync with parent "Expand All" / "Collapse All" toggle
   useEffect(() => {
     if (forceExpand !== undefined) setExpanded(forceExpand);
   }, [forceExpand]);
+
+  const handleEditorMount = (editor) => {
+    editorRef.current = editor;
+  };
+
+  const execCommand = (cmd) => {
+    if (editorRef.current) {
+      if (cmd === 'format') {
+        editorRef.current.getAction('editor.action.formatDocument')?.run();
+      } else {
+        editorRef.current.trigger('keyboard', cmd, null);
+      }
+    }
+  };
 
   const isLocked = !!action.isManuallyEdited;
   const isCardDisabled = !action.enabled;
@@ -140,7 +157,7 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
         </div>
       </div>
       {expanded && (
-        <div className="action-card__fields">
+        <div className="action-card__fields--single-col">
           {isCardDisabled && (
             <div className="action-card__disabled-msg">
               ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
@@ -157,30 +174,41 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
             </div>
           )}
           <div className="action-field">
-            <label className="action-field__label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              PowerShell Script
-              <span style={{ fontWeight: 400, fontSize: '0.72rem', opacity: 0.55 }}>{totalLines} lines · included verbatim in generated script</span>
-            </label>
-            <pre
-              style={{
-                margin: 0,
-                padding: '10px 12px',
-                background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '6px',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '0.78rem',
-                lineHeight: 1.6,
-                color: '#b0f0c0',
-                whiteSpace: 'pre',
-                overflowX: 'auto',
-                maxHeight: '320px',
-                overflowY: 'auto',
-                userSelect: 'text',
-              }}
-            >
-              {action.script || ''}
-            </pre>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label className="action-field__label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                PowerShell Script
+                <span style={{ fontWeight: 400, fontSize: '0.72rem', opacity: 0.55 }}>{totalLines} lines · included verbatim in generated script</span>
+              </label>
+              <button 
+                type="button" 
+                onClick={() => setShowToolbar(!showToolbar)}
+                style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                title="Toggle Editor Toolbar"
+              >
+                {showToolbar ? 'Hide Tools' : 'Show Tools'}
+              </button>
+            </div>
+            
+            {showToolbar && (
+              <div style={{ display: 'flex', gap: '6px', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '4px' }}>
+                <button type="button" onClick={() => execCommand('undo')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '3px', padding: '3px 8px', fontSize: '0.75rem', color: '#fff', cursor: 'pointer' }} title="Undo (Ctrl+Z)">↩️ Undo</button>
+                <button type="button" onClick={() => execCommand('redo')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '3px', padding: '3px 8px', fontSize: '0.75rem', color: '#fff', cursor: 'pointer' }} title="Redo (Ctrl+Y)">↪️ Redo</button>
+                <button type="button" onClick={() => execCommand('actions.find')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '3px', padding: '3px 8px', fontSize: '0.75rem', color: '#fff', cursor: 'pointer', marginLeft: 'auto' }} title="Find (Ctrl+F)">🔍 Find</button>
+                <button type="button" onClick={() => execCommand('format')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '3px', padding: '3px 8px', fontSize: '0.75rem', color: '#fff', cursor: 'pointer' }} title="Format Document">🧹 Format</button>
+              </div>
+            )}
+
+            <div style={{ height: Math.min(Math.max(totalLines * 21, 120), 250) + 'px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
+              <Editor
+                height="100%"
+                language="powershell"
+                theme="vs-dark"
+                value={action.script || ''}
+                options={{ readOnly: isLocked || isCardDisabled, minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13 }}
+                onMount={handleEditorMount}
+                onChange={value => onUpdate(phaseKey, index, { script: value || '' })}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -324,7 +352,16 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                   ) : f.type === 'guids' ? (
                     <textarea rows="3" placeholder="One GUID per line" value={Array.isArray(action[f.key]) ? action[f.key].join('\n') : (action[f.key] || '')} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })} />
                   ) : f.type === 'textarea' ? (
-                    <textarea rows="4" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} style={{ fontFamily: 'monospace', fontSize: '0.8rem' }} />
+                    <div style={{ height: '250px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
+                      <Editor
+                        height="100%"
+                        language="powershell"
+                        theme="vs-dark"
+                        value={action[f.key] || ''}
+                        options={{ readOnly: isCardDisabled, minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13 }}
+                        onChange={value => handleFieldUpdate(phaseKey, index, { [f.key]: value || '' })}
+                      />
+                    </div>
                   ) : f.type === 'select' && f.options ? (
                     <select value={action[f.key] || f.default || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })}>
                       {f.options.map(opt => (
@@ -482,8 +519,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
   const [layout, setLayout] = useState('side-by-side'); // 'side-by-side' | 'stacked'
 
   const hasLegacyScript = useMemo(() => {
-    return !!(state._scriptContent || psadtResult?.scriptContent);
-  }, [state._scriptContent, psadtResult]);
+    return state.wizardMode === 'refactor' && !!(state._scriptContent || psadtResult?.scriptContent);
+  }, [state._scriptContent, psadtResult, state.wizardMode]);
 
   const [activePhase, setActivePhase] = useState(null);
   const [vsCodeOpening, setVsCodeOpening] = useState(false);
@@ -555,108 +592,12 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
       }
     }
 
-    // ── Write to disk for VS Code ──
-    const relPath = `windows/src/${resolvedScriptName}`;
-    fetch('/api/open-vscode', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        packageId: state.packageId,
-        relativePath: relPath,
-        content: compiledScript,
-        writeOnly: true // Don't open VS Code, just write the file
-      })
-    }).then(() => {
-      console.log('📁 Scaffold flush: wrote compiled script to disk for', state.packageId);
-    }).catch(e => {
-      console.warn('⚠️ Scaffold flush failed (non-critical):', e.message);
-    });
   }, [state.packageId, state.wizardMode, compiledScript]);
 
-
-  // Seamless background file sync whenever browser is refocused
-  useEffect(() => {
-    if (!state.packageId || !state.vsCodeOpened) return;
-
-    const fetchLatestFromDisk = async () => {
-      try {
-        const relPath = `windows/src/${resolvedScriptName}`;
-        const res = await fetch(
-          `/api/read-local-file?packageId=${state.packageId}&relativePath=${relPath}&t=${Date.now()}`,
-          { cache: 'no-store' }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (data.content) {
-            // Form-Synchronized mode: reverse-parse block comments to update visual actions!
-            const parsed = parsePsadtBlocks(data.content);
-            const currentLifecycleStr = JSON.stringify(lifecycleRef.current);
-            const nextLifecycleStr = JSON.stringify(parsed.lifecycle);
-            if (currentLifecycleStr !== nextLifecycleStr) {
-              console.log('🔄 Sync: VS Code changes detected — updating lifecycle actions');
-              updateFields({
-                lifecycle: parsed.lifecycle
-              });
-            }
-          }
-        }
-      } catch (e) {
-        // Silent fail — file may not exist yet (user hasn't opened VS Code)
-      }
-    };
-
-    // Fetch once on mount/tab change
-    fetchLatestFromDisk();
-
-    // Auto-fetch whenever the browser window is refocused!
-    const handleWindowFocus = () => {
-      fetchLatestFromDisk();
-    };
-
-    window.addEventListener('focus', handleWindowFocus);
-    return () => {
-      window.removeEventListener('focus', handleWindowFocus);
-    };
-  }, [state.packageId, state.vsCodeOpened]);
-
-  const handleOpenInVsCode = async (overrideContent = null) => {
-    if (!state.packageId) {
-      alert('Please specify a Package ID in the Basic Info step first.');
-      return;
-    }
-    setVsCodeOpening(true);
-    try {
-      // Always write to the correct output filename (v4 standard name for converted scripts)
-      const relPath = `windows/src/${resolvedScriptName}`;
-
-      const res = await fetch('/api/open-vscode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          packageId: state.packageId,
-          relativePath: relPath,
-          content: overrideContent || compiledScript
-        })
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Server returned status ${res.status}: ${text.slice(0, 100)}`);
-      }
-      const data = await res.json();
-      if (data.success) {
-        updateField('vsCodeOpened', true);
-        if (data.method === 'protocol' && data.url) {
-          window.location.href = data.url;
-        }
-      } else {
-        alert(`Could not open in VS Code: ${data.error || 'Unknown error'}`);
-      }
-    } catch (e) {
-      console.error('Failed to open VS Code:', e);
-      alert(`Error opening VS Code: ${e.message}`);
-    } finally {
-      setVsCodeOpening(false);
-    }
+  // Handle manual eject (copy to clipboard instead of VS Code)
+  const handleCopyScript = () => {
+    navigator.clipboard.writeText(generatePsadtScript(lc, false, null, { isClean: true }));
+    alert('Clean script copied to clipboard!');
   };
 
   // ── Full interactive lifecycle editor (New Title + Refactor Convert) ──
@@ -885,10 +826,6 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
                 {/* Unified Toolbar containing VS Code Actions, Badges, Layout Selector, and Pristine Code Toggle */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span className="badge badge--sync" style={{ padding: '4px 10px', height: 'fit-content' }}>
-                    🔒 Form-Synchronized
-                  </span>
-
                   {/* Layout Selector (only visible if there is a legacy script) */}
                   {hasLegacyScript && (
                     <div className="layout-selector" style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)', padding: '2px' }}>
@@ -909,7 +846,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         }}
                         onClick={() => setLayout('side-by-side')}
                       >
-                        ♊ Side-by-Side
+                        ♊ Side-by-Side Diff
                       </button>
                       <button
                         type="button"
@@ -928,7 +865,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         }}
                         onClick={() => setLayout('stacked')}
                       >
-                        ☰ Stacked
+                        ☰ Inline Diff
                       </button>
                     </div>
                   )}
@@ -972,20 +909,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     </button>
                   </div>
 
-                  {/* Manual Refresh / Sync Button (visible in all modes once packageId is set) */}
-                  {/* Open in VS Code Button (visible in all modes once packageId is set) */}
-                  {state.packageId && (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-primary"
-                      onClick={() => handleOpenInVsCode()}
-                      disabled={vsCodeOpening}
-                      title="Open this file in local VS Code to edit custom blocks"
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      {vsCodeOpening ? '⏳ Opening...' : '🖥️ Open in VS Code'}
-                    </button>
-                  )}
+                  {/* Open in VS Code Button removed */}
 
 
                 </div>
@@ -1058,45 +982,23 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     maxHeight="600px"
                   />
                 </div>
-              ) : layout === 'side-by-side' ? (
-                <div className="diff-preview__panels" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', minHeight: '550px' }}>
-                  <CodePreview
-                    code={state._scriptContent || psadtResult?.scriptContent}
-                    filename={state.psadtFileName || 'Deploy-Application.ps1'}
-                  />
-                  <CodePreview
-                    code={activeScript}
-                    filename="Invoke-AppDeployToolkit.ps1"
-                    activePhase={activePhase}
-                  />
-                </div>
               ) : (
-                <div className="diff-preview__panels" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📄 Original Legacy Script:</span>
-                      <span style={{ color: 'var(--text-accent)' }}>{state.psadtFileName || 'Deploy-Application.ps1'}</span>
-                    </div>
-                    <CodePreview
-                      code={state._scriptContent || psadtResult?.scriptContent}
-                      filename={state.psadtFileName || 'Deploy-Application.ps1'}
-                      hideHeader={true}
-                      maxHeight="320px"
-                    />
-                  </div>
-                  <div style={{ flex: 1, marginTop: 'var(--space-sm)' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📋 Converted Structured Script:</span>
-                      <span style={{ color: 'var(--text-accent)' }}>Invoke-AppDeployToolkit.ps1</span>
-                    </div>
-                    <CodePreview
-                      code={activeScript}
-                      filename="Invoke-AppDeployToolkit.ps1"
-                      activePhase={activePhase}
-                      hideHeader={true}
-                      maxHeight="320px"
-                    />
-                  </div>
+                <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
+                  <DiffEditor
+                    height="100%"
+                    language="powershell"
+                    theme="vs-dark"
+                    original={state._scriptContent || psadtResult?.scriptContent || ''}
+                    modified={activeScript || ''}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      renderSideBySide: layout === 'side-by-side',
+                      fontSize: 13,
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on'
+                    }}
+                  />
                 </div>
               )}
             </div>

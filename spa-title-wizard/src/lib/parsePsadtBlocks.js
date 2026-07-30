@@ -148,6 +148,35 @@ export default function parsePsadtBlocks(content) {
         continue;
       }
 
+      // Skip [CmdletBinding()] param() at the top of the function
+      if (trimmed.startsWith('[CmdletBinding()]') && phaseLines[currentPhase] && phaseLines[currentPhase].length === 0) {
+        let paramParen = 0;
+        let seenParamBlock = false;
+        let lineLimit = 50; // Safety valve
+
+        while (i + 1 < lines.length && lineLimit-- > 0) {
+          i++;
+          const innerLine = lines[i];
+          const innerTrimmed = innerLine.trim();
+
+          if (innerTrimmed.startsWith('param')) {
+            seenParamBlock = true;
+          }
+
+          for (const ch of innerLine) {
+            if (ch === '{') bracesCount++;
+            if (ch === '}') bracesCount--;
+            if (ch === '(') paramParen++;
+            if (ch === ')') paramParen--;
+          }
+
+          if (seenParamBlock && paramParen <= 0 && innerTrimmed.endsWith(')')) {
+            break;
+          }
+        }
+        continue;
+      }
+
       // Track exact nested braces
       let tempBraces = bracesCount;
       for (const ch of line) {

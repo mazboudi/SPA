@@ -47,6 +47,7 @@ export default function App() {
   // ── Layout state ─────────────────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [view, setView] = useState(VIEW.HOME);
+  const [packageSource, setPackageSource] = useState(null); // 'blank' | 'queue' | 'import' | 'edit' | 'clone'
 
   const [workbenchWidth, setWorkbenchWidth] = useState(() =>
     localStorage.getItem('spa-workbench-width') || 'standard'
@@ -162,6 +163,7 @@ export default function App() {
   const handleGoHome = () => withUnsavedWorkGuard(() => {
     wizard.reset();
     clearEdits();
+    setPackageSource(null);
     // Re-apply server config so GitLab group fields are populated immediately
     applyServerGroups();
     // Clear any lingering refactor / PSADT parse state from the previous session
@@ -177,6 +179,7 @@ export default function App() {
     // Atomically reset and restore config+platform so gitLabGroup is correct immediately
     wizard.resetWithConfig(serverConfig.current, platform || 'windows');
     clearEdits();
+    setPackageSource('blank');
     setView(VIEW.PACKAGE);
   });
 
@@ -184,6 +187,7 @@ export default function App() {
   const handleNewFromQueue = () => withUnsavedWorkGuard(() => {
     wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
     clearEdits();
+    setPackageSource('queue');
     setView(VIEW.QUEUE);
   });
 
@@ -194,6 +198,7 @@ export default function App() {
     setPsadtResult(null);
     setPsadtError(null);
     setPsadtParsing(false);
+    setPackageSource('import');
     setView(VIEW.REFACTOR);
   });
 
@@ -201,6 +206,7 @@ export default function App() {
   const handleEditPackages = () => withUnsavedWorkGuard(() => {
     wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
     clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
+    setPackageSource('edit');
     setView(VIEW.EDIT);
   });
 
@@ -208,6 +214,7 @@ export default function App() {
   const handleClonePackages = () => withUnsavedWorkGuard(() => {
     wizard.resetWithConfig(serverConfig.current, wizard.state.platform || 'windows');
     clearEdits(); // Navigating to picker IS the acknowledgment — clear flag now
+    setPackageSource('clone');
     setView(VIEW.CLONE);
   });
 
@@ -520,6 +527,7 @@ export default function App() {
         onEditPackages={handleEditPackages}
         onClonePackages={handleClonePackages}
         onSettings={() => setView(VIEW.SETTINGS)}
+        packageSource={packageSource}
       />
 
       {/* ── Main content area ── */}
