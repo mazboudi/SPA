@@ -308,13 +308,6 @@ function syncInstallerActions(next, prevInstallerType) {
         }
         return action;
       });
-      if (!hasPrimary) {
-        if (value === 'msi') {
-          phases.install.actions.unshift({ type: 'start_msi_process', enabled: true, file: next.installerSourceFile || next.msiFileName || 'installer.msi', args: '/QN /norestart' });
-        } else if (value === 'exe') {
-          phases.install.actions.unshift({ type: 'start_process', enabled: true, file: next.installerSourceFile || next.exeSourceFilename || 'setup.exe', args: next.exeInstallArgs || '/S' });
-        }
-      }
     }
   }
 
@@ -348,13 +341,6 @@ function syncInstallerActions(next, prevInstallerType) {
         }
         return action;
       });
-      if (!hasPrimary) {
-        if (value === 'msi') {
-          phases.uninstall.actions.unshift({ type: 'uninstall_application', enabled: true, name: next.displayName || '', productCode: next.msiProductCode || '', args: '/qn /NORESTART' });
-        } else if (value === 'exe') {
-          phases.uninstall.actions.unshift({ type: 'start_process', enabled: true, file: next.exeUninstallPath || '', args: next.exeUninstallArgs || '/S' });
-        }
-      }
     }
   }
   
@@ -675,9 +661,9 @@ export default function useWizardState() {
       // Skip if editing an existing project
       if (prev.wizardMode === 'edit') return prev;
 
-      // Only seed if all phases are empty (user hasn't added anything yet)
-      const allEmpty = Object.values(prev.lifecycle.phases).every(p => !p.actions || p.actions.length === 0);
-      if (!allEmpty) return prev;
+      // Only seed if variable declarations are empty (meaning we haven't run auto-seed yet)
+      const hasSeeded = prev.lifecycle.phases.variableDeclaration?.actions?.length > 0;
+      if (hasSeeded) return prev;
 
       const phases = { ...prev.lifecycle.phases };
       const mkPhase = (key, actions) => {
