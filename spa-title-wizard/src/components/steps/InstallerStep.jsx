@@ -17,17 +17,23 @@ import './windows-steps.css';
 //   subfolder     — relative path between \Files\ and filename ('' if at root)
 //   pathError     — validation message if \Files\ not present, null if valid
 // ─────────────────────────────────────────────────────────────────────────────
-function parseInstallerFullPath(raw) {
+function parseInstallerFullPath(raw, isScript = false) {
   const input = (raw || '').trim();
   if (!input) return { dir: '', file: '', installerType: '', subfolder: '', pathError: null };
 
   // Normalise slashes
   const norm = input.replace(/\//g, '\\');
 
-  // Split filename (last segment)
-  const lastSep = norm.lastIndexOf('\\');
-  const dir  = lastSep >= 0 ? norm.slice(0, lastSep) : '';
-  const file = lastSep >= 0 ? norm.slice(lastSep + 1) : norm;
+  // Split filename (last segment) unless it's a script-only package where the whole input is the dir
+  let dir, file;
+  if (isScript) {
+    dir = norm.replace(/\\$/, '');
+    file = '';
+  } else {
+    const lastSep = norm.lastIndexOf('\\');
+    dir  = lastSep >= 0 ? norm.slice(0, lastSep) : '';
+    file = lastSep >= 0 ? norm.slice(lastSep + 1) : norm;
+  }
 
   // Installer type — only from fully-recognized extensions to avoid mid-edit flipping
   const ext = file.includes('.') ? file.split('.').pop().toLowerCase() : '';
@@ -100,8 +106,9 @@ export default function InstallerStep({ state, updateField, updateFields }) {
   // ── Derived ─────────────────────────────────────────────────────────────
   const isMsi = state.installerType === 'msi';
   const isExe = state.installerType === 'exe';
+  const isScript = state.installerType === 'script';
 
-  const parsed = parseInstallerFullPath(pathInput);
+  const parsed = parseInstallerFullPath(pathInput, isScript);
 
   // Primary installer filename for PSADT path
   const primaryFile = isMsi
@@ -123,7 +130,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     setMsiParseResult(null);
     suppressSync.current = true;
 
-    const { dir, file, installerType, subfolder } = parseInstallerFullPath(raw);
+    const { dir, file, installerType, subfolder } = parseInstallerFullPath(raw, isScript);
     const updates = {
       installerSourceDir:  dir,
       installerSourceFile: file,
@@ -136,7 +143,20 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
   };
 
-  const handleTypeToggle = (t) => updateField('installerType', t);
+  const handleTypeToggle = (t) => {
+    updateField('installerType', t);
+    // If switching to script, re-parse the current path input to treat it as a directory
+    if (t === 'script') {
+      const { dir, file, subfolder } = parseInstallerFullPath(pathInput, true);
+      if (updateFields) {
+        updateFields({ installerSourceDir: dir, installerSourceFile: file, installerSubfolder: subfolder, installerType: t });
+      } else {
+        updateField('installerSourceDir', dir);
+        updateField('installerSourceFile', file);
+        updateField('installerSubfolder', subfolder);
+      }
+    }
+  };
 
   // ── MSI auto-extract ────────────────────────────────────────────────────
   const handleAutoExtract = async () => {
@@ -264,9 +284,27 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       <div className="step-header">
         <h2>📦 Installer &amp; Behavior</h2>
         <p>Provide the full path to the installer file. Everything else is derived automatically.</p>
+        
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '8px' }}>
+          <button 
+            type="button" 
+            className={`btn ${!isScript ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => handleTypeToggle(state.installerType === 'script' ? 'exe' : state.installerType || 'exe')}
+          >
+            Traditional Installer (MSI/EXE)
+          </button>
+          <button 
+            type="button" 
+            className={`btn ${isScript ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => handleTypeToggle('script')}
+          >
+            Script Only / Portable App
+          </button>
+        </div>
       </div>
 
       {/* ═══ WINGET BOOTSTRAPPER ═══ */}
+      {!isScript && (
       <div className="config-section winget-section animate-slide">
         <h3 className="section-title">🚀 WinGet Package Bootstrapper</h3>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
@@ -362,23 +400,31 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           </div>
         )}
       </div>
+      )}
 
       {/* ═══ INSTALLER SOURCE ═══ */}
       <div className="config-section">
         <h3 className="section-title">📂 Installer Source <span className="section-subtitle">(Runner / File Share)</span></h3>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-          Enter the <strong>full path to the installer file</strong> on the GitLab runner.
-          The file must be located inside a <code>\Files\</code> folder — the pipeline copies the
-          <em> entire</em> <code>Files\</code> folder into the PSADT staging area.
-          A <code>SupportFiles\</code> folder at the same level is automatically detected and copied if it exists.
-          Supports local paths (<code>C:\...</code>), UNC shares (<code>\\server\share\...</code>), and mapped drives.
+          {isScript 
+            ? <>Enter the <strong>full path to the Files directory</strong> on the GitLab runner. The pipeline copies the <em>entire</em> <code>Files\</code> folder into the PSADT staging area. A <code>SupportFiles\</code> folder at the same level is automatically detected and copied if it exists.</>
+            : <>Enter the <strong>full path to the installer file</strong> on the GitLab runner. The file must be located inside a <code>\Files\</code> folder — the pipeline copies the <em>entire</em> <code>Files\</code> folder into the PSADT staging area. A <code>SupportFiles\</code> folder at the same level is automatically detected and copied if it exists.</>}
+          {' '}Supports local paths (<code>C:\...</code>), UNC shares (<code>\\server\share\...</code>), and mapped drives.
         </p>
 
+        {isScript && (
+          <div className="inst-msg inst-msg--ok animate-in" style={{ marginBottom: '1rem' }}>
+            💡 <strong>Script Only Mode</strong>: No installer file is required. Use the <strong>PSADT</strong> tab to build your deployment sequence using Custom Actions (e.g. Copy-Item, New-Shortcut).
+          </div>
+        )}
+
         <FormField
-          label="Full path to installer file"
+          label={isScript ? "Full path to Files\\ directory" : "Full path to installer file"}
           id="installerFullPath"
           required
-          hint={`Must contain \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files\\setup.msi   or   \\\\server\\share\\AppName\\Files\\Bin\\setup.exe`}
+          hint={isScript 
+            ? `Must end with \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files` 
+            : `Must contain \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files\\setup.msi   or   \\\\server\\share\\AppName\\Files\\Bin\\setup.exe`}
         >
           <div className="inst-fullpath-row">
             <input
@@ -388,11 +434,11 @@ export default function InstallerStep({ state, updateField, updateFields }) {
               value={pathInput}
               onChange={e => handlePathChange(e.target.value)}
               onBlur={() => isMsi && !parsed.pathError && pathInput.trim() && handleAutoExtract()}
-              placeholder={String.raw`C:\AppSource\AppName\Files\setup.msi`}
+              placeholder={isScript ? String.raw`C:\AppSource\AppName\Files` : String.raw`C:\AppSource\AppName\Files\setup.msi`}
               spellCheck={false}
             />
-            {/* Type override chips — shown once a file is detected */}
-            {state.installerSourceFile && (
+            {/* Type override chips — shown once a file is detected (only for traditional installers) */}
+            {state.installerSourceFile && !isScript && (
               <div className="inst-type-toggle">
                 {['msi', 'exe'].map(t => (
                   <button
@@ -416,18 +462,20 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           </div>
         )}
 
-        {/* Derived breakdown — shown when path is valid and a filename exists */}
-        {!parsed.pathError && state.installerSourceFile && (
+        {/* Derived breakdown — shown when path is valid and a directory exists */}
+        {!parsed.pathError && state.installerSourceDir && (
           <div className="inst-derived-grid animate-in">
-            <div className="inst-derived-row">
-              <span className="inst-derived-label">Installer file</span>
-              <code className="inst-derived-value inst-derived-value--file">{state.installerSourceFile}</code>
-              {state.installerType && (
-                <span className={`inst-type-chip inst-type-chip--${state.installerType}`}>
-                  {state.installerType.toUpperCase()}
-                </span>
-              )}
-            </div>
+            {!isScript && (
+              <div className="inst-derived-row">
+                <span className="inst-derived-label">Installer file</span>
+                <code className="inst-derived-value inst-derived-value--file">{state.installerSourceFile}</code>
+                {state.installerType && (
+                  <span className={`inst-type-chip inst-type-chip--${state.installerType}`}>
+                    {state.installerType.toUpperCase()}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="inst-derived-row">
               <span className="inst-derived-label">Files\ folder copied entirely</span>
               <code className="inst-derived-value">{state.installerSourceDir || '—'}</code>
@@ -436,7 +484,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
               <span className="inst-derived-label">SupportFiles\ (auto-derived sibling)</span>
               <code className="inst-derived-value">
                 {state.installerSourceDir
-                  ? state.installerSourceDir.replace(/\\?Files\\?$/, '') + 'SupportFiles  (copied if exists)'
+                  ? state.installerSourceDir.replace(/\\?Files\\?$/i, '') + 'SupportFiles  (copied if exists)'
                   : '—'}
               </code>
             </div>
@@ -448,10 +496,12 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                   : 'Files\\ (root)'}
               </code>
             </div>
-            <div className="inst-derived-row">
-              <span className="inst-derived-label">PSADT -FilePath</span>
-              <code className="inst-derived-value inst-derived-value--psadt">{psadtPath}</code>
-            </div>
+            {!isScript && (
+              <div className="inst-derived-row">
+                <span className="inst-derived-label">PSADT -FilePath</span>
+                <code className="inst-derived-value inst-derived-value--psadt">{psadtPath}</code>
+              </div>
+            )}
           </div>
         )}
 
