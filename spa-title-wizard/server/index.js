@@ -1315,16 +1315,27 @@ async function getGraphToken() {
   return graphToken;
 }
 
-async function graphApi(path) {
+async function graphApi(path, retries = 3) {
   const token = await getGraphToken();
-  const res = await fetch(`${GRAPH_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const err = await res.text().catch(() => res.statusText);
-    throw Object.assign(new Error(`Graph ${res.status}: ${err}`), { status: res.status });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(`${GRAPH_BASE}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
+        let delayMs = 1000 * Math.pow(2, attempt);
+        if (res.status === 429 && res.headers.has('Retry-After')) {
+          delayMs = (parseInt(res.headers.get('Retry-After')) * 1000) || delayMs;
+        }
+        console.warn(`⚠️ Graph API ${res.status} on ${path}. Retrying in ${delayMs}ms (attempt ${attempt + 1}/${retries})...`);
+        await new Promise(r => setTimeout(r, delayMs));
+        continue;
+      }
+      const err = await res.text().catch(() => res.statusText);
+      throw Object.assign(new Error(`Graph ${res.status}: ${err}`), { status: res.status });
+    }
+    return res.json();
   }
-  return res.json();
 }
 
 // ── App list cache ──────────────────────────────────────────────────────────
@@ -1509,20 +1520,31 @@ app.get('/api/intune/apps/:id', async (req, res) => {
 });
 
 // ── Graph API write helper ──────────────────────────────────────────────────
-async function graphApiWrite(path, method, body) {
+async function graphApiWrite(path, method, body, retries = 3) {
   const token = await getGraphToken();
-  const res = await fetch(`${GRAPH_BASE}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.text().catch(() => res.statusText);
-    throw Object.assign(new Error(`Graph ${res.status}: ${err}`), { status: res.status });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(`${GRAPH_BASE}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
+        let delayMs = 1000 * Math.pow(2, attempt);
+        if (res.status === 429 && res.headers.has('Retry-After')) {
+          delayMs = (parseInt(res.headers.get('Retry-After')) * 1000) || delayMs;
+        }
+        console.warn(`⚠️ Graph API write ${res.status} on ${path}. Retrying in ${delayMs}ms (attempt ${attempt + 1}/${retries})...`);
+        await new Promise(r => setTimeout(r, delayMs));
+        continue;
+      }
+      const err = await res.text().catch(() => res.statusText);
+      throw Object.assign(new Error(`Graph ${res.status}: ${err}`), { status: res.status });
+    }
+    // Some Graph endpoints return 204 No Content
+    if (res.status === 204) return {};
+    return res.json();
   }
-  // Some Graph endpoints return 204 No Content
-  if (res.status === 204) return {};
-  return res.json();
 }
 
 // ── PATCH /api/intune/apps/:id — push metadata updates to Intune ────────────
