@@ -507,6 +507,7 @@ export default function App() {
       {/* ── Sidebar ── */}
       <Sidebar
         open={sidebarOpen}
+        onExpand={() => setSidebarOpen(true)}
         platform={wizard.state.platform || null}
         activeView={view}
         activeStepId={currentStepId}

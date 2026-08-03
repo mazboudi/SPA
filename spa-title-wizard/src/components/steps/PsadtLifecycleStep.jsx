@@ -179,8 +179,8 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
                 PowerShell Script
                 <span style={{ fontWeight: 400, fontSize: '0.72rem', opacity: 0.55 }}>{totalLines} lines · included verbatim in generated script</span>
               </label>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowToolbar(!showToolbar)}
                 style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}
                 title="Toggle Editor Toolbar"
@@ -188,7 +188,7 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
                 {showToolbar ? 'Hide Tools' : 'Show Tools'}
               </button>
             </div>
-            
+
             {showToolbar && (
               <div style={{ display: 'flex', gap: '6px', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '4px' }}>
                 <button type="button" onClick={() => execCommand('undo')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '3px', padding: '3px 8px', fontSize: '0.75rem', color: '#fff', cursor: 'pointer' }} title="Undo (Ctrl+Z)">↩️ Undo</button>
@@ -383,7 +383,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
             };
             const rawLines = generateActionCmd(action, pathCtx);
             let v4Cmd = rawLines.join('\n');
-            
+
             if (!v4Cmd && action.raw) {
               v4Cmd = action.raw;
             }
@@ -789,11 +789,11 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                                 onUpdate={handleUpdateAction} onRemove={handleRemoveAction} onMove={handleMoveAction}
                                 forceExpand={expandAllCards[phaseKey]}
                                 installerCtx={{
-                                  installerSubfolder:   state.installerSubfolder,
-                                  installerType:        state.installerType,
-                                  msiFileName:          state.msiFileName,
-                                  exeSourceFilename:    state.exeSourceFilename,
-                                  installerSourceFile:  state.installerSourceFile,
+                                  installerSubfolder: state.installerSubfolder,
+                                  installerType: state.installerType,
+                                  msiFileName: state.msiFileName,
+                                  exeSourceFilename: state.exeSourceFilename,
+                                  installerSourceFile: state.installerSourceFile,
                                 }} />
                             ))}
                           </DraggableActionList>
@@ -818,7 +818,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   </h3>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
                     {hasLegacyScript
-                      ? 'Compare the original legacy PowerShell script with the newly compiled and structured script. Use this view to verify successful conversion.'
+                      ? 'Origina PowerShell script to generated script comparisson. Use this view to verify successful conversion.'
                       : 'View the generated PowerShell script. Customize it in VS Code to make manual edits.'
                     }
                   </p>

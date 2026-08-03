@@ -41,7 +41,7 @@ const MAC_STAGES = [
 ];
 
 // ── NavSection wrapper ─────────────────────────────────────────────────────
-function NavSection({ icon, label, selected, onClick, children, chip, open: openProp, sidebarOpen, disabled, activeColor = 'primary.main' }) {
+function NavSection({ icon, label, selected, onClick, onExpand, children, chip, open: openProp, sidebarOpen, disabled, activeColor = 'primary.main' }) {
   const [open, setOpen] = useState(openProp ?? false);
   const hasChildren = Boolean(children);
 
@@ -54,7 +54,14 @@ function NavSection({ icon, label, selected, onClick, children, chip, open: open
 
   const handleClick = () => {
     if (disabled) return;
-    if (hasChildren) setOpen(o => !o);
+    if (hasChildren) {
+      if (!sidebarOpen && onExpand) {
+        onExpand();
+        setOpen(true);
+      } else {
+        setOpen(o => !o);
+      }
+    }
     if (onClick) onClick();
   };
 
@@ -191,6 +198,7 @@ export default function Sidebar({
   onClonePackages,
   onSettings,
   packageSource,       // 'blank' | 'queue' | 'import' | 'edit' | 'clone'
+  onExpand,
 }) {
   const stages = platform === 'macos' ? MAC_STAGES : WIN_STAGES;
 
@@ -234,6 +242,7 @@ export default function Sidebar({
           selected={activeView === 'queue'}
           onClick={onQueueOpen}
           sidebarOpen={sidebarOpen}
+          onExpand={onExpand}
         />
 
         <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
@@ -246,6 +255,7 @@ export default function Sidebar({
           open={!!platform}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
+          onExpand={onExpand}
         >
           <StageItem
             icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
@@ -286,6 +296,7 @@ export default function Sidebar({
           onClick={onEditPackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
+          onExpand={onExpand}
         />
 
         {/* ── Clone Title ── */}
@@ -297,6 +308,7 @@ export default function Sidebar({
           onClick={onClonePackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
+          onExpand={onExpand}
         />
 
         {/* ── Stage navigation — appears below all menu items when a package is active ── */}
@@ -344,6 +356,7 @@ export default function Sidebar({
             selected={activeView === 'settings'}
             onClick={onSettings}
             sidebarOpen={sidebarOpen}
+            onExpand={onExpand}
           />
         </List>
       </Box>

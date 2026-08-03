@@ -2,6 +2,13 @@ import v3ToV4 from '../config/v3ToV4.json' with { type: 'json' };
 
 /**
  * parsePsadt.js
+ *
+ * Single source of truth for parsing PSADT scripts line-by-line (AST parser).
+ * Used for "Convert Legacy Script" (v3->v4) and importing local script files.
+ */
+import { promoteLegacyCards } from './parsePsadtBlocks.js';
+
+/**
  * Parses PSADT v3 (Deploy-Application.ps1) and v4 (Invoke-AppDeployToolkit.ps1)
  * scripts in the browser. Extracts app metadata and lifecycle actions, returning
  * a partial wizard state object that can be merged into INITIAL_STATE.
@@ -1284,8 +1291,8 @@ function extractBlockActions(block) {
       }
     }
 
-    // Remove-Item / Remove-File / Remove-ADTFolder (with -Path flag)
-    if (!matched && /(?:Remove-Item|Remove-File|Remove-ADTFolder)\b/i.test(t)) {
+    // Remove-Item / Remove-File / Remove-ADTFolder / Remove-ADTFile (with -Path or -LiteralPath flag)
+    if (!matched && /(?:Remove-Item|Remove-File|Remove-ADTFolder|Remove-ADTFile)\b/i.test(t)) {
       const removePath = extractPsParamValue(t, '(?:Path|LiteralPath)');
       if (removePath) {
         flushCustomBuffer();
@@ -2102,7 +2109,15 @@ function extractAllPhasesV4(text) {
     if (!funcBody) continue;
     for (const [markName, key] of Object.entries(marks)) {
       const block = extractV4Mark(funcBody, markName);
-      const actions = extractBlockActions(block);
+      
+      // 1. Scrub standard V4 boilerplate and turn them into visual cards
+      const { actions: promoted, remaining } = promoteLegacyCards(block);
+      
+      // 2. Parse the remaining custom logic line-by-line
+      const extracted = extractBlockActions(remaining);
+      
+      // 3. Combine them
+      const actions = [...promoted, ...extracted];
       if (actions.length > 0) phases[key] = actions;
     }
   }

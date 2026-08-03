@@ -11,6 +11,94 @@
 
 import { extractVarDeclarationsV4, modernizeLegacyScriptParts } from './parsePsadt.js';
 
+/**
+ * Promotes known standard PSADT template boilerplate out of raw script blocks
+ * and converts them into visual SPA action cards.
+ */
+export function promoteLegacyCards(rawScript) {
+  if (!rawScript) return { actions: [], remaining: '' };
+  const extracted = [];
+  let remaining = rawScript;
+
+  // 1. Zero-Config MSI (SPA template version)
+  const zcMsiRx = /(?:##\s*Handle Zero-Config MSI installations\.\r?\n)?\s*if\s*\(\$adtSession\.UseDefaultMsi\)[\s\S]*?\$adtSession\.DefaultMspFiles\s*\|\s*Start-ADTMsiProcess\s+-Action\s+Patch\s*\}\s*\}/gi;
+  remaining = remaining.replace(zcMsiRx, '');
+  
+  const zcMsiUninstallRx = /(?:##\s*Handle Zero-Config MSI uninstallations\.\r?\n)?\s*if\s*\(\$adtSession\.UseDefaultMsi\)[\s\S]*?Start-ADTMsiProcess\s*@ExecuteDefaultMSISplat\s*\}/gi;
+  remaining = remaining.replace(zcMsiUninstallRx, '');
+  
+  // 2. Pre-Install / Pre-Uninstall Show-Welcome with process closing
+  const welcomeRx = /(?:##\s*Show Welcome Message[^\r\n]*\r?\n)?\s*\$saiwParams\s*=\s*@\{([\s\S]*?)\}\s*(?:if\s*\([^\{]+\{\s*\$saiwParams\.Add\('CloseProcesses'[^}]+\}\s*)?(#?Show-ADTInstallationWelcome\s*@saiwParams)/gi;
+  remaining = remaining.replace(welcomeRx, (match, hashBody, callStmt) => {
+    const allowDefer = /AllowDefer\s*=\s*\$true/i.test(hashBody);
+    const deferTimesMatch = /DeferTimes\s*=\s*(\d+)/i.exec(hashBody);
+    const deferTimes = deferTimesMatch ? parseInt(deferTimesMatch[1], 10) : 3;
+    const checkDiskSpace = /CheckDiskSpace\s*=\s*\$true/i.test(hashBody);
+    const persistPrompt = /PersistPrompt\s*=\s*\$true/i.test(hashBody);
+    
+    extracted.push({
+      type: 'show_welcome',
+      enabled: !callStmt.startsWith('#'),
+      allowDefer,
+      deferTimes,
+      checkDiskSpace,
+      persistPrompt,
+      closeProcessesCountdown: 0,
+      forceCloseProcessesCountdown: 0,
+      blockExecution: false,
+    });
+    return '';
+  });
+  
+  // 3. Simple Show-Welcome for Uninstall countdown
+  const uninstallWelcomeRx = /(?:##\s*If there are processes to close[^\r\n]*\r?\n)?\s*if\s*\(\$adtSession\.AppProcessesToClose\.Count\s*-gt\s*0\)\s*\{\s*Show-ADTInstallationWelcome\s+-CloseProcesses\s+\$adtSession\.AppProcessesToClose\s+-CloseProcessesCountdown\s+(\d+)\s*\}/gi;
+  remaining = remaining.replace(uninstallWelcomeRx, (match, cd) => {
+    extracted.push({
+      type: 'show_welcome',
+      enabled: true,
+      allowDefer: false,
+      deferTimes: 0,
+      checkDiskSpace: false,
+      persistPrompt: false,
+      closeProcessesCountdown: parseInt(cd, 10),
+      forceCloseProcessesCountdown: 0,
+      blockExecution: false,
+    });
+    return '';
+  });
+  
+  // 4. Standard Show-Progress
+  const progressRx = /(?:##\s*Show Progress Message[^\r\n]*\r?\n)?\s*(#?)Show-ADTInstallationProgress(?:[\s\S]*?-StatusMessage\s+'([^']+)')?(?:[\s\S]*?-WindowLocation\s+'([^']+)')?/gi;
+  remaining = remaining.replace(progressRx, (match, comment, msg) => {
+    extracted.push({
+      type: 'show_progress',
+      enabled: !comment.startsWith('#'),
+      statusMessage: msg || '',
+      topMost: true,
+    });
+    return '';
+  });
+  
+  // 5. Post-Install Show-Prompt (Show Completion)
+  const promptRx = /(?:##\s*Display a message at the end[^\r\n]*\r?\n)?\s*if\s*\(!\$adtSession\.UseDefaultMsi\)\s*\{\s*(#?)Show-ADTInstallationPrompt\s+-Message\s+'[^']+'\s+-ButtonRightText\s+'OK'(?:\s+-Icon\s+Information)?\s+-NoWait(?:\s+-Timeout\s+'\d+')?\s*\}/gi;
+  remaining = remaining.replace(promptRx, (match, comment) => {
+    extracted.push({
+      type: 'show_completion',
+      enabled: !comment.startsWith('#'),
+    });
+    return '';
+  });
+
+  // 6. Generic Perform tasks placeholder comments
+  const performTasksRx = /##\s*<Perform (?:Pre-|Post-)?(?:Installation|Uninstallation) tasks here>/gi;
+  remaining = remaining.replace(performTasksRx, '');
+
+  // Clear out any trailing/multiple blank lines left behind
+  remaining = remaining.replace(/^\s*$(?:\r?\n)+/gm, '\n').trim();
+
+  return { actions: extracted, remaining };
+}
+
 function dedentLines(blockLines) {
   return blockLines.map(line => {
     const match = line.match(/^(\s{0,8})(.*)$/);
@@ -149,7 +237,7 @@ export default function parsePsadtBlocks(content) {
       }
 
       // Skip [CmdletBinding()] param() at the top of the function
-      if (trimmed.startsWith('[CmdletBinding()]') && phaseLines[currentPhase] && phaseLines[currentPhase].length === 0) {
+      if (trimmed.startsWith('[CmdletBinding()]') && phaseLines[currentPhase] && phaseLines[currentPhase].length < 10) {
         let paramParen = 0;
         let seenParamBlock = false;
         let lineLimit = 50; // Safety valve
@@ -222,7 +310,8 @@ export default function parsePsadtBlocks(content) {
           .filter(l => {
             const trimmed = l.trim();
             // Filter out exact phase boilerplate markers that are not skipped by the regexes
-            if (/^##================================================$/.test(trimmed)) return false;
+            if (/^##=+$/.test(trimmed)) return false;
+            if (/^##\s*MARK:\s*(?:Pre-|Post-)?(?:Install|Uninstall)$/i.test(trimmed)) return false;
             if (trimmed.includes('adtSession.InstallPhase =')) return false;
             return true;
           })
@@ -230,20 +319,22 @@ export default function parsePsadtBlocks(content) {
           .trim();
 
         if (cleanRaw) {
-          // Check if cleanRaw contains at least one line of executable code
-          const hasExecutableCode = cleanRaw.split('\n').some(line => {
-            const t = line.trim();
-            return t && !t.startsWith('#') && !t.startsWith('<#');
-          });
+          // Promote legacy template boilerplate into visual cards
+          const { actions: promoted, remaining } = promoteLegacyCards(cleanRaw);
+          actions.push(...promoted);
+          
+          if (remaining) {
+            // Check if remaining contains at least one line of executable code
+            const hasExecutableCode = remaining.split('\n').some(line => {
+              const t = line.trim();
+              return t && !t.startsWith('#') && !t.startsWith('<#');
+            });
 
-          if (hasExecutableCode) {
-            // Skip standard Zero-Config MSI boilerplate injected by the generator
-            const isZeroConfigBoilerplate = /\$adtSession\.UseDefaultMsi[\s\S]*\$ExecuteDefaultMSISplat/.test(cleanRaw);
-            if (!isZeroConfigBoilerplate) {
+            if (hasExecutableCode) {
               actions.push({
                 type: 'raw_ps',
                 enabled: true,
-                script: modernizeLegacyScriptParts(cleanRaw),
+                script: modernizeLegacyScriptParts(remaining),
                 note: 'Legacy or custom script block',
                 isManuallyEdited: true
               });
