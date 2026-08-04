@@ -26,7 +26,7 @@ export default function MacPreflightPanel({ appName }) {
       ]);
 
       if (appStoreData.status === 'fulfilled') {
-        setAppStoreResult(appStoreData.value?.results?.[0] || null);
+        setAppStoreResult(appStoreData.value?.results || []);
       } else {
         console.error('App Store check failed:', appStoreData.reason);
       }
@@ -67,12 +67,24 @@ export default function MacPreflightPanel({ appName }) {
           {/* App Store Result */}
           <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}>
             <h4 style={{ margin: '0 0 8px 0' }}>🍏 Apple App Store / VPP</h4>
-            {appStoreResult ? (
+            {appStoreResult && appStoreResult.length > 0 ? (
               <div>
-                <p style={{ margin: '0 0 4px 0' }}><strong>Found:</strong> {appStoreResult.trackName} by {appStoreResult.artistName} (v{appStoreResult.version})</p>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Found {appStoreResult.length} match(es) for "{appName}":</strong></p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  {appStoreResult.map((app) => (
+                    <div key={app.trackId} style={{ padding: '8px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <strong>{app.trackName}</strong> <span style={{ color: 'var(--text-muted)' }}>v{app.version}</span>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>by {app.artistName}</div>
+                        </div>
+                        <a href={app.trackViewUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', textDecoration: 'underline' }}>View</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 <div style={{ padding: '8px', background: 'rgba(251, 191, 36, 0.1)', border: '1px solid var(--color-warning)', borderRadius: '4px', color: 'var(--color-warning)' }}>
-                  ⚠️ This app is available on the Mac App Store. Consider deploying via Apple Business Manager (VPP) instead of packaging. <br/>
-                  <a href={appStoreResult.trackViewUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>View in App Store</a>
+                  ⚠️ If your target app is in this list, consider deploying via Apple Business Manager (VPP) instead of packaging. VPP apps are automatically updated by Apple.
                 </div>
               </div>
             ) : (
