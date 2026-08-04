@@ -638,13 +638,13 @@ export function generateActionCmd(action, pathCtx = {}) {
     case 'registry_set': {
       const regType = action.regType ? ` -Type ${psString(action.regType)}` : " -Type 'String'";
       const sid = action.sid ? ` -SID ${psString(action.sid)}` : '';
-      lines.push(`Set-ADTRegistryKey -Key ${psString(action.key)} -Name ${psString(action.name)}${regType} -Value ${psString(action.value)}${sid}`);
+      lines.push(`Set-ADTRegistryKey -LiteralPath ${psString(action.key)} -Name ${psString(action.name)}${regType} -Value ${psString(action.value)}${sid}`);
       break;
     }
 
     case 'registry_remove': {
       const name = action.name ? ` -Name ${psString(action.name)}` : '';
-      lines.push(`Remove-ADTRegistryKey -Key ${psString(action.key)}${name}`);
+      lines.push(`Remove-ADTRegistryKey -LiteralPath ${psString(action.key)}${name}`);
       break;
     }
 
