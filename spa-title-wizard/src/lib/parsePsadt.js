@@ -890,14 +890,14 @@ export function modernizeLegacyScriptParts(scriptText) {
 
   // 1. Cmdlet renames — \b word-boundary, global, case-insensitive
   for (const { v3, v4 } of v3ToV4.cmdlets) {
-    result = result.replace(new RegExp(`\\b${escapeRe(v3)}\\b`, 'g'), v4);
+    result = result.replace(new RegExp(`\\b${escapeRe(v3)}\\b`, 'gi'), () => v4);
   }
 
-  // 2. Variable renames — $ is literal in regex (not a word-boundary anchor)
+  // 2. Variable renames — $ is literal in regex (not a word-boundary anchor), case-insensitive
   for (const { v3, v4 } of v3ToV4.variables) {
     // v3 entry starts with '$'; escape it and require a word boundary after
     const escaped = v3.replace('$', '\\$');
-    result = result.replace(new RegExp(`${escaped}\\b`, 'g'), v4);
+    result = result.replace(new RegExp(`${escaped}\\b`, 'gi'), () => v4);
   }
 
   // 3. Parameter renames — applied AFTER cmdlet renames so patterns match v4 cmdlet names
@@ -906,7 +906,7 @@ export function modernizeLegacyScriptParts(scriptText) {
     // Match: (<any of the cmdlets><rest of the same line>)<param>
     result = result.replace(
       new RegExp(`((?:${cmdPat})[^\\n]*)${escapeRe(v3)}\\b`, 'gi'),
-      `$1${v4}`
+      (_, p1) => `${p1}${v4}`
     );
   }
 

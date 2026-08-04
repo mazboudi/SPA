@@ -245,7 +245,7 @@
           $changed = (git status --porcelain $appJsonPath).Trim()
           if ($changed) {
             git commit -m "ci: update syncIntuneAppId to $publishedAppId [skip ci]"
-            git push "https://gitlab-ci-token:$($env:CI_JOB_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_COMMIT_REF_NAME)
+            git push "https://oauth2:$($env:GITLAB_RELEASE_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_COMMIT_REF_NAME)
             Write-Host "✅ app.json committed with new syncIntuneAppId" -ForegroundColor Green
           } else {
             Write-Host "ℹ️  app.json syncIntuneAppId already up to date — no commit needed." -ForegroundColor DarkGray
