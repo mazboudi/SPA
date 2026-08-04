@@ -833,6 +833,43 @@ function extractTryCatchBlock(lines, startIdx) {
   return { blockText: allLines.join('\n'), endIndex: endIdx };
 }
 
+/**
+ * Extract a complete If { } ElseIf { } Else { } sequence as one unit.
+ * PowerShell allows ElseIf/Else to be on the next line, so we keep
+ * consuming brace-balanced blocks as long as the NEXT non-blank
+ * line starts with 'elseif' or 'else'.
+ * Returns { blockText, endIndex }.
+ */
+function extractIfElseBlock(lines, startIdx) {
+  let allLines = [];
+  let endIdx = startIdx;
+
+  // Extract the If body
+  const ifResult = extractBraceBlock(lines, startIdx);
+  allLines.push(...ifResult.blockText.split('\n'));
+  endIdx = ifResult.endIndex;
+
+  // Keep consuming ElseIf / Else clauses
+  while (endIdx + 1 < lines.length) {
+    // Peek ahead — skip blank lines to find the next keyword
+    let peekIdx = endIdx + 1;
+    while (peekIdx < lines.length && !lines[peekIdx].trim()) peekIdx++;
+
+    const peek = (lines[peekIdx] || '').trim();
+    if (/^(?:elseif\s*\(|else\b)/i.test(peek)) {
+      const clauseResult = extractBraceBlock(lines, peekIdx);
+      // Add any blank lines between
+      for (let b = endIdx + 1; b <= peekIdx - 1; b++) allLines.push(lines[b]);
+      allLines.push(...clauseResult.blockText.split('\n'));
+      endIdx = clauseResult.endIndex;
+    } else {
+      break;
+    }
+  }
+
+  return { blockText: allLines.join('\n'), endIndex: endIdx };
+}
+
 
 /** Modernize legacy PSADT v3 cmdlets to standard v4 cmdlets inside custom blocks. */
 /**
@@ -1008,7 +1045,12 @@ function extractBlockActions(block) {
 
     // Flow block opener (if/foreach/etc.) - always treat as raw_ps to preserve exact control-flow scope and balance braces
     if (FLOW_OPENERS.test(t)) {
-      const { blockText, endIndex } = extractBraceBlock(rawLines, lineIdx);
+      let blockText, endIndex;
+      if (/^if\s*\(/i.test(t)) {
+        ({ blockText, endIndex } = extractIfElseBlock(rawLines, lineIdx));
+      } else {
+        ({ blockText, endIndex } = extractBraceBlock(rawLines, lineIdx));
+      }
       lineIdx = endIndex;
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
