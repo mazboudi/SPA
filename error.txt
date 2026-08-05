@@ -1,224 +1,29 @@
-2026-08-04T17:52:50.171018Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-08-04T17:52:50.171018Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-08-04T17:52:50.171018Z 00O Resolving secrets
-2026-08-04T17:52:50.171018Z 00O section_start:1785865970:prepare_executor
-2026-08-04T17:52:50.171018Z 00O+Preparing the "shell" executor
-2026-08-04T17:52:50.171611Z 00O Using Shell (pwsh) executor...
-2026-08-04T17:52:50.171611Z 00O section_end:1785865970:prepare_executor
-2026-08-04T17:52:50.171611Z 00O+section_start:1785865970:prepare_script
-2026-08-04T17:52:50.171611Z 00O+Preparing environment
-2026-08-04T17:52:51.419721Z 01O Running on vm-psa-runner-p...
-2026-08-04T17:52:51.660792Z 00O section_end:1785865971:prepare_script
-2026-08-04T17:52:51.660792Z 00O+section_start:1785865971:get_sources
-2026-08-04T17:52:51.661421Z 00O+Getting source from Git repository
-2026-08-04T17:52:54.138448Z 01O Gitaly correlation ID: 01KZ6YFWSHDRP3Q9K01VVY7E4A
-2026-08-04T17:52:54.583151Z 01O Fetching changes with git depth set to 20...
-2026-08-04T17:52:54.663066Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/proofpoint-dlp-agent-test/.git/
-2026-08-04T17:53:25.413907Z 01O Checking out 2eaa1156 as detached HEAD (ref is main)...
-2026-08-04T17:53:25.970344Z 01O Removing out/
-2026-08-04T17:53:25.970344Z 01O Removing psadt-framework-4.1.0/
-2026-08-04T17:53:25.970344Z 01O Removing schemas/
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/Files/ITMSaaSBundle-5.1.1.3-x64.exe
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/Files/UpdaterSetup-2.3.0.97.msi
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/Files/fiserv-production_agent_install_config.json
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/Files/fiserv-production_updater_install_config.json
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/Files/fiserv_emea_prod_agent_install_config.json
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/Files/fiserv_emea_prod_updater_install_config.json
-2026-08-04T17:53:25.970344Z 01O Removing windows/src/SupportFiles/
-2026-08-04T17:53:26.290276Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-08-04T17:53:27.144288Z 01O 
-2026-08-04T17:53:27.144288Z 01O Skipping Git submodules setup
-2026-08-04T17:53:27.230823Z 00O section_end:1785866007:get_sources
-2026-08-04T17:53:27.230823Z 00O+section_start:1785866007:download_artifacts
-2026-08-04T17:53:27.232433Z 00O+Downloading artifacts
-2026-08-04T17:53:28.964898Z 01O Version:      18.9.0
-2026-08-04T17:53:28.964898Z 01O Git revision: 07e534ba
-2026-08-04T17:53:28.964898Z 01O Git branch:   18-9-stable
-2026-08-04T17:53:28.964898Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-04T17:53:28.964898Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-04T17:53:28.964898Z 01O OS/Arch:      windows/amd64
-2026-08-04T17:53:28.983470Z 01O Downloading artifacts for windows_build (32871778)...
-2026-08-04T17:53:29.192905Z 01E Runtime platform                                    arch=amd64 os=windows pid=10700 revision=07e534ba version=18.9.0
-2026-08-04T17:57:26.260689Z 01E Downloading artifacts from coordinator... ok        correlation_id=01KZ6YHEWSK0N8N2HGGFBJ2G6P host=gitlab.onefiserv.net id=32871778 responseStatus=200 OK token=64_5bFqSX
-2026-08-04T17:57:29.943451Z 00O section_end:1785866249:download_artifacts
-2026-08-04T17:57:29.943451Z 00O+section_start:1785866249:step_script
-2026-08-04T17:57:29.943958Z 00O+Executing "step_script" stage of the job script
-2026-08-04T17:57:31.699110Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-08-04T17:59:15.956308Z 01O Intune modules ready in: intune-modules
-2026-08-04T17:59:15.962386Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-08-04T17:59:15.964918Z 01O Framework bundle not cached — downloading for IntuneWinAppUtil...
-2026-08-04T17:59:28.475793Z 01O Framework extracted to: psadt-framework-4.1.0
-2026-08-04T17:59:28.481779Z 01O Using IntuneWinAppUtil: C:\tools\IntuneWinAppUtil.exe
-2026-08-04T17:59:28.482459Z 01O Running IntuneWinAppUtil...
-2026-08-04T17:59:28.594534Z 01O INFO   Validating parameters
-2026-08-04T17:59:28.598329Z 01O INFO   Validated parameters within 6 milliseconds
-2026-08-04T17:59:28.600129Z 01O INFO   Compressing the source folder 'out/staging' to 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin'
-2026-08-04T17:59:28.629926Z 01O INFO   Calculated size for folder 'out/staging' is 300710231 within 24 milliseconds
-2026-08-04T17:59:42.931973Z 01O INFO   Compressed folder 'out/staging' successfully within 14300 milliseconds
-2026-08-04T17:59:42.931973Z 01O INFO   Checking file type
-2026-08-04T17:59:42.931973Z 01O INFO   Checked file type within 0 milliseconds
-2026-08-04T17:59:42.931973Z 01O INFO   Encrypting file 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin'
-2026-08-04T17:59:43.957166Z 01O INFO   'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin' has been encrypted successfully within 1024 milliseconds
-2026-08-04T17:59:43.988902Z 01O INFO   Computing SHA256 hash for C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\68f4e9d1-ff21-45e2-a67e-956f104479e6
-2026-08-04T17:59:45.339020Z 01O INFO   Computed SHA256 hash for 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\68f4e9d1-ff21-45e2-a67e-956f104479e6' within 1350 milliseconds
-2026-08-04T17:59:45.346660Z 01O INFO   Computing SHA256 hash for C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin
-2026-08-04T17:59:47.150176Z 01O INFO   Computed SHA256 hash for C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin within 1809 milliseconds
-2026-08-04T17:59:47.150176Z 01O INFO   Copying encrypted file from 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\68f4e9d1-ff21-45e2-a67e-956f104479e6' to 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin'
-2026-08-04T17:59:48.075406Z 01O INFO   File 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Contents\IntunePackage.intunewin' got updated successfully within 925 milliseconds
-2026-08-04T17:59:48.075406Z 01O INFO   Generating detection XML file 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage\Metadata\Detection.xml'
-2026-08-04T17:59:48.209613Z 01O INFO   Generated detection XML file within 130 milliseconds
-2026-08-04T17:59:48.209613Z 01O INFO   Compressing folder 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage' to 'C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\proofpoint-dlp-agent-test\out\Invoke-AppDeployToolkit.intunewin'
-2026-08-04T17:59:48.209613Z 01O INFO   Calculated size for folder 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage' is 288275281 within 0 milliseconds
-2026-08-04T17:59:53.537985Z 01O INFO   Compressed folder 'C:\Windows\SystemTemp\0c420516-2bf5-4e7b-8cb0-c45dd15c9f2a\IntuneWinPackage' successfully within 5333 milliseconds
-2026-08-04T17:59:53.537985Z 01O INFO   Removing temporary files
-2026-08-04T17:59:53.546867Z 01O INFO   Removed temporary files within 6 milliseconds
-2026-08-04T17:59:53.546867Z 01O INFO   File 'C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\proofpoint-dlp-agent-test\out\Invoke-AppDeployToolkit.intunewin' has been generated successfully
-2026-08-04T17:59:53.548004Z 01O 
-2026-08-04T17:59:53.548004Z 01O 
-2026-08-04T17:59:53.548004Z 01O 
-2026-08-04T17:59:53.548945Z 01O INFO   Done!!!
-2026-08-04T17:59:53.548945Z 01O 
-2026-08-04T17:59:58.618503Z 01O ✅ Packaged: out\proofpoint-dlp-agent-test_5.1.1.3_1.intunewin (SHA256: 72930d0389028b2ed867f39bdae914a00bb51031d3eaf7e9e285ffd2a49d7aea)
-2026-08-04T17:59:58.884405Z 01O Using new detection format: detection_method=manual
-2026-08-04T17:59:59.650104Z 01O   Processing rule: type=file
-2026-08-04T17:59:59.679499Z 01O     path           : C:\Program Files\IT Client Utility\Client Utility
-2026-08-04T17:59:59.680179Z 01O     file_or_folder : it-agent.exe
-2026-08-04T17:59:59.680690Z 01O     detection_type : version
-2026-08-04T17:59:59.685829Z 01O Built 1 detection rule(s) from detection_rules array
-2026-08-04T17:59:59.688850Z 01O Detection rules count: 1
-2026-08-04T17:59:59.801769Z 01O Hardware properties resolved (minOS=1607, arch=x86,x64,arm64)
-2026-08-04T17:59:59.805778Z 01O Custom requirement rules resolved: 0 rules
-2026-08-04T18:00:00.549534Z 01O [2026-08-04 18:00:00] [INFO] Publishing Proofpoint DLP Agent TEST 5.1.1.3 v5.1.1.3
-2026-08-04T18:00:00.661875Z 01O [2026-08-04 18:00:00] [INFO] IntuneWin: out\proofpoint-dlp-agent-test_5.1.1.3_1.intunewin
-2026-08-04T18:00:00.721737Z 01O [2026-08-04 18:00:00] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-08-04T18:00:01.021471Z 01O [2026-08-04 18:00:01] [INFO] Token acquired (length=2218)
-2026-08-04T18:00:01.032774Z 01O [2026-08-04 18:00:01] [INFO] Using return codes from app.json (5 codes)
-2026-08-04T18:00:01.092670Z 01O [2026-08-04 18:00:01] [INFO] Logo loaded: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\proofpoint-dlp-agent-test\windows\intune\logo.png (1949 bytes, image/png)
-2026-08-04T18:00:01.134404Z 01O [2026-08-04 18:00:01] [INFO] Creating Win32 app (metadata + detection rules only)
-2026-08-04T18:00:01.165677Z 01O [2026-08-04 18:00:01] [DEBUG] Request body JSON: {"minimumCpuSpeedInMHz":null,"description":"For net new installs and upgrades to Proofpoint DLP Agent 4.3.3.530","developer":"Joe Cassera","minimumMemoryInMB":2048,"uninstallCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent","notes":"\\\\I7WP2EM3DST0001.fead.one\\ApplicationSource\\ProofPoint\\DLP Agent\\4.3.3.530","minimumNumberOfProcessors":null,"publisher":"Proofpoint","minimumSupportedWindowsRelease":"1607","allowAvailableUninstall":true,"detectionRules":[{"fileOrFolderName":"it-agent.exe","operator":"greaterThanOrEqual","@odata.type":"#microsoft.graph.win32LobAppFileSystemDetection","check32BitOn64System":false,"detectionValue":"4.3.3.530","path":"C:\\Program Files\\IT Client Utility\\Client Utility","detectionType":"version"}],"isFeatured":false,"informationUrl":"","installCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent","@odata.type":"#microsoft.graph.win32LobApp","minimumFreeDiskSpaceInMB":500,"owner":"Steven Wisenburg","applicableArchitectures":"x86,x64,arm64","returnCodes":[{"type":"success","returnCode":0},{"type":"success","returnCode":1707},{"type":"softReboot","returnCode":3010},{"type":"hardReboot","returnCode":1641},{"type":"retry","returnCode":1618}],"displayVersion":"5.1.1.3","largeIcon":{"@odata.type":"#microsoft.graph.mimeContent","value":"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","type":"image/png"},"installExperience":{"maxRunTimeInMinutes":60,"runAsAccount":"system","deviceRestartBehavior":"basedOnReturnCode"},"privacyInformationUrl":"","fileName":"proofpoint-dlp-agent-test_5.1.1.3_1.intunewin","displayName":"Proofpoint DLP Agent TEST 5.1.1.3","roleScopeTagIds":[],"setupFilePath":"Invoke-AppDeployToolkit.exe"}
-2026-08-04T18:00:02.362811Z 01O [2026-08-04 18:00:02] [INFO] Win32 app created: e6584c22-b2e5-4a53-8171-ed4da207bc27
-2026-08-04T18:00:02.365869Z 01O [2026-08-04 18:00:02] [INFO] Starting content upload...
-2026-08-04T18:00:02.611235Z 01O [2026-08-04 18:00:02] [INFO] Parsing .intunewin metadata: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\proofpoint-dlp-agent-test\out\proofpoint-dlp-agent-test_5.1.1.3_1.intunewin
-2026-08-04T18:00:03.613963Z 01O [2026-08-04 18:00:03] [INFO]   Package       : Invoke-AppDeployToolkit.exe
-2026-08-04T18:00:03.616920Z 01O [2026-08-04 18:00:03] [INFO]   Unencrypted   : 288274347 bytes
-2026-08-04T18:00:03.618920Z 01O [2026-08-04 18:00:03] [INFO]   Encrypted     : 288274400 bytes
-2026-08-04T18:00:03.628460Z 01O [2026-08-04 18:00:03] [INFO] Creating content version for app e6584c22-b2e5-4a53-8171-ed4da207bc27...
-2026-08-04T18:00:03.630091Z 01O [2026-08-04 18:00:03] [DEBUG] Request body JSON: {}
-2026-08-04T18:00:04.365362Z 01O [2026-08-04 18:00:04] [INFO]   Content version: 1
-2026-08-04T18:00:04.366555Z 01O [2026-08-04 18:00:04] [INFO] Registering file upload request...
-2026-08-04T18:00:04.369878Z 01O [2026-08-04 18:00:04] [DEBUG] Request body JSON: {"manifest":null,"sizeEncrypted":288274400,"size":288274347,"name":"proofpoint-dlp-agent-test_5.1.1.3_1.intunewin","isDependency":false}
-2026-08-04T18:00:05.138630Z 01O [2026-08-04 18:00:05] [INFO]   File entry ID: b64ee0fa-962e-454f-87ac-fcddf967bf63
-2026-08-04T18:00:05.141228Z 01O [2026-08-04 18:00:05] [INFO] Waiting for Azure Storage URI (up to 150s)...
-2026-08-04T18:00:10.678080Z 01O [2026-08-04 18:00:10] [INFO]   [1/30] uploadState: azureStorageUriRequestSuccess
-2026-08-04T18:00:10.681252Z 01O [2026-08-04 18:00:10] [INFO]   Azure Storage URI obtained
-2026-08-04T18:00:10.682697Z 01O [2026-08-04 18:00:10] [INFO] Uploading encrypted payload to Azure Blob Storage...
-2026-08-04T18:00:14.140112Z 01O [2026-08-04 18:00:14] [INFO]   Block 0 — 6291456 bytes uploaded
-2026-08-04T18:00:14.411891Z 01O [2026-08-04 18:00:14] [INFO]   Block 1 — 6291456 bytes uploaded
-2026-08-04T18:00:14.676578Z 01O [2026-08-04 18:00:14] [INFO]   Block 2 — 6291456 bytes uploaded
-2026-08-04T18:00:14.943186Z 01O [2026-08-04 18:00:14] [INFO]   Block 3 — 6291456 bytes uploaded
-2026-08-04T18:00:15.201279Z 01O [2026-08-04 18:00:15] [INFO]   Block 4 — 6291456 bytes uploaded
-2026-08-04T18:00:15.492444Z 01O [2026-08-04 18:00:15] [INFO]   Block 5 — 6291456 bytes uploaded
-2026-08-04T18:00:15.933780Z 01O [2026-08-04 18:00:15] [INFO]   Block 6 — 6291456 bytes uploaded
-2026-08-04T18:00:16.214971Z 01O [2026-08-04 18:00:16] [INFO]   Block 7 — 6291456 bytes uploaded
-2026-08-04T18:00:16.478537Z 01O [2026-08-04 18:00:16] [INFO]   Block 8 — 6291456 bytes uploaded
-2026-08-04T18:00:16.722282Z 01O [2026-08-04 18:00:16] [INFO]   Block 9 — 6291456 bytes uploaded
-2026-08-04T18:00:17.042550Z 01O [2026-08-04 18:00:17] [INFO]   Block 10 — 6291456 bytes uploaded
-2026-08-04T18:00:17.415909Z 01O [2026-08-04 18:00:17] [INFO]   Block 11 — 6291456 bytes uploaded
-2026-08-04T18:00:17.658011Z 01O [2026-08-04 18:00:17] [INFO]   Block 12 — 6291456 bytes uploaded
-2026-08-04T18:00:17.972587Z 01O [2026-08-04 18:00:17] [INFO]   Block 13 — 6291456 bytes uploaded
-2026-08-04T18:00:18.264073Z 01O [2026-08-04 18:00:18] [INFO]   Block 14 — 6291456 bytes uploaded
-2026-08-04T18:00:18.537310Z 01O [2026-08-04 18:00:18] [INFO]   Block 15 — 6291456 bytes uploaded
-2026-08-04T18:00:18.840265Z 01O [2026-08-04 18:00:18] [INFO]   Block 16 — 6291456 bytes uploaded
-2026-08-04T18:00:19.128686Z 01O [2026-08-04 18:00:19] [INFO]   Block 17 — 6291456 bytes uploaded
-2026-08-04T18:00:19.377050Z 01O [2026-08-04 18:00:19] [INFO]   Block 18 — 6291456 bytes uploaded
-2026-08-04T18:00:19.707907Z 01O [2026-08-04 18:00:19] [INFO]   Block 19 — 6291456 bytes uploaded
-2026-08-04T18:00:20.014722Z 01O [2026-08-04 18:00:20] [INFO]   Block 20 — 6291456 bytes uploaded
-2026-08-04T18:00:20.289102Z 01O [2026-08-04 18:00:20] [INFO]   Block 21 — 6291456 bytes uploaded
-2026-08-04T18:00:20.571804Z 01O [2026-08-04 18:00:20] [INFO]   Block 22 — 6291456 bytes uploaded
-2026-08-04T18:00:20.859719Z 01O [2026-08-04 18:00:20] [INFO]   Block 23 — 6291456 bytes uploaded
-2026-08-04T18:00:21.172189Z 01O [2026-08-04 18:00:21] [INFO]   Block 24 — 6291456 bytes uploaded
-2026-08-04T18:00:21.504101Z 01O [2026-08-04 18:00:21] [INFO]   Block 25 — 6291456 bytes uploaded
-2026-08-04T18:00:21.786110Z 01O [2026-08-04 18:00:21] [INFO]   Block 26 — 6291456 bytes uploaded
-2026-08-04T18:00:22.133091Z 01O [2026-08-04 18:00:22] [INFO]   Block 27 — 6291456 bytes uploaded
-2026-08-04T18:00:22.451092Z 01O [2026-08-04 18:00:22] [INFO]   Block 28 — 6291456 bytes uploaded
-2026-08-04T18:00:22.721614Z 01O [2026-08-04 18:00:22] [INFO]   Block 29 — 6291456 bytes uploaded
-2026-08-04T18:00:23.064612Z 01O [2026-08-04 18:00:23] [INFO]   Block 30 — 6291456 bytes uploaded
-2026-08-04T18:00:23.345696Z 01O [2026-08-04 18:00:23] [INFO]   Block 31 — 6291456 bytes uploaded
-2026-08-04T18:00:23.611626Z 01O [2026-08-04 18:00:23] [INFO]   Block 32 — 6291456 bytes uploaded
-2026-08-04T18:00:23.897841Z 01O [2026-08-04 18:00:23] [INFO]   Block 33 — 6291456 bytes uploaded
-2026-08-04T18:00:24.229130Z 01O [2026-08-04 18:00:24] [INFO]   Block 34 — 6291456 bytes uploaded
-2026-08-04T18:00:24.638703Z 01O [2026-08-04 18:00:24] [INFO]   Block 35 — 6291456 bytes uploaded
-2026-08-04T18:00:24.956113Z 01O [2026-08-04 18:00:24] [INFO]   Block 36 — 6291456 bytes uploaded
-2026-08-04T18:00:25.311434Z 01O [2026-08-04 18:00:25] [INFO]   Block 37 — 6291456 bytes uploaded
-2026-08-04T18:00:25.578659Z 01O [2026-08-04 18:00:25] [INFO]   Block 38 — 6291456 bytes uploaded
-2026-08-04T18:00:25.863916Z 01O [2026-08-04 18:00:25] [INFO]   Block 39 — 6291456 bytes uploaded
-2026-08-04T18:00:26.178166Z 01O [2026-08-04 18:00:26] [INFO]   Block 40 — 6291456 bytes uploaded
-2026-08-04T18:00:26.560180Z 01O [2026-08-04 18:00:26] [INFO]   Block 41 — 6291456 bytes uploaded
-2026-08-04T18:00:26.795993Z 01O [2026-08-04 18:00:26] [INFO]   Block 42 — 6291456 bytes uploaded
-2026-08-04T18:00:27.009755Z 01O [2026-08-04 18:00:27] [INFO]   Block 43 — 6291456 bytes uploaded
-2026-08-04T18:00:27.356597Z 01O [2026-08-04 18:00:27] [INFO]   Block 44 — 6291456 bytes uploaded
-2026-08-04T18:00:27.580402Z 01O [2026-08-04 18:00:27] [INFO]   Block 45 — 5158880 bytes uploaded
-2026-08-04T18:00:27.587762Z 01O [2026-08-04 18:00:27] [INFO] Committing 46 blocks to Azure Blob...
-2026-08-04T18:00:27.689681Z 01O [2026-08-04 18:00:27] [INFO]   Azure Blob committed
-2026-08-04T18:00:27.693389Z 01O [2026-08-04 18:00:27] [INFO] Committing file in Graph API with encryption metadata...
-2026-08-04T18:00:33.233311Z 01O [2026-08-04 18:00:33] [INFO]   [Pre-commit 1/12] uploadState: azureStorageUriRequestSuccess
-2026-08-04T18:00:33.237436Z 01O [2026-08-04 18:00:33] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"mac":"ScwW9Ib0HuHUWVlojAPlRCBSHEMVVKXvOZWHq3A/bDI=","macKey":"YFowPN5ve/VG5JHMp/8T7cg7GbuV+Yl3Rn+jLPaoApA=","fileDigestAlgorithm":"SHA256","encryptionKey":"37QCa55Bq9px39sBbWITFQiyyMo4QPrQHVwggNi3Y0o=","fileDigest":"Xw/XcFcs9mGIYtfWZzndqAtMwfI5zOAnL+MPGWO2exw=","profileIdentifier":"ProfileVersion1","initializationVector":"DhFGtQF1GTi6t59/OwuLTw=="}}
-2026-08-04T18:00:34.010082Z 01O 
-2026-08-04T18:00:34.011637Z 01O [2026-08-04 18:00:34] [INFO]   File commit request accepted (attempt 1)
-2026-08-04T18:00:34.018275Z 01O [2026-08-04 18:00:34] [INFO] Waiting for Graph commit (up to 150s)...
-2026-08-04T18:00:39.558009Z 01O [2026-08-04 18:00:39] [INFO]   [1/30] uploadState: commitFilePending
-2026-08-04T18:00:45.091968Z 01O [2026-08-04 18:00:45] [INFO]   [2/30] uploadState: commitFileSuccess
-2026-08-04T18:00:45.097439Z 01O [2026-08-04 18:00:45] [INFO] File commit completed successfully
-2026-08-04T18:00:45.119178Z 01O [2026-08-04 18:00:45] [INFO] Activating content version 1 on app e6584c22-b2e5-4a53-8171-ed4da207bc27...
-2026-08-04T18:00:45.122034Z 01O [2026-08-04 18:00:45] [DEBUG] Request body JSON: {"@odata.type":"#microsoft.graph.win32LobApp","committedContentVersion":"1"}
-2026-08-04T18:00:46.362768Z 01O 
-2026-08-04T18:00:46.363661Z 01O [2026-08-04 18:00:46] [INFO] ✅ Content upload complete — app: e6584c22-b2e5-4a53-8171-ed4da207bc27, contentVersion: 1
-2026-08-04T18:00:46.364448Z 01O ✅ Upload complete: e6584c22-b2e5-4a53-8171-ed4da207bc27 (contentVersion: 1)
-2026-08-04T18:00:46.424715Z 01O [2026-08-04 18:00:46] [INFO] Resolving Intune categories...
-2026-08-04T18:00:46.830889Z 01O [2026-08-04 18:00:46] [INFO] Resolved category name 'Security' to ID '95b36d9d-6561-410f-b55f-42b276d887be'
-2026-08-04T18:00:46.834095Z 01O [2026-08-04 18:00:46] [DEBUG] Request body JSON: {"@odata.id":"https://graph.microsoft.com/beta/deviceAppManagement/mobileAppCategories/95b36d9d-6561-410f-b55f-42b276d887be"}
-2026-08-04T18:00:47.413079Z 01O 
-2026-08-04T18:00:47.419460Z 01O [2026-08-04 18:00:47] [INFO] Category assigned: 95b36d9d-6561-410f-b55f-42b276d887be (Security)
-2026-08-04T18:00:47.422662Z 01O [2026-08-04 18:00:47] [INFO] Waiting for publishingState=published (up to 180s)...
-2026-08-04T18:00:57.944217Z 01O [2026-08-04 18:00:57] [INFO]   publishingState: published (10s elapsed)
-2026-08-04T18:00:57.947904Z 01O [2026-08-04 18:00:57] [INFO] App is published — ready for supersedence/dependencies.
-2026-08-04T18:00:57.948971Z 01O ✅ App published — proceeding to relationships.
-2026-08-04T18:00:57.950738Z 01O [2026-08-04 18:00:57] [INFO] Written out/app.env (APP_ID=e6584c22-b2e5-4a53-8171-ed4da207bc27)
-2026-08-04T18:00:57.952940Z 01O ✅ Publish complete: Proofpoint DLP Agent TEST 5.1.1.3 v5.1.1.3 (e6584c22-b2e5-4a53-8171-ed4da207bc27)
-2026-08-04T18:00:58.017414Z 01O ✅ syncIntuneAppId updated in app.json: e6584c22-b2e5-4a53-8171-ed4da207bc27
-2026-08-04T18:00:58.619775Z 01O [detached HEAD e9c57d7] ci: update syncIntuneAppId to e6584c22-b2e5-4a53-8171-ed4da207bc27 [skip ci]
-2026-08-04T18:00:58.619775Z 01O  1 file changed, 2 insertions(+), 1 deletion(-)
-2026-08-04T18:01:04.137396Z 01E remote: You are not allowed to upload code.
-2026-08-04T18:01:04.141067Z 01E fatal: unable to access 'https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/proofpoint-dlp-agent-test.git/': The requested URL returned error: 403
-2026-08-04T18:01:04.166246Z 01O ✅ app.json committed with new syncIntuneAppId
-2026-08-04T18:01:04.280101Z 00O section_end:1785866464:step_script
-2026-08-04T18:01:04.280101Z 00O+section_start:1785866464:upload_artifacts_on_success
-2026-08-04T18:01:04.281134Z 00O+Uploading artifacts for successful job
-2026-08-04T18:01:06.182382Z 01O Version:      18.9.0
-2026-08-04T18:01:06.182903Z 01O Git revision: 07e534ba
-2026-08-04T18:01:06.182903Z 01O Git branch:   18-9-stable
-2026-08-04T18:01:06.182903Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-04T18:01:06.182903Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-04T18:01:06.182903Z 01O OS/Arch:      windows/amd64
-2026-08-04T18:01:06.207754Z 01O Uploading artifacts...
-2026-08-04T18:01:06.423177Z 01E Runtime platform                                    arch=amd64 os=windows pid=6652 revision=07e534ba version=18.9.0
-2026-08-04T18:01:06.423177Z 01E out/*.intunewin: found 1 matching artifact files and directories 
-2026-08-04T18:01:06.423177Z 01E out/app.env: found 1 matching artifact files and directories 
-2026-08-04T18:01:06.427198Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
-2026-08-04T18:03:39.698694Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01KZ6Z1EVZBY2HJX6H7R66E267 id=32871779 responseStatus=201 Created token=64_5bFqSX
-2026-08-04T18:03:39.920833Z 01O Version:      18.9.0
-2026-08-04T18:03:39.920833Z 01O Git revision: 07e534ba
-2026-08-04T18:03:39.920833Z 01O Git branch:   18-9-stable
-2026-08-04T18:03:39.920833Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-04T18:03:39.920833Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-04T18:03:39.920833Z 01O OS/Arch:      windows/amd64
-2026-08-04T18:03:39.934779Z 01O Uploading artifacts...
-2026-08-04T18:03:40.193379Z 01E Runtime platform                                    arch=amd64 os=windows pid=9584 revision=07e534ba version=18.9.0
-2026-08-04T18:03:40.193379Z 01E out/app.env: found 1 matching artifact files and directories 
-2026-08-04T18:03:48.813984Z 01E Uploading artifacts as "dotenv" to coordinator... 201 Created  correlation_id=01KZ6Z43HEZYP5WTC5S0E7F11N id=32871779 responseStatus=201 Created token=64_5bFqSX
-2026-08-04T18:03:48.946843Z 00O section_end:1785866628:upload_artifacts_on_success
-2026-08-04T18:03:48.946843Z 00O+section_start:1785866628:cleanup_file_variables
-2026-08-04T18:03:48.947350Z 00O+Cleaning up project directory and file based variables
-2026-08-04T18:03:50.559232Z 00O section_end:1785866630:cleanup_file_variables
-2026-08-04T18:03:50.559232Z 00O+
-2026-08-04T18:03:50.560508Z 00O Job succeeded
+Cisco Secure Client – AnyConnect VPN (Z:\ ApplicationSource\Cisco\Cisco Secure Client - AnyConnect VPN\5.1.7.80) 
+
+Supported installation action Run MSI Process (Start-ADTMsiProcess) converted to raw code block. Should be recognized as Run MSI Process action. 
+
+Desktop Messaging Client for NA (Z:\Verient_DesktopClientTools_15.2.9_new\Deploy) 
+
+As discussed, two lines of code incorrectly removed and duplicated during conversion. 
+
+Client360 Studio (Z:\Fiserv_ClientStudio360_1.2.20) 
+
+New-ItemProperty conversion to Set-ADTRegistryKey not quite right. -Type should be DWord.  
+
+All script conversions:  
+
+Remove-ADTRegistryKey -LiteralPath converts to Remove-ADTRegistryKey -Key (4.1.x to 4.1.8 conversion). -Key is not a valid parameter for Remove-ADTRegistryKey. 
+
+Set-RegistryKey -Key converts to Set-ADTRegistryKey -Key (3.X to 4.1.8 conversion). -Key is not a valid parameter for Set-ADTRegistryKey. 
+
+Show Completion Message (Show-ADTInstallationPrompt) action after conversion removes any custom text that might have been in the original script and replaces it with default text “The install has completed.” VERY minor. 
+
+When converting PowerShell cmdlets to PSADT functions, persist explicitly defined common parameters such as ErrorAction. 
+
+Conversions of PowerShell cmdlets to PSADT functions do not preserve parameters that would change the behavior of the PSADT function. For example, Remove-Item -Path "C:\Program Files\IT Client Utility" -Recurse -Force -ErrorAction SilentlyContinue gets converted to the Remove-ADTFile function but without the -Recurse parameter (-Force is not a supported parameter). 
+
+For v3.x to 4.x conversion, code that is captured as a raw PowerShell block will contain old PSADT 3.x variables e.g. $dirFiles instead of $($adtSession.DirFiles). If not too complicated, find and replace any 3.x variables with their 4.x equivalents before constructing the raw code block. 
+
+Script display – default to pristine, view as original and new without diffs.  
+
+There are time when standard powershell are used.  so maybe only convert psadt commands ..  
