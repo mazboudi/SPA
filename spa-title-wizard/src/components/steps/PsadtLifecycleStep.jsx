@@ -584,7 +584,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
     // For refactor mode: re-parse the generated script to get canonical V4.1 values.
     // For edit mode: skip normalization — the snapshot/parsed lifecycle is authoritative.
     if (state.wizardMode === 'refactor') {
-      const normalized = parsePsadtBlocks(compiledScript);
+      const scriptForNormalization = generatePsadtScript(state, { clean: false });
+      const normalized = parsePsadtBlocks(scriptForNormalization);
       const currentStr = JSON.stringify(lifecycleRef.current);
       const normalizedStr = JSON.stringify(normalized.lifecycle);
       if (currentStr !== normalizedStr) {
@@ -597,8 +598,9 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   // Handle manual eject (copy to clipboard instead of VS Code)
   const handleCopyScript = () => {
-    navigator.clipboard.writeText(generatePsadtScript(lc, false, null, { isClean: true }));
-    alert('Clean script copied to clipboard!');
+    navigator.clipboard.writeText(generatePsadtScript(state, { clean: true }));
+    setCopiedText('full-script');
+    setTimeout(() => setCopiedText(null), 2000);
   };
 
   // ── Full interactive lifecycle editor (New Title + Refactor Convert) ──

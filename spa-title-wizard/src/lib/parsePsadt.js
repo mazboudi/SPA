@@ -765,7 +765,7 @@ const FUNCTION_OPENER = /^function\s+\S+.*\{\s*$/i;
  * Regex matching a recognizable PSADT/ADT cmdlet inside a block.
  * Used to decide: parse interior individually vs preserve as raw_ps.
  */
-const ADT_CMDLET_RE = /(?:Start-ADTMsiProcess|Start-ADTProcessAsUser|Start-ADTProcess|Execute-MSI|Execute-Process|Set-ADTRegistryKey|Set-RegistryKey|Remove-ADTRegistryKey|Remove-RegistryKey|Copy-ADTFile|Remove-ADTFolder|New-ADTFolder|Uninstall-ADTApplication|Show-ADTInstallationWelcome|Show-ADTInstallationProgress|Show-ADTInstallationPrompt|Show-InstallationWelcome|Show-InstallationProgress|Show-InstallationPrompt|Close-ADTInstallation|Copy-Item|Remove-Item|Start-Process|Start-Sleep|Stop-Process|Write-ADTLogEntry)/i;
+const ADT_CMDLET_RE = /(?:Start-ADTMsiProcess|Start-ADTProcessAsUser|Start-ADTProcess|Execute-MSI|Execute-Process|Set-ADTRegistryKey|Set-RegistryKey|Remove-ADTRegistryKey|Remove-RegistryKey|Copy-ADTFile|Copy-File|Remove-ADTFolder|Remove-Folder|New-ADTFolder|New-Folder|Remove-ADTFile|Remove-File|Uninstall-ADTApplication|Show-ADTInstallationWelcome|Show-ADTInstallationProgress|Show-ADTInstallationPrompt|Show-InstallationWelcome|Show-InstallationProgress|Show-InstallationPrompt|Close-ADTInstallation|Copy-Item|Remove-Item|Start-Process|Start-Sleep|Stop-Process|Write-ADTLogEntry|New-ADTShortcut|New-Shortcut|Copy-ADTFileToUserProfiles|Copy-FileToUserProfiles|Remove-ADTFileFromUserProfiles|Remove-FileFromUserProfiles|Start-ADTServiceAndDependencies|Start-ServiceAndDependencies|Stop-ADTServiceAndDependencies|Stop-ServiceAndDependencies|Get-ADTPendingReboot|Get-PendingReboot|Show-ADTInstallationRestartPrompt|Show-InstallationRestartPrompt|Start-ADTMspProcess|Execute-MSP|Set-ADTIniValue|Set-IniValue|Invoke-ADTAllUsersRegistryAction|Invoke-HKCURegistrySettingsForAllUsers|Get-ADTRegistryKey|Get-RegistryKey)/i;
 
 /**
  * Extract a brace-balanced block starting at startIdx.
@@ -1297,9 +1297,22 @@ function extractBlockActions(block) {
     if (!matched && /(?:Copy-File|Copy-ADTFile)\b/i.test(t)) {
       const copySrc = extractPsParamValue(t, '(?:Path|Source)');
       const copyDst = extractPsParamValue(t, 'Destination');
+      const hasRecurse = /-Recurse\b/i.test(t);
+      const hasFlatten = /-Flatten\b/i.test(t);
+      const hasContinueOnError = /-Continue(?:File|ADTFile)?OnError\s+\$false/i.test(t) || /-ContinueOnError\b/i.test(t);
+      
       if (copySrc && copyDst) {
         flushCustomBuffer();
-        actions.push({ type: 'file_copy', desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, source: stripDirPrefix(copySrc), dest: copyDst, raw: modernizedLine });
+        actions.push({ 
+          type: 'file_copy', 
+          desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, 
+          source: stripDirPrefix(copySrc), 
+          dest: copyDst, 
+          recurse: hasRecurse,
+          flatten: hasFlatten,
+          continueOnError: hasContinueOnError,
+          raw: modernizedLine 
+        });
         matched = true;
       }
     }
@@ -1574,7 +1587,7 @@ function extractBlockActions(block) {
 
     // Copy-ADTFile
     if (!matched) {
-      const copyADTMatch = t.match(/Copy-ADTFile\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
+      const copyADTMatch = t.match(/(?:Copy-ADTFile|Copy-File)\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
       if (copyADTMatch) {
         flushCustomBuffer();
         actions.push({ type: 'file_copy', desc: `Copy: ${copyADTMatch[1]}`, source: copyADTMatch[1], dest: copyADTMatch[2], raw: modernizedLine });
@@ -1584,7 +1597,7 @@ function extractBlockActions(block) {
 
     // Copy-ADTFileToUserProfiles
     if (!matched) {
-      const copyUserMatch = t.match(/Copy-ADTFileToUserProfiles\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
+      const copyUserMatch = t.match(/(?:Copy-ADTFileToUserProfiles|Copy-FileToUserProfiles)\s+.*-Path\s+['"]?([^'"\s]+)['"]?\s+.*-Destination\s+['"]([^'"]+)['"]/i);
       if (copyUserMatch) {
         flushCustomBuffer();
         actions.push({ type: 'copy_file_to_user_profiles', desc: `Copy to profiles: ${copyUserMatch[1]}`, source: copyUserMatch[1], destination: copyUserMatch[2], raw: modernizedLine });
@@ -1594,7 +1607,7 @@ function extractBlockActions(block) {
 
     // New-ADTShortcut
     if (!matched) {
-      const shortcutMatch = t.match(/New-ADTShortcut\s+.*-Path\s+['"]([^'"]+)['"]\s+.*-TargetPath\s+['"]([^'"]+)['"]/i);
+      const shortcutMatch = t.match(/New-(?:ADT)?Shortcut\s+.*-Path\s+['"]([^'"]+)['"]\s+.*-TargetPath\s+['"]([^'"]+)['"]/i);
       if (shortcutMatch) {
         flushCustomBuffer();
         actions.push({ type: 'new_shortcut', desc: `Shortcut: ${shortcutMatch[1]}`, shortcutPath: shortcutMatch[1], targetPath: shortcutMatch[2], raw: modernizedLine });
@@ -1604,7 +1617,7 @@ function extractBlockActions(block) {
 
     // Get-ADTApplication
     if (!matched) {
-      const getAppMatch = t.match(/\$([\w]+)\s*=\s*Get-ADTApplication\s+.*-Name\s+['"]([^'"]+)['"]/i);
+      const getAppMatch = t.match(/\$([\w]+)\s*=\s*Get-(?:ADT)?Application\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (getAppMatch) {
         flushCustomBuffer();
         actions.push({ type: 'custom_script', code: modernizedLine, desc: `Query: ${getAppMatch[2]}`, varName: getAppMatch[1], name: getAppMatch[2], raw: modernizedLine });
@@ -1633,7 +1646,7 @@ function extractBlockActions(block) {
 
     // Set-ADTActiveSetup
     if (!matched) {
-      const activeSetupMatch = t.match(/Set-ADTActiveSetup\s+.*-StubExePath\s+['"]([^'"]+)['"]/i);
+      const activeSetupMatch = t.match(/Set-(?:ADT)?ActiveSetup\s+.*-StubExePath\s+['"]([^'"]+)['"]/i);
       if (activeSetupMatch) {
         flushCustomBuffer();
         const keyMatch = t.match(/-Key\s+['"]([^'"]+)['"]/i);
@@ -1644,7 +1657,7 @@ function extractBlockActions(block) {
 
     // Add-ADTEdgeExtension
     if (!matched) {
-      const addEdgeMatch = t.match(/Add-ADTEdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
+      const addEdgeMatch = t.match(/Add-(?:ADT)?EdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
       if (addEdgeMatch) {
         flushCustomBuffer();
         const modeMatch = t.match(/-InstallationMode\s+['"]([^'"]+)['"]/i);
@@ -1655,7 +1668,7 @@ function extractBlockActions(block) {
 
     // Remove-ADTEdgeExtension
     if (!matched) {
-      const removeEdgeMatch = t.match(/Remove-ADTEdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
+      const removeEdgeMatch = t.match(/Remove-(?:ADT)?EdgeExtension\s+.*-ExtensionID\s+['"]([^'"]+)['"]/i);
       if (removeEdgeMatch) {
         flushCustomBuffer();
         actions.push({ type: 'custom_script', code: modernizedLine, desc: `Remove Edge ext: ${removeEdgeMatch[1]}`, extensionId: removeEdgeMatch[1], raw: modernizedLine });
@@ -1665,7 +1678,7 @@ function extractBlockActions(block) {
 
     // Register-ADTDll / Unregister-ADTDll
     if (!matched) {
-      const regDllMatch = t.match(/(Register|Unregister)-ADTDll\s+.*-FilePath\s+['"]([^'"]+)['"]/i);
+      const regDllMatch = t.match(/(Register|Unregister)-(?:ADT)?Dll\s+.*-FilePath\s+['"]([^'"]+)['"]/i);
       if (regDllMatch) {
         flushCustomBuffer();
         actions.push({ type: 'custom_script', code: modernizedLine, desc: `${regDllMatch[1]} DLL: ${regDllMatch[2]}`, filePath: regDllMatch[2], action: regDllMatch[1], raw: modernizedLine });
@@ -1683,10 +1696,10 @@ function extractBlockActions(block) {
 
     // Start-ADTServiceAndDependencies / Stop-ADTServiceAndDependencies / Set-ADTServiceStartMode
     if (!matched) {
-      const startSvcMatch = t.match(/Start-ADTServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
+      const startSvcMatch = t.match(/Start-(?:ADT)?ServiceAndDependencies\s+.*-Name\s+['"]([^'"]+)['"]/i);
       if (startSvcMatch) {
         flushCustomBuffer();
-        const passThruMatch = t.match(/\$(\w+)\s*=\s*Start-ADTServiceAndDependencies/i);
+        const passThruMatch = t.match(/\$(\w+)\s*=\s*Start-(?:ADT)?ServiceAndDependencies/i);
         actions.push({
           type: 'start_service',
           desc: `Start service: ${startSvcMatch[1]}`,
@@ -1700,7 +1713,7 @@ function extractBlockActions(block) {
     }
     
     if (!matched) {
-      const setStartModeMatch = t.match(/Set-ADTServiceStartMode\s+.*-Name\s+['"]([^'"]+)['"].*-StartMode\s+['"]([^'"]+)['"]/i);
+      const setStartModeMatch = t.match(/Set-(?:ADT)?ServiceStartMode\s+.*-Name\s+['"]([^'"]+)['"].*-StartMode\s+['"]([^'"]+)['"]/i);
       if (setStartModeMatch) {
         flushCustomBuffer();
         actions.push({ type: 'custom_script', code: modernizedLine, desc: `Service ${setStartModeMatch[1]} → ${setStartModeMatch[2]}`, name: setStartModeMatch[1], mode: setStartModeMatch[2], startMode: setStartModeMatch[2], raw: modernizedLine });

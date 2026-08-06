@@ -4,8 +4,9 @@
  * Mirrors the exact code generation logic of Build-DeployApplication.ps1.
  */
 
-export default function generatePsadtScript(s, clean = false) {
-  const isClean = clean || s.pristineScripts !== false;
+export default function generatePsadtScript(s, options = {}) {
+  // If options.clean is explicitly provided, respect it. Otherwise, fallback to the pristineScripts setting.
+  const isClean = options.clean !== undefined ? options.clean : (s.pristineScripts !== false);
   const lc = s.lifecycle || {};
   const phases = lc.phases || {};
   const packageId = s.packageId || 'TODO-PACKAGE-ID';
@@ -596,7 +597,7 @@ export function generateActionCmd(action, pathCtx = {}) {
     }
 
     case 'file_copy': {
-      const recurse = action.recurse !== false ? ' -Recurse' : '';
+      const recurse = action.recurse ? ' -Recurse' : '';
       const flatten = action.flatten ? ' -Flatten' : '';
       const mode = action.fileCopyMode ? ` -FileCopyMode ${psString(action.fileCopyMode)}` : '';
       const contErr = action.continueOnError ? ' -ContinueFileCopyOnError' : '';
