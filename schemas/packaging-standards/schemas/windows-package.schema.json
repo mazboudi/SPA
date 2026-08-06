@@ -34,7 +34,7 @@
     },
     "installer_type": {
       "type": "string",
-      "enum": ["msi", "exe", "msix", "ps1"],
+      "enum": ["msi", "exe", "msix", "ps1", "script"],
       "description": "Type of installer file."
     },
     "source_filename": {

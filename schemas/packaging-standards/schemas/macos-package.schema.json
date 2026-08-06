@@ -30,7 +30,9 @@
         "pkg",
         "dmg",
         "zip",
-        "app"
+        "app",
+        "sh",
+        "script"
       ],
       "description": "Type of macOS installer artifact."
     },
