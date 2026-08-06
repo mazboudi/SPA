@@ -23,14 +23,15 @@
 8. [ServiceNow Queue Integration](#8-servicenow-queue-integration)
 9. [Project Picker](#9-project-picker)
 10. [GitLab Publishing & Pipeline Control](#10-gitlab-publishing--pipeline-control)
-11. [Live Publish Activity Log](#11-live-publish-activity-log)
-12. [Pipeline Tracker](#12-pipeline-tracker)
-13. [Intune Sync & Push](#13-intune-sync--push)
-14. [Settings](#14-settings)
-15. [Unsaved Work Protection](#15-unsaved-work-protection)
-16. [Validation & Step Gating](#16-validation--step-gating)
-17. [Generated File Structure](#17-generated-file-structure)
-18. [Appendices](#18-appendices)
+11. [Editing Titles in VS Code](#11-editing-titles-in-vs-code)
+12. [Live Publish Activity Log](#12-live-publish-activity-log)
+13. [Pipeline Tracker](#13-pipeline-tracker)
+14. [Intune Sync & Push](#14-intune-sync--push)
+15. [Settings](#15-settings)
+16. [Unsaved Work Protection](#16-unsaved-work-protection)
+17. [Validation & Step Gating](#17-validation--step-gating)
+18. [Generated File Structure](#18-generated-file-structure)
+19. [Appendices](#19-appendices)
 
 ---
 
@@ -277,7 +278,12 @@ Provide the **full path to the installer file** on the GitLab runner's file syst
 | `C:\AppSource\Chrome\Files\setup.msi` | Local MSI |
 | `\\server\share\Chrome\Files\ChromeSetup.exe` | Network EXE |
 
-The installer type (MSI or EXE) is auto-detected from the file extension.
+#### Installer Types
+
+You must explicitly define the installer type using the dropdown:
+- **MSI Installer**: Exposes MSI-specific extraction fields.
+- **EXE Installer**: Exposes standard executable paths.
+- **Script/Other**: Use this if the installation is driven purely by the PSADT script (e.g., custom batch files, loose file copies, or shortcuts). Selecting this option hides the source filename fields, and the generated package will automatically register as an executable wrapper natively in the CI pipeline schemas.
 
 #### MSI Info Extraction
 
@@ -345,6 +351,12 @@ At the top of the PSADT stage, a live preview shows the generated PowerShell tha
 #### PSADT v3 → v4 migration
 
 When a title is imported from a legacy PSADT v3 script via Intune Import or from a project containing a v3 script, the workbench automatically converts recognized v3 cmdlets to v4 equivalents. Unrecognized blocks are preserved as **raw PowerShell cards** with a caution indicator showing the count of unconverted lines.
+
+The builder intelligently parses script parameters like `-Recurse` or `-ContinueOnError` for actions like `Copy-File` and perfectly maps them back into UI configuration toggles.
+
+#### Pristine Code
+
+The **Pristine Code** toggle ensures that any original PSADT script formatting, line breaks, and inline comments are perfectly preserved when saving and compiling back to script files. UI action cards natively anchor into the original script via hidden metadata, preventing UI-generated outputs from clobbering your original custom script layouts.
 
 ---
 
@@ -607,7 +619,24 @@ The CI/CD pipeline uses this variable to determine which stages to execute and w
 
 ---
 
-## 11. Live Publish Activity Log
+
+## 11. Editing Titles in VS Code
+
+For advanced scenarios—such as custom pre-install/post-install logic that falls outside the PSADT visual builder, or manually editing schema files—you can clone and edit the package directly in VS Code.
+
+### Workflow
+
+1. **Clone the repository:** Find the package ID in GitLab and clone the repository to your local machine.
+2. **Open in VS Code:** Launch VS Code and open the cloned folder.
+3. **Make edits:** Modify the `Deploy-Application.ps1` script, YAML manifests, or other files as required.
+4. **Commit changes:** Stage and commit your changes using Git (`git add .` and `git commit -m "Update title"`).
+5. **Tag the release:** Create an annotated tag matching the version string defined in your package (e.g., `git tag -a v1.0.0 -m "Release v1.0.0"`).
+6. **Push to GitLab:** Push your commits and tags to the remote repository (`git push origin main --tags` or `git push origin v1.0.0`).
+7. **Trigger pipeline:** The CI/CD pipeline will automatically trigger upon pushing the tag if your `.gitlab-ci.yml` is configured for tags. Alternatively, you can trigger it manually from the GitLab UI.
+
+---
+
+## 12. Live Publish Activity Log
 
 When you click **Publish to GitLab**, the server streams progress events in real time via **Server-Sent Events (SSE)**. The events are rendered as a terminal-style activity log panel in the UI.
 
@@ -648,7 +677,7 @@ The log persists after publish completes so you have a full record. It clears wh
 
 ---
 
-## 12. Pipeline Tracker
+## 13. Pipeline Tracker
 
 After a successful publish with a pipeline action other than *Commit Only*, the **Pipeline Tracker** panel appears automatically and begins polling the GitLab API every 8 seconds.
 
@@ -679,7 +708,7 @@ If you navigate away from Review & Export and return while a pipeline is still r
 
 ---
 
-## 13. Intune Sync & Push
+## 14. Intune Sync & Push
 
 > Available in **Edit Title** mode when the loaded project has a linked Intune Win32 App ID.
 
@@ -712,7 +741,7 @@ After a successful push, the changes are also committed to GitLab (with a `[skip
 
 ---
 
-## 14. Settings
+## 15. Settings
 
 Accessed via **⚙️ Settings** in the sidebar. All settings are read from and written to `server/.env` on the machine running the backend.
 
@@ -747,7 +776,7 @@ Secrets are displayed as `••••••••` and are never returned to th
 
 ---
 
-## 15. Unsaved Work Protection
+## 16. Unsaved Work Protection
 
 The workbench tracks a dirty flag that is set whenever a field is edited and cleared when:
 - A publish completes successfully
@@ -766,7 +795,7 @@ If you attempt to navigate away with unsaved changes, a **confirmation dialog** 
 
 ---
 
-## 16. Validation & Step Gating
+## 17. Validation & Step Gating
 
 ### Field-level validation
 
@@ -792,7 +821,7 @@ The wizard **does not enforce sequential stage completion**. You can jump to any
 
 ---
 
-## 17. Generated File Structure
+## 18. Generated File Structure
 
 ### Windows title
 
@@ -828,7 +857,7 @@ macos/
 
 ---
 
-## 18. Appendices
+## 19. Appendices
 
 ### Appendix A — Full Wizard State Flow
 
