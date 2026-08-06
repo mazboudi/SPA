@@ -1,12 +1,82 @@
-Start-Process is converted into a Run Process card (which generates Start-ADTProcess).
-Copy-Item is converted into a Copy File card (which generates Copy-ADTFile).
-Remove-Item is converted into a Remove File/Folder card (which generates Remove-ADTFile or Remove-ADTFolder).
-New-ItemProperty / Set-ItemProperty are converted into a Set Registry Key card (which generates Set-ADTRegistryKey).
-
-The parser only specifically hunts for native PowerShell commands that represent very common "installation steps" that map cleanly into our visual UI cards (like copying files, removing files, setting registry keys, or launching an executable).
-
-For everything else—such as Invoke-Command, Get-Service, Start-Service, Set-Content, Add-AppxPackage, loops, conditionals, etc.—the parser will not convert them.
-
-Instead, it safely wraps those unrecognized commands into a "Raw PowerShell" card. This means they are emitted directly into the final script exactly as you wrote them, ensuring your complex logic remains 100% intact.
-
-(The only thing that happens to them inside a Raw PowerShell card is that any legacy variables like $dirFiles are modernized to $($adtSession.DirFiles) so they work correctly in the v4 context).
+2026-08-06T18:23:21.557827Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-08-06T18:23:21.557827Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-08-06T18:23:21.557827Z 00O Resolving secrets
+2026-08-06T18:23:21.557827Z 00O section_start:1786040601:prepare_executor
+2026-08-06T18:23:21.557827Z 00O+Preparing the "shell" executor
+2026-08-06T18:23:21.558345Z 00O Using Shell (pwsh) executor...
+2026-08-06T18:23:21.558345Z 00O section_end:1786040601:prepare_executor
+2026-08-06T18:23:21.558345Z 00O+section_start:1786040601:prepare_script
+2026-08-06T18:23:21.558345Z 00O+Preparing environment
+2026-08-06T18:23:22.999570Z 01O Running on vm-psa-runner-p...
+2026-08-06T18:23:23.230019Z 00O section_end:1786040603:prepare_script
+2026-08-06T18:23:23.230019Z 00O+section_start:1786040603:get_sources
+2026-08-06T18:23:23.231899Z 00O+Getting source from Git repository
+2026-08-06T18:23:25.377047Z 01O Gitaly correlation ID: 01KZC51HW0KVMEX817F73CC2Z4
+2026-08-06T18:23:25.740339Z 01O Fetching changes with git depth set to 20...
+2026-08-06T18:23:25.831966Z 01O Initialized empty Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/drive-mapper/.git/
+2026-08-06T18:23:25.949101Z 01O Created fresh repository.
+2026-08-06T18:23:29.434362Z 01O Checking out 9586968f as detached HEAD (ref is main)...
+2026-08-06T18:23:30.042534Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-08-06T18:23:30.935846Z 01O 
+2026-08-06T18:23:30.937198Z 01O Skipping Git submodules setup
+2026-08-06T18:23:31.183248Z 00O section_end:1786040611:get_sources
+2026-08-06T18:23:31.183248Z 00O+section_start:1786040611:restore_cache
+2026-08-06T18:23:31.185505Z 00O+Restoring cache
+2026-08-06T18:23:33.165733Z 01O Version:      18.9.0
+2026-08-06T18:23:33.165733Z 01O Git revision: 07e534ba
+2026-08-06T18:23:33.165733Z 01O Git branch:   18-9-stable
+2026-08-06T18:23:33.165733Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-06T18:23:33.165733Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-06T18:23:33.165733Z 01O OS/Arch:      windows/amd64
+2026-08-06T18:23:33.187035Z 01O Checking cache for psadt-framework-4.1.0-protected...
+2026-08-06T18:23:33.413462Z 01E Runtime platform                                    arch=amd64 os=windows pid=9472 revision=07e534ba version=18.9.0
+2026-08-06T18:23:33.413462Z 01E No URL provided, cache will not be downloaded from shared cache server. Instead a local version of cache will be extracted. 
+2026-08-06T18:23:33.413807Z 01E WARNING: Cache file does not exist                 
+2026-08-06T18:23:33.462937Z 01O Failed to extract cache
+2026-08-06T18:23:33.669591Z 00O section_end:1786040613:restore_cache
+2026-08-06T18:23:33.669591Z 00O+section_start:1786040613:step_script
+2026-08-06T18:23:33.671721Z 00O+Executing "step_script" stage of the job script
+2026-08-06T18:23:35.241238Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-08-06T18:23:35.245287Z 01O === Windows Build: drive-mapper ===
+2026-08-06T18:23:35.248646Z 01O Pipeline tag   : 
+2026-08-06T18:23:35.249175Z 01O --- Verifying powershell-yaml module is present ---
+2026-08-06T18:23:35.739339Z 01O --- Downloading JSON Schemas ---
+2026-08-06T18:23:38.395838Z 01O --- Validating app.json against schema ---
+2026-08-06T18:23:38.491361Z 01O   ✓ app.json valid
+2026-08-06T18:23:38.498578Z 01O PSADT version locked to: 4.1.0
+2026-08-06T18:23:38.499639Z 01O --- Validating windows/package.yaml against schema ---
+2026-08-06T18:23:39.068632Z 01E Test-Json: 
+2026-08-06T18:23:39.068632Z 01E Line |
+2026-08-06T18:23:39.068632Z 01E  477 |  … IsValid   = Test-Json -Json $winPkgJson -Schema $pkgSchema -ErrorActi …
+2026-08-06T18:23:39.068632Z 01E      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-08-06T18:23:39.068632Z 01E      | The JSON is not valid with the schema: Value should match one of the values specified by the enum at '/installer_type'
+2026-08-06T18:23:39.316740Z 00O section_end:1786040619:step_script
+2026-08-06T18:23:39.316740Z 00O+section_start:1786040619:upload_artifacts_on_failure
+2026-08-06T18:23:39.318926Z 00O+Uploading artifacts for failed job
+2026-08-06T18:23:40.814330Z 01O Version:      18.9.0
+2026-08-06T18:23:40.814330Z 01O Git revision: 07e534ba
+2026-08-06T18:23:40.814330Z 01O Git branch:   18-9-stable
+2026-08-06T18:23:40.814330Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-06T18:23:40.814330Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-06T18:23:40.814330Z 01O OS/Arch:      windows/amd64
+2026-08-06T18:23:40.830346Z 01O Uploading artifacts...
+2026-08-06T18:23:41.009836Z 01E Runtime platform                                    arch=amd64 os=windows pid=10848 revision=07e534ba version=18.9.0
+2026-08-06T18:23:41.011364Z 01E WARNING: out/staging/: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\drive-mapper) 
+2026-08-06T18:23:41.011364Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\drive-mapper) 
+2026-08-06T18:23:41.011364Z 01E ERROR: No files to upload                          
+2026-08-06T18:23:41.248388Z 01O Version:      18.9.0
+2026-08-06T18:23:41.248388Z 01O Git revision: 07e534ba
+2026-08-06T18:23:41.248388Z 01O Git branch:   18-9-stable
+2026-08-06T18:23:41.248388Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-06T18:23:41.248388Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-06T18:23:41.248388Z 01O OS/Arch:      windows/amd64
+2026-08-06T18:23:41.259825Z 01O Uploading artifacts...
+2026-08-06T18:23:41.489203Z 01E Runtime platform                                    arch=amd64 os=windows pid=1636 revision=07e534ba version=18.9.0
+2026-08-06T18:23:41.489203Z 01E WARNING: out/build.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\drive-mapper) 
+2026-08-06T18:23:41.489203Z 01E ERROR: No files to upload                          
+2026-08-06T18:23:41.675449Z 00O section_end:1786040621:upload_artifacts_on_failure
+2026-08-06T18:23:41.675449Z 00O+section_start:1786040621:cleanup_file_variables
+2026-08-06T18:23:41.675449Z 00O+Cleaning up project directory and file based variables
+2026-08-06T18:23:43.340822Z 00O section_end:1786040623:cleanup_file_variables
+2026-08-06T18:23:43.340822Z 00O+
+2026-08-06T18:23:43.341909Z 00O ERROR: Job failed: exit status 1
