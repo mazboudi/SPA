@@ -516,7 +516,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   const activeTab = state._psadtActiveTab || 'behavior';
   const setActiveTab = (tab) => updateFields({ _psadtActiveTab: tab });
-  const [layout, setLayout] = useState('side-by-side'); // 'side-by-side' | 'stacked'
+  const [compareView, setCompareView] = useState('side-by-side'); // 'side-by-side' | 'stacked' | 'original' | 'converted' | 'report'
+  const isPristine = state.pristineScripts !== false;
 
   const hasLegacyScript = useMemo(() => {
     return state.wizardMode === 'refactor' && !!(state._scriptContent || psadtResult?.scriptContent);
@@ -811,75 +812,78 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         {activeTab === 'compare' && (
           <div className="psadt-workspace-tab-content compare-tab animate-in">
             <div className="config-section" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-md)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                position: 'sticky',
+                top: '-16px',
+                background: 'var(--bg-elevated)',
+                zIndex: 10,
+                padding: '16px 0',
+                marginTop: '-16px',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                marginBottom: '16px'
+              }}>
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '300px' }}>
                   <h3 className="section-title" style={{ margin: 0 }}>
                     {hasLegacyScript ? '🔍 Original vs. Converted Script Comparison' : '📜 Generated PowerShell Script'}
                   </h3>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                    {hasLegacyScript
-                      ? 'Origina PowerShell script to generated script comparisson. Use this view to verify successful conversion.'
-                      : 'View the generated PowerShell script. Customize it in VS Code to make manual edits.'
-                    }
-                  </p>
+                  {!hasLegacyScript && (
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, marginTop: '4px' }}>
+                      View the generated PowerShell script. Customize it in VS Code to make manual edits.
+                    </p>
+                  )}
                 </div>
 
                 {/* Unified Toolbar containing VS Code Actions, Badges, Layout Selector, and Pristine Code Toggle */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   {/* Layout Selector (only visible if there is a legacy script) */}
                   {hasLegacyScript && (
-                    <div className="layout-selector" style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)', padding: '2px' }}>
-                      <button
-                        type="button"
-                        className={`btn-layout ${layout === 'side-by-side' ? 'btn-layout--active' : ''}`}
-                        style={{
-                          background: layout === 'side-by-side' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-                          color: layout === 'side-by-side' ? '#60a5fa' : 'var(--text-muted)',
-                          border: 'none',
-                          padding: '4px 12px',
-                          borderRadius: '14px',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          transition: 'all 0.2s ease',
-                          outline: 'none'
-                        }}
-                        onClick={() => setLayout('side-by-side')}
-                      >
-                        ♊ Side-by-Side Diff
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-layout ${layout === 'stacked' ? 'btn-layout--active' : ''}`}
-                        style={{
-                          background: layout === 'stacked' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-                          color: layout === 'stacked' ? '#60a5fa' : 'var(--text-muted)',
-                          border: 'none',
-                          padding: '4px 12px',
-                          borderRadius: '14px',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          transition: 'all 0.2s ease',
-                          outline: 'none'
-                        }}
-                        onClick={() => setLayout('stacked')}
-                      >
-                        ☰ Inline Diff
-                      </button>
+                    <div className="layout-selector" style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)', padding: '2px', flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'side-by-side', label: '♊ Side-by-Side Diff' },
+                        { id: 'stacked', label: '☰ Inline Diff' },
+                        { id: 'original', label: '📜 Original Full' },
+                        { id: 'converted', label: '✨ Converted Full' },
+                        { id: 'report', label: '📋 Report' }
+                      ].map(view => (
+                        <button
+                          key={view.id}
+                          type="button"
+                          className={`btn-layout ${compareView === view.id ? 'btn-layout--active' : ''}`}
+                          style={{
+                            background: compareView === view.id ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                            color: compareView === view.id ? '#60a5fa' : 'var(--text-muted)',
+                            border: 'none',
+                            padding: '4px 12px',
+                            borderRadius: '14px',
+                            fontSize: '0.7rem',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onClick={() => setCompareView(view.id)}
+                        >
+                          {view.label}
+                        </button>
+                      ))}
                     </div>
                   )}
 
                   {/* Pristine Code Toggle */}
                   <div className="pristine-toggle" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '500', color: state.pristineScripts ? '#60a5fa' : 'var(--text-muted)', userSelect: 'none' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '500', color: isPristine ? '#60a5fa' : 'var(--text-muted)', userSelect: 'none' }}>
                       ✨ Pristine Code
                     </span>
                     <button
                       type="button"
                       role="switch"
-                      aria-checked={!!state.pristineScripts}
-                      onClick={() => updateField('pristineScripts', !state.pristineScripts)}
+                      aria-checked={isPristine}
+                      onClick={() => updateField('pristineScripts', !isPristine)}
                       style={{
                         position: 'relative',
                         display: 'inline-block',
@@ -887,7 +891,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         height: '18px',
                         margin: 0,
                         cursor: 'pointer',
-                        background: state.pristineScripts ? '#3b82f6' : '#4b5563',
+                        background: isPristine ? '#3b82f6' : '#4b5563',
                         border: 'none',
                         borderRadius: '18px',
                         transition: 'background-color 0.3s ease',
@@ -899,7 +903,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                         position: 'absolute',
                         height: '12px',
                         width: '12px',
-                        left: state.pristineScripts ? '16px' : '4px',
+                        left: isPristine ? '16px' : '4px',
                         bottom: '3px',
                         backgroundColor: 'white',
                         transition: 'left 0.3s ease',
@@ -908,16 +912,12 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                       }}></span>
                     </button>
                   </div>
-
-                  {/* Open in VS Code Button removed */}
-
-
                 </div>
               </div>
 
-              {/* Modernization Report */}
-              {compatReport && hasLegacyScript && (
-                <div className="compat-report-card" style={{ marginBottom: 'var(--space-md)', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+              {/* Render Selected View */}
+              {hasLegacyScript && compareView === 'report' && compatReport && (
+                <div className="compat-report-card" style={{ marginTop: 'var(--space-md)', padding: '12px 16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.1rem' }}>{compatReport.summary.manualReview > 0 ? '⚠️' : '✅'}</span>
@@ -935,45 +935,39 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   {compatReport.summary.manualReview > 0 && (
                     <div style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '4px', padding: '6px 10px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>💡</span>
-                      <span>Line numbers in the report correspond to the <strong>Original Legacy Script (left pane / top pane)</strong>. Use them to locate exact legacy context before conversion.</span>
+                      <span>Line numbers in the report correspond to the <strong>Original Legacy Script</strong>. Use them to locate exact legacy context before conversion.</span>
                     </div>
                   )}
 
                   {compatReport.manualFindings.length > 0 && (
-                    <details style={{ marginTop: '8px' }}>
-                      <summary style={{ fontSize: '0.75rem', color: 'var(--text-accent)', cursor: 'pointer', outline: 'none', userSelect: 'none' }}>
-                        ▸ View {compatReport.manualFindings.length} legacy patterns to verify on visual cards
-                      </summary>
-                      <div style={{ marginTop: '8px', maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-sm)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left' }}>
-                          <thead>
-                            <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                              <th style={{ padding: '6px 10px', width: '90px' }}>Original Line</th>
-                              <th style={{ padding: '6px 10px', width: '120px' }}>Section</th>
-                              <th style={{ padding: '6px 10px' }}>Original Code</th>
-                              <th style={{ padding: '6px 10px' }}>Verify Action / Guidance</th>
+                    <div style={{ marginTop: '8px', maxHeight: '400px', overflowY: 'auto', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-sm)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                            <th style={{ padding: '8px 10px', fontWeight: 600 }}>Line</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 600 }}>Section</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 600 }}>Original Syntax (v3)</th>
+                            <th style={{ padding: '8px 10px', fontWeight: 600 }}>Converted Action (v4)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {compatReport.manualFindings.map((f, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                              <td style={{ padding: '6px 10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono, monospace)' }}>{f.line}</td>
+                              <td style={{ padding: '6px 10px', color: 'var(--text-muted)' }}>{f.section}</td>
+                              <td style={{ padding: '6px 10px' }}><code style={{ fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '3px', color: '#fb7185' }}>{f.v3}</code></td>
+                              <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{f.v4}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {compatReport.manualFindings.map((f, i) => (
-                              <tr key={i} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: i % 2 === 0 ? 'transparent' : 'rgba(255, 255, 255, 0.01)' }}>
-                                <td style={{ padding: '6px 10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono, monospace)' }}>{f.line}</td>
-                                <td style={{ padding: '6px 10px', color: 'var(--text-muted)' }}>{f.section}</td>
-                                <td style={{ padding: '6px 10px' }}><code style={{ fontFamily: 'var(--font-mono, monospace)', background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '3px', color: '#fb7185' }}>{f.v3}</code></td>
-                                <td style={{ padding: '6px 10px', color: 'var(--text-secondary)' }}>{f.v4}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </details>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               )}
 
-
               {/* Display view based on legacy script presence and layout choice */}
-              {!hasLegacyScript ? (
+              {(!hasLegacyScript || compareView === 'converted') ? (
                 <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
                   <Editor
                     height="100%"
@@ -989,7 +983,23 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     }}
                   />
                 </div>
-              ) : (
+              ) : compareView === 'original' ? (
+                <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
+                  <Editor
+                    height="100%"
+                    language="powershell"
+                    theme="vs-dark"
+                    value={state._scriptContent || psadtResult?.scriptContent || ''}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on'
+                    }}
+                  />
+                </div>
+              ) : compareView !== 'report' ? (
                 <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
                   <DiffEditor
                     height="100%"
@@ -1000,14 +1010,14 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     options={{
                       readOnly: true,
                       minimap: { enabled: false },
-                      renderSideBySide: layout === 'side-by-side',
+                      renderSideBySide: compareView === 'side-by-side',
                       fontSize: 13,
                       scrollBeyondLastLine: false,
                       wordWrap: 'on'
                     }}
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         )}

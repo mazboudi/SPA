@@ -930,20 +930,23 @@ function extractBlockActions(block) {
   const rawLines = block.split('\n');
   const joinedLines = [];
   let pending = '';
-  for (const line of rawLines) {
+  let pendingStartIdx = -1;
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
     const trimmed = line.trimEnd();
     if (trimmed.endsWith('`')) {
+      if (pending === '') pendingStartIdx = i;
       pending += (pending ? ' ' : '') + trimmed.slice(0, -1).trim();
     } else {
       if (pending) {
-        joinedLines.push(pending + ' ' + trimmed.trim());
+        joinedLines.push({ text: pending + ' ' + trimmed.trim(), start: pendingStartIdx, end: i });
         pending = '';
       } else {
-        joinedLines.push(line);
+        joinedLines.push({ text: line, start: i, end: i });
       }
     }
   }
-  if (pending) joinedLines.push(pending);
+  if (pending) joinedLines.push({ text: pending, start: pendingStartIdx, end: rawLines.length - 1 });
 
   // Buffer to accumulate consecutive lines of custom PowerShell code
   const customBuffer = [];
@@ -996,7 +999,8 @@ function extractBlockActions(block) {
   // and are emitted as raw_ps blocks. This is intentional — best-effort
   // import keeps the code intact without risking regex-based line splicing.
   for (let lineIdx = 0; lineIdx < joinedLines.length; lineIdx++) {
-    const line = joinedLines[lineIdx];
+    const lineObj = joinedLines[lineIdx];
+    const line = lineObj.text;
     const t = line.trim();
 
     // Skip empty lines at the very beginning of parsing to avoid leading raw blocks
@@ -1008,8 +1012,10 @@ function extractBlockActions(block) {
     // Extract the entire function as one raw_ps block so the opening line,
     // body, and closing brace stay together and are not split across actions.
     if (FUNCTION_OPENER.test(t)) {
-      const { blockText, endIndex } = extractBraceBlock(rawLines, lineIdx);
-      lineIdx = endIndex;
+      const { blockText, endIndex } = extractBraceBlock(rawLines, lineObj.start);
+      while (lineIdx < joinedLines.length - 1 && joinedLines[lineIdx + 1].start <= endIndex) {
+        lineIdx++;
+      }
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
       if (modernizedBlock.length > 3) {
@@ -1027,8 +1033,10 @@ function extractBlockActions(block) {
 
     // Try block opener
     if (TRY_OPENERS.test(t)) {
-      const { blockText, endIndex } = extractTryCatchBlock(rawLines, lineIdx);
-      lineIdx = endIndex;
+      const { blockText, endIndex } = extractTryCatchBlock(rawLines, lineObj.start);
+      while (lineIdx < joinedLines.length - 1 && joinedLines[lineIdx + 1].start <= endIndex) {
+        lineIdx++;
+      }
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
       if (modernizedBlock.length > 3) {
@@ -1047,11 +1055,13 @@ function extractBlockActions(block) {
     if (FLOW_OPENERS.test(t)) {
       let blockText, endIndex;
       if (/^if\s*\(/i.test(t)) {
-        ({ blockText, endIndex } = extractIfElseBlock(rawLines, lineIdx));
+        ({ blockText, endIndex } = extractIfElseBlock(rawLines, lineObj.start));
       } else {
-        ({ blockText, endIndex } = extractBraceBlock(rawLines, lineIdx));
+        ({ blockText, endIndex } = extractBraceBlock(rawLines, lineObj.start));
       }
-      lineIdx = endIndex;
+      while (lineIdx < joinedLines.length - 1 && joinedLines[lineIdx + 1].start <= endIndex) {
+        lineIdx++;
+      }
       flushCustomBuffer();
       const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
       if (modernizedBlock.length > 3) {
@@ -1087,7 +1097,7 @@ function extractBlockActions(block) {
     // GUARD: if the line is actually a ForEach-Object batch pipeline (e.g. "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI ... })
     // do NOT treat it as a plain Execute-MSI — it will be caught by the msi_uninstall_batch handler below.
     const isForeachMsiPipeline = /\|\s*ForEach-Object\s*\{\s*Execute-MSI/i.test(t);
-    const msiMatch = !isForeachMsiPipeline && t.match(/Execute-MSI\s+.*-Action\s+['"](\w+)['"]?/i);
+    const msiMatch = !isForeachMsiPipeline && t.match(/Execute-MSI\s+.*-Action\s+['"]?(\w+)['"]?/i);
     if (msiMatch) {
       flushCustomBuffer();
       const msiAction = msiMatch[1];
@@ -1282,30 +1292,9 @@ function extractBlockActions(block) {
       }
     }
 
-    // Native PowerShell: Start-Process -FilePath ...\n    // Convert to Start-ADTProcess. Notes:\n    //  - FilePath must use extractPsParamValue to handle quoted paths with spaces\n    //    (the old [^\\s'\"}{]+ stopped at the first space in "C:\\Program Files\\...")\n    //  - -Wait is intentionally not emitted: Start-ADTProcess is always synchronous
-    if (!matched) {
-      if (/\bStart-Process\b/i.test(t) && /-FilePath\b/i.test(t)) {
-        const spFile = extractPsParamValue(t, 'FilePath');
-        if (spFile) {
-          flushCustomBuffer();
-          const spArgVal = extractPsParamValue(t, 'ArgumentList') || extractPsParamValue(t, 'Args') || '';
-          // -Wait is implicit in Start-ADTProcess (always synchronous) — no flag needed
-          const hadWait = /-Wait\b/i.test(t);
-          actions.push({
-            type: 'start_process',
-            desc: `Run (native): ${spFile.replace(/.*[\\/]/, '')}`,
-            file: spFile,
-            args: spArgVal,
-            note: hadWait ? 'Converted from Start-Process -Wait; Start-ADTProcess is always synchronous' : '',
-            raw: modernizedLine,
-          });
-          matched = true;
-        }
-      }
-    }
 
-    // Copy-Item / Copy-ADTFile
-    if (!matched && /(?:Copy-Item|Copy-ADTFile)\b/i.test(t)) {
+    // Copy-File / Copy-ADTFile
+    if (!matched && /(?:Copy-File|Copy-ADTFile)\b/i.test(t)) {
       const copySrc = extractPsParamValue(t, '(?:Path|Source)');
       const copyDst = extractPsParamValue(t, 'Destination');
       if (copySrc && copyDst) {
@@ -1333,8 +1322,8 @@ function extractBlockActions(block) {
       }
     }
 
-    // Remove-Item / Remove-File / Remove-ADTFolder / Remove-ADTFile (with -Path or -LiteralPath flag)
-    if (!matched && /(?:Remove-Item|Remove-File|Remove-ADTFolder|Remove-ADTFile)\b/i.test(t)) {
+    // Remove-File / Remove-ADTFolder / Remove-ADTFile (with -Path or -LiteralPath flag)
+    if (!matched && /(?:Remove-File|Remove-ADTFolder|Remove-ADTFile)\b/i.test(t)) {
       const removePath = extractPsParamValue(t, '(?:Path|LiteralPath)');
       if (removePath) {
         flushCustomBuffer();
@@ -1357,25 +1346,6 @@ function extractBlockActions(block) {
       }
     }
 
-    // Native PowerShell: Set-ItemProperty -Path ... -Name ... -Value ...
-    if (!matched) {
-      const setIPMatch = t.match(/Set-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
-      if (setIPMatch) {
-        flushCustomBuffer();
-        actions.push({ type: 'registry_set', desc: `Registry (native): ${setIPMatch[2]} = ${setIPMatch[3]}`, key: setIPMatch[1], name: setIPMatch[2], value: setIPMatch[3], raw: modernizedLine });
-        matched = true;
-      }
-    }
-
-    // Native PowerShell: New-ItemProperty -Path ... -Name ... -Value ...
-    if (!matched) {
-      const newIPMatch = t.match(/New-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]([^'"]+)['"]\s+.*-Value\s+['"]?([^\s'"}{]+)/i);
-      if (newIPMatch) {
-        flushCustomBuffer();
-        actions.push({ type: 'registry_set', desc: `Registry (new): ${newIPMatch[2]} = ${newIPMatch[3]}`, key: newIPMatch[1], name: newIPMatch[2], value: newIPMatch[3], raw: modernizedLine });
-        matched = true;
-      }
-    }
 
     // Remove-RegistryKey / Remove-ADTRegistryKey (with optional -Name for value removal)
     if (!matched) {
@@ -1390,15 +1360,6 @@ function extractBlockActions(block) {
       }
     }
 
-    // Native PowerShell: Remove-ItemProperty -Path ... -Name ...
-    if (!matched) {
-      const removeIPMatch = t.match(/Remove-ItemProperty\s+.*-Path\s+['"]?([^\s'"}{]+)['"]?\s+.*-Name\s+['"]?([^\s'"}{]+)/i);
-      if (removeIPMatch) {
-        flushCustomBuffer();
-        actions.push({ type: 'registry_remove', desc: `Remove reg value (native): ${removeIPMatch[2]}`, key: removeIPMatch[1], name: removeIPMatch[2], raw: modernizedLine });
-        matched = true;
-      }
-    }
 
     // New-ADTFolder
     if (!matched && /New-ADTFolder\b/i.test(t)) {
@@ -1486,23 +1447,13 @@ function extractBlockActions(block) {
       const promptMatch = t.match(/Show-(?:ADT)?InstallationPrompt\b/i);
       if (promptMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'show_completion', desc: 'Show completion dialog', raw: modernizedLine });
+        const msg = extractPsParamValue(t, 'Message');
+        actions.push({ type: 'show_completion', desc: `Prompt: ${msg ? msg.substring(0, 20) + '...' : ''}`, message: msg, raw: modernizedLine });
         matched = true;
       }
     }
 
-    // Stop-Process / Get-Process ... | Stop-Process
-    if (!matched) {
-      const stopProcMatch = t.match(/(?:Get-Process\s.*\|\s*)?Stop-Process\s+.*-(?:Name|Id)\s+['"]*([\w]+)['"]*/i) ||
-                            t.match(/Stop-Process\s+-Name\s+['"]*([\w]+)['"]*/i) ||
-                            t.match(/Get-Process\s+['"]*([\w]+)['"]*/i);
-      if (stopProcMatch) {
-        flushCustomBuffer();
-        const procName = stopProcMatch[1] || 'process';
-        actions.push({ type: 'stop_process', enabled: true, processName: procName, force: /-Force/i.test(t), raw: modernizedLine });
-        matched = true;
-      }
-    }
+
 
     // Set-ADTIniValue / Set-IniValue
     if (!matched) {
@@ -1619,16 +1570,7 @@ function extractBlockActions(block) {
       matched = true;
     }
 
-    // Stop-Process / Get-Process ... | Stop-Process
-    if (!matched) {
-      const stopProcMatch = t.match(/(?:Get-Process\s.*\|\s*)?Stop-Process\s+.*-(?:Name|Id)\s+['"]*(\w+)['"]*|Stop-Process\s+-Name\s+['"]*(\w+)['"]*|Get-Process\s+['"]*(\w+)['"]*\s*\|\s*Stop-Process/i);
-      if (stopProcMatch) {
-        flushCustomBuffer();
-        const procName = stopProcMatch[1] || stopProcMatch[2] || stopProcMatch[3] || 'process';
-        actions.push({ type: 'stop_process', desc: `Stop: ${procName}`, closeApps: procName, raw: modernizedLine });
-        matched = true;
-      }
-    }
+
 
     // Copy-ADTFile
     if (!matched) {

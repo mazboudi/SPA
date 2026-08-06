@@ -5,7 +5,7 @@
  */
 
 export default function generatePsadtScript(s, clean = false) {
-  const isClean = clean || !!s.pristineScripts;
+  const isClean = clean || s.pristineScripts !== false;
   const lc = s.lifecycle || {};
   const phases = lc.phases || {};
   const packageId = s.packageId || 'TODO-PACKAGE-ID';
@@ -649,7 +649,8 @@ export function generateActionCmd(action, pathCtx = {}) {
     }
 
     case 'show_completion': {
-      lines.push(`Show-ADTInstallationPrompt -Message 'The install has completed.' -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
+      const msg = action.message ? psString(action.message) : "'The install has completed.'";
+      lines.push(`Show-ADTInstallationPrompt -Message ${msg} -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
       break;
     }
 
