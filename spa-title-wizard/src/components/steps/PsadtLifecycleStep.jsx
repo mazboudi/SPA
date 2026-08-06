@@ -818,12 +818,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '12px',
-                position: 'sticky',
-                top: '-16px',
-                background: 'var(--bg-elevated)',
-                zIndex: 10,
-                padding: '16px 0',
-                marginTop: '-16px',
+                paddingBottom: '16px',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
                 marginBottom: '16px'
               }}>
@@ -968,7 +963,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
               {/* Display view based on legacy script presence and layout choice */}
               {(!hasLegacyScript || compareView === 'converted') ? (
-                <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
+                <div style={{ height: 'calc(100vh - 250px)', minHeight: '400px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
                   <Editor
                     height="100%"
                     language="powershell"
@@ -984,7 +979,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                   />
                 </div>
               ) : compareView === 'original' ? (
-                <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
+                <div style={{ height: 'calc(100vh - 250px)', minHeight: '400px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
                   <Editor
                     height="100%"
                     language="powershell"
@@ -999,8 +994,8 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     }}
                   />
                 </div>
-              ) : compareView !== 'report' ? (
-                <div style={{ height: '600px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden', marginTop: 'var(--space-md)' }}>
+              ) : (
+                <div style={{ height: 'calc(100vh - 250px)', minHeight: '400px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
                   <DiffEditor
                     height="100%"
                     language="powershell"
@@ -1017,7 +1012,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                     }}
                   />
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
         )}

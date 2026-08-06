@@ -1,29 +1,12 @@
-Cisco Secure Client – AnyConnect VPN (Z:\ ApplicationSource\Cisco\Cisco Secure Client - AnyConnect VPN\5.1.7.80) 
+Start-Process is converted into a Run Process card (which generates Start-ADTProcess).
+Copy-Item is converted into a Copy File card (which generates Copy-ADTFile).
+Remove-Item is converted into a Remove File/Folder card (which generates Remove-ADTFile or Remove-ADTFolder).
+New-ItemProperty / Set-ItemProperty are converted into a Set Registry Key card (which generates Set-ADTRegistryKey).
 
-Supported installation action Run MSI Process (Start-ADTMsiProcess) converted to raw code block. Should be recognized as Run MSI Process action. 
+The parser only specifically hunts for native PowerShell commands that represent very common "installation steps" that map cleanly into our visual UI cards (like copying files, removing files, setting registry keys, or launching an executable).
 
-Desktop Messaging Client for NA (Z:\Verient_DesktopClientTools_15.2.9_new\Deploy) 
+For everything else—such as Invoke-Command, Get-Service, Start-Service, Set-Content, Add-AppxPackage, loops, conditionals, etc.—the parser will not convert them.
 
-As discussed, two lines of code incorrectly removed and duplicated during conversion. 
+Instead, it safely wraps those unrecognized commands into a "Raw PowerShell" card. This means they are emitted directly into the final script exactly as you wrote them, ensuring your complex logic remains 100% intact.
 
-Client360 Studio (Z:\Fiserv_ClientStudio360_1.2.20) 
-
-New-ItemProperty conversion to Set-ADTRegistryKey not quite right. -Type should be DWord.  
-
-All script conversions:  
-
-Remove-ADTRegistryKey -LiteralPath converts to Remove-ADTRegistryKey -Key (4.1.x to 4.1.8 conversion). -Key is not a valid parameter for Remove-ADTRegistryKey. 
-
-Set-RegistryKey -Key converts to Set-ADTRegistryKey -Key (3.X to 4.1.8 conversion). -Key is not a valid parameter for Set-ADTRegistryKey. 
-
-Show Completion Message (Show-ADTInstallationPrompt) action after conversion removes any custom text that might have been in the original script and replaces it with default text “The install has completed.” VERY minor. 
-
-When converting PowerShell cmdlets to PSADT functions, persist explicitly defined common parameters such as ErrorAction. 
-
-Conversions of PowerShell cmdlets to PSADT functions do not preserve parameters that would change the behavior of the PSADT function. For example, Remove-Item -Path "C:\Program Files\IT Client Utility" -Recurse -Force -ErrorAction SilentlyContinue gets converted to the Remove-ADTFile function but without the -Recurse parameter (-Force is not a supported parameter). 
-
-For v3.x to 4.x conversion, code that is captured as a raw PowerShell block will contain old PSADT 3.x variables e.g. $dirFiles instead of $($adtSession.DirFiles). If not too complicated, find and replace any 3.x variables with their 4.x equivalents before constructing the raw code block. 
-
-Script display – default to pristine, view as original and new without diffs.  
-
-There are time when standard powershell are used.  so maybe only convert psadt commands ..  
+(The only thing that happens to them inside a Raw PowerShell card is that any legacy variables like $dirFiles are modernized to $($adtSession.DirFiles) so they work correctly in the v4 context).

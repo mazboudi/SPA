@@ -186,7 +186,7 @@ const INITIAL_STATE = {
   // PSADT Deploy Mode
   deployMode: 'Silent',            // 'Silent' | 'NonInteractive' | 'Interactive'
   allowRebootPassThru: false,
-  pristineScripts: false,          // true = clean script without SPA comments, false = annotated script
+  pristineScripts: true,          // true = clean script without SPA comments, false = annotated script
 
   // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
   installerSourceDir: '',            // e.g. 'C:\\files\\7-zip'
@@ -867,12 +867,10 @@ export default function useWizardState() {
       if (Object.keys(phaseSrc).length > 0) {
         const phases = { ...prev.lifecycle.phases };
         for (const [phaseKey, actions] of Object.entries(phaseSrc)) {
-          if (phases[phaseKey]) {
-            phases[phaseKey] = {
-              ...phases[phaseKey],
-              actions: actions.map(a => ({ ...a, enabled: true })),
-            };
-          }
+          phases[phaseKey] = {
+            ...(phases[phaseKey] || {}),
+            actions: actions.map(a => ({ ...a, enabled: true })),
+          };
         }
         next.lifecycle = { ...prev.lifecycle, phases };
       }
