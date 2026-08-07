@@ -97,13 +97,16 @@
     { "v3": "$appVersion",       "v4": "$adtSession.AppVersion",          "isPathPrefix": false },
     { "v3": "$appLang",          "v4": "$adtSession.AppLang",             "isPathPrefix": false },
     { "v3": "$appArch",          "v4": "$adtSession.AppArch",             "isPathPrefix": false },
-    { "v3": "$appScriptVersion", "v4": "$adtSession.AppScriptVersion",    "isPathPrefix": false }
+    { "v3": "$appScriptVersion", "v4": "$adtSession.AppScriptVersion",    "isPathPrefix": false },
+    { "v3": "$dirAppDeployToolkit", "v4": "$($adtSession.DirToolkit)",    "isPathPrefix": true },
+    { "v3": "$deployMode",       "v4": "$adtSession.DeployMode",          "isPathPrefix": false },
+    { "v3": "$mainExitCode",     "v4": "$adtSession.ExitCode",            "isPathPrefix": false }
   ],
 
   "parameters": [
     {
       "_comment": "Applied AFTER cmdlet renames so the match targets the already-renamed v4 cmdlet names",
-      "matchCmdlets": ["Start-ADTProcess", "Start-ADTProcessAsUser", "Start-ADTMsiProcess"],
+      "matchCmdlets": ["Start-ADTProcess", "Start-ADTProcessAsUser", "Start-ADTMsiProcess", "Start-ADTMspProcess"],
       "v3": "-Parameters",
       "v4": "-ArgumentList"
     },
@@ -111,6 +114,66 @@
       "matchCmdlets": ["Get-ADTRegistryKey", "Set-ADTRegistryKey", "Remove-ADTRegistryKey"],
       "v3": "-Key",
       "v4": "-LiteralPath"
+    },
+    {
+      "matchCmdlets": ["Get-ADTRegistryKey", "Test-ADTRegistryValue"],
+      "v3": "-Value",
+      "v4": "-Name"
+    },
+    {
+      "matchCmdlets": ["Start-ADTProcess", "Start-ADTProcessAsUser", "Start-ADTMsiProcess", "Start-ADTMspProcess"],
+      "v3": "-Path",
+      "v4": "-FilePath"
+    },
+    {
+      "matchCmdlets": ["Start-ADTMsiProcess"],
+      "v3": "-Transform",
+      "v4": "-Transforms"
+    },
+    {
+      "matchCmdlets": ["Start-ADTMsiProcess"],
+      "v3": "-AddParameters",
+      "v4": "-AdditionalArgumentList"
+    },
+    {
+      "matchCmdlets": ["Start-ADTProcess", "Start-ADTProcessAsUser", "Start-ADTMsiProcess", "Start-ADTMspProcess"],
+      "v3": "-SecureParameters",
+      "v4": "-SecureArgumentList"
+    },
+    {
+      "matchCmdlets": ["Show-ADTInstallationWelcome"],
+      "v3": "-CloseApps",
+      "v4": "-CloseProcesses"
+    },
+    {
+      "matchCmdlets": ["Show-ADTInstallationWelcome"],
+      "v3": "-CloseAppsCountdown",
+      "v4": "-CloseProcessesCountdown"
+    },
+    {
+      "matchCmdlets": ["Show-ADTInstallationWelcome"],
+      "v3": "-ForceCloseAppsCountdown",
+      "v4": "-ForceCloseProcessesCountdown"
+    },
+    {
+      "matchCmdlets": ["Show-ADTInstallationWelcome"],
+      "v3": "-AllowDeferCloseApps",
+      "v4": "-AllowDeferCloseProcesses"
+    },
+    {
+      "matchCmdlets": ["Get-ADTApplication", "Uninstall-ADTApplication"],
+      "v3": "-Exact",
+      "v4": "-NameMatch 'Exact'"
+    },
+    {
+      "matchCmdlets": ["Get-ADTApplication", "Uninstall-ADTApplication"],
+      "v3": "-WildCard",
+      "v4": "-NameMatch 'Wildcard'"
+    },
+    {
+      "matchCmdlets": ["Get-ADTApplication", "Uninstall-ADTApplication"],
+      "v3": "-Regex",
+      "v4": "-NameMatch 'Regex'"
     }
   ]
 }

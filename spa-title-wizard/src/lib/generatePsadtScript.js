@@ -579,7 +579,7 @@ export function generateActionCmd(action, pathCtx = {}) {
     case 'uninstall_application': {
       const appNameVal = action.appName || action.name || '';
       const namePart = appNameVal ? ` -Name ${psString(appNameVal)}` : '';
-      const nameMatchPart = (appNameVal && action.nameMatch && action.nameMatch !== 'Exact') ? ` -NameMatch ${psString(action.nameMatch)}` : '';
+      const nameMatchPart = (appNameVal && action.nameMatch) ? ` -NameMatch ${psString(action.nameMatch)}` : '';
       const pcPart = action.productCode ? ` -ProductCode ${psString(action.productCode)}` : '';
       const typePart = (action.applicationType && action.applicationType !== 'All') ? ` -ApplicationType ${psString(action.applicationType)}` : '';
       const filterScriptPart = action.filterScript ? ` -FilterScript ${action.filterScript}` : '';

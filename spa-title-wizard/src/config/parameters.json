@@ -403,11 +403,9 @@
       "Exact",
       "Regex",
       "Wildcard",
-      "Contains",
-      "StartsWith",
-      "EndsWith"
+      "Contains"
     ],
-    "default": "Exact"
+    "default": "Contains"
   },
   {
     "cmdlet": "uninstall_application",

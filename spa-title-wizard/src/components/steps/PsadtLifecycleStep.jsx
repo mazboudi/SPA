@@ -516,7 +516,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   const activeTab = state._psadtActiveTab || 'behavior';
   const setActiveTab = (tab) => updateFields({ _psadtActiveTab: tab });
-  const [compareView, setCompareView] = useState('side-by-side'); // 'side-by-side' | 'stacked' | 'original' | 'converted' | 'report'
+  const [compareView, setCompareView] = useState('converted'); // 'original' | 'converted' | 'report'
   const isPristine = state.pristineScripts !== false;
 
   const hasLegacyScript = useMemo(() => {
@@ -964,7 +964,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
               )}
 
               {/* Display view based on legacy script presence and layout choice */}
-              {(!hasLegacyScript || compareView === 'converted') ? (
+              {(compareView === 'converted' || !hasLegacyScript) ? (
                 <div style={{ height: 'calc(100vh - 250px)', minHeight: '400px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', overflow: 'hidden' }}>
                   <Editor
                     height="100%"

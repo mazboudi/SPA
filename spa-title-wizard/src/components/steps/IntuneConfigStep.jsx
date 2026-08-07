@@ -315,7 +315,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   // ── Mandatory field validation per tab ─────────────────────────────────
   const defaultIntuneAppNameGlobal = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
-  const intuneAppNameGlobal = state.intuneAppName || defaultIntuneAppNameGlobal;
+  const intuneAppNameGlobal = state._intuneAppNameOverride || defaultIntuneAppNameGlobal;
 
   const tabValidation = useMemo(() => {
     const v = { info: [], detection: [] };
@@ -665,22 +665,29 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
             ========================================== */}
         {activeTab === 'info' && (() => {
           const defaultIntuneAppName = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
-          const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
+          const intuneAppNameValue = state._intuneAppNameOverride || defaultIntuneAppName;
           const isDuplicate = intuneAppNameValue && intuneApps.length > 0 && intuneApps.some(app => (app.displayName || '').trim().toLowerCase() === intuneAppNameValue.trim().toLowerCase());
           return (
             <div className="animate-in">
               <div className="config-section">
                 <h3 className="section-title">App Information</h3>
                 <div className="form-grid">
-                  <FormField label="Name" id="intuneAppName" required hint="The display name of the application in the Intune Company Portal." style={{ gridColumn: 'span 2' }}>
-                    <input id="intuneAppName" type="text" placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} value={intuneAppNameValue} onChange={e => {
-                      const val = e.target.value;
-                      if (!val || val === defaultIntuneAppName) {
-                        updateField('_intuneAppNameOverride', '');
-                      } else {
-                        updateField('_intuneAppNameOverride', val);
-                      }
-                    }} />
+                  <FormField label={state.wizardMode === 'edit' ? "Name 🔒" : "Name"} id="intuneAppName" required={state.wizardMode !== 'edit'} hint={state.wizardMode === 'edit' ? "The application name cannot be changed when editing an existing title." : "The display name of the application in the Intune Company Portal."} style={{ gridColumn: 'span 2' }}>
+                    <input 
+                      id="intuneAppName" 
+                      type="text" 
+                      placeholder={`e.g. ${defaultIntuneAppName || 'Google Chrome 134.0'}`} 
+                      value={intuneAppNameValue} 
+                      disabled={state.wizardMode === 'edit'}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (!val || val === defaultIntuneAppName) {
+                          updateField('_intuneAppNameOverride', '');
+                        } else {
+                          updateField('_intuneAppNameOverride', val);
+                        }
+                      }} 
+                    />
                     {isDuplicate && (
                       <div className="duplicate-warning animate-in" style={{
                         marginTop: '8px',
@@ -1457,7 +1464,7 @@ function IntuneMetaSummary({ state }) {
   const [expanded, setExpanded] = useState(true);
 
   const defaultIntuneAppName = `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
-  const intuneAppNameValue = state.intuneAppName || defaultIntuneAppName;
+  const intuneAppNameValue = state._intuneAppNameOverride || defaultIntuneAppName;
 
   // Derive commands
   const derivedInstallCmd = useMemo(() => {
