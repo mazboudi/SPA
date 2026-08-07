@@ -1,18 +1,13 @@
-in the workbench, the paclage ID shoulf always be derived from the title Display name and read-only. that applies to all cases 
-such as when creating new, editing, cloning or refactoring.  
-When creating a new Title: 
-    1 - Always verify the Package ID agaisnt Gitlab and warn if duplucate exist display warning (proceed or Load and edit existing?)
-    2 - If Load and edit is selected, don't re-disply warning.
-    3 - if proceed selected, proceed with loading the existing project. 
+When converting 3.x function Remove-MSIApplications to 4.x  Uninstall-ADTApplication, we are not specifying -NameMatch (‘Contains’, ‘Exact’, ‘Wildcard’, ‘Regex’). The Uninstall Application builder card defaults the Name Match dropdown to Exact even though ‘Contains’ is the default if -NameMatch is not specified. -NameMatch is only specified in the command preview if you select an option other than Exact. Additionally, there are invalid options of ‘StartsWith’ and ‘EndsWith’. Example from Desktop Messaging Client script conversion (Z:\Verient_DesktopClientTools_15.2.9_new\Deploy): 
 
-When loading a project from queue:
-    1- Lock Package ID for that project to prevent it's editing by other users.
-    2- Verify Package Version exists in GitLab
-    
-When editing an existing title:
-    1- Don't show gitlab warning. it redundent
+Original command: Remove-MSIApplications -Name 'Desktop & Process Analytics Client*' -WildCard -Parameters '/qn /norestart' 
 
-When cloning:
-    1- paclage ID shoulf always be derived from the title Display name  and read-only
-    2- Verify Package Version exists in GitLab and proceed with warning
-    
+Converted command: UninstallADTApplication -Name ‘Desktop & Process Analytics  Client*’ -ApplicationType ‘MSI’ 
+
+Correct converted command should be: UninstallADTApplication -Name ‘Desktop & Process Analytics  Client*’ -NameMatch ‘WildCard’ -ApplicationType ‘MSI’ 
+
+The screenshot indicates we are always defaulting the -NameMatch dropdown selection to Exact (default should be ‘Contains’) instead of matching the original command’s intent.  
+
+Related to the Uninstall-ADTApplication issue described above, conversion of 3.x function Get-InstalledApplication to 4.x function Get-ADTApplication specifies the type of name match to do without using the -NameMatch parameter. Unlike the 3.x function which lets you specify the type of match by specifying -Exact, -WildCard, etc, the 4.x function requires we use the parameter -NameMatch (e.g. -NameMatch ‘Exact’ or -NameMatch ‘WildCard’). Examples found in Desktop Messaging Client script conversion (Z:\Verient_DesktopClientTools_15.2.9_new\Deploy). In the screenshot below, the command should be: $RecheckScapture = Get-ADTApplication -Name 'Screen Capture Module' -NameMatch ‘Exact’  
+
+Script display – default to pristine, view as original and new without diffs.  
