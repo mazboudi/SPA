@@ -199,8 +199,9 @@ function git(args, cwd, opts = {}) {
     const stderr = err.stderr?.toString().trim() || err.message;
     if (!opts.ignoreError) {
       console.error(`  ❌ git ${args.split(' ')[0]} failed: ${stderr}`);
+      throw new Error(`git error: ${stderr}`);
     }
-    throw new Error(`git error: ${stderr}`);
+    return '';
   }
 }
 
