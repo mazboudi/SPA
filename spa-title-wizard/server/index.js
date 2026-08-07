@@ -219,7 +219,8 @@ function ensureLocalClone(projectPath, ref = 'main') {
     // Existing clone — ensure remote URL uses current token, then fetch
     console.log(`  📂 Existing clone found: ${repoDir}`);
     git(`remote set-url origin ${url}`, repoDir, { silent: true });
-    git('fetch origin --tags --prune', repoDir);
+    git('fetch origin --prune', repoDir);
+    git('fetch origin --tags', repoDir);
     try {
       git(`checkout ${ref}`, repoDir, { silent: true });
     } catch {
