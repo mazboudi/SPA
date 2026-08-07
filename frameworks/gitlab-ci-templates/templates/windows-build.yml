@@ -219,7 +219,7 @@
             }
 
             git commit -m "chore: graduate v3 → v4 (auto-converted by pipeline)" --allow-empty
-            git push "https://gitlab-ci-token:$($env:GITLAB_PUSH_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_COMMIT_REF_NAME)
+            git push "https://gitlab-ci-token:$($env:GITLAB_PUSH_TOKEN)@$($env:CI_SERVER_HOST)/$($env:CI_PROJECT_PATH).git" HEAD:$($env:CI_DEFAULT_BRANCH)
             Write-Host "  ✓ v4 script committed — future builds will use v4 directly" -ForegroundColor Green
           } catch {
             Write-Warning "⚠ Could not commit v4 back to repo: $_"
