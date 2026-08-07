@@ -220,18 +220,13 @@ function ensureLocalClone(projectPath, ref = 'main') {
     // Existing clone — ensure remote URL uses current token, then fetch
     console.log(`  📂 Existing clone found: ${repoDir}`);
     git(`remote set-url origin ${url}`, repoDir, { silent: true });
-    // Fix single-branch clones by forcing standard refspec
-    git('config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"', repoDir, { silent: true, ignoreError: true });
-    git('fetch origin --tags --prune --force', repoDir, { silent: true });
-    try {
-      git(`checkout ${ref}`, repoDir, { silent: true });
-    } catch {
-      // ref might be a remote branch not yet tracked locally
-      git(`checkout -B ${ref} origin/${ref}`, repoDir, { silent: true });
-    }
-    // If it's a branch, ensure we perfectly match remote. If tag, this fails harmlessly.
-    git(`reset --hard origin/${ref}`, repoDir, { ignoreError: true, silent: true });
-    console.log(`  📌 Checked out: ${ref}`);
+    // Explicitly fetch the exact ref the user requested (bypasses tracking/single-branch issues)
+    git(`fetch origin ${ref} --force`, repoDir, { silent: true });
+    // Checkout the commit we just fetched directly
+    git(`checkout FETCH_HEAD --force`, repoDir, { silent: true });
+    // Clean any untracked files from previous operations
+    git(`clean -fdx`, repoDir, { silent: true });
+    console.log(`  📌 Checked out: ${ref} (detached from FETCH_HEAD)`);
   } else {
     // Fresh clone — remove stale directory if it exists without .git
     if (existsSync(repoDir)) {
