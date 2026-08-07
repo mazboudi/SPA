@@ -217,15 +217,18 @@ function ensureLocalClone(projectPath, ref = 'main') {
   const url = cloneUrl(projectPath);
 
   if (existsSync(join(repoDir, '.git'))) {
-    // Existing clone — ensure remote URL uses current token, then fetch
     console.log(`  📂 Existing clone found: ${repoDir}`);
-    git(`remote set-url origin ${url}`, repoDir, { silent: true });
-    // Explicitly fetch the exact ref the user requested (bypasses tracking/single-branch issues)
-    git(`fetch origin ${ref} --force`, repoDir, { silent: true });
-    // Checkout the commit we just fetched directly
-    git(`checkout FETCH_HEAD --force`, repoDir, { silent: true });
-    // Clean any untracked files from previous operations
-    git(`clean -fdx`, repoDir, { silent: true });
+    console.log(`  > Setting remote URL...`);
+    git(`remote set-url origin ${url}`, repoDir);
+    
+    console.log(`  > Fetching ${ref} from origin...`);
+    git(`fetch origin ${ref} --force`, repoDir);
+    
+    console.log(`  > Checking out FETCH_HEAD...`);
+    git(`checkout FETCH_HEAD --force`, repoDir);
+    
+    console.log(`  > Cleaning untracked files...`);
+    git(`clean -fdx`, repoDir);
     console.log(`  📌 Checked out: ${ref} (detached from FETCH_HEAD)`);
   } else {
     // Fresh clone — remove stale directory if it exists without .git
