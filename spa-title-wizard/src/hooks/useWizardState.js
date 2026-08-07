@@ -997,6 +997,26 @@ export default function useWizardState() {
           snapshot.psadtFileName = ps1Path.split('/').pop();
         }
 
+        // ── Overlay pipeline updates ──
+        // The pipeline updates actual files (like app.json) but not the wizard state snapshot.
+        // We must overlay these dynamically changed fields so they aren't lost on load.
+        if (files['windows/intune/app.json']) {
+          try {
+            const intuneApp = JSON.parse(files['windows/intune/app.json']);
+            if (intuneApp.syncIntuneAppId) {
+              snapshot.syncIntuneAppId = intuneApp.syncIntuneAppId;
+            }
+          } catch (e) {
+            console.warn('⚠️ Could not parse windows/intune/app.json for pipeline overlay', e);
+          }
+        }
+        
+        if (files['windows/package.yaml']) {
+          if (!files['windows/package.yaml'].includes('v3_conversion: true')) {
+            snapshot._v3Conversion = false;
+          }
+        }
+
         setState(prev => ({
           ...prev,
           ...snapshot,
