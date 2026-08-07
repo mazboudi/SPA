@@ -218,19 +218,16 @@ function ensureLocalClone(projectPath, ref = 'main') {
 
   if (existsSync(join(repoDir, '.git'))) {
     console.log(`  📂 Existing clone found: ${repoDir}`);
-    console.log(`  > Setting remote URL...`);
-    git(`remote set-url origin ${url}`, repoDir);
+    git(`remote set-url origin ${url}`, repoDir, { silent: true });
     
-    console.log(`  > Fetching ${ref} from origin...`);
-    git(`fetch origin ${ref} --force`, repoDir);
+    // Explicitly fetch the exact ref the user requested (bypasses tracking/single-branch issues)
+    git(`fetch origin ${ref} --force`, repoDir, { silent: true });
+    // Checkout the commit we just fetched directly
+    git(`checkout FETCH_HEAD --force`, repoDir, { silent: true });
+    // Clean any untracked files from previous operations
+    git(`clean -fdx`, repoDir, { silent: true });
     
-    console.log(`  > Checking out FETCH_HEAD...`);
-    git(`checkout FETCH_HEAD --force`, repoDir);
-    
-    console.log(`  > Cleaning untracked files...`);
-    git(`clean -fdx`, repoDir);
-    const hash = git(`rev-parse HEAD`, repoDir);
-    console.log(`  📌 Checked out: ${ref} (commit ${hash})`);
+    console.log(`  📌 Checked out: ${ref} (detached from FETCH_HEAD)`);
   } else {
     // Fresh clone — remove stale directory if it exists without .git
     if (existsSync(repoDir)) {
@@ -1186,7 +1183,6 @@ app.post('/api/projects/:id/clone', async (req, res) => {
     // Walk the directory and read all text files
     const files = walkDir(localPath);
     console.log(`  📄 Read ${Object.keys(files).length} files from ${localPath}`);
-    console.log(`  📄 Files found: ${Object.keys(files).join(', ')}`);
 
     res.json({
       files,
