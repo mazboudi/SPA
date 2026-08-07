@@ -229,7 +229,8 @@ function ensureLocalClone(projectPath, ref = 'main') {
     
     console.log(`  > Cleaning untracked files...`);
     git(`clean -fdx`, repoDir);
-    console.log(`  📌 Checked out: ${ref} (detached from FETCH_HEAD)`);
+    const hash = git(`rev-parse HEAD`, repoDir);
+    console.log(`  📌 Checked out: ${ref} (commit ${hash})`);
   } else {
     // Fresh clone — remove stale directory if it exists without .git
     if (existsSync(repoDir)) {
@@ -1185,6 +1186,7 @@ app.post('/api/projects/:id/clone', async (req, res) => {
     // Walk the directory and read all text files
     const files = walkDir(localPath);
     console.log(`  📄 Read ${Object.keys(files).length} files from ${localPath}`);
+    console.log(`  📄 Files found: ${Object.keys(files).join(', ')}`);
 
     res.json({
       files,
