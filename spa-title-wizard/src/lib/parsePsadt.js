@@ -736,13 +736,15 @@ function extractPsParamValue(line, paramName) {
 }
 
 /**
- * Strip common PS path-variable prefixes like $dirFiles\, $dirSupportFiles\, $PSScriptRoot\
- * so the generator can re-add the correct prefix without doubling.
- * E.g. "$dirFiles\setup.msi" → "setup.msi"
+ * Modernizes legacy path variables instead of stripping them, so custom paths are preserved.
+ * The generator handles standard UI-driven paths natively.
  */
-function stripDirPrefix(filepath) {
+export function modernizePathVariables(filepath) {
   if (!filepath) return filepath;
-  return filepath.replace(/^\$(?:dirFiles|dirSupportFiles|PSScriptRoot)[\\/]/, '');
+  return filepath
+    .replace(/^\$dirFiles/i, '$($adtSession.DirFiles)')
+    .replace(/^\$dirSupportFiles/i, '$($adtSession.DirSupportFiles)')
+    .replace(/^\$PSScriptRoot/i, '$PSScriptRoot');
 }
 
 // ─── Brace-balanced block extractor ────────────────────────────────────────
@@ -909,6 +911,10 @@ export function modernizeLegacyScriptParts(scriptText) {
       (_, p1) => `${p1}${v4}`
     );
   }
+
+  // 4. Custom removals for deprecated parameters that have no direct translation
+  // Remove -ContinueOnError (and its optional boolean argument) which was removed in PSADT 4.x
+  result = result.replace(/\s*-ContinueOnError(?:\s+\$(?:true|false))?\b/gi, '');
 
   return result;
 }
@@ -1105,7 +1111,7 @@ function extractBlockActions(block) {
       const params = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList') || '';
       const transform = extractPsParamValue(t, 'Transforms?') || extractPsParamValue(t, 'Transform') || '';
       const cleanPath = path ? path.replace(/.*[\\]/, '') : '';
-      const cleanFile = stripDirPrefix(path) || cleanPath;
+      const cleanFile = modernizePathVariables(path) || cleanPath;
       const productCode = path.match(/^\{?[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}?$/) ? path : '';
       const actionObj = {
         type: 'start_msi_process',
@@ -1204,7 +1210,7 @@ function extractBlockActions(block) {
         // The generator will re-add the correct $($adtSession.DirFiles)\ prefix when dirFilesRelative is set.
         const hasDirFilesPrefix = /^\$(?:dirFiles|dirSupportFiles)[/\\]/i.test(rawFilePath);
         const hasDirSupportFilesPrefix = /^\$dirSupportFiles[/\\]/i.test(rawFilePath);
-        const bareFile = stripDirPrefix(rawFilePath);
+        const bareFile = modernizePathVariables(rawFilePath);
         const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
         actions.push({
           type: 'start_process',
@@ -1306,7 +1312,7 @@ function extractBlockActions(block) {
         actions.push({ 
           type: 'file_copy', 
           desc: `Copy: ${copySrc.replace(/.*[\\/]/, '')} \u2192 ${copyDst}`, 
-          source: stripDirPrefix(copySrc), 
+          source: modernizePathVariables(copySrc), 
           dest: copyDst, 
           recurse: hasRecurse,
           flatten: hasFlatten,
@@ -1730,7 +1736,7 @@ function extractBlockActions(block) {
       if (puMatch) {
         flushCustomBuffer();
         const rawFile = puMatch[1];
-        const bareFile = stripDirPrefix(rawFile);
+        const bareFile = modernizePathVariables(rawFile);
         const dirFilesRelative = /^\$(?:dirFiles|dirSupportFiles)[/\\]/i.test(rawFile);
         const paramVal = extractPsParamValue(t, 'Parameters') || extractPsParamValue(t, 'ArgumentList');
         actions.push({
@@ -1752,7 +1758,7 @@ function extractBlockActions(block) {
         flushCustomBuffer();
         const actionMatch = t.match(/-Action\s+['"](\w+)['"]/i);
         const argVal = extractPsParamValue(t, 'ArgumentList') || extractPsParamValue(t, 'Parameters');
-        const fname = stripDirPrefix(mpuMatch[1]);
+        const fname = modernizePathVariables(mpuMatch[1]);
         actions.push({
           type: 'msi_process_as_user',
           desc: `MSI as user: ${fname.replace(/.*[\\]/, '')}`,
