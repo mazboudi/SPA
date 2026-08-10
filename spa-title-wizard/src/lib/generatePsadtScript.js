@@ -95,8 +95,7 @@ export default function generatePsadtScript(s, options = {}) {
    */
   function filePathParam(resolved) {
     if (!resolved) return '';
-    if (resolved.startsWith('"')) return ` -FilePath ${resolved}`;
-    return ` -FilePath '${resolved}'`;
+    return ` -FilePath ${psString(resolved)}`;
   }
 
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
@@ -562,11 +561,6 @@ export function generateActionCmd(action, pathCtx = {}) {
       const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
       const pt = action.passThru ? ' -PassThru' : '';
       let resolvedFile = resolveFilePath(action.file);
-      // If the original path had a $dirFiles\ prefix, re-apply the v4 equivalent.
-      // Use double-quotes so PowerShell expands the subexpression at runtime.
-      if (action.dirFilesRelative && resolvedFile && !resolvedFile.startsWith('"')) {
-        resolvedFile = `"$($adtSession.DirFiles)\\${resolvedFile}"`;
-      }
       const fp = fpParam(resolvedFile);
       let cmd = `Start-ADTProcess${fp}${args}${winStyle}${successCodes}${rebootCodes}${pt}`;
       if (action.passThru && action.passThruVar) {

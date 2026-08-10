@@ -820,9 +820,15 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '12px',
-                paddingBottom: '16px',
+                padding: 'var(--space-md)',
+                margin: 'calc(var(--space-md) * -1) calc(var(--space-md) * -1) 16px calc(var(--space-md) * -1)',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
-                marginBottom: '16px'
+                position: 'sticky',
+                top: '97px', /* 56px (TopBar) + ~41px (TabBar) */
+                zIndex: 15,
+                backgroundColor: 'var(--bg-elevated)',
+                borderTopLeftRadius: 'var(--radius-md)',
+                borderTopRightRadius: 'var(--radius-md)'
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '300px' }}>
                   <h3 className="section-title" style={{ margin: 0 }}>

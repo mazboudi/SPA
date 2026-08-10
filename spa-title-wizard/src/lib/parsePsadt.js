@@ -1356,7 +1356,14 @@ function extractBlockActions(block) {
       const regSetMatch = t.match(/(?:Set-RegistryKey|Set-ADTRegistryKey)\s+.*-(?:Key|LiteralPath)\s+['"]([^'"]+)['"].*-Name\s+['"]([^'"]+)['"].*-Value\s+['"]?([^'"\s]+)/i);
       if (regSetMatch) {
         flushCustomBuffer();
-        const regType = extractPsParamValue(t, 'Type') || 'String';
+        let regType = extractPsParamValue(t, 'Type') || 'String';
+        const tLower = regType.toLowerCase();
+        if (tLower === 'dword') regType = 'DWord';
+        else if (tLower === 'qword') regType = 'QWord';
+        else if (tLower === 'multistring') regType = 'MultiString';
+        else if (tLower === 'expandstring') regType = 'ExpandString';
+        else regType = capitalizeFirst(regType);
+        
         const modernizedKey = modernizeLegacyScriptParts(regSetMatch[1]);
         const modernizedName = modernizeLegacyScriptParts(regSetMatch[2]);
         const modernizedValue = modernizeLegacyScriptParts(regSetMatch[3]);
