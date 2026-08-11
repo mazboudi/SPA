@@ -1873,7 +1873,32 @@ function extractBlockActions(block) {
   // Flush remaining buffer at the end
   flushCustomBuffer();
 
-  return actions;
+  return actions.map(a => {
+    if (a.type !== 'custom_script' && a.raw) {
+      const cp = extractCommonParams(a.raw);
+      if (cp) a.commonParams = cp;
+    }
+    return a;
+  });
+}
+
+/** Extract common parameters from a raw PowerShell line */
+function extractCommonParams(line) {
+  const params = [];
+  
+  const eaMatch = line.match(/-ErrorAction\s+['"]?(\w+)['"]?/i);
+  if (eaMatch) params.push(`-ErrorAction ${eaMatch[1]}`);
+  
+  if (/-Verbose\b/i.test(line)) params.push('-Verbose');
+  if (/-Debug\b/i.test(line)) params.push('-Debug');
+  
+  const waMatch = line.match(/-WarningAction\s+['"]?(\w+)['"]?/i);
+  if (waMatch) params.push(`-WarningAction ${waMatch[1]}`);
+  
+  const evMatch = line.match(/-ErrorVariable\s+['"]?(\w+)['"]?/i);
+  if (evMatch) params.push(`-ErrorVariable ${evMatch[1]}`);
+  
+  return params.length ? params.join(' ') : '';
 }
 
 /** Extract GUIDs from a phase block (used for batch uninstall detection) */

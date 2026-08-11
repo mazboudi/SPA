@@ -514,6 +514,7 @@ export function generateActionCmd(action, pathCtx = {}) {
   const { resolveFilePath = f => f, filePathParam: fpParam = r => (r ? ` -FilePath ${psString(r)}` : '') } = pathCtx;
   const lines = [];
 
+  const cp = action.commonParams ? ` ${action.commonParams}` : '';
   switch (action.type) {
     case 'start_msi_process': {
       const msiAction = action.action || 'Install';
@@ -528,7 +529,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
       const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
       const pt = action.passThru ? ' -PassThru' : '';
-      let cmd = `Start-ADTMsiProcess -Action ${psString(msiAction)}${filePart}${pcPart}${args}${transform}${addlArgs}${patches}${logName}${successCodes}${rebootCodes}${pt}`;
+      let cmd = `Start-ADTMsiProcess -Action ${psString(msiAction)}${filePart}${pcPart}${args}${transform}${addlArgs}${patches}${logName}${successCodes}${rebootCodes}${pt}${cp}`;
       if (action.passThru && action.passThruVar) {
         cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
       }
@@ -562,7 +563,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       const pt = action.passThru ? ' -PassThru' : '';
       let resolvedFile = resolveFilePath(action.file);
       const fp = fpParam(resolvedFile);
-      let cmd = `Start-ADTProcess${fp}${args}${winStyle}${successCodes}${rebootCodes}${pt}`;
+      let cmd = `Start-ADTProcess${fp}${args}${winStyle}${successCodes}${rebootCodes}${pt}${cp}`;
       if (action.passThru && action.passThruVar) {
         cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
       }
@@ -582,7 +583,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       const succCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
       const rebtCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
       const pt = action.passThru ? ' -PassThru' : '';
-      let cmd = `Uninstall-ADTApplication${namePart}${nameMatchPart}${pcPart}${typePart}${filterScriptPart}${argsPart}${addlArgsPart}${succCodes}${rebtCodes}${pt}`;
+      let cmd = `Uninstall-ADTApplication${namePart}${nameMatchPart}${pcPart}${typePart}${filterScriptPart}${argsPart}${addlArgsPart}${succCodes}${rebtCodes}${pt}${cp}`;
       if (action.passThru && action.passThruVar) {
         cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
       }
@@ -599,23 +600,23 @@ export function generateActionCmd(action, pathCtx = {}) {
       const rbcAdd = action.robocopyAdditionalParams ? ` -RobocopyAdditionalParams ${psString(action.robocopyAdditionalParams)}` : '';
       const srcPath = action.path || action.source || '';
       const destPath = action.destination || action.dest || '';
-      lines.push(`Copy-ADTFile -Path ${psString(srcPath)} -Destination ${psString(destPath)}${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}`);
+      lines.push(`Copy-ADTFile -Path ${psString(srcPath)} -Destination ${psString(destPath)}${recurse}${flatten}${mode}${contErr}${rbcParams}${rbcAdd}${cp}`);
       break;
     }
 
     case 'file_remove': {
       const rmRecurse = action.recurse ? ' -Recurse' : '';
       if (action.literalPath) {
-        lines.push(`Remove-ADTFile -LiteralPath ${psString(action.literalPath)}${rmRecurse}`);
+        lines.push(`Remove-ADTFile -LiteralPath ${psString(action.literalPath)}${rmRecurse}${cp}`);
       } else {
-        lines.push(`Remove-ADTFile -Path ${psString(action.path || '')}${rmRecurse}`);
+        lines.push(`Remove-ADTFile -Path ${psString(action.path || '')}${rmRecurse}${cp}`);
       }
       break;
     }
 
     case 'folder_remove': {
       const disableRec = action.disableRecursion ? ' -DisableRecursion' : '';
-      lines.push(`Remove-ADTFolder -Path ${psString(action.path)}${disableRec}`);
+      lines.push(`Remove-ADTFolder -Path ${psString(action.path)}${disableRec}${cp}`);
       break;
     }
 
@@ -633,14 +634,14 @@ export function generateActionCmd(action, pathCtx = {}) {
     case 'registry_set': {
       const regType = action.regType ? ` -Type ${psString(action.regType)}` : " -Type 'String'";
       const sid = action.sid ? ` -SID ${psString(action.sid)}` : '';
-      lines.push(`Set-ADTRegistryKey -LiteralPath ${psString(action.key)} -Name ${psString(action.name)}${regType} -Value ${psString(action.value)}${sid}`);
+      lines.push(`Set-ADTRegistryKey -LiteralPath ${psString(action.key)} -Name ${psString(action.name)}${regType} -Value ${psString(action.value)}${sid}${cp}`);
       break;
     }
 
     case 'registry_remove': {
       const name = action.name ? ` -Name ${psString(action.name)}` : '';
       const recurse = action.recurse ? ' -Recurse' : '';
-      lines.push(`Remove-ADTRegistryKey -LiteralPath ${psString(action.key)}${name}${recurse}`);
+      lines.push(`Remove-ADTRegistryKey -LiteralPath ${psString(action.key)}${name}${recurse}${cp}`);
       break;
     }
 
@@ -744,7 +745,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
       const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
       const pt = action.passThru ? ' -PassThru' : '';
-      let cmd = `Start-ADTProcessAsUser -FilePath ${psString(action.file)}${args}${successCodes}${rebootCodes}${pt}`;
+      let cmd = `Start-ADTProcessAsUser -FilePath ${psString(action.file)}${args}${successCodes}${rebootCodes}${pt}${cp}`;
       if (action.passThru && action.passThruVar) {
         cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
       }
@@ -763,7 +764,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       const successCodes = action.successExitCodes ? ` -SuccessExitCodes ${action.successExitCodes}` : '';
       const rebootCodes = action.rebootExitCodes ? ` -RebootExitCodes ${action.rebootExitCodes}` : '';
       const pt = action.passThru ? ' -PassThru' : '';
-      let cmd = `Start-ADTMsiProcessAsUser -Action ${psString(msiAction)}${filePart}${pcPart}${args}${addlArgs}${transform}${patches}${successCodes}${rebootCodes}${pt}`;
+      let cmd = `Start-ADTMsiProcessAsUser -Action ${psString(msiAction)}${filePart}${pcPart}${args}${addlArgs}${transform}${patches}${successCodes}${rebootCodes}${pt}${cp}`;
       if (action.passThru && action.passThruVar) {
         cmd = `$${action.passThruVar.replace(/^\$/, '')} = ${cmd}`;
       }
@@ -772,7 +773,7 @@ export function generateActionCmd(action, pathCtx = {}) {
     }
 
     case 'copy_file_to_user_profiles': {
-      lines.push(`Copy-ADTFileToUserProfiles -Path "$($adtSession.DirFiles)\\${action.source}" -Destination ${psString(action.destination)}`);
+      lines.push(`Copy-ADTFileToUserProfiles -Path "$($adtSession.DirFiles)\\${action.source}" -Destination ${psString(action.destination)}${cp}`);
       break;
     }
 
@@ -784,7 +785,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       const ws = action.windowStyle ? ` -WindowStyle ${psString(action.windowStyle)}` : '';
       const admin = action.runAsAdmin ? ' -RunAsAdmin' : '';
       const hotkey = action.hotkey ? ` -Hotkey ${psString(action.hotkey)}` : '';
-      lines.push(`New-ADTShortcut -Path ${psString(action.shortcutPath)} -TargetPath ${psString(action.targetPath)}${args}${icon}${desc}${workDir}${ws}${admin}${hotkey}`);
+      lines.push(`New-ADTShortcut -Path ${psString(action.shortcutPath)} -TargetPath ${psString(action.targetPath)}${args}${icon}${desc}${workDir}${ws}${admin}${hotkey}${cp}`);
       break;
     }
 
@@ -806,7 +807,7 @@ export function generateActionCmd(action, pathCtx = {}) {
     }
 
     case 'remove_file_from_profiles': {
-      lines.push(`Remove-ADTFileFromUserProfiles -Path ${psString(action.path)}`);
+      lines.push(`Remove-ADTFileFromUserProfiles -Path ${psString(action.path)}${cp}`);
       break;
     }
 

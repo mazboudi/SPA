@@ -35,13 +35,7 @@ function parseInstallerFullPath(raw, isScript = false) {
     file = lastSep >= 0 ? norm.slice(lastSep + 1) : norm;
   }
 
-  // Installer type — only from fully-recognized extensions to avoid mid-edit flipping
-  const ext = file.includes('.') ? file.split('.').pop().toLowerCase() : '';
-  const knownMsi = ['msi'];
-  const knownExe = ['exe', 'msp', 'cmd', 'bat', 'ps1'];
-  const installerType = knownMsi.includes(ext) ? 'msi'
-    : knownExe.includes(ext) ? 'exe'
-    : '';   // '' = partial/unknown extension → don't change current type
+  // Installer type parsing removed per user request to explicitly select via radio buttons.
 
   // Find \Files\ in the directory portion (case-insensitive, last occurrence)
   const dirLower = dir.toLowerCase();
@@ -63,7 +57,7 @@ function parseInstallerFullPath(raw, isScript = false) {
     pathError = 'Path must include \\Files\\ — e.g. C:\\AppSource\\AppName\\Files\\setup.msi';
   }
 
-  return { dir, file, installerType, subfolder, pathError };
+  return { dir, file, subfolder, pathError };
 }
 
 // Reconstruct a display path from wizard state (used to initialise the text input)
@@ -130,7 +124,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     setMsiParseResult(null);
     suppressSync.current = true;
 
-    const { dir, file, installerType, subfolder } = parseInstallerFullPath(raw, isScript);
+    const { dir, file, subfolder } = parseInstallerFullPath(raw, isScript);
     const updates = {
       installerSourceDir:  dir,
       installerSourceFile: file,
@@ -138,7 +132,6 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       // Do NOT auto-mirror supportFilesSource — it must be set explicitly
       // via its own field since it points to a separate SupportFiles folder.
     };
-    if (installerType) updates.installerType = installerType;
     if (updateFields) updateFields(updates);
     else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
   };
@@ -285,21 +278,37 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         <h2>📦 Installer &amp; Behavior</h2>
         <p>Provide the full path to the installer file. Everything else is derived automatically.</p>
         
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '8px' }}>
-          <button 
-            type="button" 
-            className={`btn ${!isScript ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => handleTypeToggle(state.installerType === 'script' ? 'exe' : state.installerType || 'exe')}
-          >
-            Traditional Installer (MSI/EXE)
-          </button>
-          <button 
-            type="button" 
-            className={`btn ${isScript ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => handleTypeToggle('script')}
-          >
-            Script Only / Portable App
-          </button>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input 
+              type="radio" 
+              name="installerType" 
+              value="msi" 
+              checked={state.installerType === 'msi'} 
+              onChange={() => handleTypeToggle('msi')} 
+            />
+            MSI Installer
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input 
+              type="radio" 
+              name="installerType" 
+              value="exe" 
+              checked={state.installerType === 'exe'} 
+              onChange={() => handleTypeToggle('exe')} 
+            />
+            EXE Installer
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input 
+              type="radio" 
+              name="installerType" 
+              value="script" 
+              checked={state.installerType === 'script'} 
+              onChange={() => handleTypeToggle('script')} 
+            />
+            Script Only (Portable App)
+          </label>
         </div>
       </div>
 
@@ -437,21 +446,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
               placeholder={isScript ? String.raw`C:\AppSource\AppName\Files` : String.raw`C:\AppSource\AppName\Files\setup.msi`}
               spellCheck={false}
             />
-            {/* Type override chips — shown once a file is detected (only for traditional installers) */}
-            {state.installerSourceFile && !isScript && (
-              <div className="inst-type-toggle">
-                {['msi', 'exe'].map(t => (
-                  <button
-                    key={t}
-                    type="button"
-                    className={`inst-type-btn${state.installerType === t ? ' inst-type-btn--active' : ''}`}
-                    onClick={() => handleTypeToggle(t)}
-                  >
-                    {t.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Type override chips removed */}
           </div>
         </FormField>
 
@@ -572,23 +567,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         </div>
       )}
 
-      {/* ═══ EXE INSTALLER DETAILS ═══ */}
-      {isExe && (
-        <div className="config-section animate-slide">
-          <h3 className="section-title">⚙️ EXE Installer Details</h3>
-          <div className="form-grid">
-            <FormField label="Install Arguments" id="exeInstallArgs">
-              <input id="exeInstallArgs" type="text" value={state.exeInstallArgs} onChange={e => updateField('exeInstallArgs', e.target.value)} placeholder="/S /qn" />
-            </FormField>
-            <FormField label="Uninstall Path" id="exeUninstallPath">
-              <input id="exeUninstallPath" type="text" placeholder="C:\Program Files\App\uninstall.exe" value={state.exeUninstallPath} onChange={e => updateField('exeUninstallPath', e.target.value)} />
-            </FormField>
-            <FormField label="Uninstall Arguments" id="exeUninstallArgs">
-              <input id="exeUninstallArgs" type="text" value={state.exeUninstallArgs} onChange={e => updateField('exeUninstallArgs', e.target.value)} />
-            </FormField>
-          </div>
-        </div>
-      )}
+      {/* EXE INSTALLER DETAILS REMOVED */}
 
       <style>{`
         /* ── Full-path input row ── */

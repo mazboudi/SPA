@@ -264,6 +264,216 @@
     "type": "checkbox"
   },
   {
+    "cmdlet": "custom_variable",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "start_process",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "msi_uninstall_batch",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "start_msi_process",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "execute_process_as_user",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "create_folder",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "registry_set",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "registry_remove",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "show_welcome",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "show_progress",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "new_shortcut",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "uninstall_application",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "file_copy",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "file_remove",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "folder_remove",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "stop_service",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "start_service",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "start_msp_process",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "write_log",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "set_ini",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "get_registry_key",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "remove_firewall_rule",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "all_users_registry",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "msi_process_as_user",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "restart_prompt",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "sleep",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "stop_process",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "pending_reboot",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "copy_file_to_user_profiles",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
+    "cmdlet": "remove_file_from_profiles",
+    "parameter": "commonParams",
+    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
+    "type": "text",
+    "placeholder": "-ErrorAction Stop -Verbose"
+  },
+  {
     "cmdlet": "custom_script",
     "parameter": "code",
     "label": "PowerShell Code",
@@ -697,13 +907,20 @@
     "required": true,
     "placeholder": "Set-ADTRegistryKey -LiteralPath 'HKCU\\\\Software\\\\MyApp' -Name 'Config' -Value 1 -Type DWord"
   },
-  { "_comment": "── msi_process_as_user ──────────────────────────────────────────────" },
+  {
+    "_comment": "── msi_process_as_user ──────────────────────────────────────────────"
+  },
   {
     "cmdlet": "msi_process_as_user",
     "parameter": "action",
     "label": "Action",
     "type": "select",
-    "options": ["Install", "Uninstall", "Patch", "Repair"],
+    "options": [
+      "Install",
+      "Uninstall",
+      "Patch",
+      "Repair"
+    ],
     "default": "Install",
     "required": true
   },
@@ -777,7 +994,9 @@
     "type": "text",
     "placeholder": "msiResult"
   },
-  { "_comment": "── restart_prompt ───────────────────────────────────────────────────" },
+  {
+    "_comment": "── restart_prompt ───────────────────────────────────────────────────"
+  },
   {
     "cmdlet": "restart_prompt",
     "parameter": "countdownSeconds",
@@ -800,7 +1019,9 @@
     "type": "boolean",
     "default": false
   },
-  { "_comment": "── sleep ────────────────────────────────────────────────────────────" },
+  {
+    "_comment": "── sleep ────────────────────────────────────────────────────────────"
+  },
   {
     "cmdlet": "sleep",
     "parameter": "seconds",
@@ -809,7 +1030,9 @@
     "default": 5,
     "required": true
   },
-  { "_comment": "── stop_process ─────────────────────────────────────────────────────" },
+  {
+    "_comment": "── stop_process ─────────────────────────────────────────────────────"
+  },
   {
     "cmdlet": "stop_process",
     "parameter": "processName",
@@ -825,7 +1048,9 @@
     "type": "boolean",
     "default": true
   },
-  { "_comment": "── pending_reboot ───────────────────────────────────────────────────" },
+  {
+    "_comment": "── pending_reboot ───────────────────────────────────────────────────"
+  },
   {
     "cmdlet": "pending_reboot",
     "parameter": "varName",
@@ -834,7 +1059,9 @@
     "placeholder": "isRebootPending",
     "required": true
   },
-  { "_comment": "── copy_file_to_user_profiles ───────────────────────────────────────" },
+  {
+    "_comment": "── copy_file_to_user_profiles ───────────────────────────────────────"
+  },
   {
     "cmdlet": "copy_file_to_user_profiles",
     "parameter": "source",
@@ -851,7 +1078,9 @@
     "placeholder": "AppData\\\\Roaming\\\\MyApp",
     "required": true
   },
-  { "_comment": "── remove_file_from_profiles ────────────────────────────────────────" },
+  {
+    "_comment": "── remove_file_from_profiles ────────────────────────────────────────"
+  },
   {
     "cmdlet": "remove_file_from_profiles",
     "parameter": "path",

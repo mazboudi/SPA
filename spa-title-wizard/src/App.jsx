@@ -320,12 +320,6 @@ export default function App() {
       }
       const intuneDisplayName = wizard.state.displayName;
       const psadtDisplayName = fullParsed.fields?.displayName || '';
-      if (intuneDisplayName && psadtDisplayName) {
-        const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (normalize(intuneDisplayName) !== normalize(psadtDisplayName)) {
-          alert(`⚠️ Title mismatch:\n\nIntune: "${intuneDisplayName}"\nPSADT: "${psadtDisplayName}"\n\nVerify these belong to the same application.`);
-        }
-      }
       wizard.importPsadtState(fullParsed, wizardFields, true);
       setView(VIEW.PACKAGE);
     } catch (err) {
