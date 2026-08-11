@@ -905,16 +905,27 @@ export function modernizeLegacyScriptParts(scriptText) {
   // 3. Parameter renames — applied AFTER cmdlet renames so patterns match v4 cmdlet names
   for (const { matchCmdlets, v3, v4 } of v3ToV4.parameters) {
     const cmdPat = matchCmdlets.map(escapeRe).join('|');
-    // Match: (<any of the cmdlets><rest of the same line>)<param>
-    result = result.replace(
-      new RegExp(`((?:${cmdPat})[^\\n]*)${escapeRe(v3)}\\b`, 'gi'),
-      (_, p1) => `${p1}${v4}`
-    );
+    const lineRegex = new RegExp(`^.*(?:${cmdPat}).*$`, 'gim');
+    result = result.replace(lineRegex, (line) => {
+      // Must include a leading space or dash to avoid partial matches inside strings
+      return line.replace(new RegExp(`\\s${escapeRe(v3)}\\b`, 'gi'), ` ${v4}`);
+    });
   }
 
-  // 4. Custom removals for deprecated parameters that have no direct translation
-  // Remove -ContinueOnError (and its optional boolean argument) which was removed in PSADT 4.x
-  result = result.replace(/\s*-ContinueOnError(?:\s+\$(?:true|false))?\b/gi, '');
+  // 4. Custom translations for deprecated parameters
+  // Translate -ContinueOnError to -ErrorAction SilentlyContinue/Stop
+  result = result.replace(/\s*-ContinueOnError(?:\s+\$(true|false))?\b/gi, (match, p1) => {
+    if (p1 && p1.toLowerCase() === 'false') {
+      return ' -ErrorAction Stop';
+    }
+    return ' -ErrorAction SilentlyContinue';
+  });
+
+  // 5. Translate v3 -Exact, -WildCard, -Regex switches to v4 -NameMatch parameter
+  // Used by Get-ADTApplication and Uninstall-ADTApplication raw blocks
+  result = result.replace(/(Get-ADTApplication|Uninstall-ADTApplication)[^\n]+?(?:\s-(Exact|Wildcard|Regex|Contains))\b/gi, (match, cmdlet, matchType) => {
+    return match.replace(new RegExp(`\\s-${matchType}\\b`, 'i'), ` -NameMatch '${capitalizeFirst(matchType)}'`);
+  });
 
   return result;
 }
@@ -1195,7 +1206,12 @@ function extractBlockActions(block) {
       const rmMsiMatch = t.match(/Remove-MSIApplications\s+-Name\s+['"]([^'"]+)['"]/i);
       if (rmMsiMatch) {
         flushCustomBuffer();
-        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], applicationType: 'MSI', raw: modernizedLine });
+        let nameMatch = 'Contains';
+        if (/-Exact\b/i.test(t)) nameMatch = 'Exact';
+        else if (/-Wildcard\b/i.test(t)) nameMatch = 'Wildcard';
+        else if (/-Regex\b/i.test(t)) nameMatch = 'Regex';
+
+        actions.push({ type: 'uninstall_application', desc: `Remove MSI: ${rmMsiMatch[1]}`, name: rmMsiMatch[1], applicationType: 'MSI', nameMatch, raw: modernizedLine });
         matched = true;
       }
     }
@@ -1381,7 +1397,8 @@ function extractBlockActions(block) {
         const regNameMatch = t.match(/-Name\s+['"]([^'"]+)['"]/i);
         const nameVal = regNameMatch ? regNameMatch[1] : '';
         const descSuffix = nameVal ? ` \u2192 ${nameVal}` : '';
-        actions.push({ type: 'registry_remove', desc: `Remove reg: ${regRemoveMatch[1]}${descSuffix}`, key: regRemoveMatch[1], name: nameVal, raw: modernizedLine });
+        const recurse = /-Recurse\b/i.test(t);
+        actions.push({ type: 'registry_remove', desc: `Remove reg: ${regRemoveMatch[1]}${descSuffix}`, key: regRemoveMatch[1], name: nameVal, recurse, raw: modernizedLine });
         matched = true;
       }
     }

@@ -6,9 +6,9 @@ Converted command: UninstallADTApplication -Name ‘Desktop & Process Analytics 
 
 Correct converted command should be: UninstallADTApplication -Name ‘Desktop & Process Analytics  Client*’ -NameMatch ‘WildCard’ -ApplicationType ‘MSI’ 
 
-The screenshot indicates we are always defaulting the -NameMatch dropdown selection to Exact (default should be ‘Contains’) instead of matching the original command’s intent.  
+In the builder, we are always defaulting the -NameMatch dropdown selection to Exact (default should be ‘Contains’) instead of matching the original command’s intent.  
 
-Related to the Uninstall-ADTApplication issue described above, conversion of 3.x function Get-InstalledApplication to 4.x function Get-ADTApplication specifies the type of name match to do without using the -NameMatch parameter. Unlike the 3.x function which lets you specify the type of match by specifying -Exact, -WildCard, etc, the 4.x function requires we use the parameter -NameMatch (e.g. -NameMatch ‘Exact’ or -NameMatch ‘WildCard’). Examples found in Desktop Messaging Client script conversion (Z:\Verient_DesktopClientTools_15.2.9_new\Deploy). In the screenshot below, the command should be: $RecheckScapture = Get-ADTApplication -Name 'Screen Capture Module' -NameMatch ‘Exact’  
+Related to the Uninstall-ADTApplication issue described prior, conversion of 3.x function Get-InstalledApplication to 4.x function Get-ADTApplication specifies the type of name match to do without using the -NameMatch parameter. Unlike the 3.x function which lets you specify the type of match by specifying -Exact, -WildCard, etc, the 4.x function requires we use the parameter -NameMatch (e.g. -NameMatch ‘Exact’ or -NameMatch ‘WildCard’). Examples found in Desktop Messaging Client script conversion /Users/wissammazboudi/Development/SPA/RefactorApps/samplePSADT/Verient-DEsktop-Deploy-Application.ps1. In the builder, the command should be: $RecheckScapture = Get-ADTApplication -Name 'Screen Capture Module' -NameMatch ‘Exact’  
 
 Execute-MSI conversion to Start-ADTMsiProcess: -Path should be -FilePath 
 

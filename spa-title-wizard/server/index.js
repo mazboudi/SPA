@@ -220,14 +220,17 @@ function ensureLocalClone(projectPath, ref = 'main') {
     console.log(`  📂 Existing clone found: ${repoDir}`);
     git(`remote set-url origin ${url}`, repoDir, { silent: true });
     
-    // Explicitly fetch the exact ref the user requested (bypasses tracking/single-branch issues)
-    git(`fetch origin ${ref} --force`, repoDir, { silent: true });
-    // Checkout the commit we just fetched directly
-    git(`checkout FETCH_HEAD --force`, repoDir, { silent: true });
+    // Fetch the latest remote changes
+    git(`fetch origin ${ref}`, repoDir, { silent: true });
+    
+    // Checkout the branch and hard-reset it to perfectly match the remote (wiping local changes)
+    git(`checkout ${ref} --force`, repoDir, { silent: true });
+    git(`reset --hard origin/${ref}`, repoDir, { silent: true });
+    
     // Clean any untracked files from previous operations
     git(`clean -fdx`, repoDir, { silent: true });
     
-    console.log(`  📌 Checked out: ${ref} (detached from FETCH_HEAD)`);
+    console.log(`  📌 Checked out and reset: ${ref} to origin/${ref}`);
   } else {
     // Fresh clone — remove stale directory if it exists without .git
     if (existsSync(repoDir)) {
@@ -627,7 +630,7 @@ app.post('/api/publish', async (req, res) => {
       git(`tag -f -a ${tagName} -m "Release ${tagName} — ${displayName || packageId}"`, repoDir);
       console.log(`  🏷️  Tag set: ${tagName}`);
 
-      git(`push origin ${defaultBranch} --force`, repoDir);
+      git(`push origin ${defaultBranch}`, repoDir);
       git(`push origin ${tagName} --force`, repoDir);
       console.log(`  🚀 Pushed to origin/${defaultBranch}`);
 

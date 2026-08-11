@@ -639,7 +639,8 @@ export function generateActionCmd(action, pathCtx = {}) {
 
     case 'registry_remove': {
       const name = action.name ? ` -Name ${psString(action.name)}` : '';
-      lines.push(`Remove-ADTRegistryKey -LiteralPath ${psString(action.key)}${name}`);
+      const recurse = action.recurse ? ' -Recurse' : '';
+      lines.push(`Remove-ADTRegistryKey -LiteralPath ${psString(action.key)}${name}${recurse}`);
       break;
     }
 

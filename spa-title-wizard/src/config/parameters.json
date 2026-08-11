@@ -258,6 +258,12 @@
     "placeholder": "Leave empty to remove entire key"
   },
   {
+    "cmdlet": "registry_remove",
+    "parameter": "recurse",
+    "label": "Recurse (delete subkeys)",
+    "type": "checkbox"
+  },
+  {
     "cmdlet": "custom_script",
     "parameter": "code",
     "label": "PowerShell Code",
@@ -400,10 +406,10 @@
     "label": "Name Match (-NameMatch)",
     "type": "select",
     "options": [
+      "Contains",
       "Exact",
       "Regex",
-      "Wildcard",
-      "Contains"
+      "Wildcard"
     ],
     "default": "Contains"
   },
