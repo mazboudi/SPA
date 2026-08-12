@@ -517,6 +517,33 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
               })()}
             </div>
           </div>
+          {/* ── Intune replace warning ── */}
+          {state.wizardMode === 'edit' && state.syncIntuneAppId && (pipelineAction === 'publish' || pipelineAction === 'assign') && (
+            <div style={{
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: 'rgba(239, 68, 68, 0.10)',
+              border: '1px solid rgba(239, 68, 68, 0.45)',
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'flex-start',
+              fontSize: '0.82rem',
+              lineHeight: '1.5',
+            }}>
+              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🗑️</span>
+              <div>
+                <strong style={{ color: '#f87171', display: 'block', marginBottom: '2px' }}>
+                  Destructive Action — Existing Intune App Will Be Replaced
+                </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Publishing will <strong>delete the currently linked app</strong> (<code style={{ fontSize: '0.78rem', padding: '1px 5px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px' }}>{state.syncIntuneAppId}</code>) from the Intune catalogue, including all its dependency and supersedence relationships, then create a fresh app in its place.
+                  A new App ID will be written back to the project automatically.
+                </span>
+              </div>
+            </div>
+          )}
+
           <button
             className="btn btn-primary"
             onClick={handlePublish}
@@ -532,6 +559,26 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
       </div>
 
       {/* Intune push block removed */}
+
+
+      {/* File browser */}
+      <div className="review-browser">
+        <FileTreePreview
+          files={files}
+          selectedFile={selectedFile}
+          onSelectFile={setSelectedFile}
+        />
+        <div className="review-preview">
+          {selectedFile && files[selectedFile] ? (
+            <CodePreview
+              code={files[selectedFile]}
+              filename={selectedFile.split('/').pop()}
+            />
+          ) : (
+            <div className="review-empty">Select a file to preview</div>
+          )}
+        </div>
+      </div>
 
       {/* Schema Validation */}
       <div className={`validation-panel ${hasErrors ? 'validation-panel--error' : 'validation-panel--ok'}`}>
@@ -556,46 +603,6 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
             )}
           </div>
         ))}
-      </div>
-
-      {/* File browser */}
-      <div className="review-browser">
-        <FileTreePreview
-          files={files}
-          selectedFile={selectedFile}
-          onSelectFile={setSelectedFile}
-        />
-        <div className="review-preview">
-          {selectedFile && files[selectedFile] ? (
-            <CodePreview
-              code={files[selectedFile]}
-              filename={selectedFile.split('/').pop()}
-            />
-          ) : (
-            <div className="review-empty">Select a file to preview</div>
-          )}
-        </div>
-      </div>
-
-      {/* Next steps */}
-      <div className="review-next">
-        <h3>📋 After Publishing</h3>
-        <ol>
-          <li>Search <code>TODO</code> in the generated files and fill in all placeholders</li>
-          {(state.platform === 'windows' || state.platform === 'both') && (
-            <>
-              <li>Drop the installer binary into <code>windows/src/Files/</code></li>
-              <li>Replace Entra ID group IDs in <code>windows/intune/assignments.json</code></li>
-            </>
-          )}
-          {(state.platform === 'macos' || state.platform === 'both') && (
-            <>
-              <li>Drop the <code>.{state.macInstallerType}</code> installer into <code>macos/src/Files/</code></li>
-              <li>Replace Jamf group IDs in <code>macos/jamf/scope-inputs.json</code></li>
-            </>
-          )}
-          <li>Push your changes and let the CI/CD pipeline run</li>
-        </ol>
       </div>
 
       <style>{`
@@ -661,32 +668,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           color: var(--text-muted);
           font-size: 0.9rem;
         }
-        .review-next {
-          padding: var(--space-lg);
-          background: var(--bg-elevated);
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-md);
-        }
-        .review-next h3 {
-          font-size: 1rem;
-          margin-bottom: var(--space-md);
-        }
-        .review-next ol {
-          padding-left: var(--space-lg);
-          color: var(--text-secondary);
-          font-size: 0.85rem;
-        }
-        .review-next li {
-          margin-bottom: var(--space-sm);
-        }
-        .review-next code {
-          font-family: var(--font-mono);
-          font-size: 0.8rem;
-          color: var(--text-accent);
-          background: var(--bg-input);
-          padding: 2px 6px;
-          border-radius: 3px;
-        }
+
 
         /* Validation panel */
         .validation-panel {

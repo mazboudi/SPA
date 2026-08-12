@@ -259,11 +259,6 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
     // Will auto-trigger comparison via the useEffect
   }, [updateField]);
 
-  const handleRemoveSyncApp = useCallback(() => {
-    updateField('syncIntuneAppId', '');
-    setSyncError(null);
-    setSyncRawIntuneData(null);
-  }, [updateField]);
 
   const handleLoadCatalogForSync = useCallback(async () => {
     setCatalogLoading(true);
@@ -1355,8 +1350,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                 <div>
                   <div className="intune-sync-section__linked" style={{ marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-card, rgba(255,255,255,0.02))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                     <span>Linked to: <code>{state.syncIntuneAppId}</code></span>
-                    <button type="button" className="btn btn-ghost btn-xs" onClick={handleRemoveSyncApp} style={{ color: '#ef4444', marginLeft: 'auto' }}>✕ Unlink</button>
-                    <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 10 }} onClick={() => runSyncCheck(state.syncIntuneAppId)}>↻ Refresh Live Data</button>
+                    <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }} onClick={() => runSyncCheck(state.syncIntuneAppId)}>↻ Refresh Live Data</button>
                   </div>
                 </div>
               )}

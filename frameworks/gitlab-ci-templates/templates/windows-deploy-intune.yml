@@ -192,20 +192,60 @@
         $publishArgs['RequirementRules'] = $requirementRules
       }
 
-      # If the title was previously published to Intune (edit flow), pass the
-      # old app ID so Publish-Win32App.ps1 can delete it before creating the new
-      # version — prevents catalogue duplicates.
+      # ── Edit-mode: explicitly replace the previously linked app ─────────────
+      # Sequence required by the Intune Graph API:
+      #   1. Clear ALL relationships on the old app (Graph blocks deletion of
+      #      apps that are still referenced as a dependency or supersedence target).
+      #   2. Delete the old app.
+      #   3. Create the new app fresh (no PreviousAppId — we already removed it).
+      #   4. Capture the new APP_ID and persist it back to app.json for future edits.
       $appJsonRaw = Get-Content 'windows/intune/app.json' -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
       $previousAppId = $appJsonRaw.syncIntuneAppId
-      if ($previousAppId -and $previousAppId -match '^[0-9a-f\-]{36}$') {
-        Write-Host "🔁 Edit mode: will replace existing Intune app $previousAppId" -ForegroundColor Cyan
-        $publishArgs['PreviousAppId'] = $previousAppId
+
+      if ($previousAppId -and $previousAppId -match '^[0-9a-f\-]{36}$' -and -not [bool]::Parse($env:INTUNE_DRY_RUN)) {
+        Write-Host "🔁 Edit mode detected — existing app: $previousAppId" -ForegroundColor Cyan
+
+        ## Step 2a: Clear all supersedence + dependency relationships on the OLD app.
+        ## We write a minimal empty JSON so Set-Win32Relationships clears everything.
+        $emptyRelPath = [System.IO.Path]::GetTempFileName() -replace '\.tmp$', '.json'
+        '{}' | Set-Content $emptyRelPath -Encoding utf8 -NoNewline
+        Write-Host "  ↳ Clearing relationships on $previousAppId..." -ForegroundColor DarkGray
+        try {
+          & 'intune-modules/Set-Win32Relationships.ps1' `
+            -AppId            $previousAppId `
+            -SupersedencePath $emptyRelPath `
+            -DependenciesPath $emptyRelPath `
+            -TenantId         $env:AZURE_TENANT_ID `
+            -ClientId         $env:AZURE_CLIENT_ID `
+            -ClientSecret     $env:AZURE_CLIENT_SECRET
+          Write-Host "  ✅ Relationships cleared on $previousAppId" -ForegroundColor Green
+        } catch {
+          Write-Host "  ⚠️  Could not clear relationships: $($_.Exception.Message) — proceeding anyway" -ForegroundColor Yellow
+        } finally {
+          Remove-Item $emptyRelPath -ErrorAction SilentlyContinue
+        }
+
+        ## Step 2b: Delete the old app from Intune.
+        Write-Host "  ↳ Deleting old Intune app $previousAppId..." -ForegroundColor DarkGray
+        try {
+          & 'intune-modules/Remove-Win32App.ps1' `
+            -AppId       $previousAppId `
+            -TenantId    $env:AZURE_TENANT_ID `
+            -ClientId    $env:AZURE_CLIENT_ID `
+            -ClientSecret $env:AZURE_CLIENT_SECRET
+          Write-Host "  ✅ Old app $previousAppId deleted" -ForegroundColor Green
+        } catch {
+          Write-Host "  ⚠️  Could not delete old app: $($_.Exception.Message) — proceeding with publish" -ForegroundColor Yellow
+        }
+      } elseif ([bool]::Parse($env:INTUNE_DRY_RUN) -and $previousAppId) {
+        Write-Host "[DRY-RUN] Would have cleared relationships + deleted $previousAppId" -ForegroundColor DarkGray
       }
 
+      ## Step 3: Create the new Intune app (never pass PreviousAppId — we already deleted it).
       & 'intune-modules/Publish-Win32App.ps1' @publishArgs
 
-      # ── App relationships: supersedence + dependencies ────────────────────
-      # Read the APP_ID that Publish-Win32App.ps1 just wrote to out/app.env
+      # ── Step 4: Capture new APP_ID and set relationships ─────────────────
+      # Read the APP_ID that Publish-Win32App.ps1 wrote to out/app.env
       $publishedAppId = ''
       if (Test-Path 'out/app.env') {
         $appEnvLine = Get-Content 'out/app.env' | Where-Object { $_ -match '^APP_ID=' } | Select-Object -First 1
@@ -213,13 +253,13 @@
       }
 
       if ($publishedAppId -and $publishedAppId -ne 'DRY-RUN') {
-        # Set supersedence + dependencies in ONE call.
+        # Set supersedence + dependencies on the NEW app in ONE call.
         # updateRelationships is a replace-all operation: two separate calls would
         # cause the second to silently overwrite the first.
         $hasSupersedence = Test-Path 'windows/intune/supersedence.json'
         $hasDependencies = Test-Path 'windows/intune/dependencies.json'
         if ($hasSupersedence -or $hasDependencies) {
-          Write-Host "Setting app relationships (supersedence + dependencies)..."
+          Write-Host "Setting app relationships on new app $publishedAppId (supersedence + dependencies)..."
           & 'intune-modules/Set-Win32Relationships.ps1' `
             -AppId            $publishedAppId `
             -SupersedencePath 'windows/intune/supersedence.json' `
@@ -229,8 +269,7 @@
             -ClientSecret     $env:AZURE_CLIENT_SECRET
         }
 
-        # ── Persist new app ID back into app.json so next edit knows what to replace ──
-        # This prevents catalogue duplicates on future republish cycles.
+        # ── Persist NEW app ID back into app.json so future edits know what to replace ──
         $appJsonPath = 'windows/intune/app.json'
         try {
           $appJsonContent = Get-Content $appJsonPath -Raw | ConvertFrom-Json
@@ -238,7 +277,7 @@
           $appJsonContent | ConvertTo-Json -Depth 10 | Set-Content $appJsonPath -Encoding utf8 -NoNewline
           Write-Host "✅ syncIntuneAppId updated in app.json: $publishedAppId" -ForegroundColor Green
 
-          # Commit the updated app.json back to the repo
+          # Commit the updated app.json back to the repo so the workbench picks it up on next load
           git config user.email "ci-bot@spa-pipeline"
           git config user.name "SPA Pipeline Bot"
           git add $appJsonPath
@@ -251,12 +290,11 @@
             Write-Host "ℹ️  app.json syncIntuneAppId already up to date — no commit needed." -ForegroundColor DarkGray
           }
         } catch {
-          Write-Log "WARNING: Could not update syncIntuneAppId in app.json — $($_.Exception.Message)" WARN -LogFile $logFile
           Write-Host "⚠️  Could not persist syncIntuneAppId: $($_.Exception.Message)" -ForegroundColor Yellow
           # Non-fatal — the app was still published successfully
         }
       } else {
-        Write-Host "Dry run or no APP_ID — skipping supersedence/dependencies." -ForegroundColor DarkGray
+        Write-Host "Dry run or no APP_ID — skipping relationship setup and app.json update." -ForegroundColor DarkGray
       }
   artifacts:
     when: always

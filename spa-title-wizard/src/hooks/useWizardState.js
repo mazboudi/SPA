@@ -281,17 +281,16 @@ function syncInstallerActions(next, prevInstallerType) {
   // 1. Install phase: swap start_msi_process <-> start_process, or remove for script
   if (phases.install && Array.isArray(phases.install.actions)) {
     if (value === 'script') {
-      phases.install.actions = phases.install.actions.filter(a => a.type !== 'start_msi_process' && a.type !== 'start_process');
+      phases.install.actions = phases.install.actions.filter(a => !( (a.type === 'start_msi_process' || a.type === 'start_process') && a.isWizardGenerated ));
     } else {
-      let hasPrimary = false;
       phases.install.actions = phases.install.actions.map(action => {
+        if (!action.isWizardGenerated) return action;
         if (action.type === 'start_msi_process' || action.type === 'start_process') {
-          hasPrimary = true;
           if (value === 'exe' && action.type === 'start_msi_process') {
             return {
               ...action,
               type: 'start_process',
-              file: next.installerSourceFile || next.exeSourceFilename || 'setup.exe',
+              file: next.exeSourceFilename || 'setup.exe',
               args: next.exeInstallArgs || '/S'
             };
           }
@@ -299,7 +298,7 @@ function syncInstallerActions(next, prevInstallerType) {
             return {
               ...action,
               type: 'start_msi_process',
-              file: next.installerSourceFile || next.msiFileName || 'installer.msi',
+              file: next.msiFileName || 'installer.msi',
               args: '/QN /norestart'
             };
           }
@@ -312,12 +311,11 @@ function syncInstallerActions(next, prevInstallerType) {
   // 2. Uninstall phase: swap uninstall_application <-> start_process, or remove for script
   if (phases.uninstall && Array.isArray(phases.uninstall.actions)) {
     if (value === 'script') {
-      phases.uninstall.actions = phases.uninstall.actions.filter(a => a.type !== 'uninstall_application' && a.type !== 'start_process');
+      phases.uninstall.actions = phases.uninstall.actions.filter(a => !( (a.type === 'uninstall_application' || a.type === 'start_process') && a.isWizardGenerated ));
     } else {
-      let hasPrimary = false;
       phases.uninstall.actions = phases.uninstall.actions.map(action => {
-        if (action.type === 'uninstall_application' || (action.type === 'start_process' && (!next.exeUninstallPath || action.file === next.exeUninstallPath))) {
-          hasPrimary = true;
+        if (!action.isWizardGenerated) return action;
+        if (action.type === 'uninstall_application' || action.type === 'start_process') {
           if (value === 'exe' && action.type === 'uninstall_application') {
             return {
               ...action,
@@ -326,8 +324,7 @@ function syncInstallerActions(next, prevInstallerType) {
               args: next.exeUninstallArgs || '/S'
             };
           }
-          // Be careful swapping start_process -> uninstall_application
-          if (value === 'msi' && action.type === 'start_process' && (!next.exeUninstallPath || action.file === next.exeUninstallPath)) {
+          if (value === 'msi' && action.type === 'start_process') {
             return {
               ...action,
               type: 'uninstall_application',
@@ -715,18 +712,18 @@ export default function useWizardState() {
       if (prev.installerType === 'msi') {
         const msiFile = prev.msiFileName || srcFile || 'installer.msi';
         mkPhase('install', [
-          { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart' },
+          { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart', isWizardGenerated: true },
         ]);
         mkPhase('uninstall', [
-          { type: 'uninstall_application', enabled: true, name: prev.msiProductName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART' },
+          { type: 'uninstall_application', enabled: true, name: prev.msiProductName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART', isWizardGenerated: true },
         ]);
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
         mkPhase('install', [
-          { type: 'start_process', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S' },
+          { type: 'start_process', enabled: true, file: exeFile, args: prev.exeInstallArgs || '/S', isWizardGenerated: true },
         ]);
         mkPhase('uninstall', [
-          { type: 'start_process', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S' },
+          { type: 'start_process', enabled: true, file: prev.exeUninstallPath || '', args: prev.exeUninstallArgs || '/S', isWizardGenerated: true },
         ]);
       } else if (prev.installerType === 'script') {
         mkPhase('install', []);

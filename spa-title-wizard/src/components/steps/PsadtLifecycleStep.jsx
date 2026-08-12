@@ -516,7 +516,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
 
   const activeTab = state._psadtActiveTab || 'behavior';
   const setActiveTab = (tab) => updateFields({ _psadtActiveTab: tab });
-  const [compareView, setCompareView] = useState('converted'); // 'original' | 'converted' | 'report'
+  const [compareView, setCompareView] = useState('side-by-side'); // 'original' | 'converted' | 'side-by-side' | 'stacked' | 'report'
   const isPristine = state.pristineScripts !== false;
 
   const hasLegacyScript = useMemo(() => {
