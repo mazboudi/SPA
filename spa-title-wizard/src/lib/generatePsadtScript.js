@@ -198,7 +198,7 @@ export default function generatePsadtScript(s, options = {}) {
       // If it is one of the standard official variables, omit it from custom variables list to avoid duplicates
       if (standardKeys.includes(cleanName.toLowerCase())) return;
 
-       const codeLine = `    ${cleanName} = '${action.value || ''}'`;
+      const codeLine = `    ${cleanName} = '${action.value || ''}'`;
       if (isClean) {
         standardVars.push(codeLine);
       } else {
@@ -211,7 +211,7 @@ export default function generatePsadtScript(s, options = {}) {
   });
 
   // ── 3. Build block strings per phase ─────────────────────────────────────
-  
+
   // Helper to compile standard visual actions, followed by a separate CustomCode block
   function compilePhaseBlock(actions, phaseName, guideDesc) {
     const builderActions = (actions || []).filter(a => !a.isCustomCodeBlock);

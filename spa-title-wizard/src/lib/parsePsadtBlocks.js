@@ -23,10 +23,10 @@ export function promoteLegacyCards(rawScript) {
   // 1. Zero-Config MSI (SPA template version)
   const zcMsiRx = /(?:##\s*Handle Zero-Config MSI installations\.\r?\n)?\s*if\s*\(\$adtSession\.UseDefaultMsi\)[\s\S]*?\$adtSession\.DefaultMspFiles\s*\|\s*Start-ADTMsiProcess\s+-Action\s+Patch\s*\}\s*\}/gi;
   remaining = remaining.replace(zcMsiRx, '');
-  
+
   const zcMsiUninstallRx = /(?:##\s*Handle Zero-Config MSI uninstallations\.\r?\n)?\s*if\s*\(\$adtSession\.UseDefaultMsi\)[\s\S]*?Start-ADTMsiProcess\s*@ExecuteDefaultMSISplat\s*\}/gi;
   remaining = remaining.replace(zcMsiUninstallRx, '');
-  
+
   // 2. Pre-Install / Pre-Uninstall Show-Welcome with process closing
   const welcomeRx = /(?:##\s*Show Welcome Message[^\r\n]*\r?\n)?\s*\$saiwParams\s*=\s*@\{([\s\S]*?)\}\s*(?:if\s*\([^\{]+\{\s*\$saiwParams\.Add\('CloseProcesses'[^}]+\}\s*)?(#?Show-ADTInstallationWelcome\s*@saiwParams)/gi;
   remaining = remaining.replace(welcomeRx, (match, hashBody, callStmt) => {
@@ -35,7 +35,7 @@ export function promoteLegacyCards(rawScript) {
     const deferTimes = deferTimesMatch ? parseInt(deferTimesMatch[1], 10) : 3;
     const checkDiskSpace = /CheckDiskSpace\s*=\s*\$true/i.test(hashBody);
     const persistPrompt = /PersistPrompt\s*=\s*\$true/i.test(hashBody);
-    
+
     extracted.push({
       type: 'show_welcome',
       enabled: !callStmt.startsWith('#'),
@@ -49,7 +49,7 @@ export function promoteLegacyCards(rawScript) {
     });
     return '';
   });
-  
+
   // 3. Simple Show-Welcome for Uninstall countdown
   const uninstallWelcomeRx = /(?:##\s*If there are processes to close[^\r\n]*\r?\n)?\s*if\s*\(\$adtSession\.AppProcessesToClose\.Count\s*-gt\s*0\)\s*\{\s*Show-ADTInstallationWelcome\s+-CloseProcesses\s+\$adtSession\.AppProcessesToClose\s+-CloseProcessesCountdown\s+(\d+)\s*\}/gi;
   remaining = remaining.replace(uninstallWelcomeRx, (match, cd) => {
@@ -66,7 +66,7 @@ export function promoteLegacyCards(rawScript) {
     });
     return '';
   });
-  
+
   // 4. Standard Show-Progress
   const progressRx = /(?:##\s*Show Progress Message[^\r\n]*\r?\n)?\s*(#?)Show-ADTInstallationProgress(?:[\s\S]*?-StatusMessage\s+'([^']+)')?(?:[\s\S]*?-WindowLocation\s+'([^']+)')?/gi;
   remaining = remaining.replace(progressRx, (match, comment, msg) => {
@@ -78,7 +78,7 @@ export function promoteLegacyCards(rawScript) {
     });
     return '';
   });
-  
+
   // 5. Post-Install Show-Prompt (Show Completion)
   const promptRx = /(?:##\s*Display a message at the end[^\r\n]*\r?\n)?\s*if\s*\(!\$adtSession\.UseDefaultMsi\)\s*\{\s*(#?)Show-ADTInstallationPrompt\s+-Message\s+'[^']+'\s+-ButtonRightText\s+'OK'(?:\s+-Icon\s+Information)?\s+-NoWait(?:\s+-Timeout\s+'\d+')?\s*\}/gi;
   remaining = remaining.replace(promptRx, (match, comment) => {
@@ -132,6 +132,26 @@ export default function parsePsadtBlocks(content) {
   content = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   const lines = content.split('\n');
+
+  /**
+   * Count net { vs } on a line, skipping characters inside quoted strings.
+   * Registry keys (and other string params) can contain { and } inside
+   * single- or double-quoted values; counting them naively corrupts depth.
+   */
+  function netBraces(line) {
+    let depth = 0;
+    let inSingle = false;
+    let inDouble = false;
+    for (let ci = 0; ci < line.length; ci++) {
+      const ch = line[ci];
+      if (ch === "'" && !inDouble) { inSingle = !inSingle; continue; }
+      if (ch === '"' && !inSingle) { inDouble = !inDouble; continue; }
+      if (inSingle || inDouble) continue;
+      if (ch === '{') depth++;
+      if (ch === '}') depth--;
+    }
+    return depth;
+  }
 
   // ── 1. Parse $adtSession variables ─────────────────────────────────────
   // Standard + array + system-managed vars via the shared single source of truth
@@ -194,35 +214,23 @@ export default function parsePsadtBlocks(content) {
     if (/function\s+Install-ADTDeployment/.test(line)) {
       currentPhase = 'preInstall';
       bracesCount = 0;
-      for (const ch of line) {
-        if (ch === '{') bracesCount++;
-        if (ch === '}') bracesCount--;
-      }
+      bracesCount += netBraces(line);
       continue;
     }
     if (/function\s+Uninstall-ADTDeployment/.test(line)) {
       currentPhase = 'preUninstall';
       bracesCount = 0;
-      for (const ch of line) {
-        if (ch === '{') bracesCount++;
-        if (ch === '}') bracesCount--;
-      }
+      bracesCount += netBraces(line);
       continue;
     }
     // Skip Repair-ADTDeployment (no longer used in PSADT 4.1x)
     if (/function\s+Repair-ADTDeployment/.test(line)) {
       // Skip until the function closes
       let repairBraces = 0;
-      for (const ch of line) {
-        if (ch === '{') repairBraces++;
-        if (ch === '}') repairBraces--;
-      }
+      repairBraces += netBraces(line);
       while (i + 1 < lines.length && repairBraces > 0) {
         i++;
-        for (const ch of lines[i]) {
-          if (ch === '{') repairBraces++;
-          if (ch === '}') repairBraces--;
-        }
+        repairBraces += netBraces(lines[i]);
       }
       continue;
     }
@@ -251,9 +259,8 @@ export default function parsePsadtBlocks(content) {
             seenParamBlock = true;
           }
 
+          bracesCount += netBraces(innerLine);
           for (const ch of innerLine) {
-            if (ch === '{') bracesCount++;
-            if (ch === '}') bracesCount--;
             if (ch === '(') paramParen++;
             if (ch === ')') paramParen--;
           }
@@ -265,12 +272,8 @@ export default function parsePsadtBlocks(content) {
         continue;
       }
 
-      // Track exact nested braces
-      let tempBraces = bracesCount;
-      for (const ch of line) {
-        if (ch === '{') tempBraces++;
-        if (ch === '}') tempBraces--;
-      }
+      // Track exact nested braces — quote-aware to handle registry keys containing { }
+      let tempBraces = bracesCount + netBraces(line);
 
       // Detect sub-phase marker overrides.
       // IMPORTANT: use negative lookbehind to avoid matching '## MARK: Pre-Install'
@@ -322,7 +325,7 @@ export default function parsePsadtBlocks(content) {
           // Promote legacy template boilerplate into visual cards
           const { actions: promoted, remaining } = promoteLegacyCards(cleanRaw);
           actions.push(...promoted);
-          
+
           if (remaining) {
             // Check if remaining contains at least one line of executable code
             const hasExecutableCode = remaining.split('\n').some(line => {
