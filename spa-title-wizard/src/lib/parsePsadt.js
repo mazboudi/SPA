@@ -379,9 +379,16 @@ function extractAdtSession(text) {
 
   let depth = 1;
   let i = braceStart + 1;
+  let inSingle = false;
+  let inDouble = false;
   while (i < text.length && depth > 0) {
-    if (text[i] === '{') depth++;
-    else if (text[i] === '}') depth--;
+    const ch = text[i];
+    if (ch === "'" && !inDouble) { inSingle = !inSingle; }
+    else if (ch === '"' && !inSingle) { inDouble = !inDouble; }
+    else if (!inSingle && !inDouble) {
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+    }
     i++;
   }
   return text.substring(braceStart + 1, i - 1);
@@ -497,9 +504,18 @@ function extractV4Function(text, funcName) {
   const start = text.indexOf(m[0]) + m[0].length;
   let depth = 1;
   let i = start;
+  let inSingle = false;
+  let inDouble = false;
   while (i < text.length && depth > 0) {
-    if (text[i] === '{') depth++;
-    else if (text[i] === '}') depth--;
+    const ch = text[i];
+    // Track quoted string context so { and } inside string literals
+    // (e.g. registry key GUIDs like {com.company.app}_is1) do not corrupt depth.
+    if (ch === "'" && !inDouble) { inSingle = !inSingle; }
+    else if (ch === '"' && !inSingle) { inDouble = !inDouble; }
+    else if (!inSingle && !inDouble) {
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+    }
     i++;
   }
   return text.substring(start, i - 1);
@@ -725,7 +741,9 @@ function extractPsParamValue(line, paramName) {
   const dq = line.match(doubleRe);
   if (dq) return dq[1];
   // Try unquoted variable: -ParamName $varName or -ParamName $($expr)\path
-  const unquotedRe = new RegExp(`-${paramName}\\s+(\\$(?:\\([^)]+\\)|[\\w.]+)(?:[\\\\/][^\\s'",;|}]+)*)`, 'i');
+  // Note: } is intentionally NOT excluded so registry key paths containing
+  // curly-brace GUIDs (e.g. \{com.company.app}_is1) are captured in full.
+  const unquotedRe = new RegExp(`-${paramName}\\s+(\\$(?:\\([^)]+\\)|[\\w.]+)(?:[\\\\/][^\\s'",;|]+)*)`, 'i');
   const um = line.match(unquotedRe);
   if (um) return um[1];
   // Try unquoted bare word: -ParamName SomeWord (no quotes, no $, ends at whitespace/end)
@@ -783,9 +801,27 @@ function extractBraceBlock(lines, startIdx) {
     const raw = lines[i];
     const t = raw.trim();
 
-    for (const ch of t) {
-      if (ch === '{') { depth++; started = true; }
-      if (ch === '}') depth--;
+    // Walk character-by-character, but skip over quoted string contents so
+    // that { and } inside registry key paths (or any string literal) do not
+    // corrupt the brace-depth counter.
+    let inSingle = false;
+    let inDouble = false;
+    for (let ci = 0; ci < t.length; ci++) {
+      const ch = t[ci];
+
+      // Toggle single-quote context (PowerShell single-quoted strings have no
+      // escape sequences, so consecutive '' is a literal quote but still exits
+      // and immediately re-enters the string — depth-counting is fine either way).
+      if (ch === "'" && !inDouble) { inSingle = !inSingle; continue; }
+      // Toggle double-quote context (backtick-escape is possible, but doesn't
+      // affect brace characters so we can ignore it here).
+      if (ch === '"' && !inSingle) { inDouble = !inDouble; continue; }
+
+      // Only count braces when outside any quoted string.
+      if (!inSingle && !inDouble) {
+        if (ch === '{') { depth++; started = true; }
+        if (ch === '}') depth--;
+      }
     }
 
     blockLines.push(raw);

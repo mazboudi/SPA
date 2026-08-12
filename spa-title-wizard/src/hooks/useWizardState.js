@@ -1017,6 +1017,7 @@ export default function useWizardState() {
           ...snapshot,
           // Always clear session-only state so new session starts fresh
           _lastPublishResult: null,
+          _pipelineLocked:    false,
           _psadtActiveTab: null,
           wizardMode: 'edit',
           _editProjectId: projectMeta.id,
@@ -1152,6 +1153,7 @@ export default function useWizardState() {
         syncIntuneAppId:      '',
         // Clear session artifacts
         _lastPublishResult:   null,
+        _pipelineLocked:      false,
         _psadtActiveTab:      null,
       }));
     }, 0);

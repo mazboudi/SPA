@@ -138,6 +138,14 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
   const [pipelinePolling, setPipelinePolling] = useState(false);
   const pipelineTimerRef = useRef(null);
 
+  // Post-pipeline sync state
+  // pipelineOutcome: null while running, 'synced' on success, 'failed' on failure
+  const [pipelineOutcome, setPipelineOutcome] = useState(null);
+  const [syncingAppId, setSyncingAppId] = useState(false);
+  // Track which pipelineAction triggered the most recent run so the poller
+  // knows whether Intune was touched and whether to sync/clear.
+  const pipelineActionRef = useRef('none');
+
   // Intune mandatory field validation — blocks Build+Publish and Build+Publish+Assign
   const intuneReady = useMemo(() => {
     const intuneAppName = state.intuneAppName || `${state.displayName || ''} ${state.version || ''}`.trim().replace(/\s+/g, ' ');
@@ -177,7 +185,9 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
     setPublishError(null);
     setPublishResult(null);
     setPipelineStatus(null);
+    setPipelineOutcome(null);
     setPublishLog([]);
+    pipelineActionRef.current = pipelineAction;
     if (pipelineTimerRef.current) clearInterval(pipelineTimerRef.current);
     try {
       const result = await publishToGitLabStreamed(
@@ -189,10 +199,9 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           version: state.version,
           files,
           pipelineAction,
-          // In Edit/Clone mode, pass the exact project path so the server can
-          // find the project by path_with_namespace rather than a group search.
-          // This fixes "Not Found" when the project lives in a different group.
           editProjectPath: state._editProjectPath || undefined,
+          // Store action in result so poller can restore pipelineActionRef on remount
+          pipelineAction,
         },
         (event) => {
           setPublishPhase(event.message);
@@ -208,6 +217,9 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
       setPublishResult(result);
       if (markClean) markClean();
       if (result.pipelineId && result.projectId) {
+        // Lock publish button while pipeline runs and mark state as locked
+        // so the lock survives navigation away and back.
+        updateField('_pipelineLocked', true);
         startPipelinePolling(result.projectId, result.pipelineId);
       }
     } catch (err) {
@@ -221,6 +233,28 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
 
   // ── Pipeline status polling ─────────────────────────────────────────────
   const TERMINAL_STATUSES = new Set(['success', 'failed', 'canceled', 'skipped']);
+  const INTUNE_ACTIONS    = new Set(['publish', 'assign']);
+
+  // Fetch the latest syncIntuneAppId from GitLab after a successful Intune publish.
+  // Only patches the one field — does not reload the project or lose user edits.
+  const syncAppIdFromGitLab = useCallback(async (projectId) => {
+    setSyncingAppId(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/intune-app-id`);
+      if (!res.ok) { setSyncingAppId(false); return; }
+      const { syncIntuneAppId: newId } = await res.json();
+      if (newId && newId !== state.syncIntuneAppId) {
+        updateField('syncIntuneAppId', newId);
+      }
+      setPipelineOutcome('synced');
+    } catch (e) {
+      console.warn('[PipelineSync] Could not fetch syncIntuneAppId:', e);
+      // Non-fatal — outcome stays null
+    } finally {
+      setSyncingAppId(false);
+      updateField('_pipelineLocked', false);
+    }
+  }, [state.syncIntuneAppId, updateField]);
 
   const fetchPipelineStatus = useCallback(async (projectId, pipelineId) => {
     try {
@@ -244,17 +278,34 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
       if (TERMINAL_STATUSES.has(status)) {
         clearInterval(pipelineTimerRef.current);
         setPipelinePolling(false);
+        const wasIntuneRun = INTUNE_ACTIONS.has(pipelineActionRef.current);
+        if (status === 'success' && wasIntuneRun) {
+          // Patch syncIntuneAppId from GitLab — pipeline bot committed the new App ID
+          syncAppIdFromGitLab(projectId);
+        } else if ((status === 'failed' || status === 'canceled') && wasIntuneRun) {
+          // Old app was deleted before pipeline failed — stale ID is now dangerous
+          updateField('syncIntuneAppId', '');
+          setPipelineOutcome('failed');
+          updateField('_pipelineLocked', false);
+        } else {
+          // build-only or no-op pipeline — just release the lock
+          updateField('_pipelineLocked', false);
+        }
       }
     }, 8000);
-  }, [fetchPipelineStatus]);
+  }, [fetchPipelineStatus, syncAppIdFromGitLab, updateField]);
 
   // Cleanup polling on unmount
   useEffect(() => () => { if (pipelineTimerRef.current) clearInterval(pipelineTimerRef.current); }, []);
 
-  // Resume polling if navigating back to review with an in-flight pipeline
+  // Resume polling if navigating back to review with an in-flight pipeline.
+  // _pipelineLocked being true means we triggered a pipeline this session;
+  // re-attach the poller so the sync/clear logic fires when it finishes.
   useEffect(() => {
     const result = state._lastPublishResult;
     if (result?.pipelineId && result?.projectId && !pipelineStatus && !pipelinePolling) {
+      // Restore pipelineActionRef so terminal handler knows if Intune was involved
+      pipelineActionRef.current = result.pipelineAction || 'none';
       startPipelinePolling(result.projectId, result.pipelineId);
     }
   }, []); // run once on mount
@@ -543,17 +594,45 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
               </div>
             </div>
           )}
+          {/* ── Pipeline in-flight / sync outcome banner ── */}
+          {pipelineOutcome === 'synced' && (
+            <div style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(34, 197, 94, 0.10)', border: '1px solid rgba(34, 197, 94, 0.35)', fontSize: '0.82rem', color: '#34d399', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span>✅</span>
+              <span><strong>App ID synced from GitLab.</strong> syncIntuneAppId updated — ready to publish again.</span>
+            </div>
+          )}
+          {pipelineOutcome === 'failed' && (
+            <div style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.10)', border: '1px solid rgba(239, 68, 68, 0.45)', fontSize: '0.82rem', display: 'flex', gap: '8px', alignItems: 'flex-start', lineHeight: '1.5' }}>
+              <span style={{ flexShrink: 0 }}>⚠️</span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                <strong style={{ color: '#f87171' }}>Pipeline failed.</strong> The previously linked Intune app may have been deleted.{' '}
+                <code style={{ fontSize: '0.75rem', padding: '1px 5px', background: 'rgba(0,0,0,0.2)', borderRadius: '3px' }}>syncIntuneAppId</code> has been cleared.
+                The next successful publish will create a fresh Intune app.
+              </span>
+            </div>
+          )}
 
           <button
             className="btn btn-primary"
             onClick={handlePublish}
-            disabled={publishing || hasErrors || apiAvailable === false}
+            disabled={publishing || pipelinePolling || syncingAppId || hasErrors || apiAvailable === false}
+            title={
+              pipelinePolling ? 'Pipeline in-flight — publish locked until pipeline completes'
+              : syncingAppId   ? 'Syncing App ID from GitLab…'
+              : undefined
+            }
           >
-            {publishing ? `⏳ ${publishPhase || 'Publishing...'}` : state.wizardMode === 'edit' ? '✏️ Update Project' : '🚀 Publish to GitLab'}
+            {publishing     ? `⏳ ${publishPhase || 'Publishing...'}`
+             : pipelinePolling ? '⏳ Pipeline running…'
+             : syncingAppId    ? '🔄 Syncing App ID…'
+             : state.wizardMode === 'edit' ? '✏️ Update Project'
+             : '🚀 Publish to GitLab'}
           </button>
           {apiAvailable === false && <span className="publish-hint">⚠️ Publish API not reachable — start with <code>npm run server</code></span>}
           {hasErrors && <span className="publish-hint">⚠️ Fix schema errors before publishing</span>}
           {!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign') && <span className="publish-hint">🚫 Complete required Intune fields to enable Build + Publish</span>}
+          {pipelinePolling && !publishing && <span className="publish-hint" style={{ color: '#f59e0b' }}>⏳ Pipeline in-flight — publish locked until pipeline completes</span>}
+          {syncingAppId    && <span className="publish-hint" style={{ color: '#60a5fa' }}>🔄 Syncing App ID from GitLab…</span>}
         </div>
 
       </div>

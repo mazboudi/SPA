@@ -856,6 +856,35 @@ app.get('/api/pipeline/:projectId/:pipelineId/artifacts', async (req, res) => {
   }
 });
 
+// GET /api/projects/:projectId/intune-app-id
+// Reads windows/intune/app.json from the GitLab repo and returns the syncIntuneAppId field.
+// Used by the workbench after a pipeline completes to patch wizard state without a full reload.
+app.get('/api/projects/:projectId/intune-app-id', async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    if (!GITLAB_TOKEN || GITLAB_TOKEN === 'mock-token-or-empty') {
+      // Offline mock — return a stable fake ID
+      return res.json({ syncIntuneAppId: 'mock-app-id-00000000-0000-0000-0000-000000000000' });
+    }
+    const encoded = encodeURIComponent('windows/intune/app.json');
+    const raw = await gitlab('GET', `/projects/${projectId}/repository/files/${encoded}/raw?ref=main`);
+    // raw may be a string (file content) or already parsed — handle both
+    let appJson;
+    try {
+      appJson = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch {
+      return res.status(422).json({ message: 'Could not parse windows/intune/app.json' });
+    }
+    const syncIntuneAppId = appJson?.syncIntuneAppId || '';
+    res.json({ syncIntuneAppId });
+  } catch (err) {
+    // 404 = app.json doesn't exist yet (first publish) — return empty string, not an error
+    if (err.status === 404) return res.json({ syncIntuneAppId: '' });
+    console.error(`❌ intune-app-id fetch failed for project ${projectId}: ${err.message}`);
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ██  Project Browser — Edit Existing Packages
 // ═══════════════════════════════════════════════════════════════════════════
