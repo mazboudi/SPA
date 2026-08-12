@@ -243,17 +243,14 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
       minProcessors: app.minimumNumberOfProcessors,
     };
 
-    const newPending = [...(state.syncPendingFields || [])];
     for (const compareKey of PULLABLE_COMPARE_FIELDS) {
       const intuneVal = intuneValues[compareKey];
       if (intuneVal === undefined || intuneVal === null || intuneVal === '') continue;
       // displayName is a derived field — must be stored via _intuneAppNameOverride
       const stateKey = compareKey === 'displayName' ? '_intuneAppNameOverride' : FIELD_MAP[compareKey];
       updateField(stateKey, intuneVal);
-      if (!newPending.includes(compareKey)) newPending.push(compareKey);
     }
-    updateField('syncPendingFields', newPending);
-  }, [syncRawIntuneData, state.syncPendingFields, updateField]);
+  }, [syncRawIntuneData, updateField]);
 
   const handleSetSyncApp = useCallback((appId) => {
     updateField('syncIntuneAppId', appId);
@@ -264,7 +261,6 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   const handleRemoveSyncApp = useCallback(() => {
     updateField('syncIntuneAppId', '');
-    updateField('syncPendingFields', []);
     setSyncError(null);
     setSyncRawIntuneData(null);
   }, [updateField]);
@@ -654,7 +650,7 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
             onClick={() => setActiveTab('sync')}
           >
             <span className="psadt-tab-btn__icon">🔄</span>
-            <span className="psadt-tab-btn__label">Intune Sync</span>
+            <span className="psadt-tab-btn__label">Intune</span>
           </button>
         )}
       </div>
@@ -1285,19 +1281,14 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
         )}
 
         {/* ==========================================
-            TAB: INTUNE SYNC (edit mode only)
+            TAB: INTUNE (edit mode only)
             ========================================== */}
         {activeTab === 'sync' && state.wizardMode === 'edit' && (
           <div className="animate-in">
-            {/* Intune Properties summary — shown only in Sync tab */}
-            {(state._intuneExportImported || state.wizardMode === 'edit') && (
-              <IntuneMetaSummary state={state} />
-            )}
-
             <div className="config-section">
-              <h3 className="section-title">🔄 Intune Sync</h3>
+              <h3 className="section-title">☁️ Intune</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)' }}>
-                Compare builder state against live Intune data. Resolve differences per-field by choosing whether to keep the builder value or use the Intune value.
+                View builder data and compare against live Intune data if a linked app is established.
               </p>
 
               {!state.syncIntuneAppId ? (
@@ -1360,60 +1351,52 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
                   </div>
                 )
               ) : (
-                /* Sync app is set — show comparison */
+                /* Sync app is set — show linked banner */
                 <div>
-                  <div className="intune-sync-section__linked" style={{ marginBottom: 'var(--space-md)', padding: '8px 12px', background: 'var(--bg-card, rgba(255,255,255,0.02))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="intune-sync-section__linked" style={{ marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-card, rgba(255,255,255,0.02))', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                     <span>Linked to: <code>{state.syncIntuneAppId}</code></span>
                     <button type="button" className="btn btn-ghost btn-xs" onClick={handleRemoveSyncApp} style={{ color: '#ef4444', marginLeft: 'auto' }}>✕ Unlink</button>
-                    {onRefresh => <button className="btn btn-ghost btn-xs" style={{ marginLeft: 10 }} onClick={() => runSyncCheck(state.syncIntuneAppId)}>↻ Refresh Live Data</button>}
+                    <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 10 }} onClick={() => runSyncCheck(state.syncIntuneAppId)}>↻ Refresh Live Data</button>
                   </div>
+                </div>
+              )}
 
-                  {syncLoading ? (
-                    <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Fetching live Intune data...</div>
-                  ) : syncError ? (
-                    <div className="validation-banner">⚠️ {syncError}</div>
-                  ) : syncRawIntuneData ? (
-                    <IntuneSyncComparison
-                      builderState={state}
-                      rawIntuneData={syncRawIntuneData}
-                      pendingFields={state.syncPendingFields || []}
-                      onPullField={(field, val) => {
-                        // Single mapping: compareIntuneState field key → wizard state key
-                        const FIELD_MAP = {
-                          displayName: 'intuneAppName',
-                          description: 'appDescription',
-                          publisher: 'publisher',
-                          owner: 'appOwner',
-                          developer: 'appDeveloper',
-                          informationUrl: 'informationUrl',
-                          privacyUrl: 'privacyUrl',
-                          notes: 'appNotes',
-                          isFeatured: 'isFeatured',
-                          allowAvailableUninstall: 'allowAvailableUninstall',
-                          logoDataUrl: 'logoDataUrl',
-                          minWinRelease: 'minWinRelease',
-                          minDiskSpaceMB: 'minDiskSpaceMB',
-                          minMemoryMB: 'minMemoryMB',
-                          minCpuSpeedMHz: 'minCpuSpeedMHz',
-                          minProcessors: 'minLogicalProcessors',
-                        };
-                        // val is the live Intune value.
-                        // If Intune has a real value → Pull: update builder with Intune value.
-                        // If Intune is null/empty → Push: keep builder value, just queue for push.
-                        if (val !== null && val !== undefined && val !== '') {
-                          // displayName is derived — must go through _intuneAppNameOverride
-                          const stateKey = field === 'displayName' ? '_intuneAppNameOverride' : (FIELD_MAP[field] ?? field);
-                          updateField(stateKey, val);
-                        }
-                        // In both cases: mark field as pending sync (queued for Review → Push)
-                        const current = state.syncPendingFields || [];
-                        if (!current.includes(field)) {
-                          updateField('syncPendingFields', [...current, field]);
-                        }
-                      }}
-                      onPullAll={handleSyncPullAll}
-                    />
-                  ) : null}
+              {/* ALWAYS SHOW IntuneSyncComparison, pass rawIntuneData if available and synced */}
+              {syncLoading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Fetching live Intune data...</div>
+              ) : syncError ? (
+                <div className="validation-banner" style={{ marginTop: '1rem' }}>⚠️ {syncError}</div>
+              ) : (
+                <div style={{ marginTop: '1rem' }}>
+                  <IntuneSyncComparison
+                    builderState={state}
+                    rawIntuneData={state.syncIntuneAppId ? syncRawIntuneData : null}
+                    onPullField={(field, val) => {
+                      const FIELD_MAP = {
+                        displayName: 'intuneAppName',
+                        description: 'appDescription',
+                        publisher: 'publisher',
+                        owner: 'appOwner',
+                        developer: 'appDeveloper',
+                        informationUrl: 'informationUrl',
+                        privacyUrl: 'privacyUrl',
+                        notes: 'appNotes',
+                        isFeatured: 'isFeatured',
+                        allowAvailableUninstall: 'allowAvailableUninstall',
+                        logoDataUrl: 'logoDataUrl',
+                        minWinRelease: 'minWinRelease',
+                        minDiskSpaceMB: 'minDiskSpaceMB',
+                        minMemoryMB: 'minMemoryMB',
+                        minCpuSpeedMHz: 'minCpuSpeedMHz',
+                        minProcessors: 'minLogicalProcessors',
+                      };
+                      if (val !== null && val !== undefined && val !== '') {
+                        const stateKey = field === 'displayName' ? '_intuneAppNameOverride' : (FIELD_MAP[field] ?? field);
+                        updateField(stateKey, val);
+                      }
+                    }}
+                    onPullAll={handleSyncPullAll}
+                  />
                 </div>
               )}
             </div>

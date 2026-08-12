@@ -12,11 +12,10 @@ import './IntuneSyncComparison.css';
 export default function IntuneSyncComparison({
   builderState,
   rawIntuneData,
-  pendingFields = [],   // array of compareIntuneState field keys that were pulled
   onPullField,
   onPullAll,
 }) {
-  const [filterDiffs, setFilterDiffs] = useState(true);
+  const hasIntuneData = !!rawIntuneData;
 
   // Run the structured comparison
   const { diffs, diffCount } = useMemo(
@@ -34,21 +33,19 @@ export default function IntuneSyncComparison({
   }, [rawIntuneData]);
   const logoMatch = builderLogo === intuneLogo || (!builderLogo && !intuneLogo);
 
-  // Group diffs by category (only show diffs when filterDiffs=true)
+  // Group diffs by category
   const grouped = useMemo(() => {
-    const visible = filterDiffs ? diffs.filter(d => !d.match) : diffs;
     const map = {};
-    for (const d of visible) {
+    for (const d of diffs) {
       if (!map[d.category]) map[d.category] = [];
       map[d.category].push(d);
     }
     return map;
-  }, [diffs, filterDiffs]);
+  }, [diffs]);
 
-  // Differences = only non-matching fields (logo shown separately in its category)
+  // Differences count
   const totalDiffs = diffCount + (logoMatch ? 0 : 1);
-  const showLogo = !filterDiffs || !logoMatch;
-  const pendingCount = pendingFields.length + (!logoMatch && pendingFields.includes('logoDataUrl') ? 0 : 0);
+  const showLogo = true;
 
   // Fields that cannot be meaningfully pulled back via a single field update
   const NO_PULL = new Set([
@@ -70,72 +67,57 @@ export default function IntuneSyncComparison({
   return (
     <div className="isync">
       {/* Toolbar */}
-      <div className="isync-toolbar">
-        <div className="isync-filter">
-          <button
-            className={`isync-btn ${filterDiffs ? 'isync-btn--active' : ''}`}
-            onClick={() => setFilterDiffs(true)}
-          >
-            Differences ({totalDiffs})
-          </button>
-          <button
-            className={`isync-btn ${!filterDiffs ? 'isync-btn--active' : ''}`}
-            onClick={() => setFilterDiffs(false)}
-          >
-            All Fields
-          </button>
+      {hasIntuneData && (
+        <div className="isync-toolbar" style={{ justifyContent: 'flex-end' }}>
+          <div className="isync-toolbar-right">
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={onPullAll}
+              disabled={totalDiffs === 0}
+            >
+              ← Pull All from Intune
+            </button>
+          </div>
         </div>
-
-        <div className="isync-toolbar-right">
-          {pendingFields.length > 0 && (
-            <span className="isync-pending-badge">
-              ✅ {pendingFields.length} field{pendingFields.length !== 1 ? 's' : ''} staged for push
-            </span>
-          )}
-          <button
-            className="btn btn-sm btn-primary"
-            onClick={onPullAll}
-            disabled={totalDiffs === 0}
-          >
-            ← Pull All from Intune
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Column headers */}
       <div className="isync-header-row">
         <div className="isync-col-label">Field</div>
-        <div className="isync-col-builder">Builder</div>
-        <div className="isync-col-action" />
-        <div className="isync-col-intune">Live (Intune)</div>
+        <div className="isync-col-builder">Builder Data</div>
+        {hasIntuneData && <div className="isync-col-action" />}
+        {hasIntuneData && <div className="isync-col-intune">Live (Intune)</div>}
       </div>
 
       {/* Logo row */}
       {showLogo && (
         <div className="isync-category">
           <div className="isync-category-label">Logo</div>
-          <div className={`isync-row ${!logoMatch ? 'isync-row--diff' : ''} ${pendingFields.includes('logoDataUrl') ? 'isync-row--pulled' : ''}`}>
+          <div className={`isync-row ${(!logoMatch && hasIntuneData) ? 'isync-row--diff' : ''}`}>
             <div className="isync-col-label">
               App Logo
-              {pendingFields.includes('logoDataUrl') && <span className="isync-pulled-tag">pulled</span>}
             </div>
             <div className="isync-col-builder isync-logo-cell">
               {builderLogo
                 ? <img src={builderLogo} alt="Builder logo" className="isync-logo-img" />
                 : <span className="isync-empty">Not set</span>}
             </div>
-            <div className="isync-col-action">
-              {!logoMatch && intuneLogo && !pendingFields.includes('logoDataUrl') && (
-                <button className="isync-pull-btn" onClick={() => onPullField('logoDataUrl', intuneLogo)} title="Use Intune logo">
-                  ← Pull
-                </button>
-              )}
-            </div>
-            <div className="isync-col-intune isync-logo-cell">
-              {intuneLogo
-                ? <img src={intuneLogo} alt="Intune logo" className="isync-logo-img" />
-                : <span className="isync-empty">Not set</span>}
-            </div>
+            {hasIntuneData && (
+              <>
+                <div className="isync-col-action">
+                  {!logoMatch && intuneLogo && (
+                    <button className="isync-pull-btn" onClick={() => onPullField('logoDataUrl', intuneLogo)} title="Replace builder logo with Intune logo">
+                      ← Pull
+                    </button>
+                  )}
+                </div>
+                <div className="isync-col-intune isync-logo-cell">
+                  {intuneLogo
+                    ? <img src={intuneLogo} alt="Intune logo" className="isync-logo-img" />
+                    : <span className="isync-empty">Not set</span>}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -145,7 +127,6 @@ export default function IntuneSyncComparison({
         <div key={category} className="isync-category">
           <div className="isync-category-label">{category}</div>
           {grouped[category].map(row => {
-            const isPulled = pendingFields.includes(row.field);
             const canPull = !row.match && !NO_PULL.has(row.field);
             return (
               <div
@@ -153,37 +134,36 @@ export default function IntuneSyncComparison({
                 className={[
                   'isync-row',
                   !row.match ? 'isync-row--diff' : '',
-                  isPulled ? 'isync-row--pulled' : '',
                 ].filter(Boolean).join(' ')}
               >
                 <div className="isync-col-label">
                   {row.label}
-                  {isPulled && <span className="isync-pulled-tag">pulled</span>}
                 </div>
                 <div className="isync-col-builder">
                   <FieldValue val={row.builder} />
                 </div>
-                <div className="isync-col-action">
-                  {canPull && !isPulled && (() => {
-                    const intuneHasValue = row.intune != null && row.intune !== '';
-                    return (
-                      <button
-                        className={`isync-pull-btn${intuneHasValue ? '' : ' isync-pull-btn--push'}`}
-                        onClick={() => onPullField(row.field, row.intune)}
-                        title={
-                          intuneHasValue
-                            ? `Replace builder value with Intune value`
-                            : `Stage builder value to be pushed to Intune`
-                        }
-                      >
-                        {intuneHasValue ? '← Pull' : '→ Push'}
-                      </button>
-                    );
-                  })()}
-                </div>
-                <div className="isync-col-intune">
-                  <FieldValue val={row.intune} />
-                </div>
+                {hasIntuneData && (
+                  <>
+                    <div className="isync-col-action">
+                      {canPull && (() => {
+                        const intuneHasValue = row.intune != null && row.intune !== '';
+                        if (!intuneHasValue) return null;
+                        return (
+                          <button
+                            className="isync-pull-btn"
+                            onClick={() => onPullField(row.field, row.intune)}
+                            title="Replace builder value with Intune value"
+                          >
+                            ← Pull
+                          </button>
+                        );
+                      })()}
+                    </div>
+                    <div className="isync-col-intune">
+                      <FieldValue val={row.intune} />
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}
@@ -193,7 +173,7 @@ export default function IntuneSyncComparison({
       {/* Empty state */}
       {orderedCategories.length === 0 && !showLogo && (
         <div className="isync-empty-state">
-          ✅ All fields match — builder and Intune are in sync.
+          No data available.
         </div>
       )}
     </div>
