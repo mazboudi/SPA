@@ -231,14 +231,16 @@ export function checkV3Compatibility(scriptContent) {
 
   // 4. Scan for patterns that NEED MANUAL REVIEW
   //    These are things Convert-ADTDeployment may not handle correctly.
+  //    Native PS commands (Start-Process, Copy-Item, etc.) are NOT flagged here —
+  //    they are intentionally preserved as raw_ps and should not be converted to ADT equivalents.
   const manualPatterns = [
-    { regex: /Get-ChildItem\s+.*\|\s*Remove-Item/i,       reason: 'Native PS piped command — not a PSADT function, verify path logic still works in v4 context' },
-    { regex: /Start-Process\s+-FilePath/i,                 reason: 'Use Start-ADTProcess instead for proper logging and error handling' },
-    { regex: /Copy-Item\s+-Path/i,                         reason: 'Consider using Copy-ADTFile for PSADT-integrated logging' },
-    { regex: /Remove-Item\s+-Path/i,                       reason: 'Consider using Remove-ADTFile for PSADT-integrated logging' },
-    { regex: /New-Item\s+-ItemType\s+Directory/i,          reason: 'Consider using New-ADTFolder for PSADT-integrated logging' },
+    { regex: /Get-ChildItem\s+.*\|\s*Remove-Item/i,       reason: 'Native PS piped command — preserved as-is; verify path logic works in v4 context' },
+    // Native PS cmdlets intentionally kept verbatim — no conversion recommended:
+    //   Start-Process  → NOT converted to Start-ADTProcess (different semantics/compatibility)
+    //   Copy-Item      → NOT converted to Copy-ADTFile
+    //   Remove-Item    → NOT converted to Remove-ADTFile
+    //   Set-ItemProperty / New-ItemProperty → NOT converted to Set-ADTRegistryKey
     { regex: /\|\s*ForEach-Object\s*\{.*Execute-MSI/i,     reason: 'Batch MSI pattern — verify GUID list maps correctly after conversion' },
-    { regex: /Set-ItemProperty\s+/i,                       reason: 'Native registry cmd — consider using Set-ADTRegistryKey for consistency' },
     { regex: /\[Microsoft\.Win32\.Registry\]/i,            reason: '.NET registry access — not handled by converter, must migrate manually' },
     { regex: /Invoke-WebRequest|Invoke-RestMethod/i,       reason: 'Web request — verify network calls still work in deployment context' },
     { regex: /\$env:/i,                                    reason: 'Environment variable — verify still resolves correctly in v4 session context' },

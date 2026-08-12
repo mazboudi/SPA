@@ -1,9 +1,22 @@
-need to chat about the following: Start-Process is converted into a Run Process card (which generates Start-ADTProcess).
-Copy-Item is converted into a Copy File card (which generates Copy-ADTFile).
-Remove-Item is converted into a Remove File/Folder card (which generates Remove-ADTFile or Remove-ADTFolder).
-New-ItemProperty / Set-ItemProperty are converted into a Set Registry Key card (which generates Set-ADTRegistryKey).
- 
-the ones in red should not be converted, because technically they can be used for things other than file operations or registry operations. While it's unlikely, it's technically not correct to convert them. For Start-Process, it works a bit differently than Start-ADTProcess. Google AI does a pretty good job explaining this input: "psadt start-adtprocess does not work for certain executables but start-process does"
- 
-so unless you want to build in all those fixes, don't convert start-process either. Now I understand why Joe was having trouble with it for certain executables. Anyway, he's pretty adamant that we don't convert any native powershell commands. Only convert v3 to v4.
- 
+Start-Process is NOT being converted to Start-ADTProcess by the parser. Confirmed by direct test — the Zscaler uninstall containing $env:ZSCALER_PASSWORD + Start-Process produces a single raw_ps block with both lines preserved verbatim. The most likely explanation for Joe's observation is that the compat checker warnings (which showed "Use Start-ADTProcess instead") looked like conversion instructions in the UI.
+
+Fixes Applied
+
+
+parsePsadt.js
+ — ADT_CMDLET_RE cleanup:
+
+Removed Copy-Item, Remove-Item, Start-Process, Stop-Process from the regex
+Added an explicit code comment documenting which native PS cmdlets must never be converted
+Start-Sleep kept (it's a pure timing function, not semantically different from the PSADT context)
+
+
+psadtCompatCheck.js
+ — Compat checker warnings removed for:
+
+Start-Process -FilePath → was: "Use Start-ADTProcess instead"
+Copy-Item -Path → was: "Consider using Copy-ADTFile"
+Remove-Item -Path → was: "Consider using Remove-ADTFile"
+New-Item -ItemType Directory → was: "Consider using New-ADTFolder"
+Set-ItemProperty → was: "Consider using Set-ADTRegistryKey"
+These five entries are completely removed from the manualPatterns list. They will no longer trigger any warning in the PSADT Lifecycle compat check panel.
