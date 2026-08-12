@@ -1,17 +1,9 @@
-When converting 3.x function Remove-MSIApplications to 4.x  Uninstall-ADTApplication, we are not specifying -NameMatch (‘Contains’, ‘Exact’, ‘Wildcard’, ‘Regex’). The Uninstall Application builder card defaults the Name Match dropdown to Exact even though ‘Contains’ is the default if -NameMatch is not specified. -NameMatch is only specified in the command preview if you select an option other than Exact. Additionally, there are invalid options of ‘StartsWith’ and ‘EndsWith’. Example from Desktop Messaging Client script conversion (Z:\Verient_DesktopClientTools_15.2.9_new\Deploy): 
-
-Original command: Remove-MSIApplications -Name 'Desktop & Process Analytics Client*' -WildCard -Parameters '/qn /norestart' 
-
-Converted command: UninstallADTApplication -Name ‘Desktop & Process Analytics  Client*’ -ApplicationType ‘MSI’ 
-
-Correct converted command should be: UninstallADTApplication -Name ‘Desktop & Process Analytics  Client*’ -NameMatch ‘WildCard’ -ApplicationType ‘MSI’ 
-
-In the builder, we are always defaulting the -NameMatch dropdown selection to Exact (default should be ‘Contains’) instead of matching the original command’s intent.  
-
-Related to the Uninstall-ADTApplication issue described prior, conversion of 3.x function Get-InstalledApplication to 4.x function Get-ADTApplication specifies the type of name match to do without using the -NameMatch parameter. Unlike the 3.x function which lets you specify the type of match by specifying -Exact, -WildCard, etc, the 4.x function requires we use the parameter -NameMatch (e.g. -NameMatch ‘Exact’ or -NameMatch ‘WildCard’). Examples found in Desktop Messaging Client script conversion /Users/wissammazboudi/Development/SPA/RefactorApps/samplePSADT/Verient-DEsktop-Deploy-Application.ps1. In the builder, the command should be: $RecheckScapture = Get-ADTApplication -Name 'Screen Capture Module' -NameMatch ‘Exact’  
-
-Execute-MSI conversion to Start-ADTMsiProcess: -Path should be -FilePath 
-
-Execute-Process conversion to Start-ADTProcess: -Path should be -FilePath 
-
-Remove-RegistryKey (3.x) conversion to Remove-ADTRegistryKey (4.x) removes the -Recurse parameter specified in 3.x command. (e.g. Z:\Apache_Maven_3.9.9\Deploy) 
+need to chat about the following: Start-Process is converted into a Run Process card (which generates Start-ADTProcess).
+Copy-Item is converted into a Copy File card (which generates Copy-ADTFile).
+Remove-Item is converted into a Remove File/Folder card (which generates Remove-ADTFile or Remove-ADTFolder).
+New-ItemProperty / Set-ItemProperty are converted into a Set Registry Key card (which generates Set-ADTRegistryKey).
+ 
+the ones in red should not be converted, because technically they can be used for things other than file operations or registry operations. While it's unlikely, it's technically not correct to convert them. For Start-Process, it works a bit differently than Start-ADTProcess. Google AI does a pretty good job explaining this input: "psadt start-adtprocess does not work for certain executables but start-process does"
+ 
+so unless you want to build in all those fixes, don't convert start-process either. Now I understand why Joe was having trouble with it for certain executables. Anyway, he's pretty adamant that we don't convert any native powershell commands. Only convert v3 to v4.
+ 
