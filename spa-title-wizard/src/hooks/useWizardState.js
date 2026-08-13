@@ -194,8 +194,7 @@ const INITIAL_STATE = {
   //   installerSubfolder  = relative path within Files\ to reach the installer
   //                         e.g. '' (root) | 'Bin' | 'x64\\Setup'
   //   installerSourceFile = filename only  e.g. 'setup.msi'
-  //   supportFilesSource  = auto-derived as installerSourceDir + '\\SupportFiles'
-  //                         (SupportFiles\ lives INSIDE Files\, not alongside it)
+  //   supportFilesSource  = auto-derived as sibling of Files\\ (e.g. C:\\App\\SupportFiles)
   installerSourceDir: '',
   installerSourceFile: '',
   installerSubfolder: '',
@@ -240,9 +239,10 @@ function migrateInstallerPaths(state) {
     state.installerSubfolder = merged;
   }
 
-  // Always re-derive supportFilesSource as a child of Files\
+  // Always re-derive supportFilesSource as a sibling of Files\
   if (state.installerSourceDir) {
-    state.supportFilesSource = state.installerSourceDir.replace(/\\+$/, '') + '\\SupportFiles';
+    const parent = state.installerSourceDir.replace(/\\+$/, '').replace(/\\[^\\]+$/, '');
+    state.supportFilesSource = parent ? parent + '\\SupportFiles' : '';
   }
 
   return state;

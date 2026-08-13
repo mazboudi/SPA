@@ -84,6 +84,10 @@
     "post_install_script": {
       "type": "string",
       "description": "Optional postinstall script filename in macos/src/ (runs after the pkg install)."
+    },
+    "source_dir": {
+      "type": "string",
+      "description": "Optional subdirectory within src/Files/ where the installer is located (e.g. 'Bin'). Omit when the installer sits directly in Files/."
     }
   }
 }

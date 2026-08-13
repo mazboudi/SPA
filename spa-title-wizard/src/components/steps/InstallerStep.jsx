@@ -112,7 +112,9 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     setMsiParseResult(null);
     suppressSync.current = true;
     const { path } = parseFilesBasePath(raw);
-    const supportFiles = path ? `${path}\\SupportFiles` : '';
+    // SupportFiles\ is a sibling of Files\ — strip the trailing \Files segment
+    const parent = path ? path.replace(/\\[^\\]+$/, '') : '';
+    const supportFiles = parent ? `${parent}\\SupportFiles` : '';
     const updates = { installerSourceDir: path, supportFilesSource: supportFiles };
     if (updateFields) updateFields(updates);
     else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
@@ -488,10 +490,10 @@ export default function InstallerStep({ state, updateField, updateFields }) {
               <code className="inst-derived-value">{state.installerSourceDir || '—'}</code>
             </div>
             <div className="inst-derived-row">
-              <span className="inst-derived-label">SupportFiles\ (inside Files\, copied if exists)</span>
+              <span className="inst-derived-label">SupportFiles\ (sibling of Files\, copied if exists)</span>
               <code className="inst-derived-value">
                 {state.installerSourceDir
-                  ? `${state.installerSourceDir}\\SupportFiles`
+                  ? `${state.installerSourceDir.replace(/\\[^\\]+$/, '')}\\SupportFiles`
                   : '—'}
               </code>
             </div>

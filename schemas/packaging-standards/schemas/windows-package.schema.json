@@ -209,6 +209,10 @@
         }
       }
     },
+    "installer_subfolder": {
+      "type": "string",
+      "description": "Optional relative path within Files\\ to the installer (e.g. 'Bin' or 'x64\\\\Setup'). Omit when the installer sits directly in Files\\."
+    },
     "msi_information": {
       "type": "object",
       "description": "MSI-specific metadata extracted from the installer. Only present for MSI packages.",
