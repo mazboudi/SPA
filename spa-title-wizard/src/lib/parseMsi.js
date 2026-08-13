@@ -1,241 +1,299 @@
 /**
- * parseMsi.js
- * Extracts metadata from MSI files in the browser using CFB (Compound Binary File) parsing.
+ * parseMsi.js — MSI metadata extractor (ported from pymsi)
  *
- * MSI files are OLE Compound Documents containing a relational database.
- * Stream names in MSI files are encoded using a 64-character alphabet mapped into
- * the Unicode range 0x3800–0x487F. This file implements proper MSI stream name
- * decoding so streams are found deterministically by name — not by heuristic content
- * scanning, which was the root cause of incorrect results in the previous version.
+ * Faithfully ports the logic from https://github.com/nightlark/pymsi to
+ * JavaScript. Uses the bundled 'cfb' npm package only for OLE container
+ * parsing; all MSI database decoding is done inline.
  *
- * Self-contained: no CDN, no WebAssembly runtime, no network access required.
- * Uses only the bundled 'cfb' npm package for OLE container parsing.
+ * Self-contained: no CDN, no WebAssembly, no network access required.
  */
 import CFB from 'cfb';
 
-// ── MSI stream name encoding ──────────────────────────────────────────────────
-//
-// All MSI table and stream names are encoded into Unicode using this 64-char alphabet.
-// Each ASCII character maps to a codepoint in the private range:
-//   single char  c at index i → chr(0x4840 + i)
-//   two chars c1,c2 at i,j   → chr(0x3800 + i*64 + j)
-//
-const MSI_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._';
+// ─────────────────────────────────────────────────────────────────────────────
+//  MSI stream-name encoding  (ported from pymsi/streamname.py)
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Decode an MSI-encoded stream/storage name back to its ASCII form.
- * Characters outside the MSI encoding range are kept as-is.
- */
-function decodeMsiName(name) {
-  let result = '';
-  for (let i = 0; i < name.length; i++) {
-    const code = name.charCodeAt(i);
-    if (code >= 0x4840 && code <= 0x487f) {
-      // Single-char encoding
-      result += MSI_CHARS[code - 0x4840];
-    } else if (code >= 0x3800 && code < 0x4800) {
-      // Two-char encoding
-      const idx = code - 0x3800;
-      result += MSI_CHARS[Math.floor(idx / 64)] + MSI_CHARS[idx % 64];
-    } else {
-      result += name[i];
-    }
-  }
-  return result;
+// TABLE_PREFIX is U+4840 — prepended to every table stream name
+const TABLE_PREFIX = '\u4840';
+
+/** Map a mime-alphabet index (0-63) to its ASCII character. */
+function mime2utf(x) {
+  if (x < 10)   return String.fromCharCode(x + 48);       // '0'..'9'
+  if (x < 36)   return String.fromCharCode(x - 10 + 65);  // 'A'..'Z'
+  if (x < 62)   return String.fromCharCode(x - 36 + 97);  // 'a'..'z'
+  if (x === 62) return '.';
+  return '_';
 }
 
-/**
- * Find a CFB stream by its decoded MSI name.
- * Also accepts literal names in case the cfb library already decoded them.
- */
-function findStreamByName(cfb, targetName) {
-  for (const entry of cfb.FileIndex) {
-    if (!entry.content) continue;
-    if (entry.name === targetName || decodeMsiName(entry.name) === targetName) {
-      return entry;
-    }
-  }
+/** Map an ASCII character to its mime-alphabet index (0-63), or null. */
+function utf2mime(c) {
+  const code = typeof c === 'number' ? c : c.charCodeAt(0);
+  if (code >= 48 && code <= 57)  return code - 48;        // '0'..'9'
+  if (code >= 65 && code <= 90)  return code - 65 + 10;   // 'A'..'Z'
+  if (code >= 97 && code <= 122) return code - 97 + 36;   // 'a'..'z'
+  if (code === 46) return 62;  // '.'
+  if (code === 95) return 63;  // '_'
   return null;
 }
 
-// ── Binary helpers ────────────────────────────────────────────────────────────
+/**
+ * Encode a table/stream name to its MSI Unicode representation.
+ * isTable=true prepends TABLE_PREFIX (U+4840).
+ *
+ * Two-char pairs: chr(0x3800 + (v2 << 6) + v1)
+ *   v1 = mime index of first char (low 6 bits)
+ *   v2 = mime index of second char (high 6 bits)
+ * Single char:   chr(0x4800 + v1)
+ */
+function encodeMsiName(name, isTable = false) {
+  let out = isTable ? TABLE_PREFIX : '';
+  for (let i = 0; i < name.length; i++) {
+    const v1 = utf2mime(name[i]);
+    if (v1 !== null) {
+      if (i + 1 < name.length) {
+        const v2 = utf2mime(name[i + 1]);
+        if (v2 !== null) {
+          out += String.fromCharCode(0x3800 + (v2 << 6) + v1);
+          i++; // consume two chars
+          continue;
+        }
+      }
+      out += String.fromCharCode(0x4800 + v1);
+    } else {
+      out += name[i];
+    }
+  }
+  return out;
+}
 
-/** Safely convert any CFB entry content to a Uint8Array. */
+/**
+ * Decode a MSI-encoded stream name back to ASCII.
+ * For two-char encoding: low 6 bits → first char, high bits → second char.
+ */
+function decodeMsiName(name) {
+  let out = '';
+  let start = 0;
+  if (name.startsWith(TABLE_PREFIX)) { start = 1; }
+  for (let i = start; i < name.length; i++) {
+    const value = name.charCodeAt(i);
+    if (value >= 0x3800 && value < 0x4800) {
+      const v = value - 0x3800;
+      out += mime2utf(v & 0x3F);  // first char = low 6 bits
+      out += mime2utf(v >> 6);    // second char = high bits
+    } else if (value >= 0x4800 && value <= 0x487F) {
+      out += mime2utf(value - 0x4800);
+    } else {
+      out += name[i];
+    }
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Binary helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
 function toUint8(content) {
   if (content instanceof Uint8Array) return content;
   if (content instanceof ArrayBuffer) return new Uint8Array(content);
   if (ArrayBuffer.isView(content)) return new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
   if (Array.isArray(content)) return new Uint8Array(content);
-  if (content && typeof content.buffer === 'object') {
-    return new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
-  }
+  if (content && typeof content.buffer === 'object') return new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
   return new Uint8Array(0);
 }
 
-/** Create a DataView over the exact range of a Uint8Array. */
-function viewOf(uint8) {
-  return new DataView(uint8.buffer, uint8.byteOffset, uint8.byteLength);
+function viewOf(bytes) {
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 }
 
-// ── String pool decoding ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Stream lookup
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Read the ANSI codepage from the StringPool header (first 4 bytes).
- * Returns a TextDecoder for the appropriate encoding.
+ * Find a CFB stream entry by its MSI-encoded name.
+ * Tries: TABLE_PREFIX-encoded, plain-encoded, decoded-name match.
  */
-function getCodepageDecoder(poolBytes) {
-  if (poolBytes.length < 4) return new TextDecoder('utf-8', { fatal: false });
-  const view = viewOf(poolBytes);
-  const codepage = view.getUint16(0, true);
-  if (codepage === 65001) return new TextDecoder('utf-8',         { fatal: false });
-  if (codepage === 1252)  return new TextDecoder('windows-1252',  { fatal: false });
-  if (codepage === 1200)  return new TextDecoder('utf-16le',      { fatal: false });
-  return new TextDecoder('utf-8', { fatal: false });
+function findStream(cfb, name, isTable = false) {
+  const encodedTable = encodeMsiName(name, true);
+  const encodedPlain = encodeMsiName(name, false);
+
+  for (const entry of cfb.FileIndex) {
+    if (!entry.content) continue;
+    if (entry.name === encodedTable || entry.name === encodedPlain) return entry;
+  }
+  // Fallback: cfb may have already decoded the names
+  for (const entry of cfb.FileIndex) {
+    if (!entry.content) continue;
+    if (entry.name === name) return entry;
+    try {
+      if (decodeMsiName(entry.name) === name) return entry;
+    } catch { /* skip */ }
+  }
+  return null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  String pool  (ported from pymsi/stringpool.py)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Decode _StringPool + _StringData into an indexed string array.
+ * Decode _StringPool + _StringData into an array of strings (0-indexed).
  *
- * Pool format (starting at byte 4, skipping the 4-byte codepage/reserved header):
- *   Each 4-byte entry = [length: u16, refcount: u16]
- *   If the high bit of 'length' is set, this is a 24-bit extended-length string:
- *     true_length = (len & 0x7FFF) | (next_refcount << 15)
+ * Ported exactly from pymsi StringPool.__init__():
+ *   - Header: 4 bytes read as u32 LE.
+ *       High bit (0x80000000) = long_string_refs flag (3-byte indices in tables).
+ *       Remaining 31 bits = ANSI codepage ID.
+ *   - Each pool entry = [length: u16][refcount: u16].
+ *       If length==0 AND refcount>0 → the NEXT 4 bytes (u32) give the true length.
+ *   - Database string references are 1-based (ref=0 = null, ref=1 = strings[0]).
  *
- * Data format: all strings concatenated in pool order.
+ * @returns {{ strings: string[], longStringRefs: boolean }}
  */
-function decodeStringPool(poolBytes, stringBytes) {
-  const pool    = viewOf(poolBytes);
-  const decoder = getCodepageDecoder(poolBytes);
-  const strings = [''];  // Index 0 is always the empty string
+function decodeStringPool(poolBytes, dataBytes) {
+  const pool = viewOf(poolBytes);
+  let pos = 0;
 
-  let offset = 0;
-  let i = 4; // Skip 4-byte header
+  // 4-byte header (u32 LE)
+  const header = pool.getUint32(pos, true); pos += 4;
+  const longStringRefs = !!(header & 0x80000000);
+  const codepageId = header & 0x7FFFFFFF;
 
-  while (i + 3 < poolBytes.length) {
-    let len      = pool.getUint16(i,     true);
-    let refcount = pool.getUint16(i + 2, true);
-    i += 4;
+  let decoder;
+  try {
+    if (codepageId === 0 || codepageId === 65001) {
+      decoder = new TextDecoder('utf-8', { fatal: false });
+    } else if (codepageId === 1252) {
+      decoder = new TextDecoder('windows-1252', { fatal: false });
+    } else if (codepageId === 1200 || codepageId === 1201) {
+      decoder = new TextDecoder('utf-16le', { fatal: false });
+    } else {
+      decoder = new TextDecoder('utf-8', { fatal: false });
+    }
+  } catch {
+    decoder = new TextDecoder('utf-8', { fatal: false });
+  }
 
-    // Extended 24-bit length: high bit set on len → next entry gives high bits
-    if (len & 0x8000) {
-      if (i + 3 < poolBytes.length) {
-        const hiLen = pool.getUint16(i, true);
-        i += 4; // consume the extension entry
-        len = (len & 0x7FFF) | (hiLen << 15);
-      } else {
-        len = len & 0x7FFF;
+  const strings = []; // 0-indexed; DB refs are 1-based
+  let dataOffset = 0;
+
+  while (pos + 3 < poolBytes.length) {
+    let length   = pool.getUint16(pos,     true); pos += 2;
+    let refcount = pool.getUint16(pos,     true); pos += 2;
+
+    // Extended: length==0 AND refcount>0 means next u32 is actual length
+    if (length === 0 && refcount > 0) {
+      if (pos + 3 < poolBytes.length) {
+        length = pool.getUint32(pos, true); pos += 4;
       }
     }
 
-    if (len === 0) {
-      strings.push('');
-    } else if (offset + len <= stringBytes.length) {
-      strings.push(decoder.decode(stringBytes.slice(offset, offset + len)));
-      offset += len;
+    if (length > 0 && dataOffset + length <= dataBytes.length) {
+      strings.push(decoder.decode(dataBytes.slice(dataOffset, dataOffset + length)));
+      dataOffset += length;
     } else {
       strings.push('');
-      // Don't advance offset for corrupt/overflowing entries
     }
   }
 
-  return strings;
+  console.log(`MSI StringPool: ${strings.length} strings, codepage=${codepageId}, longRefs=${longStringRefs}`);
+  return { strings, longStringRefs };
 }
 
-// ── Property table decoding ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Property table  (ported from pymsi/table.py _read_rows)
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Decode the MSI Property table stream.
+ * Decode the Property table stream.
  *
- * The documented MSI binary format stores each record ROW-MAJOR:
- *   [keyIdx][valIdx][keyIdx][valIdx]...
- * Some MSI tools write COLUMN-MAJOR instead (all keys then all values).
- * We try both layouts and pick the one that scores more known property names.
+ * Per pymsi table.py _read_rows(), the layout is COLUMN-MAJOR:
+ *   outer loop = columns, inner loop = rows
+ *   for col in columns:
+ *     for row in 0..numRows:
+ *       rows[row][col] = read_value()
  *
- * Each index is u16 for standard databases (< 65536 strings) or u32 for large ones.
- * Returns a plain { PropertyName: 'value' } object.
+ * The Property table has 2 string columns: [Property (PK), Value].
+ * Each string cell is refWidth bytes:
+ *   Standard: 2 bytes (u16)
+ *   Long-refs: 3 bytes (u16 low + u8 high = 24-bit index)
+ * String refs are 1-based (0 = null, N = strings[N-1]).
+ *
+ * We try both ref widths (2 and 3) and pick the higher-scoring result.
  */
-function decodePropertyTable(tableContent, strings) {
-  const bytes    = toUint8(tableContent);
-  const totalStr = strings.length;
-  const numCols  = 2;
-
+function decodePropertyTable(tableBytes, strings, longStringRefs) {
+  const bytes = toUint8(tableBytes);
   const knownKeys = new Set([
     'ProductCode', 'ProductVersion', 'ProductName', 'Manufacturer',
     'UpgradeCode', 'ProductLanguage', 'ALLUSERS', 'ARPCONTACT',
     'ARPHELPLINK', 'ARPURLINFOABOUT', 'ARPNOREPAIR', 'ARPNOMODIFY',
-    'ARPNOREMOVE', 'SecureCustomProperties',
+    'SecureCustomProperties', 'ARPNOREMOVE',
   ]);
 
   let bestProps = {};
   let bestScore = 0;
-  let bestDesc  = '';
+  let bestDesc  = 'none';
 
-  for (const idxSize of [2, 4]) {
-    const rowStride = idxSize * numCols;
+  // Try the expected ref width first, then the other as fallback
+  const refWidths = longStringRefs ? [3, 2] : [2, 3];
+
+  for (const refWidth of refWidths) {
+    const rowStride = refWidth * 2; // 2 columns per row
     if (bytes.length === 0 || bytes.length % rowStride !== 0) continue;
 
     const numRows = bytes.length / rowStride;
     if (numRows < 1 || numRows > 10000) continue;
 
-    const view    = viewOf(bytes);
-    const colSize = numRows * idxSize;
+    const view = viewOf(bytes);
 
-    // ── ROW-MAJOR (documented MSI binary format) ───────────────────────────
-    // Layout: [k0,v0, k1,v1, k2,v2, ...]
-    {
-      const props = {};
-      let score   = 0;
-      for (let r = 0; r < numRows; r++) {
-        const keyOff = r * rowStride;
-        const valOff = keyOff + idxSize;
-        const keyIdx = idxSize === 4 ? view.getUint32(keyOff, true) : view.getUint16(keyOff, true);
-        const valIdx = idxSize === 4 ? view.getUint32(valOff, true) : view.getUint16(valOff, true);
-        if (keyIdx > 0 && keyIdx < totalStr) {
-          const key = strings[keyIdx];
-          const val = (valIdx > 0 && valIdx < totalStr) ? strings[valIdx] : '';
-          if (key && /^[A-Za-z_]/.test(key)) {
-            props[key] = val;
-            if (knownKeys.has(key)) score++;
-          }
-        }
-      }
-      if (score > bestScore) { bestScore = score; bestProps = props; bestDesc = `row-major u${idxSize * 8} (${numRows} rows, score ${score})`; }
+    // Column 0: Property keys — bytes [0 .. numRows*refWidth)
+    const keys = [];
+    for (let r = 0; r < numRows; r++) {
+      const off = r * refWidth;
+      let idx = view.getUint16(off, true);
+      if (refWidth === 3) idx |= (view.getUint8(off + 2) << 16);
+      keys.push(idx === 0 ? null : (idx - 1 < strings.length ? strings[idx - 1] : null));
     }
 
-    // ── COLUMN-MAJOR (some MSI tools use this) ─────────────────────────────
-    // Layout: [k0,k1,...,kN, v0,v1,...,vN]
-    {
-      const props = {};
-      let score   = 0;
-      for (let r = 0; r < numRows; r++) {
-        const keyOff = r * idxSize;
-        const valOff = colSize + r * idxSize;
-        if (valOff + idxSize > bytes.length) break;
-        const keyIdx = idxSize === 4 ? view.getUint32(keyOff, true) : view.getUint16(keyOff, true);
-        const valIdx = idxSize === 4 ? view.getUint32(valOff, true) : view.getUint16(valOff, true);
-        if (keyIdx > 0 && keyIdx < totalStr) {
-          const key = strings[keyIdx];
-          const val = (valIdx > 0 && valIdx < totalStr) ? strings[valIdx] : '';
-          if (key && /^[A-Za-z_]/.test(key)) {
-            props[key] = val;
-            if (knownKeys.has(key)) score++;
-          }
-        }
+    // Column 1: Values — bytes [numRows*refWidth .. 2*numRows*refWidth)
+    const vals = [];
+    const col1Offset = numRows * refWidth;
+    for (let r = 0; r < numRows; r++) {
+      const off = col1Offset + r * refWidth;
+      let idx = view.getUint16(off, true);
+      if (refWidth === 3) idx |= (view.getUint8(off + 2) << 16);
+      vals.push(idx === 0 ? '' : (idx - 1 < strings.length ? strings[idx - 1] : ''));
+    }
+
+    const props = {};
+    let score   = 0;
+    for (let r = 0; r < numRows; r++) {
+      const key = keys[r];
+      if (key && /^[A-Za-z_]/.test(key)) {
+        props[key] = vals[r] || '';
+        if (knownKeys.has(key)) score++;
       }
-      if (score > bestScore) { bestScore = score; bestProps = props; bestDesc = `col-major u${idxSize * 8} (${numRows} rows, score ${score})`; }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestProps = props;
+      bestDesc  = `refWidth=${refWidth}, ${numRows} rows, score=${score}`;
     }
   }
 
-  console.log(`MSI: Property table decoded via ${bestDesc || 'no match'}, ${Object.keys(bestProps).length} props`);
+  console.log(`MSI Property table: col-major, ${bestDesc}, ${Object.keys(bestProps).length} props`);
   return bestProps;
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Public API
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Parse an MSI file and extract common properties.
- * @param {File} file - The MSI File object from a file input
- * @returns {Promise<Object>} - { productCode, productVersion, productName, manufacturer, upgradeCode, fileName }
+ * @param {File} file
+ * @returns {Promise<{productCode, productVersion, productName, manufacturer, upgradeCode, fileName}>}
  */
 export async function parseMsiFile(file) {
   const buffer = await file.arrayBuffer();
@@ -250,65 +308,63 @@ export async function parseMsiFile(file) {
     fileName:       file.name,
   };
 
-  // Step 1: Parse OLE Compound File container
+  // ── Step 1: Parse OLE container ───────────────────────────────────────────
   let cfb;
   try {
     cfb = CFB.read(data, { type: 'array' });
   } catch (e) {
-    console.error('MSI: CFB parse failed — file may not be a valid MSI:', e);
+    console.error('MSI: CFB parse failed:', e);
     fallbackBinaryScan(data, result);
     return result;
   }
 
-  // Always log decoded stream names so parse issues can be diagnosed in the browser console
-  const streamNames = cfb.FileIndex
+  // Log every stream for diagnostics
+  console.log('MSI streams:', cfb.FileIndex
     .filter(e => e.content)
-    .map(e => `"${decodeMsiName(e.name)}"`)
-    .join(', ');
-  console.log('MSI: streams found:', streamNames);
+    .map(e => `"${e.name}" → "${decodeMsiName(e.name)}"`)
+    .join(' | '));
 
   try {
-    // Step 2: Locate _StringData and _StringPool by decoded MSI name
-    const stringDataEntry = findStreamByName(cfb, '_StringData');
-    const stringPoolEntry = findStreamByName(cfb, '_StringPool');
+    // ── Step 2: Find string pool streams ─────────────────────────────────────
+    const poolEntry = findStream(cfb, '_StringPool', true);
+    const dataEntry = findStream(cfb, '_StringData', true);
 
-    if (!stringDataEntry || !stringPoolEntry) {
-      console.warn('MSI: Could not locate _StringData or _StringPool streams — falling back to binary scan');
+    if (!poolEntry || !dataEntry) {
+      console.warn('MSI: _StringPool or _StringData not found → binary fallback');
       fallbackBinaryScan(data, result);
       return result;
     }
 
-    const stringDataBytes = toUint8(stringDataEntry.content);
-    const stringPoolBytes = toUint8(stringPoolEntry.content);
+    // ── Step 3: Decode string table ──────────────────────────────────────────
+    const { strings, longStringRefs } = decodeStringPool(
+      toUint8(poolEntry.content),
+      toUint8(dataEntry.content),
+    );
 
-    // Step 3: Decode string table
-    const strings = decodeStringPool(stringPoolBytes, stringDataBytes);
-    console.log(`MSI: Decoded ${strings.length} strings`);
-
-    // Step 4: Locate and decode the Property table stream
-    const propertyEntry = findStreamByName(cfb, 'Property');
-    if (!propertyEntry) {
-      console.warn('MSI: Property table stream not found');
+    // ── Step 4: Find and decode Property table ───────────────────────────────
+    const propEntry = findStream(cfb, 'Property', true);
+    if (!propEntry) {
+      console.warn('MSI: Property stream not found → binary fallback');
       fallbackBinaryScan(data, result);
       return result;
     }
 
-    const properties = decodePropertyTable(propertyEntry.content, strings);
-    console.log(`MSI: Extracted ${Object.keys(properties).length} properties:`, properties);
+    const properties = decodePropertyTable(propEntry.content, strings, longStringRefs);
 
-    // Step 5: Map to result object
     result.productCode    = properties['ProductCode']    || '';
     result.productVersion = properties['ProductVersion'] || '';
     result.productName    = properties['ProductName']    || '';
     result.manufacturer   = properties['Manufacturer']   || '';
     result.upgradeCode    = properties['UpgradeCode']    || '';
 
+    console.log('MSI result (structured):', result);
+
   } catch (e) {
-    console.warn('MSI: Structured parsing failed, falling back to binary scan:', e);
+    console.warn('MSI: Structured parsing failed:', e);
     fallbackBinaryScan(data, result);
   }
 
-  // Fill any remaining empty fields with the binary fallback
+  // Fill any remaining gaps
   if (!result.productCode || !result.productVersion || !result.productName) {
     fallbackBinaryScan(data, result);
   }
@@ -316,18 +372,15 @@ export async function parseMsiFile(file) {
   return result;
 }
 
-// ── Binary fallback ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Binary fallback
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Last-resort fallback: scan raw binary for GUID patterns and known property strings.
- * Scans both UTF-8 and UTF-16LE representations.
- * Only fills fields that are still empty — does not overwrite structured results.
- */
 function fallbackBinaryScan(data, result) {
   try {
     const utf8  = new TextDecoder('utf-8',    { fatal: false }).decode(data);
     const utf16 = new TextDecoder('utf-16le', { fatal: false }).decode(data);
-    const guidPattern = /\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/g;
+    const guidPat = /\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/g;
 
     for (const text of [utf8, utf16]) {
       if (!result.productCode) {
@@ -339,35 +392,24 @@ function fallbackBinaryScan(data, result) {
         if (m) result.upgradeCode = m[1];
       }
     }
-
     if (!result.productCode || !result.upgradeCode) {
-      const guids = utf16.match(guidPattern) || [];
-      if (guids.length >= 1 && !result.productCode) result.productCode = guids[0];
-      if (guids.length >= 2 && !result.upgradeCode) result.upgradeCode = guids[1];
+      const guids = utf16.match(guidPat) || [];
+      if (!result.productCode  && guids[0]) result.productCode  = guids[0];
+      if (!result.upgradeCode  && guids[1]) result.upgradeCode  = guids[1];
     }
-
     if (!result.productVersion) {
       const vm = utf16.match(/ProductVersion[^\d]{0,20}(\d+\.\d+\.\d+[\.\d]*)/);
-      if (vm) {
-        result.productVersion = vm[1];
-      } else {
-        const gvm = utf16.match(/(\d+\.\d+\.\d+[\.\d]*)/);
-        if (gvm) result.productVersion = gvm[1];
-      }
+      result.productVersion = vm ? vm[1] : ((utf16.match(/(\d+\.\d+\.\d+[\.\d]*)/) || [])[1] || '');
     }
-
     if (!result.productName) {
-      const pnIdx = utf16.indexOf('ProductName');
-      if (pnIdx > -1) {
-        const after   = utf16.substring(pnIdx + 11, pnIdx + 200);
-        const cleaned = after.replace(/[\x00-\x1f]/g, '').trim();
-        if (cleaned.length > 1 && cleaned.length < 100) {
-          result.productName = cleaned.split(/[\x00\t\n]/)[0].trim();
-        }
+      const idx = utf16.indexOf('ProductName');
+      if (idx > -1) {
+        const after = utf16.substring(idx + 11, idx + 200).replace(/[\x00-\x1f]/g, '').trim();
+        if (after.length > 1 && after.length < 100)
+          result.productName = after.split(/[\x00\t\n]/)[0].trim();
       }
     }
   } catch (e) {
-    console.warn('MSI: Fallback binary scan failed:', e);
+    console.warn('MSI: Binary fallback failed:', e);
   }
 }
-
