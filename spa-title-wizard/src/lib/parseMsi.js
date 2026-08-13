@@ -296,21 +296,37 @@ function decodePropertyTable(tableBytes, strings, longStringRefs) {
  * @returns {Promise<{productCode, productVersion, productName, manufacturer, upgradeCode, fileName}>}
  */
 export async function parseMsiFile(file) {
-  const buffer = await file.arrayBuffer();
-
-  const result = {
-    productCode:    '',
-    productVersion: '',
-    productName:    '',
-    manufacturer:   '',
-    upgradeCode:    '',
-    fileName:       file.name,
+  const emptyResult = {
+    productCode: '', productVersion: '', productName: '',
+    manufacturer: '', upgradeCode: '', fileName: file.name,
   };
 
-  // ── Step 1: Parse OLE container ───────────────────────────────────────────
-  // NOTE: Must use type:'buffer' (not 'array'). The 'array' path uses
-  // Array.push.apply() internally, which crashes with RangeError on large
-  // MSIs (>~10MB) due to the JS call-stack argument limit.
+  // ── Primary: delegate to backend (Node.js cfb works for any MSI size) ──────
+  try {
+    const formData = new FormData();
+    formData.append('msi', file);
+    const resp = await fetch('/api/msi-info', { method: 'POST', body: formData });
+    if (resp.ok) {
+      const json = await resp.json();
+      console.log('MSI: backend parse result:', json);
+      return {
+        productCode:    json.productCode    || '',
+        productVersion: json.productVersion || '',
+        productName:    json.productName    || '',
+        manufacturer:   json.manufacturer   || '',
+        upgradeCode:    json.upgradeCode    || '',
+        fileName:       file.name,
+      };
+    }
+    console.warn('MSI: backend returned', resp.status, '— falling back to browser parser');
+  } catch (networkErr) {
+    console.warn('MSI: backend unreachable, falling back to browser parser:', networkErr.message);
+  }
+
+  // ── Fallback: browser-side CFB parsing (may fail on large MSIs) ─────────────
+  const buffer = await file.arrayBuffer();
+  const result = { ...emptyResult };
+
   let cfb;
   try {
     cfb = CFB.read(buffer, { type: 'buffer' });
@@ -320,37 +336,18 @@ export async function parseMsiFile(file) {
     return result;
   }
 
-  // Log every stream for diagnostics
-  console.log('MSI streams:', cfb.FileIndex
-    .filter(e => e.content)
-    .map(e => `"${e.name}" → "${decodeMsiName(e.name)}"`)
-    .join(' | '));
-
   try {
-    // ── Step 2: Find string pool streams ─────────────────────────────────────
     const poolEntry = findStream(cfb, '_StringPool', true);
     const dataEntry = findStream(cfb, '_StringData', true);
+    const propEntry = findStream(cfb, 'Property',    true);
 
-    if (!poolEntry || !dataEntry) {
-      console.warn('MSI: _StringPool or _StringData not found → binary fallback');
-      fallbackBinaryScan(data, result);
+    if (!poolEntry || !dataEntry || !propEntry) {
+      console.warn('MSI: key streams not found → binary fallback');
+      fallbackBinaryScan(new Uint8Array(buffer), result);
       return result;
     }
 
-    // ── Step 3: Decode string table ──────────────────────────────────────────
-    const { strings, longStringRefs } = decodeStringPool(
-      toUint8(poolEntry.content),
-      toUint8(dataEntry.content),
-    );
-
-    // ── Step 4: Find and decode Property table ───────────────────────────────
-    const propEntry = findStream(cfb, 'Property', true);
-    if (!propEntry) {
-      console.warn('MSI: Property stream not found → binary fallback');
-      fallbackBinaryScan(data, result);
-      return result;
-    }
-
+    const { strings, longStringRefs } = decodeStringPool(toUint8(poolEntry.content), toUint8(dataEntry.content));
     const properties = decodePropertyTable(propEntry.content, strings, longStringRefs);
 
     result.productCode    = properties['ProductCode']    || '';
@@ -358,22 +355,19 @@ export async function parseMsiFile(file) {
     result.productName    = properties['ProductName']    || '';
     result.manufacturer   = properties['Manufacturer']   || '';
     result.upgradeCode    = properties['UpgradeCode']    || '';
-
-    console.log('MSI result (structured):', result);
+    console.log('MSI: browser parse result:', result);
 
   } catch (e) {
-    console.warn('MSI: Structured parsing failed:', e);
-    fallbackBinaryScan(data, result);
+    console.warn('MSI: browser parse failed:', e);
+    fallbackBinaryScan(new Uint8Array(buffer), result);
   }
 
-  // Fill any remaining gaps
   if (!result.productCode || !result.productVersion || !result.productName) {
     fallbackBinaryScan(new Uint8Array(buffer), result);
   }
 
   return result;
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 //  Binary fallback
 // ─────────────────────────────────────────────────────────────────────────────

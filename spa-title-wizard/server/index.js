@@ -1847,117 +1847,109 @@ app.post('/api/settings', (req, res) => {
 // ── MSI Metadata Extraction ─────────────────────────────────────────────────
 
 /** Parse an MSI file buffer and return property metadata */
+// ─── MSI stream-name encoding (ported from pymsi/streamname.py) ──────────────
+const TABLE_PREFIX_MSI = '\u4840';
+function mime2utf(x){if(x<10)return String.fromCharCode(x+48);if(x<36)return String.fromCharCode(x-10+65);if(x<62)return String.fromCharCode(x-36+97);if(x===62)return '.';return '_';}
+function utf2mime(c){const code=typeof c==='number'?c:c.charCodeAt(0);if(code>=48&&code<=57)return code-48;if(code>=65&&code<=90)return code-65+10;if(code>=97&&code<=122)return code-97+36;if(code===46)return 62;if(code===95)return 63;return null;}
+function encodeMsiStreamName(name,isTable=false){let out=isTable?TABLE_PREFIX_MSI:'';for(let i=0;i<name.length;i++){const v1=utf2mime(name[i]);if(v1!==null){if(i+1<name.length){const v2=utf2mime(name[i+1]);if(v2!==null){out+=String.fromCharCode(0x3800+(v2<<6)+v1);i++;continue;}}out+=String.fromCharCode(0x4800+v1);}else{out+=name[i];}}return out;}
+function decodeMsiStreamName(name){let out='',start=0;if(name.startsWith(TABLE_PREFIX_MSI))start=1;for(let i=start;i<name.length;i++){const v=name.charCodeAt(i);if(v>=0x3800&&v<0x4800){const d=v-0x3800;out+=mime2utf(d&0x3F);out+=mime2utf(d>>6);}else if(v>=0x4800&&v<=0x487F){out+=mime2utf(v-0x4800);}else{out+=name[i];}}return out;}
+function findMsiStream(cfbObj,name){
+  const e1=encodeMsiStreamName(name,true),e2=encodeMsiStreamName(name,false);
+  for(const e of cfbObj.FileIndex){if(!e.content)continue;if(e.name===e1||e.name===e2||e.name===name||decodeMsiStreamName(e.name)===name)return e;}
+  return null;
+}
+
 function extractMsiProperties(buffer) {
-  const cfb = CFB.read(buffer, { type: 'buffer' });
-  const result = {};
+  // buffer is a Node.js Buffer — CFB.read works correctly with type:'buffer'
+  const cfbObj = CFB.read(buffer, { type: 'buffer' });
+  const result = { productCode:'', productVersion:'', productName:'', manufacturer:'', upgradeCode:'' };
 
-  // Find _StringData — the concatenated string pool of the MSI database
-  const decoder = new TextDecoder('utf-8', { fatal: false });
-  const markers = ['ProductCode', 'ProductName', 'Manufacturer', 'ProductVersion'];
-  let bestEntry = null, bestScore = 0;
-  for (const entry of cfb.FileIndex) {
-    if (!entry.content) continue;
-    const bytes = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
-    if (bytes.length < 100 || bytes.length > 500000) continue;
-    const text = decoder.decode(bytes);
-    const score = markers.filter(m => text.includes(m)).length;
-    if (score > bestScore) { bestScore = score; bestEntry = entry; }
+  // ── Locate streams by MSI-encoded name ─────────────────────────────────────
+  const poolEntry = findMsiStream(cfbObj, '_StringPool');
+  const dataEntry = findMsiStream(cfbObj, '_StringData');
+  const propEntry = findMsiStream(cfbObj, 'Property');
+
+  if (!poolEntry || !dataEntry || !propEntry) {
+    console.warn('MSI server: one or more key streams not found, using binary fallback');
+    return msiServerFallback(buffer, result);
   }
 
-  if (!bestEntry || bestScore < 2) {
-    // Fallback: binary scan for GUIDs, versions, and ProductName
-    const all = decoder.decode(buffer);
-    const utf16 = new TextDecoder('utf-16le', { fatal: false }).decode(buffer);
-    const guidRe = /\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/g;
-    const guids = utf16.match(guidRe) || all.match(guidRe) || [];
-    if (guids[0]) result.productCode = guids[0];
-    if (guids[1]) result.upgradeCode = guids[1];
-    const vm = utf16.match(/(\d+\.\d+\.\d+[.\d]*)/);
-    if (vm) result.productVersion = vm[1];
-    // Scan for ProductName and Manufacturer — they appear right after their key string in UTF-16LE
-    const pnMatch = utf16.match(/ProductName\0([^\0]{2,128})/);
-    if (pnMatch && pnMatch[1].trim()) result.productName = pnMatch[1].trim();
-    const mfMatch = utf16.match(/Manufacturer\0([^\0]{2,128})/);
-    if (mfMatch && mfMatch[1].trim()) result.manufacturer = mfMatch[1].trim();
-    return result;
+  // ── Decode string pool (pymsi stringpool.py logic) ─────────────────────────
+  const pb = Buffer.isBuffer(poolEntry.content) ? poolEntry.content : Buffer.from(poolEntry.content);
+  const db = Buffer.isBuffer(dataEntry.content) ? dataEntry.content : Buffer.from(dataEntry.content);
+
+  // Header: 4-byte u32 LE.  High bit = long_string_refs.  Low 31 bits = codepage.
+  const header    = pb.readUInt32LE(0);
+  const longRefs  = !!(header & 0x80000000);
+  const codepage  = header & 0x7FFFFFFF;
+  const enc       = (codepage === 1252) ? 'windows-1252' : 'utf-8';
+  const decoder   = new TextDecoder(enc, { fatal: false });
+
+  const strings = []; // 0-indexed; DB refs are 1-based
+  let pos = 4, doff = 0;
+  while (pos + 3 < pb.length) {
+    let len = pb.readUInt16LE(pos); pos += 2;
+    let ref = pb.readUInt16LE(pos); pos += 2;
+    // Extended: len==0 && ref>0 → next u32 is actual length
+    if (len === 0 && ref > 0 && pos + 3 < pb.length) { len = pb.readUInt32LE(pos); pos += 4; }
+    if (len > 0 && doff + len <= db.length) {
+      strings.push(decoder.decode(db.subarray(doff, doff + len)));
+      doff += len;
+    } else { strings.push(''); }
   }
 
-  const stringDataBytes = Buffer.isBuffer(bestEntry.content) ? bestEntry.content : Buffer.from(bestEntry.content);
-  const stringDataSize = stringDataBytes.length;
+  // ── Decode Property table (column-major, 1-based string refs) ──────────────
+  const prb    = Buffer.isBuffer(propEntry.content) ? propEntry.content : Buffer.from(propEntry.content);
+  const knownK = new Set(['ProductCode','ProductVersion','ProductName','Manufacturer','UpgradeCode','ProductLanguage','ALLUSERS','SecureCustomProperties']);
+  let bestProps = {}, bestScore = 0;
 
-  // Find _StringPool (4-byte-aligned, entries sum to stringDataSize)
-  let poolEntry = null;
-  for (const entry of cfb.FileIndex) {
-    if (!entry.content || entry === bestEntry) continue;
-    const bytes = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
-    if (bytes.length < 8 || bytes.length % 4 !== 0 || bytes.length === stringDataSize) continue;
-    let total = 0;
-    for (let i = 4; i + 3 < bytes.length; i += 4) total += bytes.readUInt16LE(i);
-    if (total === stringDataSize) { poolEntry = entry; break; }
-  }
-
-  if (!poolEntry) return result;
-
-  // Decode string pool
-  const poolBytes = Buffer.isBuffer(poolEntry.content) ? poolEntry.content : Buffer.from(poolEntry.content);
-  const strings = [''];
-  let offset = 0;
-  for (let i = 4; i + 3 < poolBytes.length; i += 4) {
-    const len = poolBytes.readUInt16LE(i);
-    if (len > 0 && offset + len <= stringDataSize) {
-      strings.push(decoder.decode(stringDataBytes.slice(offset, offset + len)));
-      offset += len;
-    } else {
-      strings.push('');
+  for (const refWidth of (longRefs ? [3, 2] : [2, 3])) {
+    const stride = refWidth * 2;
+    if (prb.length === 0 || prb.length % stride !== 0) continue;
+    const nRows = prb.length / stride;
+    if (nRows < 1 || nRows > 10000) continue;
+    const col1 = nRows * refWidth;
+    const props = {}; let score = 0;
+    for (let r = 0; r < nRows; r++) {
+      let ki = prb.readUInt16LE(r * refWidth);
+      if (refWidth === 3) ki |= (prb[r * refWidth + 2] << 16);
+      let vi = prb.readUInt16LE(col1 + r * refWidth);
+      if (refWidth === 3) vi |= (prb[col1 + r * refWidth + 2] << 16);
+      const k = ki === 0 ? null : (ki - 1 < strings.length ? strings[ki - 1] : null);
+      const v = vi === 0 ? '' : (vi - 1 < strings.length ? strings[vi - 1] : '');
+      if (k && /^[A-Za-z_]/.test(k)) { props[k] = v; if (knownK.has(k)) score++; }
     }
+    if (score > bestScore) { bestScore = score; bestProps = props; }
   }
 
-  // Find Property table and decode it (2-column, column-major layout)
-  const knownKeys = new Set(['ProductCode', 'ProductVersion', 'ProductName', 'Manufacturer', 'UpgradeCode']);
-  let bestProps = {}, bestPropScore = 0;
-  for (const entry of cfb.FileIndex) {
-    if (!entry.content) continue;
-    const bytes = Buffer.isBuffer(entry.content) ? entry.content : Buffer.from(entry.content);
-    const rowSize = 4; // 2 x u16
-    if (bytes.length < rowSize * 2 || bytes.length % rowSize !== 0) continue;
-    const numRows = bytes.length / rowSize;
-    if (numRows < 2 || numRows > 5000) continue;
-    const colSize = numRows * 2;
-    const props = {};
-    let score = 0;
-    for (let r = 0; r < numRows; r++) {
-      const ki = bytes.readUInt16LE(r * 2);
-      const vi = bytes.readUInt16LE(colSize + r * 2);
-      if (ki > 0 && ki < strings.length) {
-        const k = strings[ki];
-        const v = vi > 0 && vi < strings.length ? strings[vi] : '';
-        if (k && /^[A-Za-z_]/.test(k)) { props[k] = v; if (knownKeys.has(k)) score++; }
-      }
-    }
-    if (score > bestPropScore) { bestPropScore = score; bestProps = props; }
-  }
+  result.productCode    = bestProps['ProductCode']    || '';
+  result.productVersion = bestProps['ProductVersion'] || '';
+  result.productName    = bestProps['ProductName']    || '';
+  result.manufacturer   = bestProps['Manufacturer']   || '';
+  result.upgradeCode    = bestProps['UpgradeCode']    || '';
 
-  if (bestProps.ProductCode) result.productCode = bestProps.ProductCode;
-  if (bestProps.ProductName) result.productName = bestProps.ProductName;
-  if (bestProps.ProductVersion) result.productVersion = bestProps.ProductVersion;
-  if (bestProps.Manufacturer) result.manufacturer = bestProps.Manufacturer;
-  if (bestProps.UpgradeCode) result.upgradeCode = bestProps.UpgradeCode;
-
-  // Last-resort: if string-pool path didn't yield ProductName or Manufacturer, try UTF-16LE scan
-  if (!result.productName || !result.manufacturer) {
-    const utf16 = new TextDecoder('utf-16le', { fatal: false }).decode(buffer);
-    if (!result.productName) {
-      const pnMatch = utf16.match(/ProductName\0([^\0]{2,128})/);
-      if (pnMatch && pnMatch[1].trim()) result.productName = pnMatch[1].trim();
-    }
-    if (!result.manufacturer) {
-      const mfMatch = utf16.match(/Manufacturer\0([^\0]{2,128})/);
-      if (mfMatch && mfMatch[1].trim()) result.manufacturer = mfMatch[1].trim();
-    }
-  }
-
+  console.log(`MSI server: parsed OK — ${Object.keys(bestProps).length} props, score=${bestScore}, longRefs=${longRefs}`);
   return result;
 }
+
+function msiServerFallback(buffer, result) {
+  const utf16 = new TextDecoder('utf-16le', { fatal:false }).decode(buffer);
+  const guidRe = /\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/g;
+  for (const text of [new TextDecoder('utf-8',{fatal:false}).decode(buffer), utf16]) {
+    if (!result.productCode){const m=text.match(/ProductCode[^{]{0,20}(\{[0-9A-Fa-f-]{36}\})/i);if(m)result.productCode=m[1];}
+    if (!result.upgradeCode){const m=text.match(/UpgradeCode[^{]{0,20}(\{[0-9A-Fa-f-]{36}\})/i);if(m)result.upgradeCode=m[1];}
+  }
+  const guids=utf16.match(guidRe)||[];
+  if(!result.productCode&&guids[0])result.productCode=guids[0];
+  if(!result.upgradeCode&&guids[1])result.upgradeCode=guids[1];
+  const vm=utf16.match(/ProductVersion[^\d]{0,20}(\d+\.\d+\.\d+[\.\d]*)/);
+  result.productVersion=vm?vm[1]:((utf16.match(/(\d+\.\d+\.\d+[\.\d]*)/)||[])[1]||'');
+  const pn=utf16.match(/ProductName\0([^\0]{2,128})/);if(pn&&pn[1].trim())result.productName=pn[1].trim();
+  const mf=utf16.match(/Manufacturer\0([^\0]{2,128})/);if(mf&&mf[1].trim())result.manufacturer=mf[1].trim();
+  return result;
+}
+
+
 
 // Multer — store upload in memory (MSI files are typically < 200MB; fine for metadata extraction)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
