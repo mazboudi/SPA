@@ -187,14 +187,66 @@ const INITIAL_STATE = {
   pristineScripts: true,          // true = clean script without SPA comments, false = annotated script
 
   // Installer source on runner (leave empty to use git-committed files in windows/src/Files/)
-  installerSourceDir: '',            // e.g. 'C:\\files\\7-zip'
-  installerSourceFile: '',           // e.g. '7z2600-x64.msi'
-  installerSubfolder: '',            // optional subfolder within Files/ e.g. 'Bin' or 'x64\\Setup'
-  supportFilesSource: '',            // e.g. 'C:\\files\\7-zip' (defaults to installerSourceDir)
+  //
+  // NEW SEMANTICS (v2):
+  //   installerSourceDir  = full path to the Files\ directory on the runner
+  //                         e.g. 'C:\\AppSource\\AppName\\Files'
+  //   installerSubfolder  = relative path within Files\ to reach the installer
+  //                         e.g. '' (root) | 'Bin' | 'x64\\Setup'
+  //   installerSourceFile = filename only  e.g. 'setup.msi'
+  //   supportFilesSource  = auto-derived as installerSourceDir + '\\SupportFiles'
+  //                         (SupportFiles\ lives INSIDE Files\, not alongside it)
+  installerSourceDir: '',
+  installerSourceFile: '',
+  installerSubfolder: '',
+  supportFilesSource: '',
 };
 
 // Helper to return a deep clone of the initial state so we do not mutate the constant
 const getInitialState = () => JSON.parse(JSON.stringify(INITIAL_STATE));
+
+/**
+ * migrateInstallerPaths — normalises installer path state to v2 semantics.
+ *
+ * Old (v1) state stored `installerSourceDir` as the full directory containing
+ * the installer file, e.g. 'C:\\App\\Files\\Bin'. The new (v2) semantics store
+ * only the Files\ root, e.g. 'C:\\App\\Files', with the subfolder in
+ * `installerSubfolder`.
+ *
+ * This function detects v1 state and upgrades it in-place.
+ */
+function migrateInstallerPaths(state) {
+  const dir = (state.installerSourceDir || '').replace(/\//g, '\\');
+  if (!dir) return state;
+
+  const lower = dir.toLowerCase();
+  const filesIdx = lower.lastIndexOf('\\files\\');
+  const endsWithFiles = /\\files$/i.test(dir);
+
+  if (endsWithFiles) {
+    // Already v2 — just normalize trailing slash
+    state.installerSourceDir = dir.replace(/\\+$/, '');
+  } else if (filesIdx >= 0) {
+    // v1 state: split at \Files\
+    const filesToken = '\\files\\';
+    const base = dir.slice(0, filesIdx + filesToken.length - 1); // up to \Files (no trailing slash)
+    const tail = dir.slice(filesIdx + filesToken.length).replace(/^\\+|\\+$/g, '');
+    // Merge: tail + existing subfolder (tail takes precedence as it's more specific)
+    const existing = (state.installerSubfolder || '').replace(/^\\+|\\+$/g, '');
+    const merged = tail
+      ? (existing && existing !== tail ? `${tail}\\${existing}` : tail)
+      : existing;
+    state.installerSourceDir = base;
+    state.installerSubfolder = merged;
+  }
+
+  // Always re-derive supportFilesSource as a child of Files\
+  if (state.installerSourceDir) {
+    state.supportFilesSource = state.installerSourceDir.replace(/\\+$/, '') + '\\SupportFiles';
+  }
+
+  return state;
+}
 
 const CATEGORIES = [
   { value: 'browsers', label: 'Browsers' },
@@ -580,14 +632,12 @@ export default function useWizardState() {
 
       case 'installer': {
         if (state.installerType === 'script') {
+          // Script-only: just need the Files\ base path
           return !!(state.installerSourceDir || '').trim();
         }
-        // All three are required for the generator to produce a working PSADT script:
-        //  - installerSourceFile: the filename (e.g. setup.msi / setup.exe)
-        //  - installerSourceDir:  the runner-side directory containing Files\
-        //  - installerType:       'msi' or 'exe' — without this the generator can't build the cmdlet
-        const hasFile = !!(state.installerSourceFile || '').trim();
+        // installerSourceDir must point to the Files\ root (ends with \Files)
         const hasDir  = !!(state.installerSourceDir  || '').trim();
+        const hasFile = !!(state.installerSourceFile || '').trim();
         const hasType = state.installerType === 'msi' || state.installerType === 'exe';
         return hasFile && hasDir && hasType;
       }
@@ -1046,6 +1096,8 @@ export default function useWizardState() {
 
     setState(prev => {
       const next = { ...prev, ...parsed };
+      // Migrate installer paths to v2 semantics (installerSourceDir = Files\ root)
+      migrateInstallerPaths(next);
       next.wizardMode = 'edit';
       next.vsCodeOpened = false;
       if (ps1Path) {

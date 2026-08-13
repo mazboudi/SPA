@@ -42,16 +42,23 @@ export function parseProjectFiles(files) {
     const pkg = parseSimpleYaml(yamlText);
     if (pkg.installer_type) state.installerType = pkg.installer_type;
     if (pkg.source_filename) {
-      // Legacy projects stored the full path as source_filename.
-      // Split into dir + filename for the new model.
+      // source_filename stores the filename only (e.g. 'setup.msi').
+      // The full runner path is reconstructed from WINDOWS_INSTALLER_SOURCE in .gitlab-ci.yml.
+      // Some legacy projects stored the full path here; handle both.
       const raw = pkg.source_filename;
       if (raw.includes('\\') || raw.includes('/')) {
         const parts = raw.replace(/\\/g, '/').split('/');
         state.installerSourceFile = parts.pop();
+        // The remaining path may be the Files\ base or a Files\subfolder path —
+        // migrateInstallerPaths() in useWizardState will normalise it to v2 semantics.
         state.installerSourceDir = parts.join('\\');
       } else {
         state.installerSourceFile = raw;
       }
+    }
+    // installer_subfolder — relative path within Files\ (e.g. 'Bin' or 'x64\\Setup')
+    if (pkg.installer_subfolder) {
+      state.installerSubfolder = String(pkg.installer_subfolder).replace(/^[/\\]+|[/\\]+$/g, '');
     }
     if (pkg.max_install_time) state.maxInstallTime = parseInt(pkg.max_install_time) || 60;
     if (pkg.restart_behavior) state.restartBehavior = pkg.restart_behavior;

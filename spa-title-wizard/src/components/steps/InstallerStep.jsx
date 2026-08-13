@@ -3,71 +3,44 @@ import FormField from '../ui/FormField';
 import './windows-steps.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// parseInstallerFullPath
-//
-// Takes a full runner path like:
-//   C:\AppSource\AppName\Files\setup.msi
-//   C:\AppSource\AppName\Files\Bin\setup.exe
-//   \\server\share\AppName\Files\setup.msi
-//
-// Returns:
-//   dir           — full directory portion (no trailing slash)
-//   file          — filename with extension
-//   installerType — 'msi' | 'exe' | ''
-//   subfolder     — relative path between \Files\ and filename ('' if at root)
-//   pathError     — validation message if \Files\ not present, null if valid
+// parseFilesBasePath
+// Validates that a path ends with \Files (case-insensitive) and normalises
+// slashes. Returns { path, pathError }.
 // ─────────────────────────────────────────────────────────────────────────────
-function parseInstallerFullPath(raw, isScript = false) {
-  const input = (raw || '').trim();
-  if (!input) return { dir: '', file: '', installerType: '', subfolder: '', pathError: null };
-
-  // Normalise slashes
-  const norm = input.replace(/\//g, '\\');
-
-  // Split filename (last segment) unless it's a script-only package where the whole input is the dir
-  let dir, file;
-  if (isScript) {
-    dir = norm.replace(/\\$/, '');
-    file = '';
-  } else {
-    const lastSep = norm.lastIndexOf('\\');
-    dir  = lastSep >= 0 ? norm.slice(0, lastSep) : '';
-    file = lastSep >= 0 ? norm.slice(lastSep + 1) : norm;
-  }
-
-  // Installer type parsing removed per user request to explicitly select via radio buttons.
-
-  // Find \Files\ in the directory portion (case-insensitive, last occurrence)
-  const dirLower = dir.toLowerCase();
-  const filesToken = '\\files\\';
-  const filesIdx = dirLower.lastIndexOf(filesToken);
-
-  // Also accept path that ends with \Files (file sits directly in Files\)
-  const endsWithFiles = dirLower.endsWith('\\files') || dirLower.toLowerCase() === 'files';
-
-  let subfolder = '';
-  let pathError = null;
-
-  if (filesIdx >= 0) {
-    // Everything between \Files\ and the filename is the subfolder
-    subfolder = dir.slice(filesIdx + filesToken.length).replace(/^\\+|\\+$/g, '');
-  } else if (endsWithFiles) {
-    subfolder = '';
-  } else {
-    pathError = 'Path must include \\Files\\ — e.g. C:\\AppSource\\AppName\\Files\\setup.msi';
-  }
-
-  return { dir, file, subfolder, pathError };
+function parseFilesBasePath(raw) {
+  const norm = (raw || '').trim().replace(/\//g, '\\').replace(/\\+$/, '');
+  if (!norm) return { path: '', pathError: null };
+  const valid = /\\files$/i.test(norm);
+  return {
+    path:      norm,
+    pathError: valid ? null : 'Path must end with \\Files — e.g. C:\\AppSource\\AppName\\Files',
+  };
 }
 
-// Reconstruct a display path from wizard state (used to initialise the text input)
-function buildFullPathFromState(state) {
-  const dir  = (state.installerSourceDir || '').replace(/\\+$/, '');
-  const file = state.installerSourceFile || '';
-  if (!dir && !file) return '';
-  if (!dir) return file;
-  if (!file) return dir;
-  return `${dir}\\${file}`;
+// ─────────────────────────────────────────────────────────────────────────────
+// parseInstallerRelativePath
+// Splits 'Bin\setup.exe' → { subfolder: 'Bin', file: 'setup.exe', pathError }.
+// ─────────────────────────────────────────────────────────────────────────────
+function parseInstallerRelativePath(raw) {
+  const norm = (raw || '').trim().replace(/\//g, '\\').replace(/^\\+|\\+$/g, '');
+  if (!norm) return { subfolder: '', file: '', pathError: null };
+  const lastSep = norm.lastIndexOf('\\');
+  const file      = lastSep >= 0 ? norm.slice(lastSep + 1) : norm;
+  const subfolder = lastSep >= 0 ? norm.slice(0, lastSep)  : '';
+  const pathError = !file
+    ? 'Must include a filename — e.g. setup.msi or Bin\\setup.exe'
+    : null;
+  return { subfolder, file, pathError };
+}
+
+// Reconstruct the relative installer path from wizard state (for the input field)
+function buildRelativeFromState(state) {
+  const sub  = (state.installerSubfolder  || '').replace(/^\\+|\\+$/g, '');
+  const file = (state.installerSourceFile || '');
+  if (!sub && !file) return '';
+  if (!sub) return file;
+  if (!file) return sub + '\\';
+  return `${sub}\\${file}`;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -78,17 +51,33 @@ export default function InstallerStep({ state, updateField, updateFields }) {
   const [msiParseResult, setMsiParseResult] = useState(null);
   const [msiExtractPath, setMsiExtractPath] = useState('');
 
-  // ── Single full-path input (drives all derived wizard fields) ───────────
-  const [pathInput, setPathInput] = useState(() => buildFullPathFromState(state));
+  // ── Two-field path inputs ────────────────────────────────────────────────
+  // Field 1: Files\ base path (e.g. C:\AppSource\App\Files)
+  const [basePath,     setBasePath]     = useState(() => (state.installerSourceDir || ''));
+  // Field 2: installer relative path (e.g. setup.msi or Bin\setup.exe)
+  const [relativePath, setRelativePath] = useState(() => buildRelativeFromState(state));
   const suppressSync = useRef(false);
 
-  // Re-sync when wizard state is loaded externally (Queue / Edit)
+  // Re-sync both inputs when wizard state is loaded externally (Queue / Edit)
   useEffect(() => {
     if (suppressSync.current) { suppressSync.current = false; return; }
-    const fromState = buildFullPathFromState(state);
-    if (fromState && fromState !== pathInput) setPathInput(fromState);
+    const newBase = state.installerSourceDir || '';
+    const newRel  = buildRelativeFromState(state);
+    if (newBase !== basePath)     setBasePath(newBase);
+    if (newRel  !== relativePath) setRelativePath(newRel);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.installerSourceFile, state.installerSourceDir]);
+  }, [state.installerSourceFile, state.installerSourceDir, state.installerSubfolder]);
+
+  // Parsed validation for each field
+  const parsedBase = parseFilesBasePath(basePath);
+  const parsedRel  = parseInstallerRelativePath(relativePath);
+
+  // The full runner path (for MSI extract and derived display)
+  const fullInstallerPath = (() => {
+    if (!parsedBase.path) return '';
+    const rel = relativePath.trim().replace(/\//g, '\\');
+    return rel ? `${parsedBase.path}\\${rel}` : parsedBase.path;
+  })();
 
   // ── WinGet state ────────────────────────────────────────────────────────
   const [wingetInput,     setWingetInput]     = useState('');
@@ -101,8 +90,6 @@ export default function InstallerStep({ state, updateField, updateFields }) {
   const isMsi = state.installerType === 'msi';
   const isExe = state.installerType === 'exe';
   const isScript = state.installerType === 'script';
-
-  const parsed = parseInstallerFullPath(pathInput, isScript);
 
   // Primary installer filename for PSADT path
   const primaryFile = isMsi
@@ -119,41 +106,36 @@ export default function InstallerStep({ state, updateField, updateFields }) {
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
-  const handlePathChange = (raw) => {
-    setPathInput(raw);
+  // Handler: Files\ base path changed
+  const handleBasePathChange = (raw) => {
+    setBasePath(raw);
     setMsiParseResult(null);
     suppressSync.current = true;
+    const { path } = parseFilesBasePath(raw);
+    const supportFiles = path ? `${path}\\SupportFiles` : '';
+    const updates = { installerSourceDir: path, supportFilesSource: supportFiles };
+    if (updateFields) updateFields(updates);
+    else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
+  };
 
-    const { dir, file, subfolder } = parseInstallerFullPath(raw, isScript);
-    const updates = {
-      installerSourceDir:  dir,
-      installerSourceFile: file,
-      installerSubfolder:  subfolder,
-      // Do NOT auto-mirror supportFilesSource — it must be set explicitly
-      // via its own field since it points to a separate SupportFiles folder.
-    };
+  // Handler: installer relative path changed
+  const handleRelativePathChange = (raw) => {
+    setRelativePath(raw);
+    setMsiParseResult(null);
+    suppressSync.current = true;
+    const { subfolder, file } = parseInstallerRelativePath(raw);
+    const updates = { installerSubfolder: subfolder, installerSourceFile: file };
     if (updateFields) updateFields(updates);
     else Object.entries(updates).forEach(([k, v]) => updateField(k, v));
   };
 
   const handleTypeToggle = (t) => {
     updateField('installerType', t);
-    // If switching to script, re-parse the current path input to treat it as a directory
-    if (t === 'script') {
-      const { dir, file, subfolder } = parseInstallerFullPath(pathInput, true);
-      if (updateFields) {
-        updateFields({ installerSourceDir: dir, installerSourceFile: file, installerSubfolder: subfolder, installerType: t });
-      } else {
-        updateField('installerSourceDir', dir);
-        updateField('installerSourceFile', file);
-        updateField('installerSubfolder', subfolder);
-      }
-    }
   };
 
   // ── MSI auto-extract ────────────────────────────────────────────────────
   const handleAutoExtract = async () => {
-    const target = msiExtractPath.trim() || pathInput.trim();
+    const target = msiExtractPath.trim() || fullInstallerPath.trim();
     if (state.installerType !== 'msi' || !target) return;
     setMsiParsing(true);
     setMsiParseResult(null);
@@ -221,10 +203,10 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     if (!filename || !filename.includes('.'))
       filename = `${wingetResult.packageIdentifier.toLowerCase()}-${wingetResult.packageVersion}.${type}`;
 
-    // Rebuild the path input with the new filename
-    const dirPart = (state.installerSourceDir || '').replace(/\\+$/, '');
-    const newFullPath = dirPart ? `${dirPart}\\${filename}` : filename;
-    handlePathChange(newFullPath);
+    // Rebuild the relative path input with the new filename
+    const currentSub = (state.installerSubfolder || '').replace(/^\\+|\\+$/g, '');
+    const newRel = currentSub ? `${currentSub}\\${filename}` : filename;
+    handleRelativePathChange(newRel);
 
     const updates = {
       installerType:  type,
@@ -276,7 +258,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
     <div className="step-content animate-in">
       <div className="step-header">
         <h2>📦 Installer &amp; Behavior</h2>
-        <p>Provide the full path to the installer file. Everything else is derived automatically.</p>
+        <p>Provide the path to your <code>Files\</code> directory and installer file. Everything else is derived automatically.</p>
         
         <div style={{ marginTop: '1rem', display: 'flex', gap: '16px', alignItems: 'center' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
@@ -394,7 +376,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                       {downloading ? '⏳ Downloading...' : '📥 Download Installer File'}
                     </button>
                   ) : (
-                    <span className="download-hint">⚠️ Set the source path below to enable direct downloads.</span>
+                    <span className="download-hint">⚠️ Set the Files\ path below to enable direct downloads.</span>
                   )}
                 </div>
                 {downloadStatus && (
@@ -415,9 +397,8 @@ export default function InstallerStep({ state, updateField, updateFields }) {
       <div className="config-section">
         <h3 className="section-title">📂 Installer Source <span className="section-subtitle">(Runner / File Share)</span></h3>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-          {isScript 
-            ? <>Enter the <strong>full path to the Files directory</strong> on the GitLab runner. The pipeline copies the <em>entire</em> <code>Files\</code> folder into the PSADT staging area. A <code>SupportFiles\</code> folder at the same level is automatically detected and copied if it exists.</>
-            : <>Enter the <strong>full path to the installer file</strong> on the GitLab runner. The file must be located inside a <code>\Files\</code> folder — the pipeline copies the <em>entire</em> <code>Files\</code> folder into the PSADT staging area. A <code>SupportFiles\</code> folder at the same level is automatically detected and copied if it exists.</>}
+          The pipeline copies the <em>entire</em> <code>Files\</code> folder into the PSADT staging area.
+          {' '}<code>SupportFiles\</code> lives <strong>inside</strong> <code>Files\</code> and is copied automatically.
           {' '}Supports local paths (<code>C:\...</code>), UNC shares (<code>\\server\share\...</code>), and mapped drives.
         </p>
 
@@ -427,43 +408,68 @@ export default function InstallerStep({ state, updateField, updateFields }) {
           </div>
         )}
 
+        {/* ── Field 1: Files\ base path ─────────────────────────────────── */}
         <FormField
-          label={isScript ? "Full path to Files\\ directory" : "Full path to installer file"}
-          id="installerFullPath"
+          label="Path to Files\ directory (runner)"
+          id="installerBasePath"
           required
-          hint={isScript 
-            ? `Must end with \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files` 
-            : `Must contain \\Files\\ — e.g.  C:\\AppSource\\AppName\\Files\\setup.msi   or   \\\\server\\share\\AppName\\Files\\Bin\\setup.exe`}
+          hint={`Must end with \\Files — e.g. C:\\AppSource\\AppName\\Files   or   \\\\server\\share\\AppName\\Files`}
         >
           <div className="inst-fullpath-row">
             <input
-              id="installerFullPath"
+              id="installerBasePath"
               type="text"
-              className={`inst-fullpath-input${parsed.pathError && pathInput.trim() ? ' inst-fullpath-input--error' : ''}`}
-              value={pathInput}
-              onChange={e => handlePathChange(e.target.value)}
-              onBlur={() => isMsi && !parsed.pathError && pathInput.trim() && handleAutoExtract()}
-              placeholder={isScript ? String.raw`C:\AppSource\AppName\Files` : String.raw`C:\AppSource\AppName\Files\setup.msi`}
+              className={`inst-fullpath-input${parsedBase.pathError && basePath.trim() ? ' inst-fullpath-input--error' : ''}`}
+              value={basePath}
+              onChange={e => handleBasePathChange(e.target.value)}
+              placeholder={String.raw`C:\AppSource\AppName\Files`}
               spellCheck={false}
             />
-            {/* Type override chips removed */}
           </div>
         </FormField>
-
-        {/* Validation error */}
-        {parsed.pathError && pathInput.trim() && (
+        {parsedBase.pathError && basePath.trim() && (
           <div className="inst-msg inst-msg--err animate-in" style={{ marginTop: 8 }}>
-            ⚠️ {parsed.pathError}
+            ⚠️ {parsedBase.pathError}
           </div>
         )}
 
-        {/* Derived breakdown — shown when path is valid and a directory exists */}
-        {!parsed.pathError && state.installerSourceDir && (
+        {/* ── Field 2: installer relative path (hidden for script-only) ──── */}
+        {!isScript && (
+          <>
+            <FormField
+              label="Installer path (relative to Files\)"
+              id="installerRelativePath"
+              required
+              hint="Filename only or subfolder + filename — e.g. setup.msi  or  Bin\setup.exe  or  x64\Silent\installer.msi"
+            >
+              <div className="inst-fullpath-row">
+                <input
+                  id="installerRelativePath"
+                  type="text"
+                  className={`inst-fullpath-input${parsedRel.pathError && relativePath.trim() ? ' inst-fullpath-input--error' : ''}`}
+                  value={relativePath}
+                  onChange={e => handleRelativePathChange(e.target.value)}
+                  onBlur={() => isMsi && !parsedBase.pathError && !parsedRel.pathError && relativePath.trim() && handleAutoExtract()}
+                  placeholder={String.raw`setup.msi   or   Bin\setup.exe`}
+                  spellCheck={false}
+                />
+              </div>
+            </FormField>
+            {parsedRel.pathError && relativePath.trim() && (
+              <div className="inst-msg inst-msg--err animate-in" style={{ marginTop: 8 }}>
+                ⚠️ {parsedRel.pathError}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Derived breakdown — shown when Files\ base is valid */}
+        {!parsedBase.pathError && state.installerSourceDir && (
           <div className="inst-derived-grid animate-in">
             {!isScript && (
               <div className="inst-derived-row">
                 <span className="inst-derived-label">Installer file</span>
-                <code className="inst-derived-value inst-derived-value--file">{state.installerSourceFile}</code>
+                <code className="inst-derived-value inst-derived-value--file">{state.installerSourceFile || '—'}</code>
                 {state.installerType && (
                   <span className={`inst-type-chip inst-type-chip--${state.installerType}`}>
                     {state.installerType.toUpperCase()}
@@ -471,24 +477,22 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                 )}
               </div>
             )}
+            {!isScript && (
+              <div className="inst-derived-row">
+                <span className="inst-derived-label">Full installer path</span>
+                <code className="inst-derived-value">{fullInstallerPath || '—'}</code>
+              </div>
+            )}
             <div className="inst-derived-row">
-              <span className="inst-derived-label">Files\ folder copied entirely</span>
+              <span className="inst-derived-label">Files\ folder (copied entirely)</span>
               <code className="inst-derived-value">{state.installerSourceDir || '—'}</code>
             </div>
             <div className="inst-derived-row">
-              <span className="inst-derived-label">SupportFiles\ (auto-derived sibling)</span>
+              <span className="inst-derived-label">SupportFiles\ (inside Files\, copied if exists)</span>
               <code className="inst-derived-value">
                 {state.installerSourceDir
-                  ? state.installerSourceDir.replace(/\\?Files\\?$/i, '') + 'SupportFiles  (copied if exists)'
+                  ? `${state.installerSourceDir}\\SupportFiles`
                   : '—'}
-              </code>
-            </div>
-            <div className="inst-derived-row">
-              <span className="inst-derived-label">PSADT subfolder</span>
-              <code className="inst-derived-value">
-                {state.installerSubfolder
-                  ? `Files\\${state.installerSubfolder}\\`
-                  : 'Files\\ (root)'}
               </code>
             </div>
             {!isScript && (
@@ -501,7 +505,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
         )}
 
         {/* MSI local extraction */}
-        {isMsi && !parsed.pathError && (
+        {isMsi && !parsedBase.pathError && (
           <div className="msi-local-extract animate-in" style={{ marginTop: 'var(--space-md)' }}>
             <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0 0 8px 0' }}>
               <strong>MSI Info Extraction</strong> — optionally provide a local path to the MSI if the runner
@@ -520,7 +524,7 @@ export default function InstallerStep({ state, updateField, updateFields }) {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleAutoExtract}
-                disabled={msiParsing || (!msiExtractPath.trim() && !pathInput.trim())}
+                disabled={msiParsing || (!msiExtractPath.trim() && !fullInstallerPath.trim())}
               >
                 {msiParsing ? '⏳ Extracting…' : '🔍 Extract MSI Info'}
               </button>
