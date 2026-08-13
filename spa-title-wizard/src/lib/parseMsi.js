@@ -146,69 +146,87 @@ function decodeStringPool(poolBytes, stringBytes) {
 /**
  * Decode the MSI Property table stream.
  *
- * The Property table has exactly 2 string columns (Property, Value).
- * Data is stored COLUMN-MAJOR: all key indices contiguously, then all value indices.
- * Each index is u16 for standard databases (< 65536 strings) or u32 for large ones.
+ * The documented MSI binary format stores each record ROW-MAJOR:
+ *   [keyIdx][valIdx][keyIdx][valIdx]...
+ * Some MSI tools write COLUMN-MAJOR instead (all keys then all values).
+ * We try both layouts and pick the one that scores more known property names.
  *
+ * Each index is u16 for standard databases (< 65536 strings) or u32 for large ones.
  * Returns a plain { PropertyName: 'value' } object.
  */
 function decodePropertyTable(tableContent, strings) {
-  const bytes      = toUint8(tableContent);
-  const totalStr   = strings.length;
-  const numCols    = 2;
-
-  // Try u16 first (standard), then u32 (large database)
-  const indexSizes = totalStr > 0xFFFF ? [4, 2] : [2, 4];
+  const bytes    = toUint8(tableContent);
+  const totalStr = strings.length;
+  const numCols  = 2;
 
   const knownKeys = new Set([
     'ProductCode', 'ProductVersion', 'ProductName', 'Manufacturer',
     'UpgradeCode', 'ProductLanguage', 'ALLUSERS', 'ARPCONTACT',
     'ARPHELPLINK', 'ARPURLINFOABOUT', 'ARPNOREPAIR', 'ARPNOMODIFY',
+    'ARPNOREMOVE', 'SecureCustomProperties',
   ]);
 
   let bestProps = {};
   let bestScore = 0;
+  let bestDesc  = '';
 
-  for (const idxSize of indexSizes) {
-    const rowWidth = idxSize * numCols;
-    if (bytes.length === 0 || bytes.length % rowWidth !== 0) continue;
+  for (const idxSize of [2, 4]) {
+    const rowStride = idxSize * numCols;
+    if (bytes.length === 0 || bytes.length % rowStride !== 0) continue;
 
-    const numRows = bytes.length / rowWidth;
+    const numRows = bytes.length / rowStride;
     if (numRows < 1 || numRows > 10000) continue;
 
     const view    = viewOf(bytes);
     const colSize = numRows * idxSize;
-    const props   = {};
-    let score     = 0;
 
-    for (let r = 0; r < numRows; r++) {
-      const keyOff = r * idxSize;
-      const valOff = colSize + r * idxSize;
-      if (valOff + idxSize > bytes.length) break;
-
-      const keyIdx = idxSize === 4
-        ? view.getUint32(keyOff, true)
-        : view.getUint16(keyOff, true);
-      const valIdx = idxSize === 4
-        ? view.getUint32(valOff, true)
-        : view.getUint16(valOff, true);
-
-      if (keyIdx > 0 && keyIdx < totalStr) {
-        const key = strings[keyIdx];
-        const val = (valIdx > 0 && valIdx < totalStr) ? strings[valIdx] : '';
-        if (key && /^[A-Za-z_]/.test(key)) {
-          props[key] = val;
-          if (knownKeys.has(key)) score++;
+    // ── ROW-MAJOR (documented MSI binary format) ───────────────────────────
+    // Layout: [k0,v0, k1,v1, k2,v2, ...]
+    {
+      const props = {};
+      let score   = 0;
+      for (let r = 0; r < numRows; r++) {
+        const keyOff = r * rowStride;
+        const valOff = keyOff + idxSize;
+        const keyIdx = idxSize === 4 ? view.getUint32(keyOff, true) : view.getUint16(keyOff, true);
+        const valIdx = idxSize === 4 ? view.getUint32(valOff, true) : view.getUint16(valOff, true);
+        if (keyIdx > 0 && keyIdx < totalStr) {
+          const key = strings[keyIdx];
+          const val = (valIdx > 0 && valIdx < totalStr) ? strings[valIdx] : '';
+          if (key && /^[A-Za-z_]/.test(key)) {
+            props[key] = val;
+            if (knownKeys.has(key)) score++;
+          }
         }
       }
+      if (score > bestScore) { bestScore = score; bestProps = props; bestDesc = `row-major u${idxSize * 8} (${numRows} rows, score ${score})`; }
     }
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestProps = props;
+    // ── COLUMN-MAJOR (some MSI tools use this) ─────────────────────────────
+    // Layout: [k0,k1,...,kN, v0,v1,...,vN]
+    {
+      const props = {};
+      let score   = 0;
+      for (let r = 0; r < numRows; r++) {
+        const keyOff = r * idxSize;
+        const valOff = colSize + r * idxSize;
+        if (valOff + idxSize > bytes.length) break;
+        const keyIdx = idxSize === 4 ? view.getUint32(keyOff, true) : view.getUint16(keyOff, true);
+        const valIdx = idxSize === 4 ? view.getUint32(valOff, true) : view.getUint16(valOff, true);
+        if (keyIdx > 0 && keyIdx < totalStr) {
+          const key = strings[keyIdx];
+          const val = (valIdx > 0 && valIdx < totalStr) ? strings[valIdx] : '';
+          if (key && /^[A-Za-z_]/.test(key)) {
+            props[key] = val;
+            if (knownKeys.has(key)) score++;
+          }
+        }
+      }
+      if (score > bestScore) { bestScore = score; bestProps = props; bestDesc = `col-major u${idxSize * 8} (${numRows} rows, score ${score})`; }
     }
   }
 
+  console.log(`MSI: Property table decoded via ${bestDesc || 'no match'}, ${Object.keys(bestProps).length} props`);
   return bestProps;
 }
 
@@ -242,14 +260,12 @@ export async function parseMsiFile(file) {
     return result;
   }
 
-  // Debug: log all decoded stream names to help diagnose issues
-  if (import.meta.env?.DEV) {
-    const streamNames = cfb.FileIndex
-      .filter(e => e.content)
-      .map(e => `"${e.name}" → "${decodeMsiName(e.name)}"`)
-      .join(', ');
-    console.log('MSI streams:', streamNames);
-  }
+  // Always log decoded stream names so parse issues can be diagnosed in the browser console
+  const streamNames = cfb.FileIndex
+    .filter(e => e.content)
+    .map(e => `"${decodeMsiName(e.name)}"`)
+    .join(', ');
+  console.log('MSI: streams found:', streamNames);
 
   try {
     // Step 2: Locate _StringData and _StringPool by decoded MSI name
