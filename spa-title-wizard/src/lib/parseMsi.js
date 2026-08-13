@@ -297,7 +297,6 @@ function decodePropertyTable(tableBytes, strings, longStringRefs) {
  */
 export async function parseMsiFile(file) {
   const buffer = await file.arrayBuffer();
-  const data   = new Uint8Array(buffer);
 
   const result = {
     productCode:    '',
@@ -309,12 +308,15 @@ export async function parseMsiFile(file) {
   };
 
   // ── Step 1: Parse OLE container ───────────────────────────────────────────
+  // NOTE: Must use type:'buffer' (not 'array'). The 'array' path uses
+  // Array.push.apply() internally, which crashes with RangeError on large
+  // MSIs (>~10MB) due to the JS call-stack argument limit.
   let cfb;
   try {
-    cfb = CFB.read(data, { type: 'array' });
+    cfb = CFB.read(buffer, { type: 'buffer' });
   } catch (e) {
     console.error('MSI: CFB parse failed:', e);
-    fallbackBinaryScan(data, result);
+    fallbackBinaryScan(new Uint8Array(buffer), result);
     return result;
   }
 
@@ -366,7 +368,7 @@ export async function parseMsiFile(file) {
 
   // Fill any remaining gaps
   if (!result.productCode || !result.productVersion || !result.productName) {
-    fallbackBinaryScan(data, result);
+    fallbackBinaryScan(new Uint8Array(buffer), result);
   }
 
   return result;
