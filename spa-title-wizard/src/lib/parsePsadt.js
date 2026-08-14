@@ -2201,14 +2201,24 @@ function extractAllPhasesV4(text) {
     for (const [markName, key] of Object.entries(marks)) {
       const block = extractV4Mark(funcBody, markName);
       
-      // 1. Scrub standard V4 boilerplate and turn them into visual cards
-      const { actions: promoted, remaining } = promoteLegacyCards(block);
-      
-      // 2. Parse the remaining custom logic line-by-line
-      const extracted = extractBlockActions(remaining);
-      
-      // 3. Combine them
-      const actions = [...promoted, ...extracted];
+      // 1. Scrub standard V4 boilerplate and turn them into visual cards.
+      //    Use orderedItems (not the flat promoted+remaining split) so that
+      //    the original source order is respected — e.g. Remove-ADTRegistryKey
+      //    before Show-ADTInstallationPrompt, not the other way around.
+      const { orderedItems } = promoteLegacyCards(block);
+
+      // 2. For each item in document order: promoted cards go straight in;
+      //    raw text chunks get parsed line-by-line via extractBlockActions.
+      const actions = [];
+      for (const item of orderedItems) {
+        if (item._rawText) {
+          const extracted = extractBlockActions(item._rawText);
+          actions.push(...extracted);
+        } else {
+          actions.push(item);
+        }
+      }
+
       if (actions.length > 0) phases[key] = actions;
     }
   }

@@ -29,8 +29,10 @@ export default function generatePsadtScript(s, options = {}) {
     // Zero-Config MSI handler
     /\$adtSession\.UseDefaultMsi[\s\S]*\$ExecuteDefaultMSISplat/,
     /\$ExecuteDefaultMSISplat\s*=\s*@\{/,
-    // Post-install prompt (standard template text)
+    // Post-install completion prompt — old unwrapped form (standard template text)
     /Show-ADTInstallationPrompt\s+-Message\s+'You can customize text to appear/,
+    // Post-install completion prompt — new wrapped form (PSADT 4.1.8 canonical)
+    /if\s*\(!\$adtSession\.UseDefaultMsi\)[\s\r\n]*\{[\s\r\n]*(?:#)?Show-ADTInstallationPrompt\s+-Message/i,
   ];
 
   /**
@@ -647,7 +649,11 @@ export function generateActionCmd(action, pathCtx = {}) {
 
     case 'show_completion': {
       const msg = action.message ? psString(action.message) : "'The install has completed.'";
-      lines.push(`Show-ADTInstallationPrompt -Message ${msg} -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
+      lines.push('## Display a message at the end of the install.');
+      lines.push('if (!$adtSession.UseDefaultMsi)');
+      lines.push('{');
+      lines.push(`    Show-ADTInstallationPrompt -Message ${msg} -ButtonRightText 'OK' -Icon Information -NoWait -Timeout 5`);
+      lines.push('}');
       break;
     }
 

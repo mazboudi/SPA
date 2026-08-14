@@ -16,27 +16,41 @@ import { extractVarDeclarationsV4, modernizeLegacyScriptParts } from './parsePsa
  * and converts them into visual SPA action cards.
  */
 export function promoteLegacyCards(rawScript) {
-  if (!rawScript) return { actions: [], remaining: '' };
+  if (!rawScript) return { orderedItems: [], actions: [], remaining: '' };
   const extracted = [];
-  let remaining = rawScript;
+  let text = rawScript;
 
-  // 1. Zero-Config MSI (SPA template version)
+  // Use NUL-delimited placeholders to track each extracted action's position
+  // within the source text. This lets us reconstruct the original document order
+  // when mixing promoted cards with leftover raw_ps content.
+  const mkPlaceholder = (idx) => `\x00${idx}\x00`;
+
+  const extract = (rx, makeAction) => {
+    text = text.replace(rx, (...args) => {
+      const action = makeAction(...args);
+      if (!action) return '';
+      const idx = extracted.length;
+      extracted.push(action);
+      return mkPlaceholder(idx);
+    });
+  };
+
+  // 1. Zero-Config MSI (SPA template version) — remove, no action card
   const zcMsiRx = /(?:##\s*Handle Zero-Config MSI installations\.\r?\n)?\s*if\s*\(\$adtSession\.UseDefaultMsi\)[\s\S]*?\$adtSession\.DefaultMspFiles\s*\|\s*Start-ADTMsiProcess\s+-Action\s+Patch\s*\}\s*\}/gi;
-  remaining = remaining.replace(zcMsiRx, '');
+  text = text.replace(zcMsiRx, '');
 
   const zcMsiUninstallRx = /(?:##\s*Handle Zero-Config MSI uninstallations\.\r?\n)?\s*if\s*\(\$adtSession\.UseDefaultMsi\)[\s\S]*?Start-ADTMsiProcess\s*@ExecuteDefaultMSISplat\s*\}/gi;
-  remaining = remaining.replace(zcMsiUninstallRx, '');
+  text = text.replace(zcMsiUninstallRx, '');
 
   // 2. Pre-Install / Pre-Uninstall Show-Welcome with process closing
   const welcomeRx = /(?:##\s*Show Welcome Message[^\r\n]*\r?\n)?\s*\$saiwParams\s*=\s*@\{([\s\S]*?)\}\s*(?:if\s*\([^\{]+\{\s*\$saiwParams\.Add\('CloseProcesses'[^}]+\}\s*)?(#?Show-ADTInstallationWelcome\s*@saiwParams)/gi;
-  remaining = remaining.replace(welcomeRx, (match, hashBody, callStmt) => {
+  extract(welcomeRx, (match, hashBody, callStmt) => {
     const allowDefer = /AllowDefer\s*=\s*\$true/i.test(hashBody);
     const deferTimesMatch = /DeferTimes\s*=\s*(\d+)/i.exec(hashBody);
     const deferTimes = deferTimesMatch ? parseInt(deferTimesMatch[1], 10) : 3;
     const checkDiskSpace = /CheckDiskSpace\s*=\s*\$true/i.test(hashBody);
     const persistPrompt = /PersistPrompt\s*=\s*\$true/i.test(hashBody);
-
-    extracted.push({
+    return {
       type: 'show_welcome',
       enabled: !callStmt.startsWith('#'),
       allowDefer,
@@ -46,57 +60,74 @@ export function promoteLegacyCards(rawScript) {
       closeProcessesCountdown: 0,
       forceCloseProcessesCountdown: 0,
       blockExecution: false,
-    });
-    return '';
+    };
   });
 
   // 3. Simple Show-Welcome for Uninstall countdown
   const uninstallWelcomeRx = /(?:##\s*If there are processes to close[^\r\n]*\r?\n)?\s*if\s*\(\$adtSession\.AppProcessesToClose\.Count\s*-gt\s*0\)\s*\{\s*Show-ADTInstallationWelcome\s+-CloseProcesses\s+\$adtSession\.AppProcessesToClose\s+-CloseProcessesCountdown\s+(\d+)\s*\}/gi;
-  remaining = remaining.replace(uninstallWelcomeRx, (match, cd) => {
-    extracted.push({
-      type: 'show_welcome',
-      enabled: true,
-      allowDefer: false,
-      deferTimes: 0,
-      checkDiskSpace: false,
-      persistPrompt: false,
-      closeProcessesCountdown: parseInt(cd, 10),
-      forceCloseProcessesCountdown: 0,
-      blockExecution: false,
-    });
-    return '';
-  });
+  extract(uninstallWelcomeRx, (match, cd) => ({
+    type: 'show_welcome',
+    enabled: true,
+    allowDefer: false,
+    deferTimes: 0,
+    checkDiskSpace: false,
+    persistPrompt: false,
+    closeProcessesCountdown: parseInt(cd, 10),
+    forceCloseProcessesCountdown: 0,
+    blockExecution: false,
+  }));
 
   // 4. Standard Show-Progress
   const progressRx = /(?:##\s*Show Progress Message[^\r\n]*\r?\n)?\s*(#?)Show-ADTInstallationProgress(?:[\s\S]*?-StatusMessage\s+'([^']+)')?(?:[\s\S]*?-WindowLocation\s+'([^']+)')?/gi;
-  remaining = remaining.replace(progressRx, (match, comment, msg) => {
-    extracted.push({
-      type: 'show_progress',
-      enabled: !comment.startsWith('#'),
-      statusMessage: msg || '',
-      topMost: true,
-    });
-    return '';
-  });
+  extract(progressRx, (match, comment, msg) => ({
+    type: 'show_progress',
+    enabled: !comment.startsWith('#'),
+    statusMessage: msg || '',
+    topMost: true,
+  }));
 
   // 5. Post-Install Show-Prompt (Show Completion)
-  const promptRx = /(?:##\s*Display a message at the end[^\r\n]*\r?\n)?\s*if\s*\(!\$adtSession\.UseDefaultMsi\)\s*\{\s*(#?)Show-ADTInstallationPrompt\s+-Message\s+'[^']+'\s+-ButtonRightText\s+'OK'(?:\s+-Icon\s+Information)?\s+-NoWait(?:\s+-Timeout\s+'\d+')?\s*\}/gi;
-  remaining = remaining.replace(promptRx, (match, comment) => {
-    extracted.push({
-      type: 'show_completion',
-      enabled: !comment.startsWith('#'),
-    });
-    return '';
-  });
+  //    Matches both block-style (braces on own lines, PSADT 4.1.8 standard) and
+  //    compact single-line style. Also captures the message text for round-trips.
+  //    Quoted timeout value (e.g. -Timeout '5') is also accepted.
+  const promptRx = /(?:##\s*Display a message at the end[^\r\n]*[\r\n]*)\s*if\s*\(!\$adtSession\.UseDefaultMsi\)[\s\r\n]*\{[\s\r\n]*(#?)Show-ADTInstallationPrompt\s+-Message\s+'([^']+)'[^\r\n]*[\r\n\s]*\}|(?:##\s*Display a message at the end[^\r\n]*[\r\n]*)?\s*if\s*\(!\$adtSession\.UseDefaultMsi\)\s*\{\s*(#?)Show-ADTInstallationPrompt\s+-Message\s+'([^']+)'[^}]*\}/gi;
+  extract(promptRx, (match, commentA, msgA, commentB, msgB) => ({
+    type: 'show_completion',
+    enabled: !(commentA || commentB || '').startsWith('#'),
+    message: msgA || msgB || '',
+  }));
 
   // 6. Generic Perform tasks placeholder comments
   const performTasksRx = /##\s*<Perform (?:Pre-|Post-)?(?:Installation|Uninstallation) tasks here>/gi;
-  remaining = remaining.replace(performTasksRx, '');
+  text = text.replace(performTasksRx, '');
 
   // Clear out any trailing/multiple blank lines left behind
-  remaining = remaining.replace(/^\s*$(?:\r?\n)+/gm, '\n').trim();
+  text = text.replace(/^\s*$(?:\r?\n)+/gm, '\n').trim();
 
-  return { actions: extracted, remaining };
+  // ── Reconstruct document-ordered items from text-with-placeholders ────────
+  // After all replacements, `text` contains the leftover raw content with
+  // \x00N\x00 placeholders where each promoted action was. Splitting on these
+  // gives us alternating [text, actionIdx, text, actionIdx, ...] segments that
+  // preserve the original source ordering.
+  const segments = text.split(/\x00(\d+)\x00/);
+  const orderedItems = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    if (i % 2 === 0) {
+      // Text segment — may be leftover raw PS
+      const seg = segments[i].replace(/^[\s\r\n]+|[\s\r\n]+$/g, '');
+      if (seg) orderedItems.push({ _rawText: seg });
+    } else {
+      // Placeholder index → the promoted action card
+      orderedItems.push(extracted[parseInt(segments[i], 10)]);
+    }
+  }
+
+  // Backward-compatible flat accessors
+  const actions  = orderedItems.filter(item => !item._rawText);
+  const remaining = orderedItems.filter(item => item._rawText).map(item => item._rawText).join('\n');
+
+  return { orderedItems, actions, remaining };
 }
 
 function dedentLines(blockLines) {
@@ -322,25 +353,29 @@ export default function parsePsadtBlocks(content) {
           .trim();
 
         if (cleanRaw) {
-          // Promote legacy template boilerplate into visual cards
-          const { actions: promoted, remaining } = promoteLegacyCards(cleanRaw);
-          actions.push(...promoted);
+          // Promote legacy template boilerplate into visual cards.
+          // orderedItems preserves the original source order: each item is either
+          // a promoted action card or { _rawText } for leftover raw PowerShell.
+          const { orderedItems } = promoteLegacyCards(cleanRaw);
 
-          if (remaining) {
-            // Check if remaining contains at least one line of executable code
-            const hasExecutableCode = remaining.split('\n').some(line => {
-              const t = line.trim();
-              return t && !t.startsWith('#') && !t.startsWith('<#');
-            });
-
-            if (hasExecutableCode) {
-              actions.push({
-                type: 'raw_ps',
-                enabled: true,
-                script: modernizeLegacyScriptParts(remaining),
-                note: 'Legacy or custom script block',
-                isManuallyEdited: true
+          for (const item of orderedItems) {
+            if (item._rawText) {
+              // Leftover raw PS — emit as raw_ps only if it has executable content
+              const hasExecutableCode = item._rawText.split('\n').some(line => {
+                const t = line.trim();
+                return t && !t.startsWith('#') && !t.startsWith('<#');
               });
+              if (hasExecutableCode) {
+                actions.push({
+                  type: 'raw_ps',
+                  enabled: true,
+                  script: modernizeLegacyScriptParts(item._rawText),
+                  note: 'Legacy or custom script block',
+                  isManuallyEdited: true
+                });
+              }
+            } else {
+              actions.push(item);
             }
           }
         }
