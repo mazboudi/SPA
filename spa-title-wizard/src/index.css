@@ -629,3 +629,58 @@ button.mode-card:disabled {
 .hkcu-warning--ok strong {
   color: #a7f3d0;
 }
+
+/* ── Terraform Config Preview Download Panel ─────────────────────────────── */
+.tf-download-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin: 0 0 16px;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: 10px;
+  transition: border-color 0.2s;
+}
+
+.tf-download-panel:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.tf-download-panel__icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tf-download-panel__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tf-download-panel__title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.tf-download-panel__desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.tf-download-panel__desc code {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+
+.tf-download-panel__btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+

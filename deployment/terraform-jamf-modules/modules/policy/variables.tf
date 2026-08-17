@@ -99,3 +99,100 @@ variable "custom_trigger" {
   default     = ""
   description = "Custom event name when 'custom' is included in triggers."
 }
+
+variable "scope_building_ids" {
+  type        = list(number)
+  default     = []
+  description = "List of Jamf building IDs to scope this policy to."
+}
+
+variable "scope_department_ids" {
+  type        = list(number)
+  default     = []
+  description = "List of Jamf department IDs to scope this policy to."
+}
+
+variable "scope_network_segment_ids" {
+  type        = list(number)
+  default     = []
+  description = "List of Jamf network segment IDs to scope this policy to."
+}
+
+variable "exclusion_building_ids" {
+  type        = list(number)
+  default     = []
+  description = "List of Jamf building IDs to exclude."
+}
+
+variable "exclusion_department_ids" {
+  type        = list(number)
+  default     = []
+  description = "List of Jamf department IDs to exclude."
+}
+
+variable "exclusion_network_segment_ids" {
+  type        = list(number)
+  default     = []
+  description = "List of Jamf network segment IDs to exclude."
+}
+
+variable "kill_process" {
+  type        = bool
+  default     = false
+  description = "Force close the process if running before installation."
+}
+
+variable "search_for_process" {
+  type        = string
+  default     = ""
+  description = "Name of process to search for (used if kill_process is true)."
+}
+
+variable "run_command" {
+  type        = string
+  default     = ""
+  description = "Arbitrary shell command to run post-installation."
+}
+
+variable "allow_users_to_defer" {
+  type        = bool
+  default     = false
+  description = "Whether to allow users to defer policy run."
+}
+
+variable "allow_deferral_minutes" {
+  type        = number
+  default     = 0
+  description = "Number of minutes users are allowed to defer installation."
+}
+
+variable "message_start" {
+  type        = string
+  default     = ""
+  description = "Notification message shown before the policy runs."
+}
+
+variable "preinstall_script_id" {
+  type        = number
+  default     = -1
+  description = "ID of pre-install script record in Jamf Pro."
+}
+
+variable "postinstall_script_id" {
+  type        = number
+  default     = -1
+  description = "ID of post-install script record in Jamf Pro."
+}
+
+variable "script_parameter4" {
+  type        = string
+  default     = ""
+  description = "Script parameter 4 value."
+}
+
+variable "script_parameter5" {
+  type        = string
+  default     = ""
+  description = "Script parameter 5 value."
+}
+

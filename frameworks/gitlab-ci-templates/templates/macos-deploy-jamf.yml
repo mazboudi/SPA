@@ -70,6 +70,16 @@ macos_deploy_jamf:
       echo "  Found: $PKG_FILE"
       PKG_PATH="$(pwd)/$PKG_FILE"
 
+      # ── Validation: Code Signing & Gatekeeper Check (if macOS host) ─────────
+      if command -v codesign &>/dev/null && command -v spctl &>/dev/null; then
+        echo "[VALIDATION] Checking code signature..."
+        codesign --verify --verbose --deep "$PKG_PATH"
+        echo "[VALIDATION] Checking Gatekeeper assessment..."
+        spctl --assess --type install --verbose "$PKG_PATH"
+      else
+        echo "⚠️  [VALIDATION] codesign/spctl not available on this runner (skipped signature validation)."
+      fi
+
       # ── 3. Generate Terraform config ─────────────────────────
       echo "[3/4] Generating Terraform config..."
       bash terraform-jamf-modules/scripts/Build-JamfTerraform.sh \
@@ -97,15 +107,23 @@ macos_deploy_jamf:
       JAMF_URL="${JAMF_INSTANCE_URL}"
       [[ "$JAMF_URL" != https://* ]] && JAMF_URL="https://${JAMF_URL}"
 
-      terraform plan \
-        -var="jamf_instance_url=${JAMF_URL}" \
-        -var="jamf_client_id=${JAMF_CLIENT_ID}" \
-        -var="jamf_client_secret=${JAMF_CLIENT_SECRET}" \
-        -var="package_file_path=${PKG_PATH}" \
-        -out=tfplan
+      if [ "${TF_MAC_DRY_RUN:-false}" = "true" ]; then
+        echo "ℹ️  Dry-run mode enabled (TF_MAC_DRY_RUN=true). Running plan only..."
+        terraform plan \
+          -var="jamf_instance_url=${JAMF_URL}" \
+          -var="jamf_client_id=${JAMF_CLIENT_ID}" \
+          -var="jamf_client_secret=${JAMF_CLIENT_SECRET}" \
+          -var="package_file_path=${PKG_PATH}"
+      else
+        terraform plan \
+          -var="jamf_instance_url=${JAMF_URL}" \
+          -var="jamf_client_id=${JAMF_CLIENT_ID}" \
+          -var="jamf_client_secret=${JAMF_CLIENT_SECRET}" \
+          -var="package_file_path=${PKG_PATH}" \
+          -out=tfplan
 
-      terraform apply -auto-approve tfplan
-
+        terraform apply -auto-approve tfplan
+      fi
       echo ""
       echo "═══════════════════════════════════════════════════════"
       echo "  ✅ macOS deployment complete!"

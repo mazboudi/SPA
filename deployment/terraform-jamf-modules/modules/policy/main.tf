@@ -24,16 +24,28 @@ resource "jamfpro_policy" "this" {
   category_id                 = var.category_id
   site_id                     = -1
 
-  # Scope — target computer groups
+  # Scope — target computers, groups, buildings, departments, segments
   scope {
     all_computers = var.scope_all_computers
 
     computer_group_ids = var.scope_group_ids
+    building_ids       = var.scope_building_ids
+    department_ids     = var.scope_department_ids
+
+    dynamic "limitations" {
+      for_each = length(var.scope_network_segment_ids) > 0 ? [1] : []
+      content {
+        network_segment_ids = var.scope_network_segment_ids
+      }
+    }
 
     dynamic "exclusions" {
-      for_each = length(var.exclusion_group_ids) > 0 ? [1] : []
+      for_each = (length(var.exclusion_group_ids) > 0 || length(var.exclusion_building_ids) > 0 || length(var.exclusion_department_ids) > 0 || length(var.exclusion_network_segment_ids) > 0) ? [1] : []
       content {
-        computer_group_ids = var.exclusion_group_ids
+        computer_group_ids  = var.exclusion_group_ids
+        building_ids        = var.exclusion_building_ids
+        department_ids      = var.exclusion_department_ids
+        network_segment_ids = var.exclusion_network_segment_ids
       }
     }
   }
@@ -47,6 +59,26 @@ resource "jamfpro_policy" "this" {
         action                      = "Install"
         fill_user_template          = false
         fill_existing_user_template = false
+      }
+    }
+
+    dynamic "scripts" {
+      for_each = var.preinstall_script_id > 0 ? [1] : []
+      content {
+        id         = var.preinstall_script_id
+        priority   = "Before"
+        parameter4 = var.script_parameter4
+        parameter5 = var.script_parameter5
+      }
+    }
+
+    dynamic "scripts" {
+      for_each = var.postinstall_script_id > 0 ? [1] : []
+      content {
+        id         = var.postinstall_script_id
+        priority   = "After"
+        parameter4 = var.script_parameter4
+        parameter5 = var.script_parameter5
       }
     }
 
@@ -74,6 +106,20 @@ resource "jamfpro_policy" "this" {
       minutes_until_reboot           = var.reboot_required ? 5 : 0
       start_reboot_timer_immediately = false
       file_vault_2_reboot            = false
+    }
+
+    # Files & Processes
+    files_processes {
+      search_for_process = var.search_for_process
+      kill_process       = var.kill_process
+      run_command        = var.run_command
+    }
+
+    # User Interaction
+    user_interaction {
+      message_start          = var.message_start
+      allow_users_to_defer   = var.allow_users_to_defer
+      allow_deferral_minutes = var.allow_deferral_minutes
     }
   }
 

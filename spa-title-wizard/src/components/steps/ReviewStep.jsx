@@ -3,6 +3,8 @@ import generateScaffolding from '../../lib/generateScaffolding';
 import { validateGeneratedFiles } from '../../lib/validateSchemas';
 import { publishToGitLab, publishToGitLabStreamed, checkPublishHealth } from '../../lib/gitlabPublish';
 import { pushIntuneMetadata } from '../../lib/intuneApi';
+import { generateJamfTerraform } from '../../lib/generateJamfTerraform';
+import { downloadAsZip } from '../../lib/downloadZip';
 import FileTreePreview from '../FileTreePreview';
 import CodePreview from '../ui/CodePreview';
 
@@ -342,6 +344,18 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
     }
   };
 
+  /** Download a local preview of the generated Terraform config as a .zip. */
+  const handleDownloadTerraform = async () => {
+    try {
+      const tfFiles = generateJamfTerraform(state);
+      const packageSlug = (state.packageId || state.displayName || 'package')
+        .toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      await downloadAsZip(tfFiles, `${packageSlug}-terraform`);
+    } catch (e) {
+      alert(`Failed to generate Terraform preview: ${e.message}`);
+    }
+  };
+
 
   // Schema validation
   const validationResults = useMemo(() => validateGeneratedFiles(files), [files]);
@@ -636,6 +650,27 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
         </div>
 
       </div>
+
+      {/* ── macOS Terraform Config Preview Download ─────────────────────────── */}
+      {(state.platform === 'macos' || state.platform === 'both') && (
+        <div className="tf-download-panel">
+          <div className="tf-download-panel__icon">🏗️</div>
+          <div className="tf-download-panel__body">
+            <div className="tf-download-panel__title">Terraform Config Preview</div>
+            <div className="tf-download-panel__desc">
+              Download a local preview of the <code>main.tf</code> and <code>variables.tf</code> that
+              the pipeline will apply to Jamf Pro. Useful for review and auditing before publishing.
+            </div>
+          </div>
+          <button
+            className="btn btn-secondary tf-download-panel__btn"
+            onClick={handleDownloadTerraform}
+            title="Download main.tf + variables.tf as a .zip archive"
+          >
+            ⬇️ Preview TF Config
+          </button>
+        </div>
+      )}
 
       {/* Intune push block removed */}
 

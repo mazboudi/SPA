@@ -75,11 +75,72 @@ scope_groups_hcl=$(jq -r '
   else "[" + (map(tostring) | join(", ")) + "]"
   end' "$SCOPE_JSON")
 
+scope_buildings_hcl=$(jq -r '
+  [.scope_groups.buildings // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
+  if length == 0 then "[]"
+  else "[" + (map(tostring) | join(", ")) + "]"
+  end' "$SCOPE_JSON")
+
+scope_departments_hcl=$(jq -r '
+  [.scope_groups.departments // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
+  if length == 0 then "[]"
+  else "[" + (map(tostring) | join(", ")) + "]"
+  end' "$SCOPE_JSON")
+
+scope_segments_hcl=$(jq -r '
+  [.scope_groups.network_segments // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
+  if length == 0 then "[]"
+  else "[" + (map(tostring) | join(", ")) + "]"
+  end' "$SCOPE_JSON")
+
 exclusion_groups_hcl=$(jq -r '
   [.exclusion_groups.computer_groups // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
   if length == 0 then "[]"
   else "[" + (map(tostring) | join(", ")) + "]"
   end' "$SCOPE_JSON")
+
+exclusion_buildings_hcl=$(jq -r '
+  [.exclusion_groups.buildings // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
+  if length == 0 then "[]"
+  else "[" + (map(tostring) | join(", ")) + "]"
+  end' "$SCOPE_JSON")
+
+exclusion_departments_hcl=$(jq -r '
+  [.exclusion_groups.departments // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
+  if length == 0 then "[]"
+  else "[" + (map(tostring) | join(", ")) + "]"
+  end' "$SCOPE_JSON")
+
+exclusion_segments_hcl=$(jq -r '
+  [.exclusion_groups.network_segments // [] | .[] | select(. != null and (tostring | test("^[0-9]+$")))] |
+  if length == 0 then "[]"
+  else "[" + (map(tostring) | join(", ")) + "]"
+  end' "$SCOPE_JSON")
+
+# Advanced policy parameters from policy-inputs.json
+kill_process=$(jq -r 'if .kill_process == true then "true" else "false" end' "$POLICY_JSON")
+search_for_process=$(jq -r '.search_for_process // ""' "$POLICY_JSON")
+run_command=$(jq -r '.run_command // ""' "$POLICY_JSON")
+allow_users_to_defer=$(jq -r 'if .allow_users_to_defer == true then "true" else "false" end' "$POLICY_JSON")
+allow_deferral_minutes=$(jq -r '.allow_deferral_minutes // 0' "$POLICY_JSON")
+message_start=$(jq -r '.message_start // ""' "$POLICY_JSON")
+script_parameter4=$(jq -r '.script_parameter4 // ""' "$POLICY_JSON")
+script_parameter5=$(jq -r '.script_parameter5 // ""' "$POLICY_JSON")
+
+# ── Read profile-inputs.json (optional) ──────────────────────────────────────
+PROFILE_JSON="$JAMF_INPUT_DIR/profile-inputs.json"
+has_profile=false
+profile_name=""
+profile_desc=""
+profile_category_id="-1"
+
+if [[ -f "$PROFILE_JSON" ]]; then
+  has_profile=true
+  profile_name=$(jq -r '.profile_name // ""' "$PROFILE_JSON")
+  profile_desc=$(jq -r '.description // "Managed by SPA pipeline."' "$PROFILE_JSON")
+  profile_category_id=$(jq -r '.category_id // "-1"' "$PROFILE_JSON")
+  echo "  Configuration Profile config found: $profile_name"
+fi
 
 # ── Read scripts-inputs.json (optional) ──────────────────────────────────────
 SCRIPTS_JSON="$JAMF_INPUT_DIR/scripts-inputs.json"
@@ -169,22 +230,38 @@ module "package" {
 
 # ── Policy ───────────────────────────────────────────────────────────────────
 module "policy" {
-  source                    = "${ABS_MODULES_DIR}/policy"
-  policy_name               = "${policy_name}"
-  package_id                = module.package.id
-  category_id               = -1
-  enabled                   = ${policy_enabled}
-  frequency                 = "${policy_freq}"
-  triggers                  = ${triggers_hcl}
-  custom_trigger            = "${custom_trigger}"
-  scope_group_ids           = ${scope_groups_hcl}
-  exclusion_group_ids       = ${exclusion_groups_hcl}
-  run_recon_after_install   = ${policy_recon}
-  reboot_required           = ${pkg_reboot}
-  self_service_enabled      = ${self_service_enabled}
-  self_service_display_name = "${ss_display_name}"
-  self_service_description  = "${ss_description}"
-  self_service_category_id  = ${ss_category_id}
+  source                        = "${ABS_MODULES_DIR}/policy"
+  policy_name                   = "${policy_name}"
+  package_id                    = module.package.id
+  category_id                   = -1
+  enabled                       = ${policy_enabled}
+  frequency                     = "${policy_freq}"
+  triggers                      = ${triggers_hcl}
+  custom_trigger                = "${custom_trigger}"
+  scope_group_ids               = ${scope_groups_hcl}
+  scope_building_ids            = ${scope_buildings_hcl}
+  scope_department_ids          = ${scope_departments_hcl}
+  scope_network_segment_ids     = ${scope_segments_hcl}
+  exclusion_group_ids           = ${exclusion_groups_hcl}
+  exclusion_building_ids        = ${exclusion_buildings_hcl}
+  exclusion_department_ids      = ${exclusion_departments_hcl}
+  exclusion_network_segment_ids = ${exclusion_segments_hcl}
+  run_recon_after_install       = ${policy_recon}
+  reboot_required               = ${pkg_reboot}
+  kill_process                  = ${kill_process}
+  search_for_process            = "${search_for_process}"
+  run_command                   = "${run_command}"
+  allow_users_to_defer          = ${allow_users_to_defer}
+  allow_deferral_minutes        = ${allow_deferral_minutes}
+  message_start                 = "${message_start}"
+  script_parameter4             = "${script_parameter4}"
+  script_parameter5             = "${script_parameter5}"
+  preinstall_script_id          = $( [ "$has_preinstall" = "true" ] && echo "module.preinstall_script.id" || echo "-1" )
+  postinstall_script_id         = $( [ "$has_postinstall" = "true" ] && echo "module.postinstall_script.id" || echo "-1" )
+  self_service_enabled          = ${self_service_enabled}
+  self_service_display_name     = "${ss_display_name}"
+  self_service_description      = "${ss_description}"
+  self_service_category_id      = ${ss_category_id}
 }
 
 # ── Outputs ──────────────────────────────────────────────────────────────────
@@ -261,6 +338,29 @@ output "postinstall_script_id" {
 TFEOF
   echo "$post_script_content" > "$JAMF_INPUT_DIR/postinstall.sh"
   echo "  ✅ Post-install script module included: ${post_script_name}"
+fi
+
+# ── Conditionally add Configuration Profile module ───────────────────────────
+if [[ "$has_profile" == "true" ]]; then
+  cat >> "$OUTPUT_DIR/main.tf" <<TFEOF
+
+# ── Configuration Profile ─────────────────────────────────────────────────────
+module "configuration_profile" {
+  source              = "${ABS_MODULES_DIR}/configuration-profile"
+  profile_name        = "${profile_name}"
+  description         = "${profile_desc}"
+  category_id         = "${profile_category_id}"
+  payload             = file("\${path.module}/../macos/jamf/profile.mobileconfig")
+  scope_all_computers = false
+  scope_group_ids     = ${scope_groups_hcl}
+  exclusion_group_ids = ${exclusion_groups_hcl}
+}
+
+output "configuration_profile_id" {
+  value = module.configuration_profile.id
+}
+TFEOF
+  echo "  ✅ Configuration profile module included: ${profile_name}"
 fi
 
 # ── Generate variables.tf ────────────────────────────────────────────────────
