@@ -13,10 +13,11 @@ terraform {
 }
 
 resource "jamfpro_macos_configuration_profile_plist" "this" {
-  name        = var.profile_name
-  description = var.description
-  category_id = var.category_id
-  payloads    = var.payload
+  name               = var.profile_name
+  description        = var.description
+  category_id        = var.category_id
+  payloads           = var.payload
+  redeploy_on_update = var.redeploy_on_update
 
   # Scoping profile
   scope {

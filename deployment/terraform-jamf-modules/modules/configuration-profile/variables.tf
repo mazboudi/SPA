@@ -37,3 +37,14 @@ variable "exclusion_group_ids" {
   default     = []
   description = "List of Jamf computer group IDs to exclude from this profile's scope."
 }
+
+variable "redeploy_on_update" {
+  type        = string
+  default     = "Newly Assigned"
+  description = "When to redeploy the profile after an update. Valid values: 'All' or 'Newly Assigned'."
+
+  validation {
+    condition     = contains(["All", "Newly Assigned"], var.redeploy_on_update)
+    error_message = "redeploy_on_update must be 'All' or 'Newly Assigned'."
+  }
+}
