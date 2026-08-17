@@ -1,13 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import Editor from '@monaco-editor/react';
 import FormField from '../ui/FormField';
-import SelectField from '../ui/SelectField';
 import ToggleSwitch from '../ui/ToggleSwitch';
-import jamfCategoriesData from '../../data/jamf-categories.json';
 
 const FREQUENCY_OPTIONS = [
-  { value: 'Ongoing',                  label: 'Ongoing' },
-  { value: 'Once per computer',         label: 'Once per computer' },
-  { value: 'Once per user per computer',label: 'Once per user per computer' },
+  { value: 'Ongoing',                   label: 'Ongoing' },
+  { value: 'Once per computer',          label: 'Once per computer' },
+  { value: 'Once per user per computer', label: 'Once per user per computer' },
   { value: 'Once per user',             label: 'Once per user' },
   { value: 'Once every day',            label: 'Once every day' },
   { value: 'Once every week',           label: 'Once every week' },
@@ -15,22 +14,23 @@ const FREQUENCY_OPTIONS = [
 ];
 
 const TRIGGER_OPTIONS = [
-  { id: 'checkin',    label: 'Check-in',   hint: 'Runs at every agent check-in cycle' },
-  { id: 'enrollment', label: 'Enrollment', hint: 'Runs when a Mac first enrolls in Jamf' },
-  { id: 'login',      label: 'Login',      hint: 'Runs when a user logs in' },
-  { id: 'startup',    label: 'Startup',    hint: 'Runs at system startup' },
-  { id: 'custom',     label: 'Custom event', hint: 'Triggered by a named custom event' },
+  { id: 'checkin',    label: 'Check-in',    hint: 'Runs at every agent check-in cycle' },
+  { id: 'enrollment', label: 'Enrollment',  hint: 'Runs when a Mac first enrolls in Jamf' },
+  { id: 'login',      label: 'Login',       hint: 'Runs when a user logs in' },
+  { id: 'startup',    label: 'Startup',     hint: 'Runs at system startup' },
+  { id: 'custom',     label: 'Custom event',hint: 'Triggered by a named custom event' },
+];
+
+const TABS = [
+  { id: 'policy',    icon: '📦', label: 'Package & Policy' },
+  { id: 'scripts',   icon: '📝', label: 'Scripts' },
+  { id: 'detection', icon: '🔍', label: 'Detection' },
 ];
 
 export default function MacConfigStep({ state, updateField }) {
-  const categoryOptions = useMemo(() =>
-    jamfCategoriesData.map(c => ({ value: c.id, label: c.name })), []);
+  const [activeTab, setActiveTab] = useState('policy');
 
-  const handleCategoryChange = (id) => {
-    const cat = jamfCategoriesData.find(c => c.id === id);
-    updateField('jamfCategoryId', id);
-    updateField('jamfCategory', cat ? cat.name : '');
-  };
+
 
   const triggers = Array.isArray(state.macPolicyTriggers) ? state.macPolicyTriggers : ['checkin'];
 
@@ -41,6 +41,19 @@ export default function MacConfigStep({ state, updateField }) {
     updateField('macPolicyTriggers', next);
   };
 
+  // ── Per-tab validation dots ──────────────────────────────────────────────
+  const tabErrors = useMemo(() => ({
+    policy:      [],   // no required fields — all have defaults
+    selfservice: [],
+    scripts:     [],
+    detection:   state.macExtensionAttribute && !(state.macAppPath || '').trim()
+                   ? ['Application Path is required']
+                   : [],
+  }), [state.macExtensionAttribute, state.macAppPath]);
+
+  // tabErrors has no 'selfservice' key now — drop it from the memoised object
+  // (kept above for clarity; object just won't have that key)
+
   return (
     <div className="step-content animate-in">
       <div className="step-header">
@@ -48,240 +61,312 @@ export default function MacConfigStep({ state, updateField }) {
         <p>Configure Jamf Pro package settings, policy behaviour, Self Service, and detection.</p>
       </div>
 
-      {/* ═══ JAMF PACKAGE ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">Package</h3>
-        <div className="form-grid">
-          <SelectField
-            label="Jamf Category"
-            id="jamfCategory"
-            value={state.jamfCategoryId || ''}
-            onChange={handleCategoryChange}
-            options={categoryOptions}
-          />
-          <FormField label="Package Notes" id="macPackageNotes" hint="Shown in the Jamf package record. Pre-filled with pipeline info.">
-            <input
-              id="macPackageNotes"
-              type="text"
-              value={state.macPackageNotes}
-              onChange={e => updateField('macPackageNotes', e.target.value)}
-            />
-          </FormField>
-        </div>
-        <ToggleSwitch
-          label="Reboot required after install"
-          id="macRebootRequired"
-          checked={state.macRebootRequired}
-          onChange={v => updateField('macRebootRequired', v)}
-        />
-        {state.macRebootRequired && (
-          <div className="mac-info-badge animate-in">
-            ⚠️ Users will see a 5-minute restart countdown after installation.
-            Restart message is configurable in the <code>modules/policy</code> Terraform module.
-          </div>
-        )}
+      {/* ── Tab Bar ───────────────────────────────────────────────────────── */}
+      <div className="psadt-tab-bar">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={`psadt-tab-btn ${activeTab === tab.id ? 'psadt-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+            type="button"
+          >
+            <span className="psadt-tab-btn__icon">{tab.icon}</span>
+            <span className="psadt-tab-btn__label">{tab.label}</span>
+            {tabErrors[tab.id]?.length > 0 && (
+              <span className="tab-error-dot" title={tabErrors[tab.id].join(', ')}>●</span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* ═══ POLICY ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">Policy</h3>
+      {/* ── Tab: Package & Policy ─────────────────────────────────────────── */}
+      {activeTab === 'policy' && (
+        <div className="mac-tab-panel animate-in">
 
-        {/* Scope */}
-        <div className="form-grid" style={{ marginBottom: 'var(--space-md)' }}>
-          <FormField label="Scope Group IDs" id="scopeGroupIds" hint="Comma-separated Jamf smart/static group IDs">
-            <input
-              id="scopeGroupIds"
-              type="text"
-              placeholder="e.g. 31, 42"
-              value={state.scopeGroupIds}
-              onChange={e => updateField('scopeGroupIds', e.target.value)}
-            />
-          </FormField>
-          <FormField label="Exclusion Group IDs" id="exclusionGroupIds" hint="Groups to exclude from policy scope">
-            <input
-              id="exclusionGroupIds"
-              type="text"
-              placeholder="e.g. 99"
-              value={state.exclusionGroupIds}
-              onChange={e => updateField('exclusionGroupIds', e.target.value)}
-            />
-          </FormField>
-        </div>
-
-        {/* Frequency */}
-        <div className="form-grid">
-          <FormField label="Frequency" id="macPolicyFrequency" hint="How often the policy runs per computer or user">
-            <select
-              id="macPolicyFrequency"
-              value={state.macPolicyFrequency || 'Ongoing'}
-              onChange={e => updateField('macPolicyFrequency', e.target.value)}
-            >
-              {FREQUENCY_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </FormField>
-        </div>
-
-        {/* Triggers */}
-        <div style={{ marginTop: 'var(--space-md)' }}>
-          <label className="trigger-group-label">Policy Triggers</label>
-          <p className="trigger-group-hint">Select when this policy fires. Check-in is recommended for standard deployments.</p>
-          <div className="trigger-chips">
-            {TRIGGER_OPTIONS.map(t => (
-              <button
-                key={t.id}
-                type="button"
-                className={`trigger-chip ${triggers.includes(t.id) ? 'trigger-chip--on' : ''}`}
-                onClick={() => toggleTrigger(t.id)}
-                title={t.hint}
-              >
-                {triggers.includes(t.id) ? '✓ ' : ''}{t.label}
-              </button>
-            ))}
-          </div>
-          {triggers.includes('custom') && (
-            <FormField label="Custom event name" id="macPolicyCustomTrigger" hint="Exact event name used in your jamf binary call" style={{ marginTop: 'var(--space-sm)' }}>
-              <input
-                id="macPolicyCustomTrigger"
-                type="text"
-                placeholder="e.g. installChrome"
-                value={state.macPolicyCustomTrigger}
-                onChange={e => updateField('macPolicyCustomTrigger', e.target.value)}
-              />
-            </FormField>
-          )}
-        </div>
-      </div>
-
-      {/* ═══ SELF SERVICE ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">Self Service</h3>
-        <ToggleSwitch
-          label="Enable Jamf Self Service"
-          checked={state.macSelfService}
-          onChange={v => updateField('macSelfService', v)}
-          id="macSelfService"
-        />
-        {state.macSelfService && (
-          <div className="animate-in" style={{ marginTop: 'var(--space-md)' }}>
+          <div className="config-section">
+            <h3 className="section-title">Package</h3>
             <div className="form-grid">
-              <FormField label="Self-Service Category ID" id="selfServiceCategoryId" hint="Jamf category ID for Self Service display">
+              <FormField label="Package Notes" id="macPackageNotes" hint="Shown in the Jamf package record. Pre-filled with pipeline info.">
                 <input
-                  id="selfServiceCategoryId"
+                  id="macPackageNotes"
                   type="text"
-                  placeholder="e.g. 27"
-                  value={state.selfServiceCategoryId}
-                  onChange={e => updateField('selfServiceCategoryId', e.target.value)}
+                  value={state.macPackageNotes}
+                  onChange={e => updateField('macPackageNotes', e.target.value)}
                 />
               </FormField>
             </div>
-            <FormField label="Self Service Description" id="macSelfServiceDescription" hint="Shown below the app name in the Self Service catalog. Supports plain text.">
-              <textarea
-                id="macSelfServiceDescription"
-                rows={3}
-                placeholder={`Installs ${state.displayName || 'this application'} on your Mac.`}
-                value={state.macSelfServiceDescription}
-                onChange={e => updateField('macSelfServiceDescription', e.target.value)}
-                style={{ resize: 'vertical', minHeight: 72 }}
-              />
-            </FormField>
-          </div>
-        )}
-      </div>
-
-      {/* ═══ PRE / POST INSTALL SCRIPTS ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">Install Scripts</h3>
-        <p className="section-desc" style={{ marginBottom: 'var(--space-md)' }}>
-          Scripts are bundled into the package and run by the macOS installer.
-          They are also uploaded to Jamf Pro as script records via Terraform.
-        </p>
-
-        <div className="script-toggles">
-          <div className="script-block">
             <ToggleSwitch
-              label="Enable Pre-install Script"
-              id="macEnablePreInstall"
-              checked={state.macEnablePreInstall}
-              onChange={v => updateField('macEnablePreInstall', v)}
+              label="Reboot required after install"
+              id="macRebootRequired"
+              checked={state.macRebootRequired}
+              onChange={v => updateField('macRebootRequired', v)}
             />
-            {state.macEnablePreInstall && (
-              <div className="script-editor animate-in">
-                <label className="script-editor-label">preinstall</label>
-                <textarea
-                  className="script-editor-area"
-                  rows={10}
-                  spellCheck={false}
-                  value={state.macPreInstallScript}
-                  onChange={e => updateField('macPreInstallScript', e.target.value)}
-                />
+            {state.macRebootRequired && (
+              <div className="mac-info-badge animate-in">
+                ⚠️ Users will see a 5-minute restart countdown after installation.
+                Restart message is configurable in the <code>modules/policy</code> Terraform module.
               </div>
             )}
           </div>
 
-          <div className="script-block">
-            <ToggleSwitch
-              label="Enable Post-install Script"
-              id="macEnablePostInstall"
-              checked={state.macEnablePostInstall}
-              onChange={v => updateField('macEnablePostInstall', v)}
-            />
-            {state.macEnablePostInstall && (
-              <div className="script-editor animate-in">
-                <label className="script-editor-label">postinstall</label>
-                <textarea
-                  className="script-editor-area"
-                  rows={10}
-                  spellCheck={false}
-                  value={state.macPostInstallScript}
-                  onChange={e => updateField('macPostInstallScript', e.target.value)}
+          <div className="config-section">
+            <h3 className="section-title">Policy</h3>
+
+            <div className="form-grid" style={{ marginBottom: 'var(--space-md)' }}>
+              <FormField label="Scope Group IDs" id="scopeGroupIds" hint="Comma-separated Jamf smart/static group IDs">
+                <input
+                  id="scopeGroupIds"
+                  type="text"
+                  placeholder="e.g. 31, 42"
+                  value={state.scopeGroupIds}
+                  onChange={e => updateField('scopeGroupIds', e.target.value)}
                 />
+              </FormField>
+              <FormField label="Exclusion Group IDs" id="exclusionGroupIds" hint="Groups to exclude from policy scope">
+                <input
+                  id="exclusionGroupIds"
+                  type="text"
+                  placeholder="e.g. 99"
+                  value={state.exclusionGroupIds}
+                  onChange={e => updateField('exclusionGroupIds', e.target.value)}
+                />
+              </FormField>
+            </div>
+
+            <div className="form-grid">
+              <FormField label="Frequency" id="macPolicyFrequency" hint="How often the policy runs per computer or user">
+                <select
+                  id="macPolicyFrequency"
+                  value={state.macPolicyFrequency || 'Ongoing'}
+                  onChange={e => updateField('macPolicyFrequency', e.target.value)}
+                >
+                  {FREQUENCY_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </FormField>
+            </div>
+
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <label className="trigger-group-label">Policy Triggers</label>
+              <p className="trigger-group-hint">Select when this policy fires. Check-in is recommended for standard deployments.</p>
+              <div className="trigger-chips">
+                {TRIGGER_OPTIONS.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`trigger-chip ${triggers.includes(t.id) ? 'trigger-chip--on' : ''}`}
+                    onClick={() => toggleTrigger(t.id)}
+                    title={t.hint}
+                  >
+                    {triggers.includes(t.id) ? '✓ ' : ''}{t.label}
+                  </button>
+                ))}
+              </div>
+              {triggers.includes('custom') && (
+                <FormField label="Custom event name" id="macPolicyCustomTrigger" hint="Exact event name used in your jamf binary call" style={{ marginTop: 'var(--space-sm)' }}>
+                  <input
+                    id="macPolicyCustomTrigger"
+                    type="text"
+                    placeholder="e.g. installChrome"
+                    value={state.macPolicyCustomTrigger}
+                    onChange={e => updateField('macPolicyCustomTrigger', e.target.value)}
+                  />
+                </FormField>
+              )}
+            </div>
+          </div>
+
+          {/* Self Service */}
+          <div className="config-section">
+            <h3 className="section-title">Self Service</h3>
+            <ToggleSwitch
+              label="Enable Jamf Self Service"
+              checked={state.macSelfService}
+              onChange={v => updateField('macSelfService', v)}
+              id="macSelfService"
+            />
+            {state.macSelfService && (
+              <div className="animate-in" style={{ marginTop: 'var(--space-md)' }}>
+                <div className="form-grid">
+                  <FormField label="Self-Service Category ID" id="selfServiceCategoryId" hint="Jamf category ID for Self Service display">
+                    <input
+                      id="selfServiceCategoryId"
+                      type="text"
+                      placeholder="e.g. 27"
+                      value={state.selfServiceCategoryId}
+                      onChange={e => updateField('selfServiceCategoryId', e.target.value)}
+                    />
+                  </FormField>
+                </div>
+                <FormField label="Self Service Description" id="macSelfServiceDescription" hint="Shown below the app name in the Self Service catalog. Supports plain text.">
+                  <textarea
+                    id="macSelfServiceDescription"
+                    rows={3}
+                    placeholder={`Installs ${state.displayName || 'this application'} on your Mac.`}
+                    value={state.macSelfServiceDescription}
+                    onChange={e => updateField('macSelfServiceDescription', e.target.value)}
+                    style={{ resize: 'vertical', minHeight: 72 }}
+                  />
+                </FormField>
               </div>
             )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* ═══ DETECTION ═══ */}
-      <div className="config-section">
-        <h3 className="section-title">Detection</h3>
-        <ToggleSwitch
-          label="Generate Jamf Extension Attribute"
-          checked={state.macExtensionAttribute}
-          onChange={v => updateField('macExtensionAttribute', v)}
-          id="macExtensionAttribute"
-        />
-        {state.macExtensionAttribute && (
-          <div className="form-grid animate-in" style={{ marginTop: 'var(--space-sm)' }}>
-            <FormField label="Application Path" id="macAppPath" required hint="Full path to the .app bundle">
-              <input
-                id="macAppPath"
-                type="text"
-                placeholder="/Applications/AppName.app"
-                value={state.macAppPath}
-                onChange={e => updateField('macAppPath', e.target.value)}
-              />
-            </FormField>
-            <FormField label="Plist Version Key" id="macEaVersionKey" hint="Info.plist key holding the version string. Override only if non-standard.">
-              <input
-                id="macEaVersionKey"
-                type="text"
-                value={state.macEaVersionKey || 'CFBundleShortVersionString'}
-                onChange={e => updateField('macEaVersionKey', e.target.value)}
-              />
-            </FormField>
+
+      {/* ── Tab: Scripts ──────────────────────────────────────────────────── */}
+      {activeTab === 'scripts' && (
+        <div className="mac-tab-panel animate-in">
+          <div className="config-section">
+            <h3 className="section-title">Install Scripts</h3>
+            <p className="section-desc" style={{ marginBottom: 'var(--space-md)' }}>
+              Scripts are bundled into the package and run by the macOS installer.
+              They are also uploaded to Jamf Pro as script records via Terraform.
+            </p>
+
+            <div className="script-toggles">
+              <div className="script-block">
+                <ToggleSwitch
+                  label="Enable Pre-install Script"
+                  id="macEnablePreInstall"
+                  checked={state.macEnablePreInstall}
+                  onChange={v => updateField('macEnablePreInstall', v)}
+                />
+                {state.macEnablePreInstall && (
+                  <div className="script-editor animate-in">
+                    <label className="script-editor-label">preinstall</label>
+                    <div style={{ height: 300 }}>
+                      <Editor
+                        height="100%"
+                        language="shell"
+                        theme="vs-dark"
+                        value={state.macPreInstallScript}
+                        options={{
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                          fontSize: 13,
+                          lineNumbers: 'on',
+                          wordWrap: 'on',
+                          tabSize: 2,
+                        }}
+                        onChange={value => updateField('macPreInstallScript', value || '')}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="script-block">
+                <ToggleSwitch
+                  label="Enable Post-install Script"
+                  id="macEnablePostInstall"
+                  checked={state.macEnablePostInstall}
+                  onChange={v => updateField('macEnablePostInstall', v)}
+                />
+                {state.macEnablePostInstall && (
+                  <div className="script-editor animate-in">
+                    <label className="script-editor-label">postinstall</label>
+                    <div style={{ height: 300 }}>
+                      <Editor
+                        height="100%"
+                        language="shell"
+                        theme="vs-dark"
+                        value={state.macPostInstallScript}
+                        options={{
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                          fontSize: 13,
+                          lineNumbers: 'on',
+                          wordWrap: 'on',
+                          tabSize: 2,
+                        }}
+                        onChange={value => updateField('macPostInstallScript', value || '')}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-        {state.macExtensionAttribute && state.macAppPath && (
-          <div className="step-preview-badge animate-in">
-            <span className="badge-label">Extension Attribute command</span>
-            <code>defaults read &quot;{state.macAppPath}/Contents/Info&quot; {state.macEaVersionKey || 'CFBundleShortVersionString'}</code>
+        </div>
+      )}
+
+      {/* ── Tab: Detection ────────────────────────────────────────────────── */}
+      {activeTab === 'detection' && (
+        <div className="mac-tab-panel animate-in">
+          <div className="config-section">
+            <h3 className="section-title">Jamf Extension Attribute</h3>
+            <p className="section-desc" style={{ marginBottom: 'var(--space-md)' }}>
+              An extension attribute script reads the installed app version from its
+              Info.plist and reports it back to Jamf Pro — useful for smart group targeting.
+            </p>
+            <ToggleSwitch
+              label="Generate Jamf Extension Attribute"
+              checked={state.macExtensionAttribute}
+              onChange={v => updateField('macExtensionAttribute', v)}
+              id="macExtensionAttribute"
+            />
+            {state.macExtensionAttribute && (
+              <div className="form-grid animate-in" style={{ marginTop: 'var(--space-sm)' }}>
+                <FormField label="Application Path" id="macAppPath" required hint="Full path to the .app bundle">
+                  <input
+                    id="macAppPath"
+                    type="text"
+                    placeholder="/Applications/AppName.app"
+                    value={state.macAppPath}
+                    onChange={e => updateField('macAppPath', e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Plist Version Key" id="macEaVersionKey" hint="Info.plist key holding the version string. Override only if non-standard.">
+                  <input
+                    id="macEaVersionKey"
+                    type="text"
+                    value={state.macEaVersionKey || 'CFBundleShortVersionString'}
+                    onChange={e => updateField('macEaVersionKey', e.target.value)}
+                  />
+                </FormField>
+              </div>
+            )}
+            {state.macExtensionAttribute && state.macAppPath && (
+              <div className="step-preview-badge animate-in">
+                <span className="badge-label">Extension Attribute command</span>
+                <code>defaults read &quot;{state.macAppPath}/Contents/Info&quot; {state.macEaVersionKey || 'CFBundleShortVersionString'}</code>
+              </div>
+            )}
+            {!state.macExtensionAttribute && (
+              <div className="mac-tab-empty">
+                <span className="mac-tab-empty__icon">🔍</span>
+                <p>Enable the toggle above to generate an EA script that reports the installed version to Jamf Pro.</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <style>{`
+        /* ── Tab panel ─────────────────────────────────── */
+        .mac-tab-panel {
+          padding-top: var(--space-lg);
+        }
+        .mac-tab-empty {
+          margin-top: var(--space-lg);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--space-sm);
+          padding: var(--space-xl);
+          background: var(--bg-elevated);
+          border: 1px dashed var(--border-subtle);
+          border-radius: var(--radius-md);
+          text-align: center;
+          color: var(--text-muted);
+          font-size: 0.82rem;
+        }
+        .mac-tab-empty__icon { font-size: 2rem; }
+
+        /* ── Sections ──────────────────────────────────── */
         .config-section {
           margin-bottom: var(--space-xl);
           padding-bottom: var(--space-lg);
@@ -309,7 +394,7 @@ export default function MacConfigStep({ state, updateField }) {
           color: #fbbf24;
         }
 
-        /* Trigger chips */
+        /* ── Trigger chips ─────────────────────────────── */
         .trigger-group-label {
           display: block;
           font-size: 0.78rem;
@@ -345,7 +430,7 @@ export default function MacConfigStep({ state, updateField }) {
           font-weight: 600;
         }
 
-        /* Script editors */
+        /* ── Script editors ────────────────────────────── */
         .script-toggles { display: flex; flex-direction: column; gap: var(--space-lg); }
         .script-block {}
         .script-editor {

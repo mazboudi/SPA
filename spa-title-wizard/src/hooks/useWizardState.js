@@ -666,8 +666,11 @@ export default function useWizardState() {
       }
 
       case 'macos':
-        // Application Path (.app bundle) is the only required field
-        return !!(state.macAppPath || '').trim();
+        // Application Path is only required when the EA toggle is on
+        if (state.macExtensionAttribute) {
+          return !!(state.macAppPath || '').trim();
+        }
+        return true;
 
       case 'review':
         return true;
@@ -765,7 +768,8 @@ export default function useWizardState() {
           { type: 'start_msi_process', enabled: true, file: msiFile, args: '/QN /norestart', isWizardGenerated: true },
         ]);
         mkPhase('uninstall', [
-          { type: 'uninstall_application', enabled: true, name: prev.msiProductName || '', productCode: prev.msiProductCode || '', args: '/qn /NORESTART', isWizardGenerated: true },
+          // MSI: identify by product code only (name and productCode are mutually exclusive)
+          { type: 'uninstall_application', enabled: true, productCode: prev.msiProductCode || '', args: '/qn /NORESTART', isWizardGenerated: true },
         ]);
       } else if (prev.installerType === 'exe') {
         const exeFile = prev.exeSourceFilename || srcFile || 'setup.exe';
