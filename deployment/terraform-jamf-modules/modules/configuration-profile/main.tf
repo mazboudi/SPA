@@ -12,11 +12,11 @@ terraform {
   }
 }
 
-resource "jamfpro_macos_configuration_profile" "this" {
+resource "jamfpro_macos_configuration_profile_plist" "this" {
   name        = var.profile_name
   description = var.description
   category_id = var.category_id
-  payload     = var.payload
+  payloads    = var.payload
 
   # Scoping profile
   scope {
@@ -33,11 +33,12 @@ resource "jamfpro_macos_configuration_profile" "this" {
 }
 
 output "id" {
-  value       = jamfpro_macos_configuration_profile.this.id
+  value       = jamfpro_macos_configuration_profile_plist.this.id
   description = "The Jamf Pro macOS Configuration Profile ID."
 }
 
 output "name" {
-  value       = jamfpro_macos_configuration_profile.this.name
+  value       = jamfpro_macos_configuration_profile_plist.this.name
   description = "The Jamf Pro macOS Configuration Profile name."
 }
+
