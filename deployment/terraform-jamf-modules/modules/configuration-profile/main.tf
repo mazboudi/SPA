@@ -20,7 +20,7 @@ resource "jamfpro_macos_configuration_profile_plist" "this" {
 
   # Scoping profile
   scope {
-    all_computers = var.scope_all_computers
+    all_computers      = var.scope_all_computers
     computer_group_ids = var.scope_group_ids
 
     dynamic "exclusions" {
