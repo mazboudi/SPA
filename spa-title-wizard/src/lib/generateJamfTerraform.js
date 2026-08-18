@@ -103,6 +103,7 @@ export function generateJamfTerraform(s) {
   const preScriptName  = hasPreinstall  ? `SPA - ${s.displayName} preinstall`  : '';
   const postScriptName = hasPostinstall ? `SPA - ${s.displayName} postinstall` : '';
   const gitLabHost = s.gitLabHost || 'gitlab.onefiserv.net';
+  const gitLabGroup = s.gitLabMacGroup || s.gitLabGroup || '';
   const tfJamfModulesProject = s.tfJamfModulesProject || `${gitLabGroup}/spa-deployment/terraform-jamf-modules`;
   const modulesRef = s.tfJamfModulesRef || 'main';
 
