@@ -16,8 +16,14 @@
 .PARAMETER AppId
   Intune Win32 app GUID to delete.
 
-.PARAMETER Token
-  Bearer token for Microsoft Graph.
+.PARAMETER TenantId
+  Microsoft Entra (AAD) tenant ID.
+
+.PARAMETER ClientId
+  App registration client ID.
+
+.PARAMETER ClientSecret
+  App registration client secret.
 
 .PARAMETER LogFile
   Optional path to append log output.
@@ -25,7 +31,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string] $AppId,
-    [Parameter(Mandatory)] [string] $Token,
+    [Parameter(Mandatory)] [string] $TenantId,
+    [Parameter(Mandatory)] [string] $ClientId,
+    [Parameter(Mandatory)] [string] $ClientSecret,
     [string] $LogFile = ''
 )
 
@@ -42,6 +50,9 @@ function Log([string]$msg, [string]$level = 'INFO') {
 }
 
 Log "Starting safe-delete for app: $AppId"
+
+# Acquire a Graph bearer token using the same helper used by all other scripts
+$Token = Get-GraphToken -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
 
 # ── Step 1: Remove all assignments ──────────────────────────────────────────
 # Calling /assign with an empty assignments array clears all groups.
