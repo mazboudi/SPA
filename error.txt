@@ -1,196 +1,66 @@
-2026-08-18T14:20:53.887410Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-08-18T14:20:53.887410Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-08-18T14:20:53.887410Z 00O Resolving secrets
-2026-08-18T14:20:53.887410Z 00O section_start:1787062853:prepare_executor
-2026-08-18T14:20:53.887410Z 00O+Preparing the "shell" executor
-2026-08-18T14:20:53.887960Z 00O Using Shell (pwsh) executor...
-2026-08-18T14:20:53.887960Z 00O section_end:1787062853:prepare_executor
-2026-08-18T14:20:53.887960Z 00O+section_start:1787062853:prepare_script
-2026-08-18T14:20:53.887960Z 00O+Preparing environment
-2026-08-18T14:20:54.945666Z 01O Running on vm-psa-runner-p...
-2026-08-18T14:20:55.151438Z 00O section_end:1787062855:prepare_script
-2026-08-18T14:20:55.151438Z 00O+section_start:1787062855:get_sources
-2026-08-18T14:20:55.153159Z 00O+Getting source from Git repository
-2026-08-18T14:20:57.143071Z 01O Gitaly correlation ID: 01M0AKY6TN61SEA70WPNC5NKB4
-2026-08-18T14:20:57.483469Z 01O Fetching changes with git depth set to 20...
-2026-08-18T14:20:57.551095Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/microsoft-xml-notepad/.git/
-2026-08-18T14:20:59.638675Z 01O Checking out b8793126 as detached HEAD (ref is main)...
-2026-08-18T14:21:00.078074Z 01O Removing out/
-2026-08-18T14:21:00.078074Z 01O Removing psadt-framework-4.1.0/
-2026-08-18T14:21:00.078074Z 01O Removing schemas/
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/Files/Updates.xml
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/Files/Updates.xsd
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/Files/Updates.xslt
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/Files/XmlNotepadSetup.msi
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/Files/XmlNotepadSetup.wixpdb
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/Files/cab1.cab
-2026-08-18T14:21:00.078074Z 01O Removing windows/src/SupportFiles/
-2026-08-18T14:21:00.304276Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-08-18T14:21:00.939202Z 01O 
-2026-08-18T14:21:00.939664Z 01O Skipping Git submodules setup
-2026-08-18T14:21:01.127887Z 00O section_end:1787062861:get_sources
-2026-08-18T14:21:01.127887Z 00O+section_start:1787062861:download_artifacts
-2026-08-18T14:21:01.130162Z 00O+Downloading artifacts
-2026-08-18T14:21:02.554526Z 01O Version:      18.9.0
-2026-08-18T14:21:02.554526Z 01O Git revision: 07e534ba
-2026-08-18T14:21:02.554526Z 01O Git branch:   18-9-stable
-2026-08-18T14:21:02.554526Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-18T14:21:02.554526Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-18T14:21:02.554526Z 01O OS/Arch:      windows/amd64
-2026-08-18T14:21:02.575682Z 01O Downloading artifacts for windows_build (33811042)...
-2026-08-18T14:21:02.752815Z 01E Runtime platform                                    arch=amd64 os=windows pid=7364 revision=07e534ba version=18.9.0
-2026-08-18T14:21:05.219827Z 01E Downloading artifacts from coordinator... ok        correlation_id=01M0AKYH2P8BNB011KPDN1HB40 host=gitlab.onefiserv.net id=33811042 responseStatus=200 OK token=64_6yRJj1
-2026-08-18T14:21:07.541634Z 00O section_end:1787062867:download_artifacts
-2026-08-18T14:21:07.541634Z 00O+section_start:1787062867:step_script
-2026-08-18T14:21:07.542887Z 00O+Executing "step_script" stage of the job script
-2026-08-18T14:21:09.056493Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-08-18T14:21:23.828048Z 01O Intune modules ready in: intune-modules
-2026-08-18T14:21:23.834118Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-08-18T14:21:23.834118Z 01O Framework bundle not cached — downloading for IntuneWinAppUtil...
-2026-08-18T14:21:34.382098Z 01O Framework extracted to: psadt-framework-4.1.0
-2026-08-18T14:21:34.383351Z 01O Using IntuneWinAppUtil: C:\tools\IntuneWinAppUtil.exe
-2026-08-18T14:21:34.385619Z 01O Running IntuneWinAppUtil...
-2026-08-18T14:21:34.476604Z 01O INFO   Validating parameters
-2026-08-18T14:21:34.480773Z 01O INFO   Validated parameters within 3 milliseconds
-2026-08-18T14:21:34.482650Z 01O INFO   Compressing the source folder 'out/staging' to 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin'
-2026-08-18T14:21:34.507603Z 01O INFO   Calculated size for folder 'out/staging' is 24500224 within 20 milliseconds
-2026-08-18T14:21:35.903894Z 01O INFO   Compressed folder 'out/staging' successfully within 1379 milliseconds
-2026-08-18T14:21:35.903894Z 01O INFO   Checking file type
-2026-08-18T14:21:35.903894Z 01O INFO   Checked file type within 0 milliseconds
-2026-08-18T14:21:35.903894Z 01O INFO   Encrypting file 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin'
-2026-08-18T14:21:35.951624Z 01O INFO   'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin' has been encrypted successfully within 60 milliseconds
-2026-08-18T14:21:35.951624Z 01O INFO   Computing SHA256 hash for C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\ce6e0ca3-697d-4466-8cb4-b52a39351e91
-2026-08-18T14:21:36.044578Z 01O INFO   Computed SHA256 hash for 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\ce6e0ca3-697d-4466-8cb4-b52a39351e91' within 92 milliseconds
-2026-08-18T14:21:36.066164Z 01O INFO   Computing SHA256 hash for C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin
-2026-08-18T14:21:36.127765Z 01O INFO   Computed SHA256 hash for C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin within 81 milliseconds
-2026-08-18T14:21:36.127765Z 01O INFO   Copying encrypted file from 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\ce6e0ca3-697d-4466-8cb4-b52a39351e91' to 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin'
-2026-08-18T14:21:36.147367Z 01O INFO   File 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Contents\IntunePackage.intunewin' got updated successfully within 19 milliseconds
-2026-08-18T14:21:36.147367Z 01O INFO   Generating detection XML file 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage\Metadata\Detection.xml'
-2026-08-18T14:21:36.192798Z 01O INFO   Generated detection XML file within 42 milliseconds
-2026-08-18T14:21:36.194810Z 01O INFO   Compressing folder 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage' to 'C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\microsoft-xml-notepad\out\Invoke-AppDeployToolkit.intunewin'
-2026-08-18T14:21:36.194810Z 01O INFO   Calculated size for folder 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage' is 12256032 within 0 milliseconds
-2026-08-18T14:21:36.420343Z 01O INFO   Compressed folder 'C:\Windows\SystemTemp\1aa3c16b-c292-436a-bc74-f72a9dbe11aa\IntuneWinPackage' successfully within 226 milliseconds
-2026-08-18T14:21:36.420343Z 01O INFO   Removing temporary files
-2026-08-18T14:21:36.420343Z 01O INFO   Removed temporary files within 4 milliseconds
-2026-08-18T14:21:36.420343Z 01O INFO   File 'C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\microsoft-xml-notepad\out\Invoke-AppDeployToolkit.intunewin' has been generated successfully
-2026-08-18T14:21:36.420343Z 01O 
-2026-08-18T14:21:36.420343Z 01O 
-2026-08-18T14:21:36.420343Z 01O 
-2026-08-18T14:21:36.434206Z 01O INFO   Done!!!
-2026-08-18T14:21:36.434206Z 01O 
-2026-08-18T14:21:36.545208Z 01O ✅ Packaged: out\microsoft-xml-notepad_2.9.0.22_1.intunewin (SHA256: 8d734967a638913b72e7a5ed78cb882f90662ab37c2747ceb712bcb87f3b4784)
-2026-08-18T14:21:36.680274Z 01O Using new detection format: detection_method=manual
-2026-08-18T14:21:37.025131Z 01O   Processing rule: type=msi
-2026-08-18T14:21:37.030163Z 01O     product_code    : {28D9664A-4963-4FDC-A2E2-00925C4A0AE7}
-2026-08-18T14:21:37.031467Z 01O     version         : 2.9.0.22
-2026-08-18T14:21:37.031467Z 01O     version_operator: greaterThanOrEqual
-2026-08-18T14:21:37.034612Z 01O Built 1 detection rule(s) from detection_rules array
-2026-08-18T14:21:37.035391Z 01O Detection rules count: 1
-2026-08-18T14:21:37.103054Z 01O Hardware properties resolved (minOS=Windows11_22H2, arch=x86,x64,arm64)
-2026-08-18T14:21:37.105745Z 01O Custom requirement rules resolved: 0 rules
-2026-08-18T14:21:37.125154Z 01O 🔁 Edit mode detected — existing app: 8282f762-7504-49b6-8a4e-d5c20628f196
-2026-08-18T14:21:37.138111Z 01O   ↳ Clearing relationships on 8282f762-7504-49b6-8a4e-d5c20628f196...
-2026-08-18T14:21:37.222285Z 01O supersedence.json found but no valid entries — skipping supersedence.
-2026-08-18T14:21:37.244058Z 01O dependencies.json found but no valid entries — skipping dependencies.
-2026-08-18T14:21:37.244567Z 01O No relationship entries found — skipping updateRelationships.
-2026-08-18T14:21:37.247261Z 01O   ✅ Relationships cleared on 8282f762-7504-49b6-8a4e-d5c20628f196
-2026-08-18T14:21:37.249509Z 01O   ↳ Deleting old Intune app 8282f762-7504-49b6-8a4e-d5c20628f196...
-2026-08-18T14:21:37.299876Z 01O   ⚠️  Could not delete old app: A parameter cannot be found that matches parameter name 'TenantId'. — proceeding with publish
-2026-08-18T14:21:37.453968Z 01O [2026-08-18 14:21:37] [INFO] Publishing SPATEST - Microsoft XML Notepad 2.9.0.22 v2.9.0.22
-2026-08-18T14:21:37.461208Z 01O [2026-08-18 14:21:37] [INFO] IntuneWin: out\microsoft-xml-notepad_2.9.0.22_1.intunewin
-2026-08-18T14:21:37.468190Z 01O [2026-08-18 14:21:37] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
-2026-08-18T14:21:37.804455Z 01O [2026-08-18 14:21:37] [INFO] Token acquired (length=2252)
-2026-08-18T14:21:37.810550Z 01O [2026-08-18 14:21:37] [INFO] Using return codes from app.json (5 codes)
-2026-08-18T14:21:37.834691Z 01O [2026-08-18 14:21:37] [INFO] Logo loaded: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\microsoft-xml-notepad\windows\intune\logo.png (4087 bytes, image/png)
-2026-08-18T14:21:37.856123Z 01O [2026-08-18 14:21:37] [INFO] Creating Win32 app (metadata + detection rules only)
-2026-08-18T14:21:37.872165Z 01O [2026-08-18 14:21:37] [DEBUG] Request body JSON: {"owner":"Andre Joseph","detectionRules":[{"productCode":"{28D9664A-4963-4FDC-A2E2-00925C4A0AE7}","@odata.type":"#microsoft.graph.win32LobAppProductCodeDetection","productVersion":"2.9.0.22","productVersionOperator":"greaterThanOrEqual"}],"minimumCpuSpeedInMHz":null,"installCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent","installExperience":{"deviceRestartBehavior":"basedOnReturnCode","runAsAccount":"system","maxRunTimeInMinutes":60},"notes":"SPA Workbench Testing","allowAvailableUninstall":true,"minimumFreeDiskSpaceInMB":500,"fileName":"microsoft-xml-notepad_2.9.0.22_1.intunewin","roleScopeTagIds":[],"description":"SPA Workbench Testing","isFeatured":false,"displayVersion":"2.9.0.22","publisher":"Microsoft","displayName":"SPATEST - Microsoft XML Notepad 2.9.0.22","@odata.type":"#microsoft.graph.win32LobApp","returnCodes":[{"type":"success","returnCode":0},{"type":"success","returnCode":1707},{"type":"softReboot","returnCode":3010},{"type":"hardReboot","returnCode":1641},{"type":"retry","returnCode":1618}],"minimumNumberOfProcessors":null,"uninstallCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent","setupFilePath":"Invoke-AppDeployToolkit.exe","informationUrl":"","applicableArchitectures":"x86,x64,arm64","privacyInformationUrl":"","minimumSupportedWindowsRelease":"Windows11_22H2","developer":"Microsoft","minimumMemoryInMB":2048,"largeIcon":{"@odata.type":"#microsoft.graph.mimeContent","type":"image/png","value":"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"}}
-2026-08-18T14:21:39.461686Z 01O [2026-08-18 14:21:39] [INFO] Win32 app created: 47e54000-c9f8-4914-92f9-ccec442b05d6
-2026-08-18T14:21:39.465727Z 01O [2026-08-18 14:21:39] [INFO] Starting content upload...
-2026-08-18T14:21:39.542556Z 01O [2026-08-18 14:21:39] [INFO] Parsing .intunewin metadata: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\microsoft-xml-notepad\out\microsoft-xml-notepad_2.9.0.22_1.intunewin
-2026-08-18T14:21:39.629531Z 01O [2026-08-18 14:21:39] [INFO]   Package       : Invoke-AppDeployToolkit.exe
-2026-08-18T14:21:39.633021Z 01O [2026-08-18 14:21:39] [INFO]   Unencrypted   : 12255102 bytes
-2026-08-18T14:21:39.634091Z 01O [2026-08-18 14:21:39] [INFO]   Encrypted     : 12255152 bytes
-2026-08-18T14:21:39.639656Z 01O [2026-08-18 14:21:39] [INFO] Creating content version for app 47e54000-c9f8-4914-92f9-ccec442b05d6...
-2026-08-18T14:21:39.641490Z 01O [2026-08-18 14:21:39] [DEBUG] Request body JSON: {}
-2026-08-18T14:21:40.325324Z 01O [2026-08-18 14:21:40] [INFO]   Content version: 1
-2026-08-18T14:21:40.329106Z 01O [2026-08-18 14:21:40] [INFO] Registering file upload request...
-2026-08-18T14:21:40.330894Z 01O [2026-08-18 14:21:40] [DEBUG] Request body JSON: {"name":"microsoft-xml-notepad_2.9.0.22_1.intunewin","sizeEncrypted":12255152,"isDependency":false,"manifest":null,"size":12255102}
-2026-08-18T14:21:41.094384Z 01O [2026-08-18 14:21:41] [INFO]   File entry ID: f4f93fdc-fbaf-4491-ab4a-02535298e6b3
-2026-08-18T14:21:41.095363Z 01O [2026-08-18 14:21:41] [INFO] Waiting for Azure Storage URI (up to 150s)...
-2026-08-18T14:21:46.690808Z 01O [2026-08-18 14:21:46] [INFO]   [1/30] uploadState: azureStorageUriRequestSuccess
-2026-08-18T14:21:46.695777Z 01O [2026-08-18 14:21:46] [INFO]   Azure Storage URI obtained
-2026-08-18T14:21:46.697395Z 01O [2026-08-18 14:21:46] [INFO] Uploading encrypted payload to Azure Blob Storage...
-2026-08-18T14:21:50.066879Z 01O [2026-08-18 14:21:50] [INFO]   Block 0 — 6291456 bytes uploaded
-2026-08-18T14:21:50.326140Z 01O [2026-08-18 14:21:50] [INFO]   Block 1 — 5963696 bytes uploaded
-2026-08-18T14:21:50.337624Z 01O [2026-08-18 14:21:50] [INFO] Committing 2 blocks to Azure Blob...
-2026-08-18T14:21:50.423584Z 01O [2026-08-18 14:21:50] [INFO]   Azure Blob committed
-2026-08-18T14:21:50.427086Z 01O [2026-08-18 14:21:50] [INFO] Committing file in Graph API with encryption metadata...
-2026-08-18T14:21:55.965090Z 01O [2026-08-18 14:21:55] [INFO]   [Pre-commit 1/12] uploadState: azureStorageUriRequestSuccess
-2026-08-18T14:21:55.968799Z 01O [2026-08-18 14:21:55] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"fileDigest":"hWl1AJ3htsXARSwdX4xilzt9m8nzI5QnYsT21GsrCuM=","mac":"iQ9cialWl74rBSmuLKUMTK+EZo4wZ7yhqynuTlAJd6Q=","profileIdentifier":"ProfileVersion1","encryptionKey":"oIHIg6zu6SDf6C3bisaJ2jNl/M+3wgwZCoYggT5sKqY=","initializationVector":"hVeSoWrQcvGrvuiKT8poQw==","macKey":"VLf/KadnchXUk7qYQP1VUf8af0ks68SnENxN+VsPWc0=","fileDigestAlgorithm":"SHA256"}}
-2026-08-18T14:21:56.703689Z 01O 
-2026-08-18T14:21:56.705059Z 01O [2026-08-18 14:21:56] [INFO]   File commit request accepted (attempt 1)
-2026-08-18T14:21:56.706120Z 01O [2026-08-18 14:21:56] [INFO] Waiting for Graph commit (up to 150s)...
-2026-08-18T14:22:02.192561Z 01O [2026-08-18 14:22:02] [INFO]   [1/30] uploadState: commitFileSuccess
-2026-08-18T14:22:02.194215Z 01O [2026-08-18 14:22:02] [INFO] File commit completed successfully
-2026-08-18T14:22:02.195276Z 01O [2026-08-18 14:22:02] [INFO] Activating content version 1 on app 47e54000-c9f8-4914-92f9-ccec442b05d6...
-2026-08-18T14:22:02.198308Z 01O [2026-08-18 14:22:02] [DEBUG] Request body JSON: {"@odata.type":"#microsoft.graph.win32LobApp","committedContentVersion":"1"}
-2026-08-18T14:22:03.655567Z 01O 
-2026-08-18T14:22:03.658009Z 01O [2026-08-18 14:22:03] [INFO] ✅ Content upload complete — app: 47e54000-c9f8-4914-92f9-ccec442b05d6, contentVersion: 1
-2026-08-18T14:22:03.659082Z 01O ✅ Upload complete: 47e54000-c9f8-4914-92f9-ccec442b05d6 (contentVersion: 1)
-2026-08-18T14:22:03.663157Z 01O [2026-08-18 14:22:03] [INFO] Resolving Intune categories...
-2026-08-18T14:22:04.058308Z 01O [2026-08-18 14:22:04] [WARN] Warning: Category 'Developer Tools' could not be resolved to a valid Intune Category GUID
-2026-08-18T14:22:04.060313Z 01O [2026-08-18 14:22:04] [INFO] Waiting for publishingState=published (up to 180s)...
-2026-08-18T14:22:14.556505Z 01O [2026-08-18 14:22:14] [INFO]   publishingState: published (10s elapsed)
-2026-08-18T14:22:14.559559Z 01O [2026-08-18 14:22:14] [INFO] App is published — ready for supersedence/dependencies.
-2026-08-18T14:22:14.560612Z 01O ✅ App published — proceeding to relationships.
-2026-08-18T14:22:14.562330Z 01O [2026-08-18 14:22:14] [INFO] Written out/app.env (APP_ID=47e54000-c9f8-4914-92f9-ccec442b05d6)
-2026-08-18T14:22:14.564204Z 01O ✅ Publish complete: SPATEST - Microsoft XML Notepad 2.9.0.22 v2.9.0.22 (47e54000-c9f8-4914-92f9-ccec442b05d6)
-2026-08-18T14:22:14.609864Z 01O ✅ syncIntuneAppId updated in app.json: 47e54000-c9f8-4914-92f9-ccec442b05d6
-2026-08-18T14:22:15.035490Z 01O [detached HEAD a714c1f] ci: update syncIntuneAppId to 47e54000-c9f8-4914-92f9-ccec442b05d6 [skip ci]
-2026-08-18T14:22:15.035490Z 01O  1 file changed, 1 insertion(+), 1 deletion(-)
-2026-08-18T14:22:17.684453Z 01E remote: 
-2026-08-18T14:22:17.685788Z 01E remote: ========================================================================        
-2026-08-18T14:22:17.685788Z 01E remote: 
-2026-08-18T14:22:17.685788Z 01E remote:      ⚠️ **GitLab Maintenance:** Planned Praefect/Gitaly cluster        
-2026-08-18T14:22:17.685788Z 01E remote:    upgrade (**CHG00292093**) on **8/27/2026 6:00 PM ET – 8/28/2026        
-2026-08-18T14:22:17.685788Z 01E remote:    2:00 AM ET**. GitLab will be **read-only** during this window. See        
-2026-08-18T14:22:17.685788Z 01E remote:                                the [Teams        
-2026-08-18T14:22:17.685788Z 01E remote: announcement](https://teams.microsoft.com/l/message/19:bea271e9b9c64710bed8154b2e6b8561@thread.tacv2/1786979733189?tenantId=11873a1f-4c8d-450d-8dfb-e37a2e2557f8&groupId=456bd7f1-27ba-42bb-9d1b-95362e225839&parentMessageId=1786979733189&teamName=Flex%20DevEx%20Community%20powered%20by%20FTS%20PlatEng&channelName=Flex%20DevEx%20Announcements&createdTime=1786979733189)        
-2026-08-18T14:22:17.685788Z 01E remote:                               for details.        
-2026-08-18T14:22:17.685788Z 01E remote: 
-2026-08-18T14:22:17.685788Z 01E remote: ========================================================================        
-2026-08-18T14:22:17.685788Z 01E remote: 
-2026-08-18T14:22:17.690669Z 01E To https://gitlab.onefiserv.net/euc/software-package-automation/software-titles/microsoft-xml-notepad.git
-2026-08-18T14:22:17.690669Z 01E    b879312..a714c1f  HEAD -> main
-2026-08-18T14:22:17.706665Z 01O ✅ app.json committed with new syncIntuneAppId
-2026-08-18T14:22:17.787532Z 00O section_end:1787062937:step_script
-2026-08-18T14:22:17.787532Z 00O+section_start:1787062937:upload_artifacts_on_success
-2026-08-18T14:22:17.789097Z 00O+Uploading artifacts for successful job
-2026-08-18T14:22:19.355560Z 01O Version:      18.9.0
-2026-08-18T14:22:19.355560Z 01O Git revision: 07e534ba
-2026-08-18T14:22:19.355560Z 01O Git branch:   18-9-stable
-2026-08-18T14:22:19.355560Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-18T14:22:19.355560Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-18T14:22:19.355560Z 01O OS/Arch:      windows/amd64
-2026-08-18T14:22:19.373678Z 01O Uploading artifacts...
-2026-08-18T14:22:19.553395Z 01E Runtime platform                                    arch=amd64 os=windows pid=1212 revision=07e534ba version=18.9.0
-2026-08-18T14:22:19.554906Z 01E out/*.intunewin: found 1 matching artifact files and directories 
-2026-08-18T14:22:19.554906Z 01E out/app.env: found 1 matching artifact files and directories 
-2026-08-18T14:22:19.554906Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
-2026-08-18T14:22:26.263944Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01M0AM0WY6Z7TWRJBEACXED0R0 id=33811043 responseStatus=201 Created token=64_6yRJj1
-2026-08-18T14:22:26.452476Z 01O Version:      18.9.0
-2026-08-18T14:22:26.452476Z 01O Git revision: 07e534ba
-2026-08-18T14:22:26.452476Z 01O Git branch:   18-9-stable
-2026-08-18T14:22:26.452476Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-18T14:22:26.452476Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-18T14:22:26.452476Z 01O OS/Arch:      windows/amd64
-2026-08-18T14:22:26.465083Z 01O Uploading artifacts...
-2026-08-18T14:22:26.639842Z 01E Runtime platform                                    arch=amd64 os=windows pid=8232 revision=07e534ba version=18.9.0
-2026-08-18T14:22:26.639842Z 01E out/app.env: found 1 matching artifact files and directories 
-2026-08-18T14:22:28.292005Z 01E Uploading artifacts as "dotenv" to coordinator... 201 Created  correlation_id=01M0AM130AGEWH3ZT35PABEJZ6 id=33811043 responseStatus=201 Created token=64_6yRJj1
-2026-08-18T14:22:28.491821Z 00O section_end:1787062948:upload_artifacts_on_success
-2026-08-18T14:22:28.491821Z 00O+section_start:1787062948:cleanup_file_variables
-2026-08-18T14:22:28.491821Z 00O+Cleaning up project directory and file based variables
-2026-08-18T14:22:29.817398Z 00O section_end:1787062949:cleanup_file_variables
-2026-08-18T14:22:29.817398Z 00O+
-2026-08-18T14:22:29.818142Z 00O Job succeeded
+PSADT does not like when trying to call Show-ADTInstallationWelcome in the pre-uninstall phase like we're doing (slightly different from the default template).
+ 
+    ##================================================
+    ## MARK: Pre-Uninstall
+    ##================================================
+    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
+ 
+        ## Show Welcome Message, close processes if specified.
+        $saiwParams = @{
+            CloseProcessesCountdown = 60
+        }
+        if ($adtSession.AppProcessesToClose.Count -gt 0)
+        {
+            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
+        }
+        Show-ADTInstallationWelcome @saiwParams
+ 
+If I comment out the last line, uninstall proceeds as expected.
+ 
+default template code looks like this:
+ 
+    ##================================================
+    ## MARK: Pre-Uninstall
+    ##================================================
+    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
+ 
+    ## If there are processes to close, show Welcome Message with a 60 second countdown before automatically closing.
+    if ($adtSession.AppProcessesToClose.Count -gt 0)
+    {
+        Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CloseProcessesCountdown 60
+    }
+ 
+ 
+We should account for the syntax differences between  pre-install and corresponding  action card for show installation welcome ( with different parameters for pre-install and pre-uninstall). 
+
+Currently, PSADT doesn't like it for whatever reason. 
+ 
+[Pre-Uninstall] :: An unhandled error within [Invoke-AppDeployToolkit.ps1] has occurred.
+
+Error Record:
+
+-------------
+
+Message               : Parameter set cannot be resolved using the specified named parameters.
+
+FullyQualifiedErrorId : AmbiguousParameterSet,Uninstall-ADTDeployment
+
+ScriptStackTrace      : at Uninstall-ADTDeployment, C:\Windows\IMECache\cf60f06c-a116-4259-b08a-0f25e5fc1a4b_1\Invoke-AppDeployToolkit.ps1: line 156
+
+                        at <ScriptBlock>, C:\Windows\IMECache\cf60f06c-a116-4259-b08a-0f25e5fc1a4b_1\Invoke-AppDeployToolkit.ps1: line 243
+
+                        at <ScriptBlock>, <No file>: line 1
+
+PositionMessage       : At C:\Windows\IMECache\cf60f06c-a116-4259-b08a-0f25e5fc1a4b_1\Invoke-AppDeployToolkit.ps1:243 char:5
+
+                        +     & "$($adtSession.DeploymentType)-ADTDeployment"
+
+                        +     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	Invoke-AppDeployToolkit.ps1	8/17/2026 5:59:39 PM	23384 (0x5B58)
+
+ 
+line 156 is Show-ADTInstallationWelcome @saiwParams
+ 
+commenting that out and uninstall executes without issue.
+ 
