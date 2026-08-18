@@ -1,57 +1,22 @@
-Searched web: "PSADT 4.x Uninstall-ADTApplication -ProductCode -Name parameters PSAppDeployToolkit"
-Searched web: "PSADT 4.x Start-ADTMsiProcess Uninstall product code vs Uninstall-ADTApplication difference"
+The show_welcome action card now generates two different code patterns based on phase:
 
-Now let me also check how the builder currently seeds the MSI uninstall and what the generator emits:
+Pre-Install / Post-Install — unchanged splatted pattern:
 
-Ran command: `grep -n "uninstall_application\|start_msi_process\|msi_uninstall\|Start-ADTMsiProcess.*Uninstall\|Uninstall-ADTApplication" /Users/wissammazboudi/Development/SPA/spa-title-wizard/src/lib/generatePsadtScript.js | head -20`
-Viewed generatePsadtScript.js:521-560
+powershell
+$saiwParams = @{
+    CloseProcessesCountdown = 60
+}
+if ($adtSession.AppProcessesToClose.Count -gt 0)
+{
+    $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
+}
+Show-ADTInstallationWelcome @saiwParams
+Pre-Uninstall / Uninstall / Post-Uninstall — official PSADT template pattern (no ambiguity):
 
-Now I have the complete picture from both the docs and the codebase. Here's the authoritative answer:
-
----
-
-## `Uninstall-ADTApplication` vs `Start-ADTMsiProcess -Action Uninstall`
-
-These are two distinct tools for two different scenarios:
-
-### `Uninstall-ADTApplication -ProductCode '{GUID}'`
-**Registry-based discovery → then calls msiexec**
-
-- Searches the Windows registry (`HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`) for a matching entry
-- Finds the registered uninstall string and executes it
-- **Use when:** You want "find and remove whatever is registered with this GUID" — handles edge cases like apps that don't use standard msiexec uninstall strings
-- **`-ProductCode` and `-Name` are mutually exclusive** — you use one or the other, never both ✅ *(this is what we fixed yesterday)*
-- **`-ArgumentList` is appended** to whatever uninstall string the registry has — so `/qn /NORESTART` works here
-
-```powershell
-# Correct — GUID only, no -Name
-Uninstall-ADTApplication -ProductCode '{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}' -ArgumentList '/qn /NORESTART'
-```
-
----
-
-### `Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '{GUID}'`
-**Calls msiexec directly — no registry lookup**
-
-- Runs `msiexec.exe /x {GUID} [args]` directly
-- Fails with an error if the product is not installed (no graceful handling)
-- **Use when:** You know the exact GUID and want a deterministic, low-level call — typically for uninstalling the *previous version* during an upgrade inside the Install phase
-- This is what the builder uses for `start_msi_process` with `action: 'Uninstall'`
-
-```powershell
-# Direct msiexec call — upgrade scenario
-Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '{XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}'
-```
-
----
-
-## Decision Table for the SPA Builder
-
-| Scenario | Correct PSADT Command | Builder Action Type |
-|---|---|---|
-| **Standard MSI uninstall** (default Uninstall phase) | `Uninstall-ADTApplication -ProductCode '{GUID}'` | `uninstall_application` ✅ |
-| **Remove previous version during upgrade** (Install phase) | `Start-ADTMsiProcess -Action 'Uninstall' -ProductCode '{GUID}'` | `start_msi_process` |
-| **Remove by display name** (unknown GUID) | `Uninstall-ADTApplication -Name 'App Name'` | `uninstall_application` |
-| **Remove multiple GUIDs** | `@('{GUID1}','{GUID2}') \| ForEach-Object { Start-ADTMsiProcess -Action 'Uninstall' -ProductCode $_ }` | `msi_uninstall_batch` |
-
-**Bottom line:** The fix we applied yesterday (product code only, no `-Name`) is correct. The default MSI uninstall should stay as `Uninstall-ADTApplication -ProductCode '{GUID}'` — not `Start-ADTMsiProcess`.
+powershell
+## If there are processes to close, show Welcome Message.
+if ($adtSession.AppProcessesToClose.Count -gt 0)
+{
+    Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CloseProcessesCountdown 60
+}
+2:24 PM
