@@ -101,7 +101,7 @@ export default function generatePsadtScript(s, options = {}) {
   }
 
   // ── Helper: Compile Action list to PS1 lines ───────────────────────────
-  function convertToActionLines(actions) {
+  function convertToActionLines(actions, phase) {
     const lines = [];
     if (!actions || actions.length === 0) return lines;
 
@@ -109,7 +109,7 @@ export default function generatePsadtScript(s, options = {}) {
       if (action.enabled === false) return;
 
       // generateActionCmd returns raw lines (no leading spaces).
-      const rawLines = generateActionCmd(action, { resolveFilePath, filePathParam });
+      const rawLines = generateActionCmd(action, { resolveFilePath, filePathParam, phase });
       if (rawLines.length === 0) return;
 
       // Apply 8-space generator indent and wrap with SPA:Action tags if needed.
@@ -215,11 +215,11 @@ export default function generatePsadtScript(s, options = {}) {
   // ── 3. Build block strings per phase ─────────────────────────────────────
 
   // Helper to compile standard visual actions, followed by a separate CustomCode block
-  function compilePhaseBlock(actions, phaseName, guideDesc) {
+  function compilePhaseBlock(actions, phaseName, guideDesc, phase) {
     const builderActions = (actions || []).filter(a => !a.isCustomCodeBlock);
     const customCodeActions = (actions || []).filter(a => a.isCustomCodeBlock);
 
-    const builderLines = convertToActionLines(builderActions);
+    const builderLines = convertToActionLines(builderActions, phase);
 
     const customLines = [];
     customLines.push(`        # <SPA:CustomCode Phase="${phaseName}" Guide="${guideDesc}">`);
@@ -277,24 +277,24 @@ export default function generatePsadtScript(s, options = {}) {
     }`;
 
   // Install phases — show_welcome and show_progress now come from user action cards
-  const preInstallBlock = compilePhaseBlock(userActions('preInstall'), 'Pre-Install', 'Perform Pre-Installation tasks here');
+  const preInstallBlock = compilePhaseBlock(userActions('preInstall'), 'Pre-Install', 'Perform Pre-Installation tasks here', 'preInstall');
 
   const installBlock = [
     STD_ZEROCONFIG_MSI_INSTALL,
-    compilePhaseBlock(userActions('install'), 'Install', 'Perform Installation tasks here')
+    compilePhaseBlock(userActions('install'), 'Install', 'Perform Installation tasks here', 'install')
   ].join('\n\n');
 
-  const postInstallBlock = compilePhaseBlock(userActions('postInstall'), 'Post-Install', 'Perform Post-Installation tasks here');
+  const postInstallBlock = compilePhaseBlock(userActions('postInstall'), 'Post-Install', 'Perform Post-Installation tasks here', 'postInstall');
 
   // Uninstall phases
-  const preUninstallBlock = compilePhaseBlock(userActions('preUninstall'), 'Pre-Uninstall', 'Perform Pre-Uninstallation tasks here');
+  const preUninstallBlock = compilePhaseBlock(userActions('preUninstall'), 'Pre-Uninstall', 'Perform Pre-Uninstallation tasks here', 'preUninstall');
 
   const uninstallBlock = [
     STD_ZEROCONFIG_MSI_OTHER,
-    compilePhaseBlock(userActions('uninstall'), 'Uninstall', 'Perform Uninstallation tasks here')
+    compilePhaseBlock(userActions('uninstall'), 'Uninstall', 'Perform Uninstallation tasks here', 'uninstall')
   ].join('\n\n');
 
-  const postUninstallBlock = compilePhaseBlock(userActions('postUninstall'), 'Post-Uninstall', 'Perform Post-Uninstallation tasks here');
+  const postUninstallBlock = compilePhaseBlock(userActions('postUninstall'), 'Post-Uninstall', 'Perform Post-Uninstallation tasks here', 'postUninstall');
 
 
 
@@ -659,39 +659,75 @@ export function generateActionCmd(action, pathCtx = {}) {
     }
 
     case 'show_welcome': {
-      // Build the $saiwParams splatting hashtable dynamically
-      const swParams = [];
-      if (action.allowDefer) {
-        swParams.push('    AllowDefer = $true');
-        if (action.deferTimes && action.deferTimes > 0) swParams.push(`    DeferTimes = ${action.deferTimes}`);
-        if (action.deferDays && action.deferDays > 0) swParams.push(`    DeferDays = ${action.deferDays}`);
-        if (action.deferDeadline) swParams.push(`    DeferDeadline = '${action.deferDeadline}'`);
-      }
-      if (action.checkDiskSpace) swParams.push('    CheckDiskSpace = $true');
-      if (action.persistPrompt) swParams.push('    PersistPrompt = $true');
-      if (action.closeProcessesCountdown && action.closeProcessesCountdown > 0) {
-        swParams.push(`    CloseProcessesCountdown = ${action.closeProcessesCountdown}`);
-      }
-      if (action.forceCloseProcessesCountdown && action.forceCloseProcessesCountdown > 0) {
-        swParams.push(`    ForceCloseProcessesCountdown = ${action.forceCloseProcessesCountdown}`);
-      }
-      if (action.blockExecution) swParams.push('    BlockExecution = $true');
-
       const commentParts = [];
       if (action.allowDefer) commentParts.push(`allow up to ${action.deferTimes || 3} deferrals`);
       if (action.checkDiskSpace) commentParts.push('verify disk space');
       if (action.persistPrompt) commentParts.push('persist the prompt');
       const commentSuffix = commentParts.length > 0 ? `, ${commentParts.join(', ')}` : '';
 
-      lines.push(`## Show Welcome Message, close processes if specified${commentSuffix}.`);
-      lines.push('$saiwParams = @{');
-      swParams.forEach(p => lines.push(p));
-      lines.push('}');
-      lines.push('if ($adtSession.AppProcessesToClose.Count -gt 0)');
-      lines.push('{');
-      lines.push("    $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)");
-      lines.push('}');
-      lines.push('Show-ADTInstallationWelcome @saiwParams');
+      // Determine if we are in an uninstall phase. In uninstall phases PSADT
+      // resolves a different parameter set for Show-ADTInstallationWelcome.
+      // Using splatting with CloseProcessesCountdown outside the AppProcessesToClose
+      // guard causes AmbiguousParameterSet. The official PSADT template wraps the
+      // entire call inside the if-block for uninstall phases.
+      const isUninstallPhase = opts.phase && opts.phase.toLowerCase().includes('uninstall');
+
+      if (isUninstallPhase) {
+        // ── Official PSADT uninstall pattern ──────────────────────────────
+        // Build an inline parameter string (no splatting) so the param set
+        // is always resolved correctly — matching the default PSADT template.
+        const inlineParams = [];
+        inlineParams.push('-CloseProcesses $adtSession.AppProcessesToClose');
+        if (action.closeProcessesCountdown && action.closeProcessesCountdown > 0) {
+          inlineParams.push(`-CloseProcessesCountdown ${action.closeProcessesCountdown}`);
+        }
+        if (action.forceCloseProcessesCountdown && action.forceCloseProcessesCountdown > 0) {
+          inlineParams.push(`-ForceCloseProcessesCountdown ${action.forceCloseProcessesCountdown}`);
+        }
+        if (action.allowDefer) {
+          inlineParams.push('-AllowDefer');
+          if (action.deferTimes && action.deferTimes > 0) inlineParams.push(`-DeferTimes ${action.deferTimes}`);
+          if (action.deferDays && action.deferDays > 0) inlineParams.push(`-DeferDays ${action.deferDays}`);
+          if (action.deferDeadline) inlineParams.push(`-DeferDeadline '${action.deferDeadline}'`);
+        }
+        if (action.checkDiskSpace) inlineParams.push('-CheckDiskSpace');
+        if (action.persistPrompt) inlineParams.push('-PersistPrompt');
+        if (action.blockExecution) inlineParams.push('-BlockExecution');
+
+        lines.push(`## If there are processes to close, show Welcome Message${commentSuffix}.`);
+        lines.push('if ($adtSession.AppProcessesToClose.Count -gt 0)');
+        lines.push('{');
+        lines.push(`    Show-ADTInstallationWelcome ${inlineParams.join(' ')}`);
+        lines.push('}');
+      } else {
+        // ── Standard install pattern: splat hashtable, conditionally add CloseProcesses ──
+        const swParams = [];
+        if (action.allowDefer) {
+          swParams.push('    AllowDefer = $true');
+          if (action.deferTimes && action.deferTimes > 0) swParams.push(`    DeferTimes = ${action.deferTimes}`);
+          if (action.deferDays && action.deferDays > 0) swParams.push(`    DeferDays = ${action.deferDays}`);
+          if (action.deferDeadline) swParams.push(`    DeferDeadline = '${action.deferDeadline}'`);
+        }
+        if (action.checkDiskSpace) swParams.push('    CheckDiskSpace = $true');
+        if (action.persistPrompt) swParams.push('    PersistPrompt = $true');
+        if (action.closeProcessesCountdown && action.closeProcessesCountdown > 0) {
+          swParams.push(`    CloseProcessesCountdown = ${action.closeProcessesCountdown}`);
+        }
+        if (action.forceCloseProcessesCountdown && action.forceCloseProcessesCountdown > 0) {
+          swParams.push(`    ForceCloseProcessesCountdown = ${action.forceCloseProcessesCountdown}`);
+        }
+        if (action.blockExecution) swParams.push('    BlockExecution = $true');
+
+        lines.push(`## Show Welcome Message, close processes if specified${commentSuffix}.`);
+        lines.push('$saiwParams = @{');
+        swParams.forEach(p => lines.push(p));
+        lines.push('}');
+        lines.push('if ($adtSession.AppProcessesToClose.Count -gt 0)');
+        lines.push('{');
+        lines.push("    $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)");
+        lines.push('}');
+        lines.push('Show-ADTInstallationWelcome @saiwParams');
+      }
       break;
     }
 

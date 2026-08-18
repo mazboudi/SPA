@@ -36,8 +36,16 @@ macos_deploy_jamf:
     entrypoint: [""]
   needs: []   # override to [fetch-mac-installer] in title's .gitlab-ci.yml when using SMB
   rules:
+    # Workbench "Deploy" action: SPA_STAGE_LIMIT=deploy → run automatically
+    - if: $SPA_STAGE_LIMIT == "deploy" && $MACOS_ENABLED == "true"
+      when: on_success
+    # Workbench non-deploy actions (build/publish/assign/save): never run macOS job
+    - if: $SPA_STAGE_LIMIT != "" && $SPA_STAGE_LIMIT != "deploy" && $MACOS_ENABLED == "true"
+      when: never
+    # Version tag push (non-workbench): auto-run
     - if: $CI_COMMIT_TAG =~ /^v/ && $MACOS_ENABLED == "true"
       when: on_success
+    # All other pushes (manual git push to main, etc.): keep manual
     - if: $MACOS_ENABLED == "true"
       when: manual
       allow_failure: true
