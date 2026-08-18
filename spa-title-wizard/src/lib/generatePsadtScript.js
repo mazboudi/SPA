@@ -513,7 +513,7 @@ export function psString(str) {
  * For the UI preview, pass a simple passthrough that returns the file as-is.
  */
 export function generateActionCmd(action, pathCtx = {}) {
-  const { resolveFilePath = f => f, filePathParam: fpParam = r => (r ? ` -FilePath ${psString(r)}` : '') } = pathCtx;
+  const { resolveFilePath = f => f, filePathParam: fpParam = r => (r ? ` -FilePath ${psString(r)}` : ''), phase = '' } = pathCtx;
   const lines = [];
 
   const cp = action.commonParams ? ` ${action.commonParams}` : '';
@@ -670,7 +670,7 @@ export function generateActionCmd(action, pathCtx = {}) {
       // Using splatting with CloseProcessesCountdown outside the AppProcessesToClose
       // guard causes AmbiguousParameterSet. The official PSADT template wraps the
       // entire call inside the if-block for uninstall phases.
-      const isUninstallPhase = opts.phase && opts.phase.toLowerCase().includes('uninstall');
+      const isUninstallPhase = phase && phase.toLowerCase().includes('uninstall');
 
       if (isUninstallPhase) {
         // ── Official PSADT uninstall pattern ──────────────────────────────
