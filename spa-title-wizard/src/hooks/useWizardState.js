@@ -786,10 +786,12 @@ export default function useWizardState() {
 
 
       // ── 3. Pre-Install / Pre-Uninstall / Pre-Repair welcome + progress ─
+      // Defaults match the official PSADT v4.1 template:
+      // "allow up to 3 deferrals, verify disk space, persist the prompt"
       const countdownWelcome = {
         type: 'show_welcome', enabled: true,
-        allowDefer: false, deferTimes: 0, deferDays: 0, deferDeadline: '',
-        checkDiskSpace: false, persistPrompt: false,
+        allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
+        checkDiskSpace: true, persistPrompt: true,
         closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
         blockExecution: false,
       };
