@@ -786,13 +786,6 @@ export default function useWizardState() {
 
 
       // ── 3. Pre-Install / Pre-Uninstall / Pre-Repair welcome + progress ─
-      const defaultWelcome = {
-        type: 'show_welcome', enabled: true,
-        allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
-        checkDiskSpace: true, persistPrompt: true,
-        closeProcessesCountdown: 0, forceCloseProcessesCountdown: 0,
-        blockExecution: false,
-      };
       const countdownWelcome = {
         type: 'show_welcome', enabled: true,
         allowDefer: false, deferTimes: 0, deferDays: 0, deferDeadline: '',
@@ -802,7 +795,7 @@ export default function useWizardState() {
       };
       const defaultProgress = { type: 'show_progress', enabled: true, statusMessage: '', topMost: true };
 
-      mkPhase('preInstall',   [defaultWelcome, defaultProgress]);
+      mkPhase('preInstall',   [countdownWelcome, defaultProgress]);
       mkPhase('preUninstall', [countdownWelcome, defaultProgress]);
 
       return { ...prev, lifecycle: { ...prev.lifecycle, phases } };

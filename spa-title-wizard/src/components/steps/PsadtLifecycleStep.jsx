@@ -379,7 +379,8 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
           {(() => {
             const pathCtx = {
               resolveFilePath: resolvePreviewFilePath,
-              filePathParam: filePathPreviewParam
+              filePathParam: filePathPreviewParam,
+              phase: phaseKey
             };
             const rawLines = generateActionCmd(action, pathCtx);
             let v4Cmd = rawLines.join('\n');

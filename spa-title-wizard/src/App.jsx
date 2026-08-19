@@ -111,13 +111,24 @@ export default function App() {
       .catch(err => console.warn('Failed to load server config:', err));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-apply server group fields into wizard state (call after every reset)
+  // Re-apply server group fields into wizard state (call after every reset).
+  // Always derive gitLabGroup from the current platform — mirrors resetWithConfig logic.
   const applyServerGroups = () => {
     const cfg = serverConfig.current;
     if (cfg.gitLabWinGroup) wizard.updateField('gitLabWinGroup', cfg.gitLabWinGroup);
     if (cfg.gitLabMacGroup) wizard.updateField('gitLabMacGroup', cfg.gitLabMacGroup);
-    if (cfg.gitLabGroup && !cfg.gitLabWinGroup) wizard.updateField('gitLabGroup', cfg.gitLabGroup);
     if (cfg.gitLabCiTemplatesProject) wizard.updateField('gitLabCiTemplatesProject', cfg.gitLabCiTemplatesProject);
+
+    // Derive gitLabGroup from the active platform so the duplicate check fires
+    // against the correct path (e.g. euc/.../win/<id> not euc/.../<id>)
+    const platform = wizard.state.platform;
+    if (platform === 'windows' && cfg.gitLabWinGroup) {
+      wizard.updateField('gitLabGroup', cfg.gitLabWinGroup);
+    } else if (platform === 'macos' && cfg.gitLabMacGroup) {
+      wizard.updateField('gitLabGroup', cfg.gitLabMacGroup);
+    } else if (cfg.gitLabGroup) {
+      wizard.updateField('gitLabGroup', cfg.gitLabGroup);
+    }
   };
 
   // ── Platform selection ────────────────────────────────────────────────────
