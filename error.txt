@@ -1,66 +1,53 @@
-PSADT does not like when trying to call Show-ADTInstallationWelcome in the pre-uninstall phase like we're doing (slightly different from the default template).
- 
-    ##================================================
-    ## MARK: Pre-Uninstall
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
- 
-        ## Show Welcome Message, close processes if specified.
-        $saiwParams = @{
-            CloseProcessesCountdown = 60
-        }
-        if ($adtSession.AppProcessesToClose.Count -gt 0)
-        {
-            $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
-        }
-        Show-ADTInstallationWelcome @saiwParams
- 
-If I comment out the last line, uninstall proceeds as expected.
- 
-default template code looks like this:
- 
-    ##================================================
-    ## MARK: Pre-Uninstall
-    ##================================================
-    $adtSession.InstallPhase = "Pre-$($adtSession.DeploymentType)"
- 
-    ## If there are processes to close, show Welcome Message with a 60 second countdown before automatically closing.
-    if ($adtSession.AppProcessesToClose.Count -gt 0)
-    {
-        Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CloseProcessesCountdown 60
-    }
- 
- 
-We should account for the syntax differences between  pre-install and corresponding  action card for show installation welcome ( with different parameters for pre-install and pre-uninstall). 
-
-Currently, PSADT doesn't like it for whatever reason. 
- 
-[Pre-Uninstall] :: An unhandled error within [Invoke-AppDeployToolkit.ps1] has occurred.
-
-Error Record:
-
--------------
-
-Message               : Parameter set cannot be resolved using the specified named parameters.
-
-FullyQualifiedErrorId : AmbiguousParameterSet,Uninstall-ADTDeployment
-
-ScriptStackTrace      : at Uninstall-ADTDeployment, C:\Windows\IMECache\cf60f06c-a116-4259-b08a-0f25e5fc1a4b_1\Invoke-AppDeployToolkit.ps1: line 156
-
-                        at <ScriptBlock>, C:\Windows\IMECache\cf60f06c-a116-4259-b08a-0f25e5fc1a4b_1\Invoke-AppDeployToolkit.ps1: line 243
-
-                        at <ScriptBlock>, <No file>: line 1
-
-PositionMessage       : At C:\Windows\IMECache\cf60f06c-a116-4259-b08a-0f25e5fc1a4b_1\Invoke-AppDeployToolkit.ps1:243 char:5
-
-                        +     & "$($adtSession.DeploymentType)-ADTDeployment"
-
-                        +     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-	Invoke-AppDeployToolkit.ps1	8/17/2026 5:59:39 PM	23384 (0x5B58)
-
- 
-line 156 is Show-ADTInstallationWelcome @saiwParams
- 
-commenting that out and uninstall executes without issue.
- 
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:61
++             param([String]$certPath,[String]$certRootStore = â€œLocal ...
++                                                             ~
+Missing expression after '='.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:59
++             param([String]$certPath,[String]$certRootStore = â€œLocal ...
++                                                           ~
+Missing ')' in function parameter list.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:80
++ ... String]$certPath,[String]$certRootStore = â€œLocalMachineâ€
++                                                                 ~
+Missing argument in parameter list.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:430 char:40
++         function Import-PfxCertificate {
++                                        ~
+Missing closing '}' in statement block or type definition.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:426 char:52
++         If (-NOT ($DomainNameCheck -eq "1dc.com")) {
++                                                    ~
+Missing closing '}' in statement block or type definition.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:71 char:1
++ {
++ ~
+Missing closing '}' in statement block or type definition.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:138
++ ... Machineâ€
++                                                                         ~
+Unexpected token ')' in expression or statement.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:434 char:44
++             $pfx.import($certPath,$pfxPass,â€œExportable,PersistKeySe ...
++                                            ~
+Missing expression after ','.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:434 char:44
++             $pfx.import($certPath,$pfxPass,â€œExportable,PersistKeySe ...
++                                            ~~~~~~~~~~~~~
+Unexpected token 'â€œExportable' in expression or statement.
+At C:\Users\F3Y52MY\OneDrive - Fiserv 
+Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:434 char:57
++             $pfx.import($certPath,$pfxPass,â€œExportable,PersistKeySe ...
++                                                         ~
+Missing argument in parameter list.
+Not all parse errors were reported.  Correct the reported errors and try again.
+    + CategoryInfo          : ParserError: (:) [], ParseException
+    + FullyQualifiedErrorId : MissingExpressionAfterToken
