@@ -1,4 +1,4 @@
-The show_welcome action card now generates two different code patterns based on phase:
+I made it so that the show_welcome action card now generates two different code patterns based on phase:
 
 Pre-Install / Post-Install — unchanged splatted pattern:
 
@@ -11,6 +11,8 @@ if ($adtSession.AppProcessesToClose.Count -gt 0)
     $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
 }
 Show-ADTInstallationWelcome @saiwParams
+
+
 Pre-Uninstall / Uninstall / Post-Uninstall — official PSADT template pattern (no ambiguity):
 
 powershell

@@ -792,7 +792,7 @@ export default function useWizardState() {
         type: 'show_welcome', enabled: true,
         allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
         checkDiskSpace: true, persistPrompt: true,
-        closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
+        forceCloseProcessesCountdown: 0,
         blockExecution: false,
       };
       // Pre-Uninstall: official PSADT v4.1 default — simpler, just close
