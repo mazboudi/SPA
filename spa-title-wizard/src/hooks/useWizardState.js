@@ -785,20 +785,29 @@ export default function useWizardState() {
       }
 
 
-      // ── 3. Pre-Install / Pre-Uninstall / Pre-Repair welcome + progress ─
-      // Defaults match the official PSADT v4.1 template:
-      // "allow up to 3 deferrals, verify disk space, persist the prompt"
-      const countdownWelcome = {
+      // ── 3. Pre-Install / Pre-Uninstall welcome + progress ──────────────
+      // Pre-Install: official PSADT v4.1 default — allow deferrals, verify
+      // disk space, persist the prompt, 60s countdown.
+      const installWelcome = {
         type: 'show_welcome', enabled: true,
         allowDefer: true, deferTimes: 3, deferDays: 0, deferDeadline: '',
         checkDiskSpace: true, persistPrompt: true,
         closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
         blockExecution: false,
       };
+      // Pre-Uninstall: official PSADT v4.1 default — simpler, just close
+      // processes with a 60s countdown, no deferrals.
+      const uninstallWelcome = {
+        type: 'show_welcome', enabled: true,
+        allowDefer: false, deferTimes: 0, deferDays: 0, deferDeadline: '',
+        checkDiskSpace: false, persistPrompt: false,
+        closeProcessesCountdown: 60, forceCloseProcessesCountdown: 0,
+        blockExecution: false,
+      };
       const defaultProgress = { type: 'show_progress', enabled: true, statusMessage: '', topMost: true };
 
-      mkPhase('preInstall',   [countdownWelcome, defaultProgress]);
-      mkPhase('preUninstall', [countdownWelcome, defaultProgress]);
+      mkPhase('preInstall',   [installWelcome,   defaultProgress]);
+      mkPhase('preUninstall', [uninstallWelcome, defaultProgress]);
 
       return { ...prev, lifecycle: { ...prev.lifecycle, phases } };
     });

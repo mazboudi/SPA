@@ -11,6 +11,7 @@ import parsePsadtBlocks from '../../lib/parsePsadtBlocks';
 import CodePreview from '../ui/CodePreview';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import './windows-steps.css';
+import SnippetPicker from '../ui/SnippetPicker';
 
 /**
  * Dedicated card for raw_ps (unparsed block) actions.
@@ -269,6 +270,38 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
   const isRawPs = action.type === 'raw_ps';
   const isCustomVar = action.type === 'custom_variable';
 
+  const [snippetPickerOpen, setSnippetPickerOpen] = useState(false);
+  const monacoEditorRef = useRef(null);
+
+  const handleSnippetInsert = (code) => {
+    const editor = monacoEditorRef.current;
+    if (editor) {
+      // Option B: insert at the current cursor position
+      const position = editor.getPosition();
+      const range = {
+        startLineNumber: position.lineNumber,
+        startColumn:     position.column,
+        endLineNumber:   position.lineNumber,
+        endColumn:       position.column,
+      };
+      // Prefix with a blank line if the cursor is not at the start of the document
+      const model = editor.getModel();
+      const isAtStart = position.lineNumber === 1 && position.column === 1;
+      const prefix = (!isAtStart && model && model.getValueInRange({
+        startLineNumber: 1, startColumn: 1,
+        endLineNumber: position.lineNumber, endColumn: position.column,
+      }).trim()) ? '\n\n' : '';
+      editor.executeEdits('snippet-picker', [{ range, text: prefix + code, forceMoveMarkers: true }]);
+      editor.focus();
+    } else {
+      // Fallback: append to end of existing code
+      const existing = action.code || '';
+      const sep = existing && !existing.endsWith('\n') ? '\n\n' : (existing ? '\n' : '');
+      handleFieldUpdate(phaseKey, index, { code: existing + sep + code });
+    }
+    setSnippetPickerOpen(false);
+  };
+
   // Wrap onUpdate: when a custom_variable's 'value' field is edited by the user,
   // set _userEdited so deriveState() won't overwrite it with the source field value.
   const handleFieldUpdate = (pk, idx, updates) => {
@@ -360,6 +393,7 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                         value={action[f.key] || ''}
                         options={{ readOnly: isCardDisabled, minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13 }}
                         onChange={value => handleFieldUpdate(phaseKey, index, { [f.key]: value || '' })}
+                        onMount={isCustom && f.key === 'code' ? (editor) => { monacoEditorRef.current = editor; } : undefined}
                       />
                     </div>
                   ) : f.type === 'select' && f.options ? (
@@ -374,6 +408,24 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                   {f.hint && <span className="action-field__hint">{f.hint}</span>}
                 </div>
               ))}
+            </div>
+          )}
+          {isCustom && !isCardDisabled && (
+            <div style={{ padding: '0 0 4px' }}>
+              {!snippetPickerOpen ? (
+                <button
+                  className="snippet-insert-trigger"
+                  onClick={() => setSnippetPickerOpen(true)}
+                  title="Browse and insert a PowerShell snippet"
+                >
+                  ⚡ Insert Snippet
+                </button>
+              ) : (
+                <SnippetPicker
+                  onInsert={handleSnippetInsert}
+                  onClose={() => setSnippetPickerOpen(false)}
+                />
+              )}
             </div>
           )}
           {(() => {
