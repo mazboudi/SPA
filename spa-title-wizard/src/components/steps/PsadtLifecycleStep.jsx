@@ -402,7 +402,23 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
                         <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
-                  ) : (
+                  ) : isCustomVar && f.key === 'name' ? (() => {
+                    // For custom_variable name: strip $adtSession. prefix and leading $
+                    // so users see just the hashtable key (e.g. "AppSuccessExitCodes").
+                    // The generator uses getCleanVarName() which strips these prefixes anyway.
+                    const displayName = (action.name || '')
+                      .replace(/^\$adtSession\./i, '')
+                      .replace(/^\$/, '');
+                    return (
+                      <input
+                        type="text"
+                        placeholder={f.placeholder || 'MyCustomKey'}
+                        value={displayName}
+                        disabled={isCardDisabled}
+                        onChange={e => handleFieldUpdate(phaseKey, index, { name: e.target.value })}
+                      />
+                    );
+                  })() : (
                     <input type="text" placeholder={f.placeholder || ''} value={action[f.key] || ''} disabled={isCardDisabled} onChange={e => handleFieldUpdate(phaseKey, index, { [f.key]: e.target.value })} />
                   )}
                   {f.hint && <span className="action-field__hint">{f.hint}</span>}

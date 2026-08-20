@@ -727,20 +727,23 @@ export default function useWizardState() {
         { name: '$appArch',          value: '' },
         { name: '$appLang',          value: 'EN' },
         { name: '$appRevision',      value: '01' },
+        { name: '$adtSession.AppSuccessExitCodes', value: '0',         raw: 'AppSuccessExitCodes = @(0)' },
+        { name: '$adtSession.AppRebootExitCodes',  value: '1641, 3010', raw: 'AppRebootExitCodes = @(1641, 3010)' },
         { name: '$adtSession.AppProcessesToClose', value: '' },
         { name: '$appScriptVersion', value: '1.0.0' },
         { name: '$appScriptDate',    value: today },
         { name: '$appScriptAuthor',  value: prev.appOwner || 'EUC Packaging' },
+        { name: '$adtSession.RequireAdmin', value: '$true', desc: 'Require admin privileges — set to $false for user-context deployments' },
       ].map(v => ({
         type: 'custom_variable',
-        desc: `${v.name} = '${v.value}'`,
+        desc: v.desc || `${v.name} = '${v.value}'`,
         name: v.name,
         value: v.value,
         enabled: true,
+        ...(v.raw ? { raw: v.raw } : {}),
       }));
 
       const systemVarActions = [
-        { name: '$adtSession.RequireAdmin',                value: '$true',                          desc: 'Require admin privileges' },
         { name: '$adtSession.DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name',   desc: 'Script friendly name (auto-set)' },
         { name: '$adtSession.DeployAppScriptParameters',   value: '$PSBoundParameters',             desc: 'Bound parameters (auto-set)' },
         { name: '$adtSession.DeployAppScriptVersion',      value: '4.1.8',                          desc: 'Framework version (auto-set)' },

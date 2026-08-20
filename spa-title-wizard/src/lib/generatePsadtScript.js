@@ -152,6 +152,15 @@ export default function generatePsadtScript(s, options = {}) {
   }
 
   // ── 1. Variables section ─────────────────────────────────────────────────
+  // Helper: format a comma-separated number list as a PowerShell array literal @(n, n, ...)
+  function formatExitCodeArray(raw, fallback) {
+    if (!raw) return fallback;
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('@(')) return trimmed;
+    const nums = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    return nums.length ? `@(${nums.join(', ')})` : fallback;
+  }
+
   // AppProcessesToClose comes from the variable declaration, not from action cards
   const closeAppsVar = varActions.find(a => getCleanVarName(a.name).toLowerCase() === 'appprocessestoclose');
   let closeAppsList = '@()';
@@ -165,6 +174,12 @@ export default function generatePsadtScript(s, options = {}) {
       closeAppsList = items ? `@(${items})` : '@()';
     }
   }
+
+  // AppSuccessExitCodes and AppRebootExitCodes — read from editable var declaration entries
+  const successExitCodesVal = getVarVal('appSuccessExitCodes', '0');
+  const rebootExitCodesVal  = getVarVal('appRebootExitCodes',  '1641, 3010');
+  const appSuccessExitCodes = formatExitCodeArray(successExitCodesVal, '@(0)');
+  const appRebootExitCodes  = formatExitCodeArray(rebootExitCodesVal,  '@(1641, 3010)');
 
   // Map onto PascalCase official PSADT v4 standard keys
   const appVendor = getVarVal('appVendor', s.publisher || 'Fiserv');
@@ -347,8 +362,8 @@ $adtSession = @{
     AppArch                = '${appArch}'
     AppLang                = '${appLang}'
     AppRevision            = '${appRevision}'
-    AppSuccessExitCodes    = @(0)
-    AppRebootExitCodes     = @(1641, 3010)
+    AppSuccessExitCodes    = ${appSuccessExitCodes}
+    AppRebootExitCodes     = ${appRebootExitCodes}
     AppProcessesToClose    = ${closeAppsList}
     AppScriptVersion       = '${appScriptVersion}'
     AppScriptDate          = '${appScriptDate}'

@@ -2125,6 +2125,24 @@ function extractVarDeclarations(text) {
     raw: 'RequireAdmin = $true',
   });
 
+  // ── AppSuccessExitCodes / AppRebootExitCodes: editable — new in v4, add defaults ──
+  actions.push({
+    type: 'custom_variable',
+    desc: '$adtSession.AppSuccessExitCodes = @(0)',
+    name: '$adtSession.AppSuccessExitCodes',
+    value: '0',
+    enabled: true,
+    raw: 'AppSuccessExitCodes = @(0)',
+  });
+  actions.push({
+    type: 'custom_variable',
+    desc: '$adtSession.AppRebootExitCodes = @(1641, 3010)',
+    name: '$adtSession.AppRebootExitCodes',
+    value: '1641, 3010',
+    enabled: true,
+    raw: 'AppRebootExitCodes = @(1641, 3010)',
+  });
+
   // ── System-managed vars: V3 scripts don't have $adtSession, but after
   // conversion to V4 the generated template always includes these.
   const systemManagedDefaults = [
@@ -2186,24 +2204,23 @@ export function extractVarDeclarationsV4(text) {
     }
   }
 
-  // Also extract array values that are useful
-  const arrayKeys = [
-    { key: 'AppSuccessExitCodes', desc: 'Success exit codes' },
-    { key: 'AppRebootExitCodes', desc: 'Reboot exit codes' },
-  ];
-
-  for (const { key, desc } of arrayKeys) {
+  // Also extract array values that are useful — always include with defaults
+  // so the variable declaration panel always shows these editable fields.
+  const ARRAY_VAR_DEFAULTS = {
+    AppSuccessExitCodes: '0',
+    AppRebootExitCodes:  '1641, 3010',
+  };
+  for (const [key, defaultVal] of Object.entries(ARRAY_VAR_DEFAULTS)) {
     const arrValues = extractArrayValue(sessionBlock, key);
-    if (arrValues.length > 0) {
-      actions.push({
-        type: 'custom_variable',
-        desc: `$adtSession.${key} = @(${arrValues.join(', ')})`,
-        name: `$adtSession.${key}`,
-        value: arrValues.join(', '),
-        enabled: true,
-        raw: `${key} = @(${arrValues.join(', ')})`,
-      });
-    }
+    const value = arrValues.length > 0 ? arrValues.join(', ') : defaultVal;
+    actions.push({
+      type: 'custom_variable',
+      desc: `$adtSession.${key} = @(${value})`,
+      name: `$adtSession.${key}`,
+      value,
+      enabled: true,
+      raw: `${key} = @(${value})`,
+    });
   }
 
   // AppProcessesToClose — always include, even when empty, so it is

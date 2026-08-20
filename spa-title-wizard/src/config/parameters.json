@@ -3,8 +3,9 @@
     "cmdlet": "custom_variable",
     "parameter": "name",
     "label": "Variable Name",
+    "hint": "Key name only — no $ prefix. Written as: MyKey = '…' in $adtSession.",
     "type": "text",
-    "placeholder": "$myVar",
+    "placeholder": "MyCustomKey",
     "required": true
   },
   {
@@ -263,13 +264,7 @@
     "label": "Recurse (delete subkeys)",
     "type": "checkbox"
   },
-  {
-    "cmdlet": "custom_variable",
-    "parameter": "commonParams",
-    "label": "Common Parameters (-ErrorAction, -Verbose, etc.)",
-    "type": "text",
-    "placeholder": "-ErrorAction Stop -Verbose"
-  },
+
   {
     "cmdlet": "start_process",
     "parameter": "commonParams",
