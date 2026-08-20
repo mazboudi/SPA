@@ -9,7 +9,7 @@
  * in parsePsadt.js — the single source of truth for $adtSession variable parsing.
  */
 
-import { extractVarDeclarationsV4, modernizeLegacyScriptParts } from './parsePsadt.js';
+import { extractVarDeclarationsV4, modernizeLegacyScriptParts, normalizeScriptEncoding } from './parsePsadt.js';
 
 /**
  * Promotes known standard PSADT template boilerplate out of raw script blocks
@@ -159,8 +159,8 @@ export default function parsePsadtBlocks(content) {
 
   if (!content) return result;
 
-  // Normalize encoding: strip BOM, normalize CRLF → LF
-  content = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // Normalize encoding: strip BOM, CRLF, and typographic Unicode characters (smart quotes, dashes, etc.)
+  content = normalizeScriptEncoding(content);
 
   const lines = content.split('\n');
 
@@ -369,7 +369,7 @@ export default function parsePsadtBlocks(content) {
                 actions.push({
                   type: 'raw_ps',
                   enabled: true,
-                  script: modernizeLegacyScriptParts(item._rawText),
+                  script: modernizeLegacyScriptParts(item._rawText, { rewriteVars: false }),
                   note: 'Legacy or custom script block',
                   isManuallyEdited: true
                 });
@@ -427,7 +427,7 @@ export default function parsePsadtBlocks(content) {
           actions.push({
             type: 'raw_ps',
             enabled: true,
-            script: modernizeLegacyScriptParts(cleanCode),
+            script: modernizeLegacyScriptParts(cleanCode, { rewriteVars: false }),
             note: `Packager Custom Code (${phaseKey})`,
             isManuallyEdited: true,
             isCustomCodeBlock: true

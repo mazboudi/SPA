@@ -31,10 +31,54 @@ import { promoteLegacyCards } from './parsePsadtBlocks.js';
  *   'new'              — full phase parsing (no raw script)
  * @returns {Promise<Object>} - { psadtVersion, fields, parsedPhases?, scriptContent?, warnings }
  */
+
+/**
+ * Normalize a raw PowerShell script string before parsing:
+ *   1. Strip UTF-8/UTF-16 BOM
+ *   2. Normalize Windows CRLF → LF
+ *   3. Replace Unicode "typographic" characters that PowerShell 5 cannot parse:
+ *      - Smart / curly double quotes   \u201C \u201D  →  "
+ *      - Smart / curly single quotes   \u2018 \u2019  →  '
+ *      - Left/right double angle \u00AB \u00BB  →  "
+ *      - En dash \u2013               →  --
+ *      - Em dash \u2014               →  --
+ *      - Horizontal ellipsis \u2026   →  ...
+ *      - Non-breaking space \u00A0     →  (regular space)
+ *      - Zero-width chars \u200B-\u200D, \uFEFF (mid-string BOM)
+ *
+ * These characters often appear when script authors paste code from Word,
+ * Confluence, SharePoint, or other rich-text sources and cause hard-to-diagnose
+ * ParseException errors in PowerShell.
+ *
+ * @param {string} text - Raw script text
+ * @returns {string} Normalized text
+ */
+export function normalizeScriptEncoding(text) {
+  return text
+    // 1. BOM (leading and embedded)
+    .replace(/^\uFEFF/, '')
+    .replace(/\uFEFF/g, '')
+    // 2. CRLF / CR → LF
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    // 3. Smart / curly double quotes  “ ” « »  →  "
+    .replace(/[\u201C\u201D\u00AB\u00BB]/g, '"')
+    // 4. Smart / curly single quotes  ‘ ’  →  '
+    .replace(/[\u2018\u2019]/g, "'")
+    // 5. En dash – and Em dash —  →  --
+    .replace(/[\u2013\u2014]/g, '--')
+    // 6. Horizontal ellipsis …  →  ...
+    .replace(/\u2026/g, '...')
+    // 7. Non-breaking space  →  regular space
+    .replace(/\u00A0/g, ' ')
+    // 8. Zero-width characters
+    .replace(/[\u200B-\u200D]/g, '');
+}
+
 export async function parsePsadtFile(file, mode = 'new') {
   let text = await file.text();
-  // Strip UTF-8/UTF-16 BOM and normalize Windows CRLF → LF
-  text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // Normalize encoding: strip BOM, CRLF, and typographic Unicode characters
+  text = normalizeScriptEncoding(text);
   const warnings = [];
 
   // Detect version
@@ -912,7 +956,6 @@ function extractIfElseBlock(lines, startIdx) {
 }
 
 
-/** Modernize legacy PSADT v3 cmdlets to standard v4 cmdlets inside custom blocks. */
 /**
  * Modernize a v3 PSADT script fragment to v4 naming conventions.
  * Driven by src/config/v3ToV4.json — add new renames there, not here.
@@ -920,12 +963,18 @@ function extractIfElseBlock(lines, startIdx) {
  * Order is critical:
  *   1. Cmdlet renames  (word-boundary, case-insensitive)
  *   2. Variable renames ($dirFiles → $($adtSession.DirFiles), etc.)
- *   3. Parameter renames (-Parameters → -ArgumentList, applied AFTER cmdlets so patterns match v4 names)
+ *      — ONLY when rewriteVars=true (v3 sources). Skip for v4.0x/v4.1x
+ *      — When replacing, $adtSession.X used inside a PS double-quoted string
+ *        is wrapped with $() so interpolation works: "$($adtSession.AppName)"
+ *   3. Parameter renames (-Parameters → -ArgumentList, applied AFTER cmdlets)
  *
  * NOTE: $env* variables are intentionally NOT converted — PSADT v4 still exports them
  * to the PS session via Export-ADTEnvironmentTableToSessionState.
+ *
+ * @param {string} scriptText
+ * @param {{ rewriteVars?: boolean }} [opts]  rewriteVars defaults to true
  */
-export function modernizeLegacyScriptParts(scriptText) {
+export function modernizeLegacyScriptParts(scriptText, { rewriteVars = true } = {}) {
   if (!scriptText) return '';
   let result = scriptText;
 
@@ -934,11 +983,39 @@ export function modernizeLegacyScriptParts(scriptText) {
     result = result.replace(new RegExp(`\\b${escapeRe(v3)}\\b`, 'gi'), () => v4);
   }
 
-  // 2. Variable renames — $ is literal in regex (not a word-boundary anchor), case-insensitive
-  for (const { v3, v4 } of v3ToV4.variables) {
-    // v3 entry starts with '$'; escape it and require a word boundary after
-    const escaped = v3.replace('$', '\\$');
-    result = result.replace(new RegExp(`${escaped}\\b`, 'gi'), () => v4);
+  // 2. Variable renames — only for v3 source scripts
+  if (rewriteVars) {
+    for (const { v3, v4 } of v3ToV4.variables) {
+      const escaped = v3.replace('$', '\\$');
+      const rx = new RegExp(`${escaped}\\b`, 'gi');
+      result = result.replace(rx, (match, offset, str) => {
+        // If the replacement is a $adtSession.X member access, we need to check
+        // whether it's inside a double-quoted PS string. If it is, wrap it with
+        // $() so PowerShell actually interpolates the member, not just $adtSession.
+        // Heuristic: a preceding un-escaped '"' with no closing '"' before our match
+        // means we are inside a double-quoted string context.
+        if (v4.startsWith('$adtSession.') || v4.startsWith('$(')) {
+          // Already a $(...) expression — use as-is
+          if (v4.startsWith('$(')) return v4;
+          // Check for enclosing double-quote context (scan backwards for unmatched ")
+          const before = str.slice(0, offset);
+          const lineStart = before.lastIndexOf('\n') + 1;
+          const linePrefix = before.slice(lineStart);
+          let inDoubleQuote = false;
+          for (let i = 0; i < linePrefix.length; i++) {
+            if (linePrefix[i] === '"' && (i === 0 || linePrefix[i - 1] !== '`')) {
+              inDoubleQuote = !inDoubleQuote;
+            }
+          }
+          if (inDoubleQuote) {
+            // Inside a double-quoted string: must use $() subexpression
+            return `$(${v4})`;
+          }
+          return v4;
+        }
+        return v4;
+      });
+    }
   }
 
   // 3. Parameter renames — applied AFTER cmdlet renames so patterns match v4 cmdlet names
@@ -976,7 +1053,8 @@ function escapeRe(s) {
 
 
 /** Scan a script block for all recognizable PowerShell commands and return action objects. */
-function extractBlockActions(block) {
+/** @param {string} block @param {{ rewriteVars?: boolean }} [opts] */
+function extractBlockActions(block, { rewriteVars = true } = {}) {
   if (!block) return [];
   const actions = [];
 
@@ -1073,7 +1151,7 @@ function extractBlockActions(block) {
         lineIdx++;
       }
       flushCustomBuffer();
-      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
+      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim(), { rewriteVars });
       if (modernizedBlock.length > 3) {
         const fnName = t.match(/^function\s+(\S+)/i)?.[1] || 'helper';
         actions.push({
@@ -1094,7 +1172,7 @@ function extractBlockActions(block) {
         lineIdx++;
       }
       flushCustomBuffer();
-      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
+      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim(), { rewriteVars });
       if (modernizedBlock.length > 3) {
         actions.push({
           type: 'raw_ps',
@@ -1119,7 +1197,7 @@ function extractBlockActions(block) {
         lineIdx++;
       }
       flushCustomBuffer();
-      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim());
+      const modernizedBlock = modernizeLegacyScriptParts(blockText.trim(), { rewriteVars });
       if (modernizedBlock.length > 3) {
         actions.push({
           type: 'raw_ps',
@@ -1146,7 +1224,7 @@ function extractBlockActions(block) {
     // Regex matchers below continue to use the original `t` so their patterns are unaffected.
     // This ensures the Lifecycle Editor card previews show v4 syntax ($($adtSession.DirFiles),
     // Start-ADTProcess, etc.) instead of the original v3 syntax.
-    const modernizedLine = modernizeLegacyScriptParts(t);
+    const modernizedLine = modernizeLegacyScriptParts(t, { rewriteVars });
 
     // Check for ADT cmdlet matches
     // Execute-MSI (v3) — convert to start_msi_process so the generator can render it.
@@ -2212,7 +2290,7 @@ function extractAllPhasesV4(text) {
       const actions = [];
       for (const item of orderedItems) {
         if (item._rawText) {
-          const extracted = extractBlockActions(item._rawText);
+          const extracted = extractBlockActions(item._rawText, { rewriteVars: false });
           actions.push(...extracted);
         } else {
           actions.push(item);
