@@ -106,6 +106,17 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
 
   const isLocked = !!action.isManuallyEdited;
   const isCardDisabled = !action.enabled;
+  const isCardCommented = action.enabled && !!action.commented;
+
+  // Cycle: Active (enabled, !commented) → Commented (enabled, commented) → Disabled (!enabled) → Active
+  const cycleCommentState = () => {
+    if (action.enabled && !action.commented)  onUpdate(phaseKey, index, { enabled: true,  commented: true  });
+    else if (action.commented)               onUpdate(phaseKey, index, { enabled: false, commented: false });
+    else                                     onUpdate(phaseKey, index, { enabled: true,  commented: false });
+  };
+  const toggleIcon  = isCardCommented ? '💬' : action.enabled ? '🟢' : '🔴';
+  const toggleClass = isCardCommented ? 'action-btn--commented' : action.enabled ? 'action-btn--active' : 'action-btn--inactive';
+  const toggleTitle = isCardCommented ? 'Commented — click to Disable' : action.enabled ? 'Active — click to Comment Out' : 'Disabled — click to Activate';
 
   // Build a meaningful collapsed preview from the actual script content:
   // Skip comment-only lines and grab up to 2 real executable lines.
@@ -120,7 +131,7 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
 
   return (
     <div
-      className={`action-card action-card--raw-ps ${isLocked ? 'action-card--locked' : ''} ${isCardDisabled ? 'action-card--disabled' : ''} ${isDragOver ? 'action-card--drop-target' : ''}`}
+      className={`action-card action-card--raw-ps ${isLocked ? 'action-card--locked' : ''} ${isCardDisabled ? 'action-card--disabled' : ''} ${isCardCommented ? 'action-card--commented' : ''} ${isDragOver ? 'action-card--drop-target' : ''}`}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -143,16 +154,17 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
         ) : (
           <span className="action-card__badge-warn" title="This block could not be fully parsed — verify before publishing">⚠ Review</span>
         )}
+        {isCardCommented && <span className="action-card__badge-commented" title="This action is commented out — code is in the script but inactive">💬 Commented</span>}
         <div className="action-card__controls" onClick={e => e.stopPropagation()}>
           <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
           <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
           <button
             type="button"
-            className={`action-btn action-btn--toggle ${action.enabled ? 'action-btn--active' : 'action-btn--inactive'}`}
-            onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })}
-            title={action.enabled ? 'Disable (Exclude from Script)' : 'Enable (Include in Script)'}
+            className={`action-btn action-btn--toggle ${toggleClass}`}
+            onClick={cycleCommentState}
+            title={toggleTitle}
           >
-            {action.enabled ? '🟢' : '🔴'}
+            {toggleIcon}
           </button>
           <button className="action-btn action-btn--del" onClick={() => onRemove(phaseKey, index)} title="Remove">✕</button>
         </div>
@@ -162,6 +174,11 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
           {isCardDisabled && (
             <div className="action-card__disabled-msg">
               ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
+            </div>
+          )}
+          {isCardCommented && (
+            <div className="action-card__commented-msg">
+              💬 This action is commented out — the code is included in the script prefixed with <code>#</code> but will not execute. Click 💬 Commented to disable or cycle back to active.
             </div>
           )}
           {action.note && (
@@ -323,10 +340,37 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
   }
 
   const isCardDisabled = !action.enabled;
+  const isCardCommented = action.enabled && !!action.commented;
 
-  // Build a brief preview string from the first non-empty field value
+  // Cycle: Active → Commented → Disabled → Active
+  const cycleCommentState = () => {
+    if (action.enabled && !action.commented)  onUpdate(phaseKey, index, { enabled: true,  commented: true  });
+    else if (action.commented)               onUpdate(phaseKey, index, { enabled: false, commented: false });
+    else                                     onUpdate(phaseKey, index, { enabled: true,  commented: false });
+  };
+  const toggleIcon  = isCardCommented ? '💬' : action.enabled ? '🟢' : '🔴';
+  const toggleClass = isCardCommented ? 'action-btn--commented' : action.enabled ? 'action-btn--active' : 'action-btn--inactive';
+  const toggleTitle = isCardCommented ? 'Commented — click to Disable' : action.enabled ? 'Active — click to Comment Out' : 'Disabled — click to Activate';
+
+  // Build a brief preview string shown when the card is collapsed
   let preview = '';
-  if (def?.fields) {
+  if (isCustomVar) {
+    // Show the variable exactly as it appears in the generated script.
+    // ALL variable declaration entries are $adtSession hashtable keys, so we
+    // always render: $adtSession.Key = 'value'
+    const rawName = action.name || '';
+    // Strip any existing prefix ($adtSession. or leading $) to get the bare key
+    const cleanKey = rawName.replace(/^\$adtSession\./i, '').replace(/^\$/, '') || rawName;
+    const displayKey = `$adtSession.${cleanKey}`;
+    const val = action.value || '';
+    // In $adtSession, values are always quoted strings UNLESS they are:
+    //   - a PowerShell array:      @(0), @(1641, 3010)
+    //   - a PS boolean/expression: $true, $false, $null, $MyInvocation...
+    const isUnquoted = val.startsWith('@(') || val.startsWith('$');
+    const displayVal = isUnquoted ? val : `'${val}'`;
+    preview = `${displayKey} = ${displayVal}`;
+    if (preview.length > 70) preview = preview.substring(0, 68) + '…';
+  } else if (def?.fields) {
     for (const f of def.fields) {
       const v = action[f.key];
       if (v && typeof v === 'string' && v.trim()) {
@@ -336,9 +380,10 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
     }
   }
 
+
   return (
     <div
-      className={`action-card ${isCardDisabled ? 'action-card--disabled' : ''} ${isCustom ? 'action-card--custom' : ''} ${isDragOver ? 'action-card--drop-target' : ''}`}
+      className={`action-card ${isCardDisabled ? 'action-card--disabled' : ''} ${isCardCommented ? 'action-card--commented' : ''} ${isCustom ? 'action-card--custom' : ''} ${isDragOver ? 'action-card--drop-target' : ''}`}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -352,16 +397,17 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
         <span className="action-card__label">{label}</span>
         {!expanded && preview && <span className="action-card__preview">{preview}</span>}
         {isCustom && <span className="action-card__badge-warn" title="Could not be auto-mapped to a known action type">⚠ Manual Review</span>}
+        {isCardCommented && <span className="action-card__badge-commented" title="Code is in the script but commented out">💬 Commented</span>}
         <div className="action-card__controls" onClick={e => e.stopPropagation()}>
           <button className="action-btn" disabled={index === 0} onClick={() => onMove(phaseKey, index, index - 1)} title="Move up">▲</button>
           <button className="action-btn" disabled={index === total - 1} onClick={() => onMove(phaseKey, index, index + 1)} title="Move down">▼</button>
           <button
             type="button"
-            className={`action-btn action-btn--toggle ${action.enabled ? 'action-btn--active' : 'action-btn--inactive'}`}
-            onClick={() => onUpdate(phaseKey, index, { enabled: !action.enabled })}
-            title={action.enabled ? 'Disable (Exclude from Script)' : 'Enable (Include in Script)'}
+            className={`action-btn action-btn--toggle ${toggleClass}`}
+            onClick={cycleCommentState}
+            title={toggleTitle}
           >
-            {action.enabled ? '🟢' : '🔴'}
+            {toggleIcon}
           </button>
           <button className="action-btn action-btn--del" onClick={() => onRemove(phaseKey, index)} title="Remove">✕</button>
         </div>
@@ -373,6 +419,11 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
               {isCardDisabled && (
                 <div className="action-card__disabled-msg">
                   ⚠️ This action is disabled and will be skipped in script generation. Click 🔴 Disabled to re-enable.
+                </div>
+              )}
+              {isCardCommented && (
+                <div className="action-card__commented-msg">
+                  💬 This action is commented out — code is preserved in the script with <code>#</code> prefix but will not execute. Click 💬 Commented to continue cycling.
                 </div>
               )}
               {def.fields.map(f => (
@@ -470,12 +521,20 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
  * Shows the variable name & value in a compact, non-editable row.
  */
 function ReadOnlyVarCard({ action, index }) {
+  // Build consistent $adtSession.Key = value preview
+  const rawName = action.name || '';
+  const cleanKey = rawName.replace(/^\$adtSession\./i, '').replace(/^\$/, '') || rawName;
+  const val = action.value || '';
+  const isUnquoted = val.startsWith('@(') || val.startsWith('$');
+  const displayVal = isUnquoted ? val : `'${val}'`;
+  const preview = `$adtSession.${cleanKey} = ${displayVal}`;
+
   return (
     <div className="action-card action-card--readonly">
       <div className="action-card__header">
         <span className="action-card__icon">🔒</span>
         <span className="action-card__label">System Variable</span>
-        <span className="action-card__preview">{action.name?.replace('$adtSession.', '') || ''} = {action.value || ''}</span>
+        <span className="action-card__preview">{preview}</span>
         <span className="action-card__badge-readonly" title="This variable is auto-managed by the PSADT framework. It cannot be edited or removed.">🔒 System</span>
       </div>
     </div>

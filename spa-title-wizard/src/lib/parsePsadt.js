@@ -1084,6 +1084,8 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
 
   // Buffer to accumulate consecutive lines of custom PowerShell code
   const customBuffer = [];
+  // Flag set when a commented-out ADT cmdlet is detected; applied to the next pushed action.
+  let _pendingCommented = false;
   const flushCustomBuffer = () => {
     if (customBuffer.length > 0) {
       // Trim empty lines from top and bottom of buffer
@@ -1210,14 +1212,24 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
       continue;
     }
 
-    // ── Skip PowerShell comment lines (# prefix) ──────────────────────────
-    // Prevents commented-out cmdlets (e.g. #Show-InstallationWelcome ...) from
-    // being misidentified as real actions. Comment lines accumulate in customBuffer
-    // and are naturally dropped by the hasExecutableCode filter in flushCustomBuffer.
+    // ── PowerShell comment lines (# prefix) ───────────────────────────────
+    // If the commented line contains a known ADT cmdlet, parse it as a
+    // commented action (commented: true) so it round-trips through the builder.
+    // Otherwise push to customBuffer as before.
     if (t.startsWith('#')) {
-      customBuffer.push(line);
-      continue;
+      const uncommented = t.replace(/^#+\s*/, '').trim();
+      const isKnownCmdlet = /^(Execute-MSI|Start-ADT(?:MsiProcess|Process|MspProcess)|Show-ADT(?:InstallationWelcome|InstallationProgress|InstallationRestartPrompt|InstallationPrompt|DialogBox|BalloonTip|CustomDialog)|Copy-ADTFile|Remove-ADTFile|New-ADTFolder|Remove-ADTFolder|Set-ADTRegistryKey|Remove-ADTRegistryKey|Invoke-ADT(?:RegisterOrUnregisterDLL|SCConfigManager)|Add-ADTEdgeExtension|Remove-ADTEdgeExtension)\b/i.test(uncommented);
+      if (isKnownCmdlet) {
+        // Re-process with the uncommented text; flag subsequent action push with commented:true
+        _pendingCommented = true;
+        t = uncommented;
+        // fall through to normal matching below
+      } else {
+        customBuffer.push(line);
+        continue;
+      }
     }
+
 
     let matched = false;
     // modernizedLine: a v4-modernized copy of the source line used for action.raw.
@@ -1984,6 +1996,18 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
 
       // Buffer custom PowerShell line
       customBuffer.push(line);
+    }
+
+    // ── Apply pending commented flag to the last pushed action ────────────
+    // Set by the commented-cmdlet detection block above when a line like
+    // '# Show-ADTInstallationWelcome ...' was found and reparsed as active.
+    if (_pendingCommented && matched) {
+      const last = actions[actions.length - 1];
+      if (last) last.commented = true;
+      _pendingCommented = false;
+    } else if (!matched) {
+      // Reset if line was unmatched (shouldn't happen for known cmdlets but be safe)
+      _pendingCommented = false;
     }
   }
 

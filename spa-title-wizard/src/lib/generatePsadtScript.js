@@ -112,8 +112,11 @@ export default function generatePsadtScript(s, options = {}) {
       const rawLines = generateActionCmd(action, { resolveFilePath, filePathParam, phase });
       if (rawLines.length === 0) return;
 
-      // Apply 8-space generator indent and wrap with SPA:Action tags if needed.
-      const indented = rawLines.map(l => (l === '' ? '' : `        ${l}`));
+      // Apply 8-space generator indent.
+      // When commented, prefix each non-blank line with '# ' so the code is
+      // preserved in the script but inert (standard PowerShell line-comment).
+      const commentPrefix = action.commented ? '# ' : '';
+      const indented = rawLines.map(l => (l === '' ? '' : `        ${commentPrefix}${l}`));
       if (isClean) {
         indented.forEach(l => lines.push(l));
       } else {
@@ -192,10 +195,11 @@ export default function generatePsadtScript(s, options = {}) {
   const appScriptDate = getVarVal('appScriptDate', today);
   const appScriptAuthor = getVarVal('appScriptAuthor', 'SPA Factory');
 
-  // Support v3 style installName/installTitle overrides if present, otherwise default to v4 standard format
-  const defaultInstallName = `${appName} ${appVersion}`;
-  const installName = getVarVal('installName', defaultInstallName);
-  const installTitle = getVarVal('installTitle', defaultInstallName);
+  // InstallName and InstallTitle: only output when the user has explicitly set them.
+  // Per the PSADT template comment: "Only set here to override defaults set by the toolkit."
+  // When left empty the toolkit auto-derives them from AppName + AppVersion.
+  const installName = getVarVal('installName', '');
+  const installTitle = getVarVal('installTitle', '');
 
   // ── 2. Standard custom variables ─────────────────────────────────────────
   const standardVars = [];
@@ -215,7 +219,9 @@ export default function generatePsadtScript(s, options = {}) {
       // If it is one of the standard official variables, omit it from custom variables list to avoid duplicates
       if (standardKeys.includes(cleanName.toLowerCase())) return;
 
-      const codeLine = `    ${cleanName} = '${action.value || ''}'`;
+      // When commented, prefix the assignment line with '# ' so it's inert but preserved
+      const commentPrefix = action.commented ? '# ' : '';
+      const codeLine = `    ${commentPrefix}${cleanName} = '${action.value || ''}'`;
       if (isClean) {
         standardVars.push(codeLine);
       } else {
