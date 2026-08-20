@@ -1115,7 +1115,7 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
         });
 
         if (hasExecutableCode) {
-          const scriptText = modernizeLegacyScriptParts(trimmedLines.join('\n'));
+          const scriptText = modernizeLegacyScriptParts(trimmedLines.join('\n'), { rewriteVars });
           actions.push({
             type: 'raw_ps',
             desc: `PowerShell block: ${scriptText.split('\n')[0].trim().substring(0, 60)}`,

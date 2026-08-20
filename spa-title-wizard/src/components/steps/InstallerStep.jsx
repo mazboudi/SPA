@@ -91,10 +91,15 @@ export default function InstallerStep({ state, updateField, updateFields }) {
   const isExe = state.installerType === 'exe';
   const isScript = state.installerType === 'script';
 
-  // Primary installer filename for PSADT path
-  const primaryFile = isMsi
-    ? (state.msiFileName || state.installerSourceFile || '')
-    : (state.exeSourceFilename || state.installerSourceFile || '');
+  // Primary installer filename for the PSADT -FilePath display row.
+  // Always prefer installerSourceFile (the live value from what the user typed)
+  // so the display updates immediately. Fall back to msiFileName/exeSourceFilename
+  // only when installerSourceFile hasn't been set yet.
+  const primaryFile = state.installerSourceFile
+    ? state.installerSourceFile.split(/[\\/]/).pop()
+    : isMsi
+      ? (state.msiFileName || '')
+      : (state.exeSourceFilename || '');
 
   // Live PSADT -FilePath value
   const psadtPath = (() => {
