@@ -323,22 +323,22 @@ export default function App() {
       const fullParsed = await parsePsadtFile(psFile, 'refactor-convert');
       const wizardFields = toWizardState(fullParsed);
       setPsadtResult(fullParsed);
+      // Pre-clean any stale scaffold for this package
       const derivedPackageId = wizardFields.displayName
         ? wizardFields.displayName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase()
         : (wizard.state.packageId || '');
       if (derivedPackageId) {
         try { await fetch(`/api/scaffold/${encodeURIComponent(derivedPackageId)}`, { method: 'DELETE' }); } catch { }
       }
-      const intuneDisplayName = wizard.state.displayName;
-      const psadtDisplayName = fullParsed.fields?.displayName || '';
+      // Merge parsed state; user clicks Continue to navigate
       wizard.importPsadtState(fullParsed, wizardFields, true);
-      setView(VIEW.PACKAGE);
     } catch (err) {
       setPsadtError(err.message);
     } finally {
       setPsadtParsing(false);
     }
   };
+
 
   // ── Step renderer ─────────────────────────────────────────────────────────
   const currentStepId = wizard.steps[wizard.currentStep]?.id;
@@ -368,7 +368,8 @@ export default function App() {
   const renderRefactorFlow = () => {
     const intuneImported = wizard.state._intuneExportImported;
     const psadtImported = !!psadtResult;
-    const canContinue = intuneImported || psadtImported;
+    // Continue is available as soon as Intune is imported — PSADT upload is optional
+    const canContinue = intuneImported;
     return (
       <>
         {/* Page header — matches Queue/Edit style */}
@@ -448,34 +449,65 @@ export default function App() {
             )}
           </div>
 
-          {/* Step 2: PSADT Upload */}
+          {/* Step 2: PSADT Upload — Optional */}
           <div className={`refactor-step ${psadtImported ? 'refactor-step--done' : ''}`}>
             <div className="refactor-step__header">
               <span className="refactor-step__number">{psadtImported ? '✅' : '2'}</span>
               <div>
-                <h3 className="refactor-step__title">Upload PSADT Script</h3>
-                <p className="refactor-step__desc">Upload your <code>Deploy-Application.ps1</code> or <code>Invoke-AppDeployToolkit.ps1</code> to extract lifecycle actions.</p>
+                <h3 className="refactor-step__title">
+                  Upload PSADT Script
+                  <span className="refactor-step__badge">Optional</span>
+                </h3>
+                <p className="refactor-step__desc">
+                  Upload your <code>Deploy-Application.ps1</code> or <code>Invoke-AppDeployToolkit.ps1</code> to extract lifecycle actions.
+                  If skipped, a fresh PSADT scaffold will be generated from your Intune app data.
+                </p>
               </div>
             </div>
-            <button className="btn btn-secondary" onClick={() => refactorInputRef.current?.click()} disabled={psadtParsing}>
-              📄 {psadtParsing ? 'Analyzing script...' : 'Upload .ps1 Script'}
-            </button>
-            {psadtParsing && (
-              <div className="refactor-step__progress">
-                <div className="progress-bar progress-bar--indeterminate" />
-                <span className="refactor-step__folder-info">Parsing PSADT script...</span>
+            {psadtImported ? (
+              <div className="refactor-step__result">
+                <span className="refactor-step__check">✅ {wizard.state.psadtFileName || 'Script parsed'}</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setPsadtResult(null); setPsadtError(null); }}>Remove</button>
               </div>
+            ) : (
+              <>
+                <button className="btn btn-secondary" onClick={() => refactorInputRef.current?.click()} disabled={psadtParsing}>
+                  📄 {psadtParsing ? 'Analyzing script...' : 'Upload .ps1 Script'}
+                </button>
+                {psadtParsing && (
+                  <div className="refactor-step__progress">
+                    <div className="progress-bar progress-bar--indeterminate" />
+                    <span className="refactor-step__folder-info">Parsing PSADT script...</span>
+                  </div>
+                )}
+                {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
+                <span className="refactor-step__optional">Supported: v3 and v4 PSADT scripts</span>
+              </>
             )}
             <input ref={refactorInputRef} type="file" accept=".ps1" onChange={handlePsadtUpload} style={{ display: 'none' }} />
-            {psadtError && <span className="mode-card__status mode-card__status--err">❌ {psadtError}</span>}
-            <span className="refactor-step__optional">Supported: v3 and v4 PSADT scripts</span>
           </div>
         </div>
 
         {/* Continue action */}
         {canContinue && (
           <div style={{ marginTop: 'var(--space-lg)' }}>
-            <button className="btn btn-primary" onClick={() => setView(VIEW.PACKAGE)}>Continue →</button>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                if (!psadtImported) {
+                  // No PSADT uploaded — seed blank lifecycle from Intune data (same as New Title)
+                  wizard.initBlankPsadt();
+                }
+                setView(VIEW.PACKAGE);
+              }}
+            >
+              {psadtImported ? 'Continue →' : 'Continue with New PSADT →'}
+            </button>
+            {!psadtImported && (
+              <p style={{ marginTop: 'var(--space-sm)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                A blank PSADT scaffold will be generated from your Intune app data.
+              </p>
+            )}
           </div>
         )}
       </>

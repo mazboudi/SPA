@@ -1005,6 +1005,25 @@ export default function useWizardState() {
     });
   }, []);
 
+  /**
+   * Continue from the Intune import flow without a PSADT upload.
+   * Sets wizardMode to 'new' so the generator produces a blank PSADT scaffold,
+   * preserving all Intune-sourced fields already in state.
+   */
+  const initBlankPsadt = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      wizardMode: 'new',
+      refactorConvert: false,
+      psadtVersion: '',
+      psadtScriptVersion: '',
+      psadtFileName: '',
+      parsedPhases: {},
+      _psadtResult: null,
+      _scriptContent: null,
+    }));
+    setCurrentStep(0);
+  }, []);
 
   /**
    * Import project files from GitLab into wizard state (Edit Existing mode).
@@ -1235,6 +1254,7 @@ export default function useWizardState() {
     updateLifecycleRoot,
     importPsadtState,
     importIntuneExport,
+    initBlankPsadt,
     importProjectForEdit,
     importProjectForClone,
     nextStep,
