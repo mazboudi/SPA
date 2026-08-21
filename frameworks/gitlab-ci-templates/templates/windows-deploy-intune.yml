@@ -300,7 +300,9 @@
     when: always
     expire_in: 14 days
     paths:
-      - out/*.intunewin
+      # out/*.intunewin intentionally excluded — the package is uploaded to Intune
+      # during this job and is not needed by any downstream job (assign, relationships).
+      # Including it caused the assign stage to download ~400 MB unnecessarily.
       - out/app.env
       - out/publish-logs/*
     reports:
