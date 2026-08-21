@@ -1030,6 +1030,18 @@ export function modernizeLegacyScriptParts(scriptText, { rewriteVars = true } = 
     });
   }
 
+  // 3b. Get-ADTRegistryKey positional path → -LiteralPath
+  // After step 1 renames Get-RegistryKey → Get-ADTRegistryKey, a positional path
+  // like `Get-ADTRegistryKey "HKLM:...\Key"` has no parameter name. In v4,
+  // -LiteralPath (or -Path) is mandatory. We insert -LiteralPath before the first
+  // quoted argument when no path parameter is already present.
+  //   BEFORE: Get-ADTRegistryKey "HKLM:\SOFTWARE\..." -Name "Release"
+  //   AFTER:  Get-ADTRegistryKey -LiteralPath "HKLM:\SOFTWARE\..." -Name "Release"
+  result = result.replace(
+    /\bGet-ADTRegistryKey\b(\s+)(?!-)(["'])/g,
+    'Get-ADTRegistryKey$1-LiteralPath $2'
+  );
+
   // 4. Custom translations for deprecated parameters
   // Translate -ContinueOnError to -ErrorAction SilentlyContinue/Stop
   result = result.replace(/\s*-ContinueOnError(?:\s+\$(true|false))?\b/gi, (match, p1) => {
@@ -1421,14 +1433,35 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
 
     
 
-    // Get-ADTRegistryKey
+    // Get-ADTRegistryKey / Get-RegistryKey
+    // Handles three calling conventions:
+    //   v3 positional : Get-RegistryKey "HKLM:...\Key" -Name "Value"
+    //   v3 named -Key : Get-RegistryKey -Key "HKLM:...\Key" -Name "Value"
+    //   v4 named      : Get-ADTRegistryKey -Path "HKLM:...\Key" -Name "Value"
+    //                   Get-ADTRegistryKey -LiteralPath "HKLM:...\Key" -Name "Value"
+    // In v4, -Key is not a valid parameter — the path MUST be -Path or -LiteralPath.
+    // When we detect a positional or -Key call we still parse it correctly; the
+    // modernizedLine substitution (handled in the v3→v4 modernisation pass above)
+    // is responsible for emitting -Path in generated output.
     if (!matched) {
-      const getRegMatch = t.match(/Get-ADTRegistryKey\b.*-Key\s+['"]([^'"]+)['"]/i);
+      // Match -Path, -LiteralPath, or -Key (named), OR a bare positional quoted string
+      const getRegMatch = t.match(
+        /(?:Get-ADTRegistryKey|Get-RegistryKey)\b\s+(?:-(?:Path|LiteralPath|Key)\s+)?['\"]([^'"]+)['"]/i
+      );
       if (getRegMatch) {
         flushCustomBuffer();
-        const val = extractPsParamValue(t, 'Value');
+        const name = extractPsParamValue(t, 'Name');
+        const val  = extractPsParamValue(t, 'Value');
         const varMatch = t.match(/^\s*\$(\w+)\s*=/);
-        actions.push({ type: 'get_registry_key', desc: `Get Reg: ${getRegMatch[1]}`, key: getRegMatch[1], value: val || '', passThruVar: varMatch ? varMatch[1] : '', raw: modernizedLine });
+        actions.push({
+          type:        'get_registry_key',
+          desc:        `Get Reg: ${getRegMatch[1]}`,
+          key:         getRegMatch[1],
+          name:        name || '',
+          value:       val  || '',
+          passThruVar: varMatch ? varMatch[1] : '',
+          raw:         modernizedLine,
+        });
         matched = true;
       }
     }
