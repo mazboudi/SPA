@@ -218,94 +218,136 @@ $create = Invoke-GraphRequest `
 $appId = $create.id
 Write-Log "Win32 app created: $appId" -LogFile $logFile
 
-# ── Upload .intunewin content ─────────────────────────────────────────────────
-# The app is metadata-only until content is uploaded. Without this step
-# the app will appear in Intune but will never deploy to any device.
-Write-Log "Starting content upload..." -LogFile $logFile
+# ─────────────────────────────────────────────────────────────────────────────
+# Everything below runs AFTER the app object exists in Intune.
+# If ANY step fails, the catch block rolls back by deleting the orphaned app
+# shell so the tenant is left in a clean state. The original error is always
+# re-thrown so the pipeline job still fails red.
+# ─────────────────────────────────────────────────────────────────────────────
+try {
 
-& "$PSScriptRoot/Upload-Win32Content.ps1" `
-    -IntuneWinPath $IntuneWinPath `
-    -AppId         $appId `
-    -Token         $token `
-    -LogFile       $logFile
+    # ── Upload .intunewin content ─────────────────────────────────────────────
+    # The app is metadata-only until content is uploaded. Without this step
+    # the app will appear in Intune but will never deploy to any device.
+    Write-Log "Starting content upload..." -LogFile $logFile
 
-# ── Set categories (post-creation relationship) ──────────────────────────────
-if ($intuneMeta.categories -and $intuneMeta.categories.Count -gt 0) {
-    Write-Log "Resolving Intune categories..." -LogFile $logFile
-    $availCats = $null
-    try {
-        $availCats = (Invoke-GraphRequest -Token $token -Method GET -Uri "$GRAPH_BASE/deviceAppManagement/mobileAppCategories").value
-    } catch {
-        Write-Log "Warning: Could not fetch categories list from Intune - $($_.Exception.Message)" WARN -LogFile $logFile
-    }
+    & "$PSScriptRoot/Upload-Win32Content.ps1" `
+        -IntuneWinPath $IntuneWinPath `
+        -AppId         $appId `
+        -Token         $token `
+        -LogFile       $logFile
 
-    foreach ($catId in $intuneMeta.categories) {
-        $resolvedCatId = $null
-        
-        # Check if $catId is already a GUID
-        if ($catId -match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
-            $resolvedCatId = $catId
-        } elseif ($availCats) {
-            # Try to resolve by displayName (case-insensitive)
-            $matchedCat = $availCats | Where-Object { $_.displayName -eq $catId -or $_.displayName -like "*$catId*" } | Select-Object -First 1
-            if ($matchedCat) {
-                $resolvedCatId = $matchedCat.id
-                Write-Log "Resolved category name '$catId' to ID '$resolvedCatId'" -LogFile $logFile
-            }
+    # ── Set categories (post-creation relationship) ───────────────────────────
+    if ($intuneMeta.categories -and $intuneMeta.categories.Count -gt 0) {
+        Write-Log "Resolving Intune categories..." -LogFile $logFile
+        $availCats = $null
+        try {
+            $availCats = (Invoke-GraphRequest -Token $token -Method GET -Uri "$GRAPH_BASE/deviceAppManagement/mobileAppCategories").value
+        } catch {
+            Write-Log "Warning: Could not fetch categories list from Intune - $($_.Exception.Message)" WARN -LogFile $logFile
         }
 
-        if ($resolvedCatId) {
-            try {
-                Invoke-GraphRequest `
-                    -Token  $token `
-                    -Method POST `
-                    -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId/categories/`$ref" `
-                    -Body   @{ '@odata.id' = "$GRAPH_BASE/deviceAppManagement/mobileAppCategories/$resolvedCatId" }
-                Write-Log "Category assigned: $resolvedCatId ($catId)" -LogFile $logFile
-            } catch {
-                Write-Log "Warning: Could not assign category $catId - $($_.Exception.Message)" WARN -LogFile $logFile
+        foreach ($catId in $intuneMeta.categories) {
+            $resolvedCatId = $null
+
+            # Check if $catId is already a GUID
+            if ($catId -match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
+                $resolvedCatId = $catId
+            } elseif ($availCats) {
+                # Try to resolve by displayName (case-insensitive)
+                $matchedCat = $availCats | Where-Object { $_.displayName -eq $catId -or $_.displayName -like "*$catId*" } | Select-Object -First 1
+                if ($matchedCat) {
+                    $resolvedCatId = $matchedCat.id
+                    Write-Log "Resolved category name '$catId' to ID '$resolvedCatId'" -LogFile $logFile
+                }
             }
-        } else {
-            Write-Log "Warning: Category '$catId' could not be resolved to a valid Intune Category GUID" WARN -LogFile $logFile
+
+            if ($resolvedCatId) {
+                try {
+                    Invoke-GraphRequest `
+                        -Token  $token `
+                        -Method POST `
+                        -Uri    "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId/categories/`$ref" `
+                        -Body   @{ '@odata.id' = "$GRAPH_BASE/deviceAppManagement/mobileAppCategories/$resolvedCatId" }
+                    Write-Log "Category assigned: $resolvedCatId ($catId)" -LogFile $logFile
+                } catch {
+                    Write-Log "Warning: Could not assign category $catId - $($_.Exception.Message)" WARN -LogFile $logFile
+                }
+            } else {
+                Write-Log "Warning: Category '$catId' could not be resolved to a valid Intune Category GUID" WARN -LogFile $logFile
+            }
         }
     }
-}
 
-# ── Wait for app to reach 'published' state ───────────────────────────────────
-# After the PATCH committedContentVersion, Graph processes content asynchronously.
-# Calling updateRelationships (supersedence/dependencies) while the app is still
-# in 'processing' state causes relationships to be silently discarded.
-# Poll until publishingState == 'published' before handing off the APP_ID.
-$maxWaitSeconds = 180      # 3 minutes total
-$pollInterval   = 10       # seconds between polls
-$elapsed        = 0
-$appUri         = "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId"
-$pubState       = 'processing'
+    # ── Wait for app to reach 'published' state ───────────────────────────────
+    # After the PATCH committedContentVersion, Graph processes content asynchronously.
+    # Calling updateRelationships (supersedence/dependencies) while the app is still
+    # in 'processing' state causes relationships to be silently discarded.
+    # Poll until publishingState == 'published' before handing off the APP_ID.
+    $maxWaitSeconds = 180      # 3 minutes total
+    $pollInterval   = 10       # seconds between polls
+    $elapsed        = 0
+    $appUri         = "$GRAPH_BASE/deviceAppManagement/mobileApps/$appId"
+    $pubState       = 'processing'
 
-Write-Log "Waiting for publishingState=published (up to ${maxWaitSeconds}s)..." -LogFile $logFile
-do {
-    Start-Sleep -Seconds $pollInterval
-    $elapsed += $pollInterval
-    try {
-        $appState = Invoke-GraphRequest -Token $token -Method GET -Uri $appUri
-        $pubState = $appState.publishingState
-    } catch {
-        Write-Log "  Poll error (will retry): $($_.Exception.Message)" -Level WARN -LogFile $logFile
-        $pubState = 'unknown'
+    Write-Log "Waiting for publishingState=published (up to ${maxWaitSeconds}s)..." -LogFile $logFile
+    do {
+        Start-Sleep -Seconds $pollInterval
+        $elapsed += $pollInterval
+        try {
+            $appState = Invoke-GraphRequest -Token $token -Method GET -Uri $appUri
+            $pubState = $appState.publishingState
+        } catch {
+            Write-Log "  Poll error (will retry): $($_.Exception.Message)" -Level WARN -LogFile $logFile
+            $pubState = 'unknown'
+        }
+        Write-Log "  publishingState: $pubState (${elapsed}s elapsed)" -LogFile $logFile
+    } while ($pubState -ne 'published' -and $elapsed -lt $maxWaitSeconds)
+
+    if ($pubState -ne 'published') {
+        Write-Log "WARNING: App did not reach 'published' within ${maxWaitSeconds}s (last: $pubState). Supersedence may not apply." -Level WARN -LogFile $logFile
+        Write-Host "⚠️  App still in '$pubState' after ${maxWaitSeconds}s — supersedence will be attempted anyway." -ForegroundColor Yellow
+    } else {
+        Write-Log "App is published — ready for supersedence/dependencies." -LogFile $logFile
+        Write-Host "✅ App published — proceeding to relationships." -ForegroundColor Green
     }
-    Write-Log "  publishingState: $pubState (${elapsed}s elapsed)" -LogFile $logFile
-} while ($pubState -ne 'published' -and $elapsed -lt $maxWaitSeconds)
 
-if ($pubState -ne 'published') {
-    Write-Log "WARNING: App did not reach 'published' within ${maxWaitSeconds}s (last: $pubState). Supersedence may not apply." -Level WARN -LogFile $logFile
-    Write-Host "⚠️  App still in '$pubState' after ${maxWaitSeconds}s — supersedence will be attempted anyway." -ForegroundColor Yellow
-} else {
-    Write-Log "App is published — ready for supersedence/dependencies." -LogFile $logFile
-    Write-Host "✅ App published — proceeding to relationships." -ForegroundColor Green
+    # ── Write dotenv for downstream jobs ──────────────────────────────────────
+    "APP_ID=$appId" | Out-File 'out/app.env' -Encoding ascii -Force
+    Write-Log "Written out/app.env (APP_ID=$appId)" -LogFile $logFile
+
+    Write-Host "✅ Publish complete: $displayName v$vendorVersion ($appId)" -ForegroundColor Green
+
+} catch {
+
+    # ── ROLLBACK ─────────────────────────────────────────────────────────────
+    # The publish failed after the app object was already created in Intune.
+    # Delete it now so the tenant is not left with a broken, undeployable app
+    # shell. We capture the original error and re-throw it after cleanup so
+    # the pipeline job still turns red with the real failure message.
+    $originalError = $_
+
+    Write-Log "FATAL: Publish failed — $($originalError.Exception.Message)" ERROR -LogFile $logFile
+    Write-Host ""
+    Write-Host "❌ Publish failed. Initiating rollback — deleting orphaned app $appId..." -ForegroundColor Red
+
+    try {
+        & "$PSScriptRoot/Remove-Win32App.ps1" `
+            -AppId        $appId `
+            -TenantId     $TenantId `
+            -ClientId     $ClientId `
+            -ClientSecret $ClientSecret `
+            -LogFile      $logFile
+
+        Write-Log "Rollback complete — orphaned app $appId deleted from Intune." -LogFile $logFile
+        Write-Host "✅ Rollback complete: app $appId has been removed from Intune." -ForegroundColor Green
+    } catch {
+        # Rollback itself failed — warn loudly but don't mask the original error.
+        Write-Log "WARNING: Rollback failed — could not delete $appId`: $($_.Exception.Message)" WARN -LogFile $logFile
+        Write-Host "⚠️  Rollback failed — please manually delete app $appId from Intune." -ForegroundColor Yellow
+        Write-Host "    Graph URL: https://intune.microsoft.com/#view/Microsoft_Intune_Apps/AppType/id/$appId" -ForegroundColor DarkYellow
+    }
+
+    # Re-throw the original publish error so the CI job exits non-zero.
+    throw $originalError
 }
-
-# ── Write dotenv for downstream jobs ──────────────────────────────────────────
-"APP_ID=$appId" | Out-File 'out/app.env' -Encoding ascii -Force
-Write-Log "Written out/app.env (APP_ID=$appId)" -LogFile $logFile
-
-Write-Host "✅ Publish complete: $displayName v$vendorVersion ($appId)" -ForegroundColor Green
