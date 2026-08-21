@@ -1042,6 +1042,17 @@ export function modernizeLegacyScriptParts(scriptText, { rewriteVars = true } = 
     'Get-ADTRegistryKey$1-LiteralPath $2'
   );
 
+  // 3c. Write-ADTLogEntry positional message → -Message
+  // In v3, Write-Log accepted the message positionally:
+  //   Write-Log "Install failed"          → Write-ADTLogEntry -Message "Install failed"
+  //   Write-Log $_.Exception.Message      → Write-ADTLogEntry -Message $_.Exception.Message
+  // Both patterns are confirmed in real scripts. The (?!-) lookahead skips lines
+  // that already have -Message (e.g. already-converted v4 scripts).
+  result = result.replace(
+    /\bWrite-ADTLogEntry\b(\s+)(?!-)(\$|["'])/g,
+    'Write-ADTLogEntry$1-Message $2'
+  );
+
   // 4. Custom translations for deprecated parameters
   // Translate -ContinueOnError to -ErrorAction SilentlyContinue/Stop
   result = result.replace(/\s*-ContinueOnError(?:\s+\$(true|false))?\b/gi, (match, p1) => {
