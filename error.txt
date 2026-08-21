@@ -1,3 +1,4 @@
+windows_publish_intune.
 2026-08-20T20:28:58.964141Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
 2026-08-20T20:28:58.964141Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
 2026-08-20T20:28:58.964141Z 00O Resolving secrets

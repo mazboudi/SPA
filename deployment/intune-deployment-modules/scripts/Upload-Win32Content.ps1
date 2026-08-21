@@ -163,12 +163,27 @@ if (-not $azureUri) {
 }
 Write-Log "  Azure Storage URI obtained" -LogFile $LogFile
 
-# SAS URI renewal helper — Graph issues short-lived URIs that can expire mid-upload
+# SAS URI renewal helper — Graph issues short-lived URIs that can expire mid-upload.
+# IMPORTANT: Graph's backend enforces that only one renewal can be in-flight at a time.
+# If Renewal N is still transitioning, a second POST to renewUpload returns 400 with:
+#   "SAS renewal can not be started until status ... has transitioned to 'Success'"
+# We guard against this by enforcing a minimum 30-second gap between renewals.
+$lastRenewalTime = [System.Diagnostics.Stopwatch]::new()
+$lastRenewalTime.Start()   # starts at T=0 so first renewal attempt is always allowed
+
 $renewUri = "$GRAPH_BASE/deviceAppManagement/mobileApps/$AppId/$WIN32_TYPE/contentVersions/$cvId/files/$fileId/renewUpload"
 function Renew-SasUri {
     param([string]$Token, [string]$RenewUri, [string]$FileUri, [string]$LogFile)
+    # Enforce minimum gap between renewals to avoid the Graph 400 race condition.
+    $elapsed = $script:lastRenewalTime.Elapsed.TotalSeconds
+    if ($elapsed -lt 30) {
+        $wait = [Math]::Ceiling(30 - $elapsed)
+        Write-Log "  SAS renewal: waiting ${wait}s for previous renewal to settle..." -Level WARN -LogFile $LogFile
+        Start-Sleep -Seconds $wait
+    }
     try {
         $renewed = Invoke-GraphRequest -Token $Token -Method POST -Uri $RenewUri -Body @{}
+        $script:lastRenewalTime.Restart()
         Write-Log "  SAS URI renewed" -LogFile $LogFile
         return $renewed.azureStorageUri
     } catch {
@@ -292,6 +307,8 @@ Write-Log "Committing file in Graph API with encryption metadata..." -LogFile $L
 
 # Pre-flight: wait for the file status to show the upload is ready for commit.
 # After the Azure blocklist commit, Graph needs time to process the SAS renewal status.
+# If azureStorageUriRenewalFailed is detected we fail fast — the commit will never
+# succeed and retrying just wastes time. This state means the upload session is broken.
 $commitReady = $false
 for ($i = 1; $i -le 12; $i++) {
     Start-Sleep -Seconds 5
@@ -306,9 +323,10 @@ for ($i = 1; $i -le 12; $i++) {
         $commitReady = $true
         break
     }
-    # Terminal failure — don't retry
-    if ($currentState -in @('azureStorageUriRequestFailed', 'commitFileFailed')) {
-        throw "Graph: file not ready for commit (uploadState: $currentState)"
+    # Terminal failure states — fail immediately, no point retrying the commit
+    if ($currentState -in @('azureStorageUriRequestFailed', 'azureStorageUriRenewalFailed', 'commitFileFailed')) {
+        throw "Graph: file upload session is in a terminal failure state ($currentState). " +
+              "The SAS URI renewal failed mid-upload. Re-run the pipeline to start a fresh upload session."
     }
 }
 if (-not $commitReady) {

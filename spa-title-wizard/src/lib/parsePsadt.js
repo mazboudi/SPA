@@ -44,7 +44,7 @@ import { promoteLegacyCards } from './parsePsadtBlocks.js';
  *      - Em dash \u2014               →  --
  *      - Horizontal ellipsis \u2026   →  ...
  *      - Non-breaking space \u00A0     →  (regular space)
- *      - Zero-width chars \u200B-\u200D, \uFEFF (mid-string BOM)
+ *      - Zero-width chars \u200B-\u200E (includes LTR Mark), \uFEFF (mid-string BOM)
  *
  * These characters often appear when script authors paste code from Word,
  * Confluence, SharePoint, or other rich-text sources and cause hard-to-diagnose
@@ -71,8 +71,10 @@ export function normalizeScriptEncoding(text) {
     .replace(/\u2026/g, '...')
     // 7. Non-breaking space  →  regular space
     .replace(/\u00A0/g, ' ')
-    // 8. Zero-width characters
-    .replace(/[\u200B-\u200D]/g, '');
+    // 8. Zero-width / invisible directional characters
+    //    \u200B Zero-Width Space, \u200C Zero-Width Non-Joiner, \u200D Zero-Width Joiner,
+    //    \u200E Left-To-Right Mark — all silently break PowerShell token parsing
+    .replace(/[\u200B-\u200E]/g, '');
 }
 
 export async function parsePsadtFile(file, mode = 'new') {
