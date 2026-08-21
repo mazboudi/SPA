@@ -1,53 +1,335 @@
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:61
-+             param([String]$certPath,[String]$certRootStore = â€œLocal ...
-+                                                             ~
-Missing expression after '='.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:59
-+             param([String]$certPath,[String]$certRootStore = â€œLocal ...
-+                                                           ~
-Missing ')' in function parameter list.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:80
-+ ... String]$certPath,[String]$certRootStore = â€œLocalMachineâ€
-+                                                                 ~
-Missing argument in parameter list.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:430 char:40
-+         function Import-PfxCertificate {
-+                                        ~
-Missing closing '}' in statement block or type definition.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:426 char:52
-+         If (-NOT ($DomainNameCheck -eq "1dc.com")) {
-+                                                    ~
-Missing closing '}' in statement block or type definition.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:71 char:1
-+ {
-+ ~
-Missing closing '}' in statement block or type definition.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:431 char:138
-+ ... Machineâ€
-+                                                                         ~
-Unexpected token ')' in expression or statement.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:434 char:44
-+             $pfx.import($certPath,$pfxPass,â€œExportable,PersistKeySe ...
-+                                            ~
-Missing expression after ','.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:434 char:44
-+             $pfx.import($certPath,$pfxPass,â€œExportable,PersistKeySe ...
-+                                            ~~~~~~~~~~~~~
-Unexpected token 'â€œExportable' in expression or statement.
-At C:\Users\F3Y52MY\OneDrive - Fiserv 
-Corp\Documents\DesktopMessagingClientArtifacts\out\staging\Invoke-AppDeployToolkit.ps1:434 char:57
-+             $pfx.import($certPath,$pfxPass,â€œExportable,PersistKeySe ...
-+                                                         ~
-Missing argument in parameter list.
-Not all parse errors were reported.  Correct the reported errors and try again.
-    + CategoryInfo          : ParserError: (:) [], ParseException
-    + FullyQualifiedErrorId : MissingExpressionAfterToken
+2026-08-20T20:28:58.964141Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-08-20T20:28:58.964141Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-08-20T20:28:58.964141Z 00O Resolving secrets
+2026-08-20T20:28:58.964141Z 00O section_start:1787257738:prepare_executor
+2026-08-20T20:28:58.964141Z 00O+Preparing the "shell" executor
+2026-08-20T20:28:58.964908Z 00O Using Shell (pwsh) executor...
+2026-08-20T20:28:58.964908Z 00O section_end:1787257738:prepare_executor
+2026-08-20T20:28:58.964908Z 00O+section_start:1787257738:prepare_script
+2026-08-20T20:28:58.964908Z 00O+Preparing environment
+2026-08-20T20:29:00.102082Z 01O Running on vm-psa-runner-p...
+2026-08-20T20:29:00.328992Z 00O section_end:1787257740:prepare_script
+2026-08-20T20:29:00.328992Z 00O+section_start:1787257740:get_sources
+2026-08-20T20:29:00.330079Z 00O+Getting source from Git repository
+2026-08-20T20:29:02.501000Z 01O Gitaly correlation ID: 01M0GDSMY54P04YHRMV364KFJX
+2026-08-20T20:29:02.878369Z 01O Fetching changes with git depth set to 20...
+2026-08-20T20:29:02.947100Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/verint-desktop-messaging-client-for-na/.git/
+2026-08-20T20:29:05.087999Z 01O Checking out 191a5915 as detached HEAD (ref is main)...
+2026-08-20T20:29:05.747408Z 01O Removing out/
+2026-08-20T20:29:05.747408Z 01O Removing psadt-framework-4.1.0/
+2026-08-20T20:29:05.747408Z 01O Removing schemas/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/DPA Client/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/Desktop Connection Manager/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/Desktop Messaging Client/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/Desktop Resources/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/Logger/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/PlayBack/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/Files/Screen Capture Module/
+2026-08-20T20:29:05.747408Z 01O Removing windows/src/SupportFiles/
+2026-08-20T20:29:05.998043Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-08-20T20:29:06.756264Z 01O 
+2026-08-20T20:29:06.758610Z 01O Skipping Git submodules setup
+2026-08-20T20:29:06.960586Z 00O section_end:1787257746:get_sources
+2026-08-20T20:29:06.960586Z 00O+section_start:1787257746:download_artifacts
+2026-08-20T20:29:06.962715Z 00O+Downloading artifacts
+2026-08-20T20:29:08.477697Z 01O Version:      18.9.0
+2026-08-20T20:29:08.477697Z 01O Git revision: 07e534ba
+2026-08-20T20:29:08.477697Z 01O Git branch:   18-9-stable
+2026-08-20T20:29:08.477697Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-20T20:29:08.477697Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-20T20:29:08.477697Z 01O OS/Arch:      windows/amd64
+2026-08-20T20:29:08.504498Z 01O Downloading artifacts for windows_build (34017584)...
+2026-08-20T20:29:08.672926Z 01E Runtime platform                                    arch=amd64 os=windows pid=6968 revision=07e534ba version=18.9.0
+2026-08-20T20:38:27.573665Z 01E Downloading artifacts from coordinator... ok        correlation_id=01M0GDSZC03VKR7HAQSP62M23T host=gitlab.onefiserv.net id=34017584 responseStatus=200 OK token=64_qsXLEP
+2026-08-20T20:38:34.785145Z 00O section_end:1787258314:download_artifacts
+2026-08-20T20:38:34.785145Z 00O+section_start:1787258314:step_script
+2026-08-20T20:38:34.785940Z 00O+Executing "step_script" stage of the job script
+2026-08-20T20:38:36.380314Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-08-20T20:38:41.688157Z 01O Intune modules ready in: intune-modules
+2026-08-20T20:38:41.692506Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-08-20T20:38:41.695250Z 01O Framework bundle not cached — downloading for IntuneWinAppUtil...
+2026-08-20T20:38:47.041372Z 01O Framework extracted to: psadt-framework-4.1.0
+2026-08-20T20:38:47.043454Z 01O Using IntuneWinAppUtil: C:\tools\IntuneWinAppUtil.exe
+2026-08-20T20:38:47.045754Z 01O Running IntuneWinAppUtil...
+2026-08-20T20:38:47.161956Z 01O INFO   Validating parameters
+2026-08-20T20:38:47.166302Z 01O INFO   Validated parameters within 4 milliseconds
+2026-08-20T20:38:47.170875Z 01O INFO   Compressing the source folder 'out/staging' to 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin'
+2026-08-20T20:38:47.211375Z 01O INFO   Calculated size for folder 'out/staging' is 445818858 within 35 milliseconds
+2026-08-20T20:39:04.956654Z 01O INFO   Compressed folder 'out/staging' successfully within 17744 milliseconds
+2026-08-20T20:39:04.956654Z 01O INFO   Checking file type
+2026-08-20T20:39:04.956654Z 01O INFO   Checked file type within 0 milliseconds
+2026-08-20T20:39:04.956654Z 01O INFO   Encrypting file 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin'
+2026-08-20T20:39:06.523108Z 01O INFO   'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin' has been encrypted successfully within 1564 milliseconds
+2026-08-20T20:39:06.567727Z 01O INFO   Computing SHA256 hash for C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\349591c1-3ae5-43ed-8974-1e5af0420721
+2026-08-20T20:39:08.165317Z 01O INFO   Computed SHA256 hash for 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\349591c1-3ae5-43ed-8974-1e5af0420721' within 1607 milliseconds
+2026-08-20T20:39:08.176951Z 01O INFO   Computing SHA256 hash for C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin
+2026-08-20T20:39:09.575824Z 01O INFO   Computed SHA256 hash for C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin within 1402 milliseconds
+2026-08-20T20:39:09.575824Z 01O INFO   Copying encrypted file from 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\349591c1-3ae5-43ed-8974-1e5af0420721' to 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin'
+2026-08-20T20:39:11.017639Z 01O INFO   File 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Contents\IntunePackage.intunewin' got updated successfully within 1440 milliseconds
+2026-08-20T20:39:11.017639Z 01O INFO   Generating detection XML file 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage\Metadata\Detection.xml'
+2026-08-20T20:39:11.076830Z 01O INFO   Generated detection XML file within 55 milliseconds
+2026-08-20T20:39:11.076830Z 01O INFO   Compressing folder 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage' to 'C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na\out\Invoke-AppDeployToolkit.intunewin'
+2026-08-20T20:39:11.076830Z 01O INFO   Calculated size for folder 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage' is 394511681 within 0 milliseconds
+2026-08-20T20:39:16.909225Z 01O INFO   Compressed folder 'C:\Windows\SystemTemp\c7270b10-3d52-42ce-9db8-1ff5a663a50c\IntuneWinPackage' successfully within 5840 milliseconds
+2026-08-20T20:39:16.909225Z 01O INFO   Removing temporary files
+2026-08-20T20:39:17.012045Z 01O INFO   Removed temporary files within 97 milliseconds
+2026-08-20T20:39:17.012045Z 01O INFO   File 'C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na\out\Invoke-AppDeployToolkit.intunewin' has been generated successfully
+2026-08-20T20:39:17.013038Z 01O 
+2026-08-20T20:39:17.013038Z 01O 
+2026-08-20T20:39:17.013038Z 01O 
+2026-08-20T20:39:17.014081Z 01O INFO   Done!!!
+2026-08-20T20:39:17.014081Z 01O 
+2026-08-20T20:39:20.065044Z 01O ✅ Packaged: out\verint-desktop-messaging-client-for-na_15.2.9.178_1.intunewin (SHA256: e7dbcbd2979e7c14d0c823158810ffc0352d92647627f03c914391af6fa1f805)
+2026-08-20T20:39:20.276796Z 01O Using new detection format: detection_method=manual
+2026-08-20T20:39:20.883802Z 01O   Processing rule: type=file
+2026-08-20T20:39:20.903952Z 01O     path           : C:\Program Files\Verint\DPA\Client\Messaging
+2026-08-20T20:39:20.905768Z 01O     file_or_folder : DPAMessageClient.exe
+2026-08-20T20:39:20.906280Z 01O     detection_type : version
+2026-08-20T20:39:20.912422Z 01O Built 1 detection rule(s) from detection_rules array
+2026-08-20T20:39:20.912980Z 01O Detection rules count: 1
+2026-08-20T20:39:21.000996Z 01O Hardware properties resolved (minOS=1607, arch=x86,x64,arm64)
+2026-08-20T20:39:21.005020Z 01O Custom requirement rules resolved: 0 rules
+2026-08-20T20:39:21.284314Z 01O [2026-08-20 20:39:21] [INFO] Publishing Verint Desktop Messaging Client for NA 15.2.9.178 v15.2.9.178
+2026-08-20T20:39:21.291929Z 01O [2026-08-20 20:39:21] [INFO] IntuneWin: out\verint-desktop-messaging-client-for-na_15.2.9.178_1.intunewin
+2026-08-20T20:39:21.297352Z 01O [2026-08-20 20:39:21] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
+2026-08-20T20:39:21.648168Z 01O [2026-08-20 20:39:21] [INFO] Token acquired (length=2256)
+2026-08-20T20:39:21.655833Z 01O [2026-08-20 20:39:21] [INFO] Using return codes from app.json (5 codes)
+2026-08-20T20:39:21.701449Z 01O [2026-08-20 20:39:21] [INFO] Logo loaded: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na\windows\intune\logo.png (2467 bytes, image/png)
+2026-08-20T20:39:21.735158Z 01O [2026-08-20 20:39:21] [INFO] Creating Win32 app (metadata + detection rules only)
+2026-08-20T20:39:21.772335Z 01O [2026-08-20 20:39:21] [DEBUG] Request body JSON: {"minimumSupportedWindowsRelease":"1607","developer":"Verint","displayName":"Verint Desktop Messaging Client for NA 15.2.9.178","uninstallCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Uninstall -DeployMode Silent","minimumNumberOfProcessors":null,"privacyInformationUrl":"","notes":"SPA Workbench testing","allowAvailableUninstall":true,"largeIcon":{"type":"image/png","@odata.type":"#microsoft.graph.mimeContent","value":"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"},"installCommandLine":"Invoke-AppDeployToolkit.exe -DeploymentType Install -DeployMode Silent","minimumCpuSpeedInMHz":null,"description":"SPA Workbench Testing","displayVersion":"15.2.9.178","setupFilePath":"Invoke-AppDeployToolkit.exe","@odata.type":"#microsoft.graph.win32LobApp","detectionRules":[{"detectionValue":"15.2.9.254","@odata.type":"#microsoft.graph.win32LobAppFileSystemDetection","path":"C:\\Program Files\\Verint\\DPA\\Client\\Messaging","fileOrFolderName":"DPAMessageClient.exe","check32BitOn64System":false,"detectionType":"version","operator":"greaterThanOrEqual"}],"returnCodes":[{"returnCode":0,"type":"success"},{"returnCode":1707,"type":"success"},{"returnCode":3010,"type":"softReboot"},{"returnCode":1641,"type":"hardReboot"},{"returnCode":1618,"type":"retry"}],"owner":"EUC Packaging","isFeatured":false,"minimumFreeDiskSpaceInMB":500,"roleScopeTagIds":[],"fileName":"verint-desktop-messaging-client-for-na_15.2.9.178_1.intunewin","informationUrl":"","installExperience":{"runAsAccount":"system","deviceRestartBehavior":"basedOnReturnCode","maxRunTimeInMinutes":60},"minimumMemoryInMB":2048,"publisher":"Verint","applicableArchitectures":"x86,x64,arm64"}
+2026-08-20T20:39:23.059524Z 01O [2026-08-20 20:39:23] [INFO] Win32 app created: ef6efecd-0f35-41ee-b083-49001b8b729a
+2026-08-20T20:39:23.064901Z 01O [2026-08-20 20:39:23] [INFO] Starting content upload...
+2026-08-20T20:39:23.178907Z 01O [2026-08-20 20:39:23] [INFO] Parsing .intunewin metadata: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na\out\verint-desktop-messaging-client-for-na_15.2.9.178_1.intunewin
+2026-08-20T20:39:25.320265Z 01O [2026-08-20 20:39:25] [INFO]   Package       : Invoke-AppDeployToolkit.exe
+2026-08-20T20:39:25.324359Z 01O [2026-08-20 20:39:25] [INFO]   Unencrypted   : 394510748 bytes
+2026-08-20T20:39:25.325892Z 01O [2026-08-20 20:39:25] [INFO]   Encrypted     : 394510800 bytes
+2026-08-20T20:39:25.331611Z 01O [2026-08-20 20:39:25] [INFO] Creating content version for app ef6efecd-0f35-41ee-b083-49001b8b729a...
+2026-08-20T20:39:25.333739Z 01O [2026-08-20 20:39:25] [DEBUG] Request body JSON: {}
+2026-08-20T20:39:26.054643Z 01O [2026-08-20 20:39:26] [INFO]   Content version: 1
+2026-08-20T20:39:26.055759Z 01O [2026-08-20 20:39:26] [INFO] Registering file upload request...
+2026-08-20T20:39:26.059186Z 01O [2026-08-20 20:39:26] [DEBUG] Request body JSON: {"isDependency":false,"size":394510748,"sizeEncrypted":394510800,"name":"verint-desktop-messaging-client-for-na_15.2.9.178_1.intunewin","manifest":null}
+2026-08-20T20:39:26.868440Z 01O [2026-08-20 20:39:26] [INFO]   File entry ID: 856fbdcc-6c71-4a9d-a27f-9e48c956b828
+2026-08-20T20:39:26.873010Z 01O [2026-08-20 20:39:26] [INFO] Waiting for Azure Storage URI (up to 150s)...
+2026-08-20T20:39:32.481578Z 01O [2026-08-20 20:39:32] [INFO]   [1/30] uploadState: azureStorageUriRequestSuccess
+2026-08-20T20:39:32.486831Z 01O [2026-08-20 20:39:32] [INFO]   Azure Storage URI obtained
+2026-08-20T20:39:32.488505Z 01O [2026-08-20 20:39:32] [INFO] Uploading encrypted payload to Azure Blob Storage...
+2026-08-20T20:39:36.046122Z 01O [2026-08-20 20:39:36] [WARN]   Block 0 attempt 1 failed: Response status code does not indicate success: 403 (Server failed to authenticate the request. Make sure the value of Authorization header is formed correctly including the signature.).. Retrying in 15s...
+2026-08-20T20:39:36.053822Z 01O [2026-08-20 20:39:36] [DEBUG] Request body JSON: {}
+2026-08-20T20:39:36.753953Z 01O [2026-08-20 20:39:36] [INFO]   SAS URI renewed
+2026-08-20T20:39:51.960830Z 01O [2026-08-20 20:39:51] [INFO]   Block 0 — 6291456 bytes uploaded
+2026-08-20T20:39:52.247106Z 01O [2026-08-20 20:39:52] [INFO]   Block 1 — 6291456 bytes uploaded
+2026-08-20T20:39:52.568441Z 01O [2026-08-20 20:39:52] [INFO]   Block 2 — 6291456 bytes uploaded
+2026-08-20T20:39:52.837331Z 01O [2026-08-20 20:39:52] [INFO]   Block 3 — 6291456 bytes uploaded
+2026-08-20T20:39:53.155009Z 01O [2026-08-20 20:39:53] [INFO]   Block 4 — 6291456 bytes uploaded
+2026-08-20T20:39:53.408476Z 01O [2026-08-20 20:39:53] [INFO]   Block 5 — 6291456 bytes uploaded
+2026-08-20T20:39:53.814001Z 01O [2026-08-20 20:39:53] [INFO]   Block 6 — 6291456 bytes uploaded
+2026-08-20T20:39:54.132544Z 01O [2026-08-20 20:39:54] [INFO]   Block 7 — 6291456 bytes uploaded
+2026-08-20T20:39:54.465392Z 01O [2026-08-20 20:39:54] [INFO]   Block 8 — 6291456 bytes uploaded
+2026-08-20T20:39:54.706057Z 01O [2026-08-20 20:39:54] [INFO]   Block 9 — 6291456 bytes uploaded
+2026-08-20T20:39:54.997679Z 01O [2026-08-20 20:39:54] [INFO]   Block 10 — 6291456 bytes uploaded
+2026-08-20T20:39:55.352543Z 01O [2026-08-20 20:39:55] [INFO]   Block 11 — 6291456 bytes uploaded
+2026-08-20T20:39:55.597082Z 01O [2026-08-20 20:39:55] [WARN]   Block 12 attempt 1 failed: Response status code does not indicate success: 403 (Server failed to authenticate the request. Make sure the value of Authorization header is formed correctly including the signature.).. Retrying in 16s...
+2026-08-20T20:39:55.601408Z 01O [2026-08-20 20:39:55] [DEBUG] Request body JSON: {}
+2026-08-20T20:39:56.080502Z 01O [2026-08-20 20:39:56] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/ef6efecd-0f35-41ee-b083-49001b8b729a/microsoft.graph.win32LobApp/contentVersions/1/files/856fbdcc-6c71-4a9d-a27f-9e48c956b828/renewUpload]: Response status code does not indicate success: 400 (Bad Request).
+2026-08-20T20:39:56.084925Z 01O WARNING: SAS URI renewal failed: 
+2026-08-20T20:39:56.084925Z 01O {
+2026-08-20T20:39:56.084925Z 01O   "error": {
+2026-08-20T20:39:56.084925Z 01O     "code": "BadRequest",
+2026-08-20T20:39:56.084925Z 01O     "message": "{\r\n  \u0022_version\u0022: 3,\r\n  \u0022Message\u0022: \u0022SAS renewal can not be started until status for SAS request or prior a renewal has transitioned to \u0027Success\u0027. - Operation ID (for customer support): 00000000-0000-0000-0000-000000000000 - Activity ID: 3b04ec3c-144d-4240-a99b-70c46097e9a5 - Url: https://proxy.msua05.manage.microsoft.com/AppLifecycle_2608/StatelessAppMetadataFEService/deviceAppManagement/mobileApps(\u0027ef6efecd-0f35-41ee-b083-49001b8b729a\u0027)/microsoft.management.services.api.win32LobApp/contentVersions(\u00271\u0027)/files(\u0027856fbdcc-6c71-4a9d-a27f-9e48c956b828\u0027)/microsoft.management.services.api.renewUpload?api-version=5026-07-08\u0022,\r\n  \u0022CustomApiErrorPhrase\u0022: \u0022\u0022,\r\n  \u0022RetryAfter\u0022: null,\r\n  \u0022ErrorSourceService\u0022: \u0022\u0022,\r\n  \u0022HttpHeaders\u0022: \u0022{}\u0022\r\n}",
+2026-08-20T20:39:56.084925Z 01O     "innerError": {
+2026-08-20T20:39:56.084925Z 01O       "date": "2026-08-20T20:39:56",
+2026-08-20T20:39:56.084925Z 01O       "request-id": "3b04ec3c-144d-4240-a99b-70c46097e9a5",
+2026-08-20T20:39:56.084925Z 01O       "client-request-id": "3b04ec3c-144d-4240-a99b-70c46097e9a5"
+2026-08-20T20:39:56.084925Z 01O     }
+2026-08-20T20:39:56.084925Z 01O   }
+2026-08-20T20:39:56.084925Z 01O }. Continuing with existing URI.
+2026-08-20T20:40:12.372667Z 01O [2026-08-20 20:40:12] [INFO]   Block 12 — 6291456 bytes uploaded
+2026-08-20T20:40:12.680442Z 01O [2026-08-20 20:40:12] [INFO]   Block 13 — 6291456 bytes uploaded
+2026-08-20T20:40:12.921964Z 01O [2026-08-20 20:40:12] [INFO]   Block 14 — 6291456 bytes uploaded
+2026-08-20T20:40:13.161273Z 01O [2026-08-20 20:40:13] [INFO]   Block 15 — 6291456 bytes uploaded
+2026-08-20T20:40:13.380151Z 01O [2026-08-20 20:40:13] [INFO]   Block 16 — 6291456 bytes uploaded
+2026-08-20T20:40:13.661056Z 01O [2026-08-20 20:40:13] [INFO]   Block 17 — 6291456 bytes uploaded
+2026-08-20T20:40:13.868644Z 01O [2026-08-20 20:40:13] [INFO]   Block 18 — 6291456 bytes uploaded
+2026-08-20T20:40:14.131607Z 01O [2026-08-20 20:40:14] [INFO]   Block 19 — 6291456 bytes uploaded
+2026-08-20T20:40:14.440922Z 01O [2026-08-20 20:40:14] [INFO]   Block 20 — 6291456 bytes uploaded
+2026-08-20T20:40:14.733457Z 01O [2026-08-20 20:40:14] [INFO]   Block 21 — 6291456 bytes uploaded
+2026-08-20T20:40:15.018625Z 01O [2026-08-20 20:40:15] [INFO]   Block 22 — 6291456 bytes uploaded
+2026-08-20T20:40:15.265480Z 01O [2026-08-20 20:40:15] [INFO]   Block 23 — 6291456 bytes uploaded
+2026-08-20T20:40:15.557380Z 01O [2026-08-20 20:40:15] [INFO]   Block 24 — 6291456 bytes uploaded
+2026-08-20T20:40:15.892994Z 01O [2026-08-20 20:40:15] [INFO]   Block 25 — 6291456 bytes uploaded
+2026-08-20T20:40:16.194580Z 01O [2026-08-20 20:40:16] [INFO]   Block 26 — 6291456 bytes uploaded
+2026-08-20T20:40:16.477786Z 01O [2026-08-20 20:40:16] [INFO]   Block 27 — 6291456 bytes uploaded
+2026-08-20T20:40:16.673199Z 01O [2026-08-20 20:40:16] [INFO]   Block 28 — 6291456 bytes uploaded
+2026-08-20T20:40:16.970152Z 01O [2026-08-20 20:40:16] [INFO]   Block 29 — 6291456 bytes uploaded
+2026-08-20T20:40:17.218903Z 01O [2026-08-20 20:40:17] [INFO]   Block 30 — 6291456 bytes uploaded
+2026-08-20T20:40:17.483496Z 01O [2026-08-20 20:40:17] [INFO]   Block 31 — 6291456 bytes uploaded
+2026-08-20T20:40:17.771407Z 01O [2026-08-20 20:40:17] [INFO]   Block 32 — 6291456 bytes uploaded
+2026-08-20T20:40:18.022031Z 01O [2026-08-20 20:40:18] [INFO]   Block 33 — 6291456 bytes uploaded
+2026-08-20T20:40:18.249584Z 01O [2026-08-20 20:40:18] [INFO]   Block 34 — 6291456 bytes uploaded
+2026-08-20T20:40:18.487069Z 01O [2026-08-20 20:40:18] [INFO]   Block 35 — 6291456 bytes uploaded
+2026-08-20T20:40:18.721054Z 01O [2026-08-20 20:40:18] [INFO]   Block 36 — 6291456 bytes uploaded
+2026-08-20T20:40:19.103561Z 01O [2026-08-20 20:40:19] [INFO]   Block 37 — 6291456 bytes uploaded
+2026-08-20T20:40:19.374060Z 01O [2026-08-20 20:40:19] [INFO]   Block 38 — 6291456 bytes uploaded
+2026-08-20T20:40:19.678664Z 01O [2026-08-20 20:40:19] [INFO]   Block 39 — 6291456 bytes uploaded
+2026-08-20T20:40:19.956179Z 01O [2026-08-20 20:40:19] [INFO]   Block 40 — 6291456 bytes uploaded
+2026-08-20T20:40:20.219956Z 01O [2026-08-20 20:40:20] [INFO]   Block 41 — 6291456 bytes uploaded
+2026-08-20T20:40:20.517590Z 01O [2026-08-20 20:40:20] [INFO]   Block 42 — 6291456 bytes uploaded
+2026-08-20T20:40:20.804587Z 01O [2026-08-20 20:40:20] [INFO]   Block 43 — 6291456 bytes uploaded
+2026-08-20T20:40:21.033080Z 01O [2026-08-20 20:40:21] [INFO]   Block 44 — 6291456 bytes uploaded
+2026-08-20T20:40:21.248593Z 01O [2026-08-20 20:40:21] [INFO]   Block 45 — 6291456 bytes uploaded
+2026-08-20T20:40:21.551608Z 01O [2026-08-20 20:40:21] [INFO]   Block 46 — 6291456 bytes uploaded
+2026-08-20T20:40:21.821104Z 01O [2026-08-20 20:40:21] [INFO]   Block 47 — 6291456 bytes uploaded
+2026-08-20T20:40:22.076625Z 01O [2026-08-20 20:40:22] [INFO]   Block 48 — 6291456 bytes uploaded
+2026-08-20T20:40:22.297115Z 01O [2026-08-20 20:40:22] [INFO]   Block 49 — 6291456 bytes uploaded
+2026-08-20T20:40:22.553597Z 01O [2026-08-20 20:40:22] [INFO]   Block 50 — 6291456 bytes uploaded
+2026-08-20T20:40:22.824609Z 01O [2026-08-20 20:40:22] [INFO]   Block 51 — 6291456 bytes uploaded
+2026-08-20T20:40:23.110608Z 01O [2026-08-20 20:40:23] [INFO]   Block 52 — 6291456 bytes uploaded
+2026-08-20T20:40:23.492156Z 01O [2026-08-20 20:40:23] [INFO]   Block 53 — 6291456 bytes uploaded
+2026-08-20T20:40:23.793643Z 01O [2026-08-20 20:40:23] [INFO]   Block 54 — 6291456 bytes uploaded
+2026-08-20T20:40:24.105006Z 01O [2026-08-20 20:40:24] [INFO]   Block 55 — 6291456 bytes uploaded
+2026-08-20T20:40:24.353635Z 01O [2026-08-20 20:40:24] [INFO]   Block 56 — 6291456 bytes uploaded
+2026-08-20T20:40:24.657626Z 01O [2026-08-20 20:40:24] [INFO]   Block 57 — 6291456 bytes uploaded
+2026-08-20T20:40:24.927186Z 01O [2026-08-20 20:40:24] [INFO]   Block 58 — 6291456 bytes uploaded
+2026-08-20T20:40:25.190181Z 01O [2026-08-20 20:40:25] [INFO]   Block 59 — 6291456 bytes uploaded
+2026-08-20T20:40:25.458746Z 01O [2026-08-20 20:40:25] [INFO]   Block 60 — 6291456 bytes uploaded
+2026-08-20T20:40:25.753207Z 01O [2026-08-20 20:40:25] [INFO]   Block 61 — 6291456 bytes uploaded
+2026-08-20T20:40:25.962651Z 01O [2026-08-20 20:40:25] [INFO]   Block 62 — 4440528 bytes uploaded
+2026-08-20T20:40:25.970245Z 01O [2026-08-20 20:40:25] [INFO] Committing 63 blocks to Azure Blob...
+2026-08-20T20:40:26.040670Z 01O [2026-08-20 20:40:26] [INFO]   Azure Blob committed
+2026-08-20T20:40:26.044544Z 01O [2026-08-20 20:40:26] [INFO] Committing file in Graph API with encryption metadata...
+2026-08-20T20:40:31.565418Z 01O [2026-08-20 20:40:31] [INFO]   [Pre-commit 1/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:40:37.069849Z 01O [2026-08-20 20:40:37] [INFO]   [Pre-commit 2/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:40:42.557604Z 01O [2026-08-20 20:40:42] [INFO]   [Pre-commit 3/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:40:48.032652Z 01O [2026-08-20 20:40:48] [INFO]   [Pre-commit 4/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:40:53.529184Z 01O [2026-08-20 20:40:53] [INFO]   [Pre-commit 5/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:40:59.012631Z 01O [2026-08-20 20:40:59] [INFO]   [Pre-commit 6/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:04.514732Z 01O [2026-08-20 20:41:04] [INFO]   [Pre-commit 7/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:09.999150Z 01O [2026-08-20 20:41:09] [INFO]   [Pre-commit 8/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:15.470562Z 01O [2026-08-20 20:41:15] [INFO]   [Pre-commit 9/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:21.452289Z 01O [2026-08-20 20:41:21] [INFO]   [Pre-commit 10/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:26.923469Z 01O [2026-08-20 20:41:26] [INFO]   [Pre-commit 11/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:32.427603Z 01O [2026-08-20 20:41:32] [INFO]   [Pre-commit 12/12] uploadState: azureStorageUriRenewalFailed
+2026-08-20T20:41:32.430269Z 01O [2026-08-20 20:41:32] [WARN]   Pre-commit poll exhausted — attempting commit anyway
+2026-08-20T20:41:32.433445Z 01O [2026-08-20 20:41:32] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"encryptionKey":"NyZlrKqupNOsSekNWzcgRqA7Ay9UYz6bDg9Wu2qYT5Q=","fileDigest":"UUjmosqqdtlXqiyyyHgXbzu1/21Fen+6lXdwzA5iIMg=","initializationVector":"5dpaZLGG+kD5wSJ4FF0SNw==","fileDigestAlgorithm":"SHA256","macKey":"IA9rfbG2F5/sc34egirk/TTkCaKJd7l0iUERU+h7LUc=","profileIdentifier":"ProfileVersion1","mac":"vbh2Q53lO325P+rEliaBLZY3PYVjvjosOSnD6B0yjNQ="}}
+2026-08-20T20:41:32.878151Z 01O [2026-08-20 20:41:32] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/ef6efecd-0f35-41ee-b083-49001b8b729a/microsoft.graph.win32LobApp/contentVersions/1/files/856fbdcc-6c71-4a9d-a27f-9e48c956b828/commit]: Response status code does not indicate success: 400 (Bad Request).
+2026-08-20T20:41:32.888957Z 01O [2026-08-20 20:41:32] [WARN]   Commit attempt 1 failed: Response status code does not indicate success: 400 (Bad Request).. Retrying in 5s...
+2026-08-20T20:41:37.894702Z 01O [2026-08-20 20:41:37] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"encryptionKey":"NyZlrKqupNOsSekNWzcgRqA7Ay9UYz6bDg9Wu2qYT5Q=","fileDigest":"UUjmosqqdtlXqiyyyHgXbzu1/21Fen+6lXdwzA5iIMg=","initializationVector":"5dpaZLGG+kD5wSJ4FF0SNw==","fileDigestAlgorithm":"SHA256","macKey":"IA9rfbG2F5/sc34egirk/TTkCaKJd7l0iUERU+h7LUc=","profileIdentifier":"ProfileVersion1","mac":"vbh2Q53lO325P+rEliaBLZY3PYVjvjosOSnD6B0yjNQ="}}
+2026-08-20T20:41:38.336261Z 01O [2026-08-20 20:41:38] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/ef6efecd-0f35-41ee-b083-49001b8b729a/microsoft.graph.win32LobApp/contentVersions/1/files/856fbdcc-6c71-4a9d-a27f-9e48c956b828/commit]: Response status code does not indicate success: 400 (Bad Request).
+2026-08-20T20:41:38.337569Z 01O [2026-08-20 20:41:38] [WARN]   Commit attempt 2 failed: Response status code does not indicate success: 400 (Bad Request).. Retrying in 10s...
+2026-08-20T20:41:48.341919Z 01O [2026-08-20 20:41:48] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"encryptionKey":"NyZlrKqupNOsSekNWzcgRqA7Ay9UYz6bDg9Wu2qYT5Q=","fileDigest":"UUjmosqqdtlXqiyyyHgXbzu1/21Fen+6lXdwzA5iIMg=","initializationVector":"5dpaZLGG+kD5wSJ4FF0SNw==","fileDigestAlgorithm":"SHA256","macKey":"IA9rfbG2F5/sc34egirk/TTkCaKJd7l0iUERU+h7LUc=","profileIdentifier":"ProfileVersion1","mac":"vbh2Q53lO325P+rEliaBLZY3PYVjvjosOSnD6B0yjNQ="}}
+2026-08-20T20:41:48.823399Z 01O [2026-08-20 20:41:48] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/ef6efecd-0f35-41ee-b083-49001b8b729a/microsoft.graph.win32LobApp/contentVersions/1/files/856fbdcc-6c71-4a9d-a27f-9e48c956b828/commit]: Response status code does not indicate success: 400 (Bad Request).
+2026-08-20T20:41:48.824479Z 01O [2026-08-20 20:41:48] [WARN]   Commit attempt 3 failed: Response status code does not indicate success: 400 (Bad Request).. Retrying in 20s...
+2026-08-20T20:42:08.833391Z 01O [2026-08-20 20:42:08] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"encryptionKey":"NyZlrKqupNOsSekNWzcgRqA7Ay9UYz6bDg9Wu2qYT5Q=","fileDigest":"UUjmosqqdtlXqiyyyHgXbzu1/21Fen+6lXdwzA5iIMg=","initializationVector":"5dpaZLGG+kD5wSJ4FF0SNw==","fileDigestAlgorithm":"SHA256","macKey":"IA9rfbG2F5/sc34egirk/TTkCaKJd7l0iUERU+h7LUc=","profileIdentifier":"ProfileVersion1","mac":"vbh2Q53lO325P+rEliaBLZY3PYVjvjosOSnD6B0yjNQ="}}
+2026-08-20T20:42:09.258958Z 01O [2026-08-20 20:42:09] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/ef6efecd-0f35-41ee-b083-49001b8b729a/microsoft.graph.win32LobApp/contentVersions/1/files/856fbdcc-6c71-4a9d-a27f-9e48c956b828/commit]: Response status code does not indicate success: 400 (Bad Request).
+2026-08-20T20:42:09.260044Z 01O [2026-08-20 20:42:09] [WARN]   Commit attempt 4 failed: Response status code does not indicate success: 400 (Bad Request).. Retrying in 40s...
+2026-08-20T20:42:49.270190Z 01O [2026-08-20 20:42:49] [DEBUG] Request body JSON: {"fileEncryptionInfo":{"encryptionKey":"NyZlrKqupNOsSekNWzcgRqA7Ay9UYz6bDg9Wu2qYT5Q=","fileDigest":"UUjmosqqdtlXqiyyyHgXbzu1/21Fen+6lXdwzA5iIMg=","initializationVector":"5dpaZLGG+kD5wSJ4FF0SNw==","fileDigestAlgorithm":"SHA256","macKey":"IA9rfbG2F5/sc34egirk/TTkCaKJd7l0iUERU+h7LUc=","profileIdentifier":"ProfileVersion1","mac":"vbh2Q53lO325P+rEliaBLZY3PYVjvjosOSnD6B0yjNQ="}}
+2026-08-20T20:42:49.740130Z 01O [2026-08-20 20:42:49] [ERROR] Graph request failed [POST https://graph.microsoft.com/beta/deviceAppManagement/mobileApps/ef6efecd-0f35-41ee-b083-49001b8b729a/microsoft.graph.win32LobApp/contentVersions/1/files/856fbdcc-6c71-4a9d-a27f-9e48c956b828/commit]: Response status code does not indicate success: 400 (Bad Request).
+2026-08-20T20:42:49.746780Z 01O [2026-08-20 20:42:49] [WARN]   Commit attempt 5 failed: Response status code does not indicate success: 400 (Bad Request).. Retrying in 60s...
+2026-08-20T20:43:49.944865Z 01E Exception: C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na\intune-modules\Upload-Win32Content.ps1:335
+2026-08-20T20:43:49.944865Z 01E Line |
+2026-08-20T20:43:49.944865Z 01E  335 |      throw "Failed to commit file upload in Graph after 5 attempts."
+2026-08-20T20:43:49.944865Z 01E      |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-08-20T20:43:49.944865Z 01E      | Failed to commit file upload in Graph after 5 attempts.
+2026-08-20T20:43:50.054043Z 00O section_end:1787258630:step_script
+2026-08-20T20:43:50.054043Z 00O+section_start:1787258630:upload_artifacts_on_failure
+2026-08-20T20:43:50.055636Z 00O+Uploading artifacts for failed job
+2026-08-20T20:43:51.764650Z 01O Version:      18.9.0
+2026-08-20T20:43:51.764650Z 01O Git revision: 07e534ba
+2026-08-20T20:43:51.764650Z 01O Git branch:   18-9-stable
+2026-08-20T20:43:51.764650Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-20T20:43:51.764650Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-20T20:43:51.764650Z 01O OS/Arch:      windows/amd64
+2026-08-20T20:43:51.787534Z 01O Uploading artifacts...
+2026-08-20T20:43:51.964298Z 01E Runtime platform                                    arch=amd64 os=windows pid=10284 revision=07e534ba version=18.9.0
+2026-08-20T20:43:51.964844Z 01E out/*.intunewin: found 1 matching artifact files and directories 
+2026-08-20T20:43:51.964844Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na) 
+2026-08-20T20:43:51.964844Z 01E out/publish-logs/*: found 1 matching artifact files and directories 
+2026-08-20T20:46:44.468409Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01M0GES10BR7A5D2WXBJ6W23E1 id=34017585 responseStatus=201 Created token=64_qsXLEP
+2026-08-20T20:46:44.665372Z 01O Version:      18.9.0
+2026-08-20T20:46:44.665372Z 01O Git revision: 07e534ba
+2026-08-20T20:46:44.665372Z 01O Git branch:   18-9-stable
+2026-08-20T20:46:44.665372Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-20T20:46:44.665372Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-20T20:46:44.665372Z 01O OS/Arch:      windows/amd64
+2026-08-20T20:46:44.682512Z 01O Uploading artifacts...
+2026-08-20T20:46:44.899741Z 01E Runtime platform                                    arch=amd64 os=windows pid=2272 revision=07e534ba version=18.9.0
+2026-08-20T20:46:44.901753Z 01E WARNING: out/app.env: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na) 
+2026-08-20T20:46:44.901753Z 01E ERROR: No files to upload                          
+2026-08-20T20:46:45.007333Z 00O section_end:1787258805:upload_artifacts_on_failure
+2026-08-20T20:46:45.007333Z 00O+section_start:1787258805:cleanup_file_variables
+2026-08-20T20:46:45.007333Z 00O+Cleaning up project directory and file based variables
+2026-08-20T20:46:46.438915Z 00O section_end:1787258806:cleanup_file_variables
+2026-08-20T20:46:46.438915Z 00O+
+2026-08-20T20:46:46.439422Z 00O ERROR: Job failed: exit status 1
+
+
+
+windows_assign_intune 
+
+2026-08-21T15:18:10.822762Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
+2026-08-21T15:18:10.822762Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
+2026-08-21T15:18:10.822762Z 00O Resolving secrets
+2026-08-21T15:18:10.822762Z 00O section_start:1787325490:prepare_executor
+2026-08-21T15:18:10.822762Z 00O+Preparing the "shell" executor
+2026-08-21T15:18:10.823425Z 00O Using Shell (pwsh) executor...
+2026-08-21T15:18:10.823425Z 00O section_end:1787325490:prepare_executor
+2026-08-21T15:18:10.823425Z 00O+section_start:1787325490:prepare_script
+2026-08-21T15:18:10.823425Z 00O+Preparing environment
+2026-08-21T15:18:12.033029Z 01O Running on vm-psa-runner-p...
+2026-08-21T15:18:12.310277Z 00O section_end:1787325492:prepare_script
+2026-08-21T15:18:12.310277Z 00O+section_start:1787325492:get_sources
+2026-08-21T15:18:12.311355Z 00O+Getting source from Git repository
+2026-08-21T15:18:16.180776Z 01O Gitaly correlation ID: 01M0JED7XFKSV0F2AQAMH05DPB
+2026-08-21T15:18:16.622562Z 01O Fetching changes with git depth set to 20...
+2026-08-21T15:18:16.715809Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/verint-desktop-messaging-client-for-na/.git/
+2026-08-21T15:18:19.450125Z 01O Checking out 191a5915 as detached HEAD (ref is main)...
+2026-08-21T15:18:20.210364Z 01O Removing intune-modules/
+2026-08-21T15:18:20.210364Z 01O Removing out/
+2026-08-21T15:18:20.210364Z 01O Removing psadt-framework-4.1.0/
+2026-08-21T15:18:20.511667Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
+2026-08-21T15:18:21.337762Z 01O 
+2026-08-21T15:18:21.338264Z 01O Skipping Git submodules setup
+2026-08-21T15:18:21.607893Z 00O section_end:1787325501:get_sources
+2026-08-21T15:18:21.607893Z 00O+section_start:1787325501:download_artifacts
+2026-08-21T15:18:21.609501Z 00O+Downloading artifacts
+2026-08-21T15:18:23.647807Z 01O Version:      18.9.0
+2026-08-21T15:18:23.647807Z 01O Git revision: 07e534ba
+2026-08-21T15:18:23.647807Z 01O Git branch:   18-9-stable
+2026-08-21T15:18:23.647807Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-21T15:18:23.647807Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-21T15:18:23.647807Z 01O OS/Arch:      windows/amd64
+2026-08-21T15:18:23.680226Z 01O Downloading artifacts for windows_publish_intune (34074180)...
+2026-08-21T15:18:23.968934Z 01E Runtime platform                                    arch=amd64 os=windows pid=3444 revision=07e534ba version=18.9.0
+2026-08-21T15:34:19.395081Z 01E Downloading artifacts from coordinator... ok        correlation_id=01M0JEDPN6ZQ6FNFK89WG1N3QV host=gitlab.onefiserv.net id=34074180 responseStatus=200 OK token=64_RC4yBo
+2026-08-21T15:34:20.316007Z 00O section_end:1787326460:download_artifacts
+2026-08-21T15:34:20.316007Z 00O+section_start:1787326460:step_script
+2026-08-21T15:34:20.316519Z 00O+Executing "step_script" stage of the job script
+2026-08-21T15:34:21.775841Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-08-21T15:34:26.434215Z 01O Intune modules ready in: intune-modules
+2026-08-21T15:34:26.437932Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
+2026-08-21T15:34:26.584767Z 01O [2026-08-21 15:34:26] [INFO] Loading 1 assignment(s) for app: 43a8890d-adee-41d2-86af-8675a30aeb47
+2026-08-21T15:34:26.600867Z 01O [2026-08-21 15:34:26] [INFO] Acquiring Graph token for tenant 11873a1f-4c8d-450d-8dfb-e37a2e2557f8...
+2026-08-21T15:34:26.870555Z 01O [2026-08-21 15:34:26] [INFO] Token acquired (length=2254)
+2026-08-21T15:34:26.879124Z 01O [2026-08-21 15:34:26] [INFO] Posting assignments to Graph...
+2026-08-21T15:34:26.910974Z 01O [2026-08-21 15:34:26] [DEBUG] Request body JSON: {"mobileAppAssignments":[{"settings":{"deliveryOptimizationPriority":"notConfigured","@odata.type":"#microsoft.graph.win32LobAppAssignmentSettings","restartSettings":null,"installTimeSettings":null,"notifications":"showAll"},"@odata.type":"#microsoft.graph.mobileAppAssignment","intent":"available","target":{"@odata.type":"#microsoft.graph.groupAssignmentTarget","groupId":"207ca967-c626-436e-8983-498d95d17384"}}]}
+2026-08-21T15:34:27.997782Z 01O [2026-08-21 15:34:28] [INFO] ✅ Assignments applied for app: 43a8890d-adee-41d2-86af-8675a30aeb47
+2026-08-21T15:34:28.014058Z 01O ✅ Assignments applied.
+2026-08-21T15:34:28.259640Z 00O section_end:1787326468:step_script
+2026-08-21T15:34:28.259640Z 00O+section_start:1787326468:upload_artifacts_on_success
+2026-08-21T15:34:28.261246Z 00O+Uploading artifacts for successful job
+2026-08-21T15:34:29.716271Z 01O Version:      18.9.0
+2026-08-21T15:34:29.716271Z 01O Git revision: 07e534ba
+2026-08-21T15:34:29.716271Z 01O Git branch:   18-9-stable
+2026-08-21T15:34:29.716271Z 01O GO version:   go1.25.7 X:cacheprog
+2026-08-21T15:34:29.716271Z 01O Built:        2026-02-19T16:58:00Z
+2026-08-21T15:34:29.716271Z 01O OS/Arch:      windows/amd64
+2026-08-21T15:34:29.740091Z 01O Uploading artifacts...
+2026-08-21T15:34:29.912353Z 01E Runtime platform                                    arch=amd64 os=windows pid=12804 revision=07e534ba version=18.9.0
+2026-08-21T15:34:29.912872Z 01E out/assign-logs/*: found 1 matching artifact files and directories 
+2026-08-21T15:34:33.429143Z 01E Uploading artifacts as "archive" to coordinator... 201 Created  correlation_id=01M0JFB6XA8QGNXA2DKWYJN0AA id=34017586 responseStatus=201 Created token=64_RC4yBo
+2026-08-21T15:34:33.633035Z 00O section_end:1787326473:upload_artifacts_on_success
+2026-08-21T15:34:33.633035Z 00O+section_start:1787326473:cleanup_file_variables
+2026-08-21T15:34:33.634781Z 00O+Cleaning up project directory and file based variables
+2026-08-21T15:34:35.003557Z 00O section_end:1787326475:cleanup_file_variables
+2026-08-21T15:34:35.003557Z 00O+
+2026-08-21T15:34:35.005652Z 00O Job succeeded
