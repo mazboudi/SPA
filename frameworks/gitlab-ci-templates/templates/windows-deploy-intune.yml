@@ -316,12 +316,16 @@
     INTUNE_DRY_RUN: "false"
   needs:
     - job: windows_publish_intune
-      # APP_ID is injected automatically as a CI variable via the dotenv report
-      # (out/app.env, declared with `reports: dotenv` in the publish job).
-      # We do NOT download the full artifact set — the .intunewin is ~400 MB
-      # and the assign job never reads it. This cuts ~16 min off the stage.
-      artifacts: false
+      # artifacts: true is required — GitLab only injects dotenv report variables
+      # (APP_ID from out/app.env) when artifact downloading is enabled.
+      # Setting artifacts: false suppresses both file downloads AND variable injection,
+      # which causes APP_ID to be unset in this job.
+      # The publish job's artifact paths are: out/app.env + out/publish-logs/*
+      # The large out/*.intunewin is declared only in windows_build, NOT here,
+      # so enabling artifacts: true is safe — nothing large will be downloaded.
+      artifacts: true
       optional: true
+
   script:
     - *download_intune_modules
     - |
