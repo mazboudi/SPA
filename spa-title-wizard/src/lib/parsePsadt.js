@@ -1053,6 +1053,35 @@ export function modernizeLegacyScriptParts(scriptText, { rewriteVars = true } = 
     'Write-ADTLogEntry$1-Message $2'
   );
 
+  // 3d. Start-ADTMsiProcess -FilePath '{GUID}' → -ProductCode '{GUID}'
+  // In v3, Execute-MSI accepted a Windows Installer product code GUID as -Path:
+  //   Execute-MSI -Action Uninstall -Path '{5256667C-27D7-4767-85B3-89153FEF5026}'
+  //   Execute-MSI -Action Repair    -Path '{02FDF438-19E4-5004-B767-24FB04D0CDA7}'
+  // After step 1 (Execute-MSI → Start-ADTMsiProcess) and step 3 (-Path → -FilePath),
+  // these become invalid v4 because Start-ADTMsiProcess uses -ProductCode for GUIDs
+  // and -FilePath only for .msi/.msp file paths.
+  // A GUID is detected by the {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} format.
+  //   BEFORE: Start-ADTMsiProcess -Action Uninstall -FilePath '{5256667C-...}'
+  //   AFTER:  Start-ADTMsiProcess -Action Uninstall -ProductCode '{5256667C-...}'
+  result = result.replace(
+    /\bStart-ADTMsiProcess\b([^'"\n]*)-FilePath\s+(['"])\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}\2/g,
+    (match) => match.replace(/-FilePath\s+/, '-ProductCode ')
+  );
+
+  // 3d-ii. ForEach-Object pipeline variant: -FilePath "$_" → -ProductCode "$_"
+  // In PSADT v3, arrays of product code GUIDs are uninstalled via pipeline:
+  //   "{GUID1}", "{GUID2}" | ForEach-Object { Execute-MSI -Action 'Uninstall' -Path "$_" }
+  // After renaming, this becomes -FilePath "$_" which is wrong in v4.
+  // Since $_ is a variable we cannot inspect statically, we use action context as
+  // the heuristic: Uninstall/Repair inside a ForEach-Object pipeline in PSADT scripts
+  // always pipes product codes, never .msi file paths (those use -FilePath directly).
+  //   BEFORE: ForEach-Object { Start-ADTMsiProcess -Action 'Uninstall' -FilePath "$_" }
+  //   AFTER:  ForEach-Object { Start-ADTMsiProcess -Action 'Uninstall' -ProductCode "$_" }
+  result = result.replace(
+    /ForEach-Object\s*\{([^}]*\bStart-ADTMsiProcess\b[^}]*)-FilePath\s+(["'])\$_\2([^}]*)\}/g,
+    (match, pre, q, post) => match.replace(/-FilePath\s+(["'])\$_\1/, `-ProductCode $1$$_$1`)
+  );
+
   // 4. Custom translations for deprecated parameters
   // Translate -ContinueOnError to -ErrorAction SilentlyContinue/Stop
   result = result.replace(/\s*-ContinueOnError(?:\s+\$(true|false))?\b/gi, (match, p1) => {
