@@ -1,53 +1,9 @@
-2026-08-21T17:37:53.289186Z 00O Running with gitlab-runner 18.9.0 (07e534ba)
-2026-08-21T17:37:53.289186Z 00O   on psa-runner bznSdn3is, system ID: s_f1e3591034ba
-2026-08-21T17:37:53.289186Z 00O Resolving secrets
-2026-08-21T17:37:53.289186Z 00O section_start:1787333873:prepare_executor
-2026-08-21T17:37:53.289186Z 00O+Preparing the "shell" executor
-2026-08-21T17:37:53.289941Z 00O Using Shell (pwsh) executor...
-2026-08-21T17:37:53.289941Z 00O section_end:1787333873:prepare_executor
-2026-08-21T17:37:53.289941Z 00O+section_start:1787333873:prepare_script
-2026-08-21T17:37:53.289941Z 00O+Preparing environment
-2026-08-21T17:37:54.351203Z 01O Running on vm-psa-runner-p...
-2026-08-21T17:37:54.572640Z 00O section_end:1787333874:prepare_script
-2026-08-21T17:37:54.572640Z 00O+section_start:1787333874:get_sources
-2026-08-21T17:37:54.573727Z 00O+Getting source from Git repository
-2026-08-21T17:37:56.632280Z 01O Gitaly correlation ID: 01M0JPD28X575243JGEEQND6C2
-2026-08-21T17:37:56.988092Z 01O Fetching changes with git depth set to 20...
-2026-08-21T17:37:57.057189Z 01O Reinitialized existing Git repository in C:/GitLab-Runner/builds/bznSdn3is/0/euc/software-package-automation/software-titles/verint-desktop-messaging-client-for-na/.git/
-2026-08-21T17:37:59.080778Z 01O Checking out bee9b3d9 as detached HEAD (ref is main)...
-2026-08-21T17:37:59.679306Z 01O Removing intune-modules/
-2026-08-21T17:37:59.679306Z 01O Removing out/
-2026-08-21T17:37:59.679306Z 01O Removing psadt-framework-4.1.0/
-2026-08-21T17:37:59.905697Z 01O git-lfs/3.7.1 (GitHub; windows amd64; go 1.25.1; git b84b3384)
-2026-08-21T17:38:00.645536Z 01O 
-2026-08-21T17:38:00.645536Z 01O Skipping Git submodules setup
-2026-08-21T17:38:00.842126Z 00O section_end:1787333880:get_sources
-2026-08-21T17:38:00.842126Z 00O+section_start:1787333880:step_script
-2026-08-21T17:38:00.844785Z 00O+Executing "step_script" stage of the job script
-2026-08-21T17:38:02.172368Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-08-21T17:38:06.139387Z 01O Intune modules ready in: intune-modules
-2026-08-21T17:38:06.142387Z 01O $ $ErrorActionPreference = "Stop" # collapsed multi-line command
-2026-08-21T17:38:06.374739Z 01E Exception: 
-2026-08-21T17:38:06.374739Z 01E Line |
-2026-08-21T17:38:06.374739Z 01E  475 |  … v:APP_ID) { throw "APP_ID not set. Check out/app.env from publish job …
-2026-08-21T17:38:06.374739Z 01E      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-2026-08-21T17:38:06.374739Z 01E      | APP_ID not set. Check out/app.env from publish job.
-2026-08-21T17:38:06.599765Z 00O section_end:1787333886:step_script
-2026-08-21T17:38:06.599765Z 00O+section_start:1787333886:upload_artifacts_on_failure
-2026-08-21T17:38:06.601476Z 00O+Uploading artifacts for failed job
-2026-08-21T17:38:08.074744Z 01O Version:      18.9.0
-2026-08-21T17:38:08.074744Z 01O Git revision: 07e534ba
-2026-08-21T17:38:08.074744Z 01O Git branch:   18-9-stable
-2026-08-21T17:38:08.074744Z 01O GO version:   go1.25.7 X:cacheprog
-2026-08-21T17:38:08.074744Z 01O Built:        2026-02-19T16:58:00Z
-2026-08-21T17:38:08.074744Z 01O OS/Arch:      windows/amd64
-2026-08-21T17:38:08.087201Z 01O Uploading artifacts...
-2026-08-21T17:38:08.260635Z 01E Runtime platform                                    arch=amd64 os=windows pid=12972 revision=07e534ba version=18.9.0
-2026-08-21T17:38:08.261602Z 01E WARNING: out/assign-logs/*: no matching files. Ensure that the artifact path is relative to the working directory (C:\GitLab-Runner\builds\bznSdn3is\0\euc\software-package-automation\software-titles\verint-desktop-messaging-client-for-na) 
-2026-08-21T17:38:08.261602Z 01E ERROR: No files to upload                          
-2026-08-21T17:38:08.460525Z 00O section_end:1787333888:upload_artifacts_on_failure
-2026-08-21T17:38:08.460525Z 00O+section_start:1787333888:cleanup_file_variables
-2026-08-21T17:38:08.460525Z 00O+Cleaning up project directory and file based variables
-2026-08-21T17:38:09.850426Z 00O section_end:1787333889:cleanup_file_variables
-2026-08-21T17:38:09.850426Z 00O+
-2026-08-21T17:38:09.850934Z 00O ERROR: Job failed: exit status 1
+original command:  Show-InstallationWelcome -CloseApps 'aimtray,captureservice,wcapw32,wcapwlistener,verint.dms.connectionmanager,Verint.DPA.DCUWindowsService,Verint.DMS.DesktopMessagingClient,Verint.DPA.DCUBrowserService,captest,DCUApp,DpaWfoAlert,DPAMessageClient,LoggerManager,LoggerServer,LoggerServerMonitor,LoggerViewer,Gacutil,RegAsm,MsgPop,mspvdx,PopData,svstr,TSStart,java,javaw,jabswitch,java-rmi,javacpl,javaws,jp2launcher,jqs,keytool,kinit,klist,ktab,orbd,pack200,policytool,rmid,rmiregistry,servertool,ssvagent,tnameserv,unpack200' -AllowDeferCloseApps -CheckDiskSpace -PersistPrompt -CloseAppsCountdown 5400 -MinimizeWindows $false
+ 
+new command:         if ($adtSession.AppProcessesToClose.Count -gt 0)
+        {
+            Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CheckDiskSpace -PersistPrompt
+        }
+ 
+(you capture all the apps to close in the variable), but looks like we are missing countdown
+ 
