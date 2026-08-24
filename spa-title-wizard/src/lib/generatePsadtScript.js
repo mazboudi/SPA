@@ -714,6 +714,7 @@ export function generateActionCmd(action, pathCtx = {}) {
         if (action.checkDiskSpace) inlineParams.push('-CheckDiskSpace');
         if (action.persistPrompt) inlineParams.push('-PersistPrompt');
         if (action.blockExecution) inlineParams.push('-BlockExecution');
+        if (action.minimizeWindows) inlineParams.push('-MinimizeWindows');
 
         lines.push(`## If there are processes to close, show Welcome Message${commentSuffix}.`);
         lines.push('if ($adtSession.AppProcessesToClose.Count -gt 0)');
@@ -738,6 +739,7 @@ export function generateActionCmd(action, pathCtx = {}) {
           swParams.push(`    ForceCloseProcessesCountdown = ${action.forceCloseProcessesCountdown}`);
         }
         if (action.blockExecution) swParams.push('    BlockExecution = $true');
+        if (action.minimizeWindows) swParams.push('    MinimizeWindows = $true');
 
         lines.push(`## Show Welcome Message, close processes if specified${commentSuffix}.`);
         lines.push('$saiwParams = @{');

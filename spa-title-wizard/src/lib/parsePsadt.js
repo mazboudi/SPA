@@ -1657,15 +1657,16 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
         actions.push({
           type: 'show_welcome',
           enabled: true,
-          allowDefer: hasParam('AllowDefer'),
-          deferTimes: getNumParam('DeferTimes') || (hasParam('AllowDefer') ? 3 : 0),
+          allowDefer: hasParam('AllowDefer') || hasParam('AllowDeferCloseApps') || hasParam('AllowDeferCloseProcesses'),
+          deferTimes: getNumParam('DeferTimes') || (hasParam('AllowDefer') || hasParam('AllowDeferCloseApps') || hasParam('AllowDeferCloseProcesses') ? 3 : 0),
           deferDays: getNumParam('DeferDays'),
           deferDeadline: '',
           checkDiskSpace: hasParam('CheckDiskSpace'),
           persistPrompt: hasParam('PersistPrompt'),
-          closeProcessesCountdown: getNumParam('CloseProcessesCountdown'),
-          forceCloseProcessesCountdown: getNumParam('ForceCloseProcessesCountdown') || getNumParam('ForceCountdown'),
+          closeProcessesCountdown: getNumParam('CloseProcessesCountdown') || getNumParam('CloseAppsCountdown'),
+          forceCloseProcessesCountdown: getNumParam('ForceCloseProcessesCountdown') || getNumParam('ForceCloseAppsCountdown') || getNumParam('ForceCountdown'),
           blockExecution: hasParam('BlockExecution'),
+          minimizeWindows: (() => { const m = params.match(/-MinimizeWindows\s+(\$true|\$false)/i); if (m) return m[1].toLowerCase() === '$true'; return hasParam('MinimizeWindows'); })(),
           raw: modernizedLine,
         });
         matched = true;
