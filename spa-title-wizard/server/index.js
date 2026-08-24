@@ -216,21 +216,38 @@ function ensureLocalClone(projectPath, ref = 'main') {
   const repoDir = join(CLONE_BASE, slug);
   const url = cloneUrl(projectPath);
 
+  // Detect whether ref is a tag or a branch.
+  // We check after fetch so the tag list is up-to-date; but we need the repo first.
+  // Strategy: tags never exist as remote-tracking refs (origin/<tag>), branches do.
+  // We use a lightweight heuristic — check git ls-remote after fetch.
+  const isTagRef = (dir) => {
+    try {
+      const result = git(`ls-remote --tags origin refs/tags/${ref}`, dir, { silent: true });
+      return result && result.trim().length > 0;
+    } catch {
+      return false;
+    }
+  };
+
   if (existsSync(join(repoDir, '.git'))) {
     console.log(`  📂 Existing clone found: ${repoDir}`);
     git(`remote set-url origin ${url}`, repoDir, { silent: true });
     
-    // Fetch the latest remote changes
-    git(`fetch origin ${ref}`, repoDir, { silent: true });
+    // Fetch all branches and tags so we have current remote state
+    git(`fetch origin --tags --force`, repoDir, { silent: true });
     
-    // Checkout the branch and hard-reset it to perfectly match the remote (wiping local changes)
-    git(`checkout ${ref} --force`, repoDir, { silent: true });
-    git(`reset --hard origin/${ref}`, repoDir, { silent: true });
-    
-    // Clean any untracked files from previous operations
-    git(`clean -fdx`, repoDir, { silent: true });
-    
-    console.log(`  📌 Checked out and reset: ${ref} to origin/${ref}`);
+    if (isTagRef(repoDir)) {
+      // ── Tag ref: checkout the tag as detached HEAD; no remote-tracking branch to reset to ──
+      git(`checkout tags/${ref} --force`, repoDir, { silent: true });
+      git(`clean -fdx`, repoDir, { silent: true });
+      console.log(`  📌 Checked out tag: ${ref} (detached HEAD)`);
+    } else {
+      // ── Branch ref: checkout and hard-reset to remote branch ──
+      git(`checkout ${ref} --force`, repoDir, { silent: true });
+      git(`reset --hard origin/${ref}`, repoDir, { silent: true });
+      git(`clean -fdx`, repoDir, { silent: true });
+      console.log(`  📌 Checked out and reset branch: ${ref} → origin/${ref}`);
+    }
   } else {
     // Fresh clone — remove stale directory if it exists without .git
     if (existsSync(repoDir)) {
