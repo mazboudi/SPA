@@ -192,13 +192,40 @@ if ($detectionMethod) {
             'file' {
                 $path         = $r.path
                 $fileOrFolder = $r.file_or_folder
-                $detType      = if ($r.detection_type) { $r.detection_type } else { 'exists' }
+                $detTypeRaw   = if ($r.detection_type) { $r.detection_type } else { 'exists' }
                 $operator     = if ($r.operator) { $r.operator } else { 'notConfigured' }
                 $value        = $r.value
                 $check32      = ($r.check_32bit -eq 'true' -or $r.check_32bit -eq $true)
 
                 if (-not $path -or -not $fileOrFolder) {
                     throw "detection_rules: path and file_or_folder are required for file rule"
+                }
+
+                # ── Map raw YAML detection_type to valid Graph API enum ────────────────
+                # win32LobAppFileSystemDetectionType valid values:
+                #   exists | doesNotExist | lastModifiedDate | createdDate | version | sizeInMB
+                # Common YAML aliases that authors use are normalised here.
+                $detType = switch ($detTypeRaw) {
+                    'exists'           { 'exists' }
+                    'doesNotExist'     { 'doesNotExist' }
+                    'version'          { 'version' }
+                    'sizeInMB'         { 'sizeInMB' }
+                    'lastModifiedDate' { 'lastModifiedDate' }
+                    'createdDate'      { 'createdDate' }
+                    # Aliases / legacy names
+                    'string'           { 'version' }   # file version compared as string → 'version'
+                    'modifiedDate'     { 'lastModifiedDate' }
+                    'size'             { 'sizeInMB' }
+                    default {
+                        Write-Warning "  detection_type '$detTypeRaw' is not a valid Graph API enum — defaulting to 'exists'"
+                        'exists'
+                    }
+                }
+
+                if ($detTypeRaw -ne $detType) {
+                    Write-Host "    detection_type : $detTypeRaw → $detType (normalised)"
+                } else {
+                    Write-Host "    detection_type : $detType"
                 }
 
                 $graphOperator = 'notConfigured'
@@ -214,7 +241,6 @@ if ($detectionMethod) {
 
                 Write-Host "    path           : $path"
                 Write-Host "    file_or_folder : $fileOrFolder"
-                Write-Host "    detection_type : $detType"
 
                 $rule = @{
                     '@odata.type'        = '#microsoft.graph.win32LobAppFileSystemDetection'
