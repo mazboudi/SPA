@@ -20,11 +20,11 @@
  *   vsCodeUrl: string,
  * }>}
  */
-export async function publishToGitLab({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction = 'none' }) {
+export async function publishToGitLab({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction = 'none', serviceNowRequestId, platform }) {
   const res = await fetch('/api/publish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction }),
+    body: JSON.stringify({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction, serviceNowRequestId, platform }),
   });
 
   if (!res.ok) {
@@ -43,11 +43,11 @@ export async function publishToGitLab({ packageId, gitLabGroup, category, displa
  * @param {function} onProgress — called with { step, message, status } for each event
  * @returns {Promise<Object>} — resolves with the final result payload on success
  */
-export async function publishToGitLabStreamed({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction = 'none', editProjectPath }, onProgress) {
+export async function publishToGitLabStreamed({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction = 'none', editProjectPath, serviceNowRequestId, platform }, onProgress) {
   const res = await fetch('/api/publish/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction, editProjectPath }),
+    body: JSON.stringify({ packageId, gitLabGroup, category, displayName, version, files, pipelineAction, editProjectPath, serviceNowRequestId, platform }),
   });
 
   if (!res.ok) {

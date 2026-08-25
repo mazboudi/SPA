@@ -347,9 +347,16 @@ export default function Sidebar({
       </List>
 
 
-      {/* Settings pinned to bottom */}
+      {/* Settings & Intake Portal pinned to bottom */}
       <Box sx={{ mt: 'auto', borderTop: '1px solid', borderColor: 'divider' }}>
         <List>
+          <NavSection
+            icon={<span style={{ fontSize: 16 }}>📋</span>}
+            label="Intake Portal ↗"
+            onClick={() => window.open('http://localhost:5174', '_blank')}
+            sidebarOpen={sidebarOpen}
+            onExpand={onExpand}
+          />
           <NavSection
             icon={<SettingsIcon sx={{ fontSize: 18 }} />}
             label="Settings"

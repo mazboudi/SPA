@@ -1,0 +1,215 @@
+[
+  {
+    "id": "model_chrome",
+    "displayName": "Google Chrome Enterprise",
+    "publisher": "Google LLC",
+    "category": "Browsers",
+    "supportedPlatforms": [
+      "windows",
+      "macos"
+    ],
+    "licenseRequired": "No",
+    "isSaaSOrInternetFacing": true,
+    "dataClassification": "Internal",
+    "defaultInstallerType": {
+      "windows": "msi",
+      "macos": "pkg"
+    },
+    "description": "Enterprise-grade web browser with central management and security policies.",
+    "versions": [
+      {
+        "version": "134.0.6998.89",
+        "disposition": "Approved",
+        "dispositionReason": "Current enterprise standard version vetted by Security.",
+        "packagingStatus": "Packaged & Ready",
+        "packageRef": {
+          "windows": "https://gitlab.onefiserv.net/euc/packages/google-chrome.git",
+          "macos": "titles/google-chrome"
+        },
+        "installerSource": {
+          "windows": "\\\\corp.fiserv.net\\packages\\GoogleChrome\\134.0\\GoogleChromeEnterprise64.msi",
+          "macos": "\\\\corp.fiserv.net\\packages\\GoogleChrome\\134.0\\GoogleChrome.pkg"
+        }
+      },
+      {
+        "version": "135.0.7049.4",
+        "disposition": "Review Required",
+        "dispositionReason": "Beta / Canary channel version. Requires AppSec validation.",
+        "packagingStatus": "Not Packaged",
+        "installerSource": {}
+      },
+      {
+        "version": "119.0.6045.105",
+        "disposition": "Denied",
+        "dispositionReason": "Deprecated version with unpatched Zero-Day vulnerabilities (CVE-2023-6345). Prohibited.",
+        "packagingStatus": "Deprecated",
+        "installerSource": {}
+      }
+    ]
+  },
+  {
+    "id": "model_7zip",
+    "displayName": "7-Zip",
+    "publisher": "Igor Pavlov",
+    "category": "Developer Tools",
+    "supportedPlatforms": [
+      "windows"
+    ],
+    "licenseRequired": "No",
+    "isSaaSOrInternetFacing": false,
+    "dataClassification": "Public",
+    "defaultInstallerType": {
+      "windows": "msi"
+    },
+    "description": "Open source high compression file archiver utility.",
+    "versions": [
+      {
+        "version": "24.09",
+        "disposition": "Approved",
+        "dispositionReason": "Standard utility approved for all enterprise workstations.",
+        "packagingStatus": "Packaged & Ready",
+        "packageRef": {
+          "windows": "titles/7-zip"
+        },
+        "installerSource": {
+          "windows": "\\\\corp.fiserv.net\\packages\\7Zip\\24.09\\7z2409-x64.msi"
+        }
+      },
+      {
+        "version": "23.01",
+        "disposition": "Approved",
+        "dispositionReason": "Legacy approved version.",
+        "packagingStatus": "Packaged & Ready",
+        "packageRef": {
+          "windows": "titles/7-zip"
+        },
+        "installerSource": {
+          "windows": "\\\\corp.fiserv.net\\packages\\7Zip\\23.01\\7z2301-x64.msi"
+        }
+      }
+    ]
+  },
+  {
+    "id": "model_slack",
+    "displayName": "Slack Enterprise",
+    "publisher": "Slack Technologies / Salesforce",
+    "category": "Communication",
+    "supportedPlatforms": [
+      "windows",
+      "macos"
+    ],
+    "licenseRequired": "Subscription",
+    "isSaaSOrInternetFacing": true,
+    "dataClassification": "Confidential",
+    "defaultInstallerType": {
+      "windows": "msi",
+      "macos": "pkg"
+    },
+    "description": "Collaboration, messaging, and productivity communication platform.",
+    "versions": [
+      {
+        "version": "4.39.215",
+        "disposition": "Approved",
+        "dispositionReason": "Corporate messaging standard approved by IT & Security.",
+        "packagingStatus": "In Packaging",
+        "installerSource": {
+          "windows": "\\\\corp.fiserv.net\\packages\\Slack\\4.39\\slack-standalone-4.39.215.msi",
+          "macos": "\\\\corp.fiserv.net\\packages\\Slack\\4.39\\Slack-4.39.215.pkg"
+        }
+      },
+      {
+        "version": "4.41.0-beta",
+        "disposition": "Denied",
+        "dispositionReason": "Pre-release beta software is not allowed on corporate assets.",
+        "packagingStatus": "Not Packaged",
+        "installerSource": {}
+      }
+    ]
+  },
+  {
+    "id": "model_postman",
+    "displayName": "Postman",
+    "publisher": "Postman Inc.",
+    "category": "Developer Tools",
+    "supportedPlatforms": [
+      "windows",
+      "macos"
+    ],
+    "licenseRequired": "Named User",
+    "isSaaSOrInternetFacing": true,
+    "dataClassification": "Confidential",
+    "defaultInstallerType": {
+      "windows": "exe",
+      "macos": "pkg"
+    },
+    "description": "API design, development, mocking, and automated testing tool.",
+    "versions": [
+      {
+        "version": "11.16.0",
+        "disposition": "Approved",
+        "dispositionReason": "Standard developer tool. Requires Named User license entitlement.",
+        "packagingStatus": "Not Packaged",
+        "installerSource": {
+          "windows": "\\\\corp.fiserv.net\\packages\\Postman\\11.16\\Postman-Setup-11.16.0.exe"
+        }
+      }
+    ]
+  },
+  {
+    "id": "model_wireshark",
+    "displayName": "Wireshark Network Analyzer",
+    "publisher": "Wireshark Foundation",
+    "category": "Security",
+    "supportedPlatforms": [
+      "windows",
+      "macos"
+    ],
+    "licenseRequired": "No",
+    "isSaaSOrInternetFacing": false,
+    "dataClassification": "Restricted",
+    "defaultInstallerType": {
+      "windows": "exe",
+      "macos": "dmg"
+    },
+    "description": "Network packet protocol analyzer for troubleshooting and security forensics.",
+    "versions": [
+      {
+        "version": "4.4.1",
+        "disposition": "Review Required",
+        "dispositionReason": "Promiscuous packet capture tool. Requires Security Governance and Manager justification approval.",
+        "packagingStatus": "Not Packaged",
+        "installerSource": {
+          "windows": "\\\\corp.fiserv.net\\packages\\Wireshark\\4.4.1\\Wireshark-win64-4.4.1.exe"
+        }
+      }
+    ]
+  },
+  {
+    "id": "model_visual_studio",
+    "displayName": "Visual Studio",
+    "publisher": "Microsoft",
+    "category": "Productivity",
+    "supportedPlatforms": [
+      "windows"
+    ],
+    "licenseRequired": "No",
+    "isSaaSOrInternetFacing": false,
+    "dataClassification": "Internal",
+    "defaultInstallerType": {
+      "windows": "msi",
+      "macos": "pkg"
+    },
+    "description": "Code Editor",
+    "versions": [
+      {
+        "version": "1.85.0",
+        "disposition": "Review Required",
+        "dispositionReason": "",
+        "packagingStatus": "Not Packaged",
+        "installerSource": {
+          "windows": ""
+        }
+      }
+    ]
+  }
+]

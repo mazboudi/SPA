@@ -545,6 +545,18 @@ app.post('/api/publish/stream', async (req, res) => {
         }
       }
 
+      // Notify Standalone Intake Hub if triggered from a request ticket
+      if (req.body.serviceNowRequestId) {
+        await notifyIntakePackagingComplete(req.body.serviceNowRequestId, {
+          gitRepoUrl: project.web_url,
+          commitSha: commit ? commit.id : '',
+          pipelineId: pipelineId || '',
+          platform: req.body.platform || 'windows',
+          packageId,
+          packageVersion: version,
+        });
+      }
+
       emit('done', 'Published successfully', 'ok');
       res.write(`data: ${JSON.stringify({ step: 'result', status: 'ok', result: {
         action: 'created', projectUrl: project.web_url, projectId: project.id,
@@ -1674,6 +1686,24 @@ app.post('/api/intune/refresh', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CSV_PATH = join(__dirname, 'data', 'servicenow-queue.csv');
+const INTAKE_API_URL = process.env.INTAKE_API_URL || 'http://localhost:3002';
+
+async function notifyIntakePackagingComplete(serviceNowRequestId, details) {
+  if (!serviceNowRequestId) return;
+  try {
+    const res = await fetch(`${INTAKE_API_URL}/api/intake/requests/${encodeURIComponent(serviceNowRequestId)}/complete-packaging`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(details),
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      console.log(`✅ [INTAKE CALLBACK] Closed request ${serviceNowRequestId} in Intake Hub`);
+    }
+  } catch (err) {
+    console.warn(`⚠ [INTAKE CALLBACK] Could not notify Intake Hub: ${err.message}`);
+  }
+}
 
 function parseQueueCsv() {
   const raw = readFileSync(QUEUE_CSV_PATH, 'utf8');
@@ -1682,7 +1712,6 @@ function parseQueueCsv() {
 
   const headers = lines[0].split(',').map(h => h.trim());
   return lines.slice(1).map(line => {
-    // Simple CSV parse — handles commas inside fields if not quoted
     const values = [];
     let current = '';
     let inQuotes = false;
@@ -1699,11 +1728,25 @@ function parseQueueCsv() {
   });
 }
 
-// ── GET /api/queue — return all packaging requests ──────────────────────────
-app.get('/api/queue', (req, res) => {
+// ── GET /api/queue — return all packaging requests (Intake Portal or CSV fallback) ────
+app.get('/api/queue', async (req, res) => {
   try {
+    // 1. Try to fetch live queue from standalone Intake Portal on port 3002
+    try {
+      const platformParam = req.query.platform ? `?platform=${encodeURIComponent(req.query.platform)}` : '';
+      const intakeRes = await fetch(`${INTAKE_API_URL}/api/intake/queue${platformParam}`, {
+        signal: AbortSignal.timeout(1500),
+      });
+      if (intakeRes.ok) {
+        const data = await intakeRes.json();
+        return res.json({ items: data.items, count: data.count, source: 'spa-intake-portal' });
+      }
+    } catch (intakeErr) {
+      // Standalone intake portal is offline, fallback to local CSV
+    }
+
     const items = parseQueueCsv();
-    res.json({ items, count: items.length });
+    res.json({ items, count: items.length, source: 'csv' });
   } catch (err) {
     console.error('❌ Queue load failed:', err.message);
     res.status(500).json({ message: err.message });
@@ -1711,12 +1754,25 @@ app.get('/api/queue', (req, res) => {
 });
 
 // ── PATCH /api/queue/:id — mark a request as claimed ────────────────────────
-app.patch('/api/queue/:id', (req, res) => {
+app.patch('/api/queue/:id', async (req, res) => {
   try {
+    // 1. Notify standalone Intake Portal if active
+    try {
+      await fetch(`${INTAKE_API_URL}/api/intake/queue/${encodeURIComponent(req.params.id)}/claim`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claimedBy: 'Packaging Engineer' }),
+        signal: AbortSignal.timeout(1500),
+      });
+    } catch (e) {
+      // Fallback
+    }
+
     const items = parseQueueCsv();
     const item = items.find(i => i.RequestID === req.params.id);
-    if (!item) return res.status(404).json({ message: `Request ${req.params.id} not found` });
-    // Return the item data so the client can pre-populate wizard fields
+    if (!item) {
+      return res.json({ item: { RequestID: req.params.id } });
+    }
     res.json({ item });
   } catch (err) {
     console.error('❌ Queue claim failed:', err.message);

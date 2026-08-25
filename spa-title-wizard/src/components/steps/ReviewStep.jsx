@@ -202,8 +202,8 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
           files,
           pipelineAction,
           editProjectPath: state._editProjectPath || undefined,
-          // Store action in result so poller can restore pipelineActionRef on remount
-          pipelineAction,
+          serviceNowRequestId: state._serviceNowRequestId || undefined,
+          platform: state.platform || 'windows',
         },
         (event) => {
           setPublishPhase(event.message);
