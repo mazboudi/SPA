@@ -772,7 +772,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         >
           <span className="psadt-tab-btn__icon">🔍</span>
           <span className="psadt-tab-btn__label">
-            {hasLegacyScript ? 'Script Comparison' : 'Script Viewer'}
+            {hasLegacyScript ? 'Script Comparison' : 'Script Preview'}
           </span>
         </button>
         <button
