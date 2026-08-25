@@ -25,6 +25,7 @@ _template-psadt-win32/
 
   tools/
     IntuneWinAppUtil.exe        # Microsoft Win32 content prep tool (pinned)
+    ServiceUI.exe               # MDT ServiceUI — required for use_service_ui: true packages
     README.md                   # tool versions / source notes (optional)
 
   psadt/                        # pinned PSADT v4 template contents (do not modify)
@@ -166,6 +167,15 @@ When upgrading the toolkit:
 ### Build fails: missing tools/IntuneWinAppUtil.exe
 Ensure the Win32 Content Prep Tool binary is present and committed:
 - `tools/IntuneWinAppUtil.exe`
+
+### Build fails: missing tools/ServiceUI.exe
+This package has `use_service_ui: true` in `windows/package.yaml` but `ServiceUI.exe` is missing.
+Copy it from an MDT installation and commit it to `tools/`:
+```powershell
+Copy-Item `
+  "C:\Program Files\Microsoft Deployment Toolkit\Templates\Distribution\Tools\x64\ServiceUI.exe" `
+  tools\ServiceUI.exe
+```
 
 ### Build succeeds but installer does nothing
 Confirm your install command line in `app.json` uses the standard entry point:

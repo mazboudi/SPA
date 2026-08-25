@@ -133,7 +133,7 @@
             "version":            { "type": "string" },
             "sizeInMB":           { "type": "number", "description": "File size in MB for sizeInMB detection type." },
             "dateTimeValue":      { "type": "string", "format": "date-time", "description": "ISO 8601 date for modifiedDate detection type." },
-            "detection_type":     { "type": "string", "enum": ["exists", "doesNotExist", "version", "sizeInMB", "modifiedDate"], "default": "exists", "description": "What aspect of the file/folder to check." },
+            "detection_type":     { "type": "string", "enum": ["exists", "doesNotExist", "version", "sizeInMB", "lastModifiedDate", "createdDate", "modifiedDate"], "default": "exists", "description": "What aspect of the file/folder to check. Valid Graph API values: exists, doesNotExist, version, sizeInMB, lastModifiedDate, createdDate. 'modifiedDate' is accepted as an alias for lastModifiedDate." },
             "check32BitOn64System": { "type": "boolean", "default": false }
           }
         },
@@ -157,6 +157,11 @@
       "type": "string",
       "enum": ["system", "user"],
       "description": "Install execution context."
+    },
+    "use_service_ui": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the install/uninstall commands are wrapped with ServiceUI.exe so PSADT UI dialogs are visible to the logged-in user during a SYSTEM-context Intune deployment. Requires install_experience: system and DeployMode: Interactive in the PSADT script."
     },
     "intune": {
       "type": "object",

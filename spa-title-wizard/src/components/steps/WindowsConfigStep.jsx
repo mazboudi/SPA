@@ -478,10 +478,12 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
       <div className="config-section">
         <h3 className="section-title">PSADT Deploy Mode</h3>
         <div className="form-grid">
-          <SelectField label="Deploy Mode" id="deployMode" value={state.deployMode}
-            hint="Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only."
+          <SelectField label="Deploy Mode" id="deployMode"
+            value={state.useServiceUI ? 'Interactive' : state.deployMode}
+            hint={state.useServiceUI ? 'Forced to Interactive — required by ServiceUI.exe' : 'Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only.'}
             onChange={v => updateField('deployMode', v)}
             options={windowsOptions.deployModes}
+            disabled={state.useServiceUI}
           />
           <SelectField label="Install Context" id="installContext" value={state.installContext}
             onChange={v => updateField('installContext', v)}
@@ -489,6 +491,25 @@ export default function WindowsConfigStep({ state, updateField, addAction, remov
           />
         </div>
         <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
+        <ToggleSwitch
+          label="Show UI to logged-in user (ServiceUI.exe)"
+          checked={state.useServiceUI || false}
+          id="useServiceUI"
+          onChange={v => {
+            updateField('useServiceUI', v);
+            if (v) updateField('deployMode', 'Interactive');
+          }}
+          hint="Wraps the installer in ServiceUI.exe so PSADT progress dialogs are visible during a SYSTEM-context Intune deployment. Requires install_experience: system."
+        />
+        {state.useServiceUI && (
+          <div className="callout callout--warning" style={{ marginTop: '0.75rem' }}>
+            <span className="callout__icon">⚠️</span>
+            <div className="callout__body">
+              <strong>ServiceUI.exe must be staged in the package.</strong>
+              <span> Commit <code>ServiceUI.exe</code> to <code>windows/src/Files/</code> or ensure the build pipeline copies it from the framework tools directory alongside <code>Invoke-AppDeployToolkit.exe</code>.</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ═══ PHASE PANELS ═══ */}

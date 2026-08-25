@@ -246,6 +246,9 @@ detection:
     const optLines = [];
     optLines.push(`restart_behavior: ${s.restartBehavior}`);
     optLines.push('install_experience: system');
+    if (s.useServiceUI) {
+      optLines.push('use_service_ui: true');
+    }
     if (s.msiProductCode && s.installerType === 'msi') {
       const msiInfo = ['', 'msi_information:', `  product_code: "${s.msiProductCode}"`];
       if (s.msiProductVersion) msiInfo.push(`  product_version: "${s.msiProductVersion}"`);
@@ -256,15 +259,22 @@ detection:
     }
 
     // ── Build install commands from deploy mode + reboot passthrough ──────
+    // When ServiceUI is enabled, DeployMode must be Interactive so PSADT actually
+    // renders its UI (ServiceUI projects it into the active user session).
+    const effectiveDeployMode = s.useServiceUI ? 'Interactive' : (s.deployMode || null);
     const psadtFlags = [];
-    if (s.deployMode) {
-      psadtFlags.push(`-DeployMode ${s.deployMode}`);
+    if (effectiveDeployMode) {
+      psadtFlags.push(`-DeployMode ${effectiveDeployMode}`);
     }
     if (s.allowRebootPassThru) {
       psadtFlags.push('-AllowRebootPassThru');
     }
     const installSuffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    const bootstrapperExe = 'Invoke-AppDeployToolkit.exe';
+    // ServiceUI.exe wraps the bootstrapper so PSADT dialogs surface in the user’s desktop session
+    // even when the process is running as SYSTEM (standard Intune device context).
+    const bootstrapperExe = s.useServiceUI
+      ? `ServiceUI.exe -process:explorer.exe Invoke-AppDeployToolkit.exe`
+      : 'Invoke-AppDeployToolkit.exe';
     const installCmd = `${bootstrapperExe} -DeploymentType Install${installSuffix}`;
     const uninstallCmd = `${bootstrapperExe} -DeploymentType Uninstall${installSuffix}`;
 

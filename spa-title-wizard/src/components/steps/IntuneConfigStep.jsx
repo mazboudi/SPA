@@ -426,12 +426,16 @@ export default function IntuneConfigStep({ state, updateField, intuneCatalog, lo
 
   // ── Auto-derive install commands to reflect scaffolding ─────────────
   const derivedInstallCmd = useMemo(() => {
+    const effectiveDeployMode = state.useServiceUI ? 'Interactive' : state.deployMode;
     const psadtFlags = [];
-    if (state.deployMode) psadtFlags.push(`-DeployMode ${state.deployMode}`);
+    if (effectiveDeployMode) psadtFlags.push(`-DeployMode ${effectiveDeployMode}`);
     if (state.allowRebootPassThru) psadtFlags.push('-AllowRebootPassThru');
     const suffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    return `Invoke-AppDeployToolkit.exe -DeploymentType Install${suffix}`;
-  }, [state.deployMode, state.allowRebootPassThru]);
+    const bootstrapper = state.useServiceUI
+      ? 'ServiceUI.exe -process:explorer.exe Invoke-AppDeployToolkit.exe'
+      : 'Invoke-AppDeployToolkit.exe';
+    return `${bootstrapper} -DeploymentType Install${suffix}`;
+  }, [state.deployMode, state.allowRebootPassThru, state.useServiceUI]);
 
   const derivedUninstallCmd = useMemo(() => {
     const psadtFlags = [];
@@ -1445,20 +1449,28 @@ function IntuneMetaSummary({ state }) {
 
   // Derive commands
   const derivedInstallCmd = useMemo(() => {
+    const effectiveDeployMode = state.useServiceUI ? 'Interactive' : state.deployMode;
     const psadtFlags = [];
-    if (state.deployMode) psadtFlags.push(`-DeployMode ${state.deployMode}`);
+    if (effectiveDeployMode) psadtFlags.push(`-DeployMode ${effectiveDeployMode}`);
     if (state.allowRebootPassThru) psadtFlags.push('-AllowRebootPassThru');
     const suffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    return `Invoke-AppDeployToolkit.exe -DeploymentType Install${suffix}`;
-  }, [state.deployMode, state.allowRebootPassThru]);
+    const bootstrapper = state.useServiceUI
+      ? 'ServiceUI.exe -process:explorer.exe Invoke-AppDeployToolkit.exe'
+      : 'Invoke-AppDeployToolkit.exe';
+    return `${bootstrapper} -DeploymentType Install${suffix}`;
+  }, [state.deployMode, state.allowRebootPassThru, state.useServiceUI]);
 
   const derivedUninstallCmd = useMemo(() => {
+    const effectiveDeployMode = state.useServiceUI ? 'Interactive' : state.deployMode;
     const psadtFlags = [];
-    if (state.deployMode) psadtFlags.push(`-DeployMode ${state.deployMode}`);
+    if (effectiveDeployMode) psadtFlags.push(`-DeployMode ${effectiveDeployMode}`);
     if (state.allowRebootPassThru) psadtFlags.push('-AllowRebootPassThru');
     const suffix = psadtFlags.length > 0 ? ' ' + psadtFlags.join(' ') : '';
-    return `Invoke-AppDeployToolkit.exe -DeploymentType Uninstall${suffix}`;
-  }, [state.deployMode, state.allowRebootPassThru]);
+    const bootstrapper = state.useServiceUI
+      ? 'ServiceUI.exe -process:explorer.exe Invoke-AppDeployToolkit.exe'
+      : 'Invoke-AppDeployToolkit.exe';
+    return `${bootstrapper} -DeploymentType Uninstall${suffix}`;
+  }, [state.deployMode, state.allowRebootPassThru, state.useServiceUI]);
 
   const archText = state.archCheckEnabled
     ? [state.archX86 && 'x86', state.archX64 && 'x64', state.archArm64 && 'ARM64'].filter(Boolean).join(', ') || 'None specified'

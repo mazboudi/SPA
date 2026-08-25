@@ -9,12 +9,13 @@
 
 [CmdletBinding()]
 param(
-  [string] $AppJsonPath  = "app.json",
-  [string] $PsadtDir     = "psadt",
-  [string] $SrcDir       = "src",
-  [string] $ToolsDir     = "tools",
-  [string] $OutDir       = "out",
-  [string] $SetupFile    = "Invoke-AppDeployToolkit.exe",
+  [string] $AppJsonPath     = "app.json",
+  [string] $PackageYamlPath = "windows/package.yaml",
+  [string] $PsadtDir        = "psadt",
+  [string] $SrcDir          = "src",
+  [string] $ToolsDir        = "tools",
+  [string] $OutDir          = "out",
+  [string] $SetupFile       = "Invoke-AppDeployToolkit.exe",
   [switch] $CleanOut
 )
 
@@ -69,6 +70,16 @@ if (!(Test-Path $intuneUtil))  { throw "Missing IntuneWinAppUtil.exe at: $intune
 $app = Get-Content $AppJsonPath -Raw | ConvertFrom-Json
 if (-not $app.name -or -not $app.version) { throw "app.json must include 'name' and 'version'." }
 
+# Detect ServiceUI requirement from windows/package.yaml
+$useServiceUI = $false
+if (Test-Path $PackageYamlPath) {
+  $pkgYamlContent = Get-Content $PackageYamlPath -Raw
+  if ($pkgYamlContent -match '(?m)^\s*use_service_ui\s*:\s*true') {
+    $useServiceUI = $true
+    Write-Host "ℹ️  ServiceUI.exe mode enabled (use_service_ui: true in package.yaml)" -ForegroundColor Cyan
+  }
+}
+
 # Prepare output folder
 Ensure-Dir $OutDir
 if ($CleanOut) {
@@ -87,6 +98,23 @@ try {
   $setupPath = Join-Path $staging $SetupFile
   if (!(Test-Path $setupPath)) {
     throw "Setup file '$SetupFile' not found in staging root. Expected: $setupPath"
+  }
+
+  # 1a) Stage ServiceUI.exe if required
+  #     Look in: tools/ServiceUI.exe → staging root (alongside Invoke-AppDeployToolkit.exe)
+  if ($useServiceUI) {
+    $serviceUiSource = Join-Path $ToolsDir "ServiceUI.exe"
+    $serviceUiDest   = Join-Path $staging "ServiceUI.exe"
+    if (!(Test-Path $serviceUiSource)) {
+      throw @"
+ServiceUI.exe not found at '$serviceUiSource'.
+This package has use_service_ui: true in package.yaml but ServiceUI.exe is missing.
+Add ServiceUI.exe (from MDT) to the '$ToolsDir' directory in this repository,
+or commit it to windows/src/Files/ and set the ToolsDir parameter accordingly.
+"@
+    }
+    Copy-Item -Path $serviceUiSource -Destination $serviceUiDest -Force
+    Write-Host "  ✔ Staged ServiceUI.exe → staging root" -ForegroundColor Green
   }
 
   # 2) Overlay src content

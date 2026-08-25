@@ -792,15 +792,33 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
             <div className="config-section">
               <h3 className="section-title">PSADT Deploy Mode & Behavior</h3>
               <div className="form-grid">
-                <SelectField label="Deploy Mode" id="deployMode" value={state.deployMode}
-                  hint="Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only."
+                <SelectField label="Deploy Mode" id="deployMode"
+                  value={state.useServiceUI ? 'Interactive' : state.deployMode}
+                  hint={state.useServiceUI ? 'Forced to Interactive — required by ServiceUI.exe' : 'Controls how the PSADT wrapper executes. Silent = no UI, NonInteractive = progress bar only.'}
                   onChange={v => updateField('deployMode', v)}
                   options={windowsOptions.deployModes}
+                  disabled={state.useServiceUI}
                 />
-
-
               </div>
               <ToggleSwitch label="Allow reboot passthrough from installer" checked={state.allowRebootPassThru} onChange={v => updateField('allowRebootPassThru', v)} id="allowRebootPassThru" />
+              <ToggleSwitch
+                label="Show UI to logged-in user (ServiceUI.exe)"
+                checked={state.useServiceUI || false}
+                id="useServiceUI-behavior"
+                onChange={v => {
+                  updateField('useServiceUI', v);
+                  if (v) updateField('deployMode', 'Interactive');
+                }}
+                hint="Wraps the installer in ServiceUI.exe so PSADT progress dialogs are visible during a SYSTEM-context Intune deployment."
+              />
+              {state.useServiceUI && (
+                <div className="callout callout--info" style={{ marginTop: '0.75rem' }}>
+                  <span className="callout__icon">💡</span>
+                  <div className="callout__body">
+                    Install/uninstall commands will be prefixed with <code>ServiceUI.exe -process:explorer.exe</code> in the generated <code>package.yaml</code>.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
