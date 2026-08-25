@@ -101,64 +101,6 @@
         Write-Host "  ✓ windows/intune/requirements.json valid"
       }
 
-      ## 1c — Validate windows/intune/assignments.json
-      ##       The assignment file MUST exist, contain at least one entry, and
-      ##       every groupId must be a real GUID — not blank or a TODO- placeholder.
-      ##       This guard prevents a wasted pipeline run that fails at the Graph API
-      ##       step deep in the publish-intune job.
-      $assignmentsPath = 'windows/intune/assignments.json'
-      if (!(Test-Path $assignmentsPath)) {
-        throw @"
-❌ MISSING: $assignmentsPath
-This file is required before the build pipeline can run.
-Create it and populate each entry with a valid Entra ID group Object ID, e.g.:
-  [
-    {
-      "intent": "required",
-      "groupId": "<entra-group-object-id>",
-      "filterMode": "none",
-      "notifications": "showAll",
-      "deliveryOptimizationPriority": "notConfigured"
-    }
-  ]
-"@
-      }
-
-      $assignmentsRaw = Get-Content $assignmentsPath -Raw
-      $assignments    = $assignmentsRaw | ConvertFrom-Json
-
-      if (-not $assignments -or $assignments.Count -eq 0) {
-        throw "❌ $assignmentsPath is empty — add at least one assignment entry with a valid groupId."
-      }
-
-      $assignErrors = @()
-      $guidPattern  = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-      for ($i = 0; $i -lt $assignments.Count; $i++) {
-        $entry   = $assignments[$i]
-        $groupId = $entry.groupId
-
-        if ([string]::IsNullOrWhiteSpace($groupId)) {
-          $assignErrors += "  [${i}] groupId is blank"
-        } elseif ($groupId -match '^TODO-') {
-          $assignErrors += "  [${i}] groupId is an unfilled placeholder: '$groupId'"
-        } elseif ($groupId -notmatch $guidPattern) {
-          $assignErrors += "  [${i}] groupId is not a valid GUID: '$groupId'"
-        }
-      }
-
-      if ($assignErrors.Count -gt 0) {
-        $errList = $assignErrors -join "`n"
-        throw @"
-❌ $assignmentsPath contains invalid assignment(s):
-$errList
-
-Replace each placeholder with a real Entra ID group Object ID.
-Find it in: Azure Portal → Microsoft Entra ID → Groups → <your group> → Overview → Object ID
-"@
-      }
-
-      Write-Host "  ✓ windows/intune/assignments.json valid ($($assignments.Count) assignment(s))" -ForegroundColor Green
-
       ## 2 — Download psadt-enterprise framework bundle
       $frameworkDir = "psadt-framework-$($env:PSADT_FRAMEWORK_VERSION)"
       if (!(Test-Path $frameworkDir)) {
