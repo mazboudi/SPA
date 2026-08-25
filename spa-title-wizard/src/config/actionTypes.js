@@ -41,7 +41,7 @@ const activeParameters = parameters.filter(param => param.cmdlet);
 
 export const ACTION_TYPES = activeCommands.map(cmd => {
   const fields = activeParameters
-    .filter(param => param.cmdlet === cmd.name)
+    .filter(param => param.cmdlet === cmd.name && param.parameter !== 'commonParams')
     .map(param => ({
       key: param.parameter,
       label: param.label,
