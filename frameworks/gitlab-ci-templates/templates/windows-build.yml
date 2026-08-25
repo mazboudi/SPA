@@ -325,6 +325,32 @@
         Write-Host "⚠ Staging Files/ directory not found — no installer binary!" -ForegroundColor Yellow
       }
 
+      ## 4c — Stage ServiceUI.exe if use_service_ui: true in windows/package.yaml
+      ##      ServiceUI.exe projects PSADT UI dialogs into the active user session
+      ##      during SYSTEM-context Intune deployments. It must sit in the staging
+      ##      root alongside Invoke-AppDeployToolkit.exe for IntuneWinAppUtil to
+      ##      package it correctly.
+      ##      ServiceUI.exe must be pre-installed on the GitLab runner at C:\tools\ServiceUI.exe
+      $winPkgRaw = Get-Content 'windows/package.yaml' -Raw
+      if ($winPkgRaw -match '(?m)^\s*use_service_ui\s*:\s*true') {
+        Write-Host "--- ServiceUI.exe required (use_service_ui: true) ---" -ForegroundColor Cyan
+
+        $serviceUiSrc = 'C:\tools\ServiceUI.exe'
+        if (!(Test-Path $serviceUiSrc)) {
+          throw @"
+ServiceUI.exe not found at C:\tools\ServiceUI.exe.
+This package has use_service_ui: true in windows/package.yaml.
+Pre-install ServiceUI.exe on the GitLab runner:
+  Source: C:\Program Files\Microsoft Deployment Toolkit\Templates\Distribution\Tools\x64\ServiceUI.exe
+  Destination: C:\tools\ServiceUI.exe
+"@
+        }
+
+        $serviceUiDest = Join-Path $staging 'ServiceUI.exe'
+        Copy-Item -Path $serviceUiSrc -Destination $serviceUiDest -Force
+        Write-Host "  ✓ Staged ServiceUI.exe → staging root" -ForegroundColor Green
+      }
+
       ## 5 — Copy staging area to out/staging/ for artifact handoff to deploy-intune
       $outDir = 'out'
       if (!(Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
