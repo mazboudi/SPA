@@ -110,11 +110,11 @@ function RawPsCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove,
 
   // Cycle: Active (enabled, !commented) → Commented (enabled, commented) → Disabled (!enabled) → Active
   const cycleCommentState = () => {
-    if (action.enabled && !action.commented)  onUpdate(phaseKey, index, { enabled: true,  commented: true  });
-    else if (action.commented)               onUpdate(phaseKey, index, { enabled: false, commented: false });
-    else                                     onUpdate(phaseKey, index, { enabled: true,  commented: false });
+    if (action.enabled && !action.commented) onUpdate(phaseKey, index, { enabled: true, commented: true });
+    else if (action.commented) onUpdate(phaseKey, index, { enabled: false, commented: false });
+    else onUpdate(phaseKey, index, { enabled: true, commented: false });
   };
-  const toggleIcon  = isCardCommented ? '💬' : action.enabled ? '🟢' : '🔴';
+  const toggleIcon = isCardCommented ? '💬' : action.enabled ? '🟢' : '🔴';
   const toggleClass = isCardCommented ? 'action-btn--commented' : action.enabled ? 'action-btn--active' : 'action-btn--inactive';
   const toggleTitle = isCardCommented ? 'Commented — click to Disable' : action.enabled ? 'Active — click to Comment Out' : 'Disabled — click to Activate';
 
@@ -297,9 +297,9 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
       const position = editor.getPosition();
       const range = {
         startLineNumber: position.lineNumber,
-        startColumn:     position.column,
-        endLineNumber:   position.lineNumber,
-        endColumn:       position.column,
+        startColumn: position.column,
+        endLineNumber: position.lineNumber,
+        endColumn: position.column,
       };
       // Prefix with a blank line if the cursor is not at the start of the document
       const model = editor.getModel();
@@ -344,11 +344,11 @@ function ActionCard({ action, index, total, phaseKey, onUpdate, onRemove, onMove
 
   // Cycle: Active → Commented → Disabled → Active
   const cycleCommentState = () => {
-    if (action.enabled && !action.commented)  onUpdate(phaseKey, index, { enabled: true,  commented: true  });
-    else if (action.commented)               onUpdate(phaseKey, index, { enabled: false, commented: false });
-    else                                     onUpdate(phaseKey, index, { enabled: true,  commented: false });
+    if (action.enabled && !action.commented) onUpdate(phaseKey, index, { enabled: true, commented: true });
+    else if (action.commented) onUpdate(phaseKey, index, { enabled: false, commented: false });
+    else onUpdate(phaseKey, index, { enabled: true, commented: false });
   };
-  const toggleIcon  = isCardCommented ? '💬' : action.enabled ? '🟢' : '🔴';
+  const toggleIcon = isCardCommented ? '💬' : action.enabled ? '🟢' : '🔴';
   const toggleClass = isCardCommented ? 'action-btn--commented' : action.enabled ? 'action-btn--active' : 'action-btn--inactive';
   const toggleTitle = isCardCommented ? 'Commented — click to Disable' : action.enabled ? 'Active — click to Comment Out' : 'Disabled — click to Activate';
 
@@ -772,7 +772,7 @@ export default function PsadtLifecycleStep({ state, updateField, updateFields, a
         >
           <span className="psadt-tab-btn__icon">🔍</span>
           <span className="psadt-tab-btn__label">
-            {hasLegacyScript ? 'Script Comparison' : 'Script Developer'}
+            {hasLegacyScript ? 'Script Comparison' : 'Script Viewer'}
           </span>
         </button>
         <button

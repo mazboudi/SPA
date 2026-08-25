@@ -720,6 +720,8 @@ export default function useWizardState() {
 
       // ── 1. Variable declarations ──────────────────────────────────────
       const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+      // Derive the default install name/title: AppName (no spaces) + version — PSADT convention
+      const defaultInstallLabel = `${(prev.displayName || '').replace(/\s+/g, '')} ${prev.version || ''}`.trim();
       const stdVarActions = [
         { name: '$adtSession.AppVendor',          value: prev.publisher || '' },
         { name: '$adtSession.AppName',            value: (prev.displayName || '').replace(/\s+/g, '') },
@@ -734,6 +736,8 @@ export default function useWizardState() {
         { name: '$adtSession.AppScriptDate',      value: today },
         { name: '$adtSession.AppScriptAuthor',    value: prev.appOwner || 'EUC Packaging' },
         { name: '$adtSession.RequireAdmin',       value: '$true', desc: 'Require admin privileges — set to $false for user-context deployments' },
+        { name: '$adtSession.InstallName',        value: defaultInstallLabel, desc: 'Used for log file names, scheduled task names, and cache folder path' },
+        { name: '$adtSession.InstallTitle',       value: defaultInstallLabel, desc: 'Displayed in progress dialogs and balloon notifications shown to the user' },
       ].map(v => ({
         type: 'custom_variable',
         desc: v.desc || `${v.name} = '${v.value}'`,
@@ -742,6 +746,7 @@ export default function useWizardState() {
         enabled: true,
         ...(v.raw ? { raw: v.raw } : {}),
       }));
+
 
       const systemVarActions = [
         { name: '$adtSession.DeployAppScriptFriendlyName', value: '$MyInvocation.MyCommand.Name',   desc: 'Script friendly name (auto-set)' },
