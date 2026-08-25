@@ -163,17 +163,33 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
     return true;
   }, [state.intuneAppName, state.displayName, state.version, state.appDescription, state.publisher, state.detectionRules, state.detectionMethod, state.scriptContent]);
 
+  // Assignment validation — blocks Build+Publish+Assign only.
+  // Requires at least one entry with a valid Entra ID group GUID.
+  const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const assignmentsReady = useMemo(() => {
+    const list = state.assignments || [];
+    return list.some(a =>
+      a.groupId &&
+      !a.groupId.startsWith('TODO-') &&
+      GUID_PATTERN.test(a.groupId.trim())
+    );
+  }, [state.assignments]);
+
   // Auto-reset pipeline action if the current selection is no longer valid
   useEffect(() => {
     // If intune fields are missing, drop back from publish/assign to build
     if (!intuneReady && (pipelineAction === 'publish' || pipelineAction === 'assign')) {
       setPipelineAction('build');
     }
+    // If assignments are missing/invalid, drop assign back to publish
+    if (!assignmentsReady && pipelineAction === 'assign') {
+      setPipelineAction(intuneReady ? 'publish' : 'build');
+    }
     // If required fields across ALL steps are missing, drop any pipeline action back to 'none'
     if (!allStepsValid && pipelineAction !== 'none') {
       setPipelineAction('none');
     }
-  }, [intuneReady, allStepsValid, pipelineAction]);
+  }, [intuneReady, assignmentsReady, allStepsValid, pipelineAction]);
 
   // Persist publish result in wizard state so it survives navigation
   const publishResult = state._lastPublishResult || null;
@@ -534,7 +550,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
                   options.push(
                     { value: 'build', label: '📦 Build PSADT', desc: 'Build Package - Dont publish to Intune', disabled: !allStepsValid },
                     { value: 'publish', label: '📦 Build .intunewin + Publish', desc: 'Package, upload to Intune, and apply supersedence/dependencies', disabled: !allStepsValid || !intuneReady },
-                    { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady },
+                    { value: 'assign', label: '📦 Build + Publish + Assign', desc: 'Full pipeline — includes group assignments', disabled: !allStepsValid || !intuneReady || !assignmentsReady },
                   );
                 }
                 if (isMac && !isWin) {
@@ -551,11 +567,14 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
                 return options.map(opt => {
                   const isDisabledBySteps = opt.value !== 'none' && !allStepsValid;
                   const isDisabledByIntune = (opt.value === 'publish' || opt.value === 'assign') && !intuneReady;
+                  const isDisabledByAssignment = opt.value === 'assign' && intuneReady && !assignmentsReady;
                   const tooltip = isDisabledBySteps
                     ? 'Complete all required fields across all stages first'
                     : isDisabledByIntune
                       ? 'Complete required Intune fields first (App Name, Description, Publisher, Detection Rules)'
-                      : '';
+                      : isDisabledByAssignment
+                        ? 'Add at least one valid Entra ID group assignment in the Intune → Assignments tab'
+                        : '';
                   return (
                     <label
                       key={opt.value}
@@ -575,6 +594,7 @@ export default function ReviewStep({ state, updateField, allStepsValid = true, m
                         {opt.desc}
                         {isDisabledBySteps ? ' ⚠️ Required fields missing' : ''}
                         {!isDisabledBySteps && isDisabledByIntune ? ' ⚠️ Intune fields incomplete' : ''}
+                        {!isDisabledBySteps && !isDisabledByIntune && isDisabledByAssignment ? ' ⚠️ No valid group assignment' : ''}
                       </span>
                     </label>
                   );
