@@ -673,5 +673,50 @@
       "version": "134.0.6998.89",
       "packagedAt": "2026-08-25T15:54:44.343Z"
     }
+  },
+  {
+    "id": "REQ0000013",
+    "number": "RITM0000013",
+    "shortDescription": "Software Request: Wireshark Network Analyzer 4.4.1",
+    "titleId": "model_wireshark",
+    "titleName": "Wireshark Network Analyzer",
+    "publisher": "Wireshark Foundation",
+    "version": "4.4.1",
+    "platform": "windows",
+    "category": "Security",
+    "installerType": "exe",
+    "installerSource": "\\\\corp.fiserv.net\\packages\\Wireshark\\4.4.1\\Wireshark-win64-4.4.1.exe",
+    "requestedFor": "Alex Johnson",
+    "requesterEmail": "alex.johnson@fiserv.com",
+    "department": "Digital Banking Engineering",
+    "targetDevice": "W11-ENG-08912",
+    "installType": "New Install",
+    "deploymentScope": "Individual",
+    "businessJustification": "new request",
+    "disposition": "Review Required",
+    "stage": "governance_review",
+    "state": "In Review",
+    "priority": "Medium",
+    "submittedAt": "2026-08-26T20:21:38.115Z",
+    "updatedAt": "2026-08-26T20:21:38.115Z",
+    "tasks": [
+      {
+        "id": "TASK0040028",
+        "number": "SCTASK0040028",
+        "name": "Software Disposition Review",
+        "assignmentGroup": "Software Governance / SAM",
+        "state": "Open",
+        "notes": "Evaluate software title / version disposition before downstream fulfillment."
+      },
+      {
+        "id": "TASK0040029",
+        "number": "SCTASK0040029",
+        "name": "Security & Risk Assessment",
+        "assignmentGroup": "Cybersecurity / AppSec",
+        "state": "Open",
+        "notes": "Review data classification and vendor architecture."
+      }
+    ],
+    "packagingArtifacts": null
   }
 ]

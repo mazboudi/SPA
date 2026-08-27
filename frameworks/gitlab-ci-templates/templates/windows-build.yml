@@ -337,13 +337,12 @@
 
         $serviceUiSrc = 'C:\tools\ServiceUI.exe'
         if (!(Test-Path $serviceUiSrc)) {
-          throw @"
-ServiceUI.exe not found at C:\tools\ServiceUI.exe.
-This package has use_service_ui: true in windows/package.yaml.
-Pre-install ServiceUI.exe on the GitLab runner:
-  Source: C:\Program Files\Microsoft Deployment Toolkit\Templates\Distribution\Tools\x64\ServiceUI.exe
-  Destination: C:\tools\ServiceUI.exe
-"@
+          Write-Host "ServiceUI.exe not found at C:\tools\ServiceUI.exe." -ForegroundColor Red
+          Write-Host "This package has use_service_ui: true in windows/package.yaml." -ForegroundColor Red
+          Write-Host "Pre-install ServiceUI.exe on the GitLab runner:" -ForegroundColor Red
+          Write-Host "  From: C:\Program Files\Microsoft Deployment Toolkit\Templates\Distribution\Tools\x64\ServiceUI.exe" -ForegroundColor Red
+          Write-Host "  To:   C:\tools\ServiceUI.exe" -ForegroundColor Red
+          throw "ServiceUI.exe not found. See instructions above."
         }
 
         $serviceUiDest = Join-Path $staging 'ServiceUI.exe'
