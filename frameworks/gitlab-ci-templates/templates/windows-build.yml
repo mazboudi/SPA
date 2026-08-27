@@ -336,7 +336,8 @@
         Write-Host "--- ServiceUI.exe required (use_service_ui: true) ---" -ForegroundColor Cyan
 
         $serviceUiSrc = 'C:\tools\ServiceUI.exe'
-        if (!(Test-Path $serviceUiSrc)) {
+        if (!(Test-Path $serviceUiSrc)) 
+        {
           Write-Host "ServiceUI.exe not found at C:\tools\ServiceUI.exe." -ForegroundColor Red
           Write-Host "This package has use_service_ui: true in windows/package.yaml." -ForegroundColor Red
           Write-Host "Pre-install ServiceUI.exe on the GitLab runner:" -ForegroundColor Red
