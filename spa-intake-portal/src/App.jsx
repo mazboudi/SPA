@@ -18,6 +18,45 @@ const SECTION_TITLES = {
   catalog: 'Authoritative Software Catalog',
 };
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    this.setState({ errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box sx={{ p: 4, maxWidth: 800, mx: 'auto', mt: 6 }}>
+          <Box sx={{ p: 3, bgcolor: '#fef2f2', border: '1px solid #fecaca', borderRadius: 2 }}>
+            <h2 style={{ color: '#991b1b', marginTop: 0 }}>Something went wrong rendering the UI</h2>
+            <p style={{ color: '#b91c1c' }}>{this.state.error?.toString()}</p>
+            <pre style={{ background: '#ffffff', p: 2, padding: 12, borderRadius: 6, overflow: 'auto', fontSize: '0.8rem', color: '#334155' }}>
+              {this.state.errorInfo?.componentStack || this.state.error?.stack}
+            </pre>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ marginTop: 12, padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+            >
+              Reload Page
+            </button>
+          </Box>
+        </Box>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('request'); // 'request' | 'governance' | 'tracker' | 'catalog'
@@ -51,60 +90,62 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default' }}>
-        {/* Fixed TopBar */}
-        <TopBar
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={handleToggleSidebar}
-          currentSectionTitle={SECTION_TITLES[activeTab] || 'Dashboard'}
-          openTasksCount={openTasksCount}
-        />
+      <ErrorBoundary>
+        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default' }}>
+          {/* Fixed TopBar */}
+          <TopBar
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={handleToggleSidebar}
+            currentSectionTitle={SECTION_TITLES[activeTab] || 'Dashboard'}
+            openTasksCount={openTasksCount}
+          />
 
-        {/* Left Collapsible Sidebar */}
-        <Sidebar
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={handleToggleSidebar}
-          activeTab={activeTab}
-          onSelectTab={setActiveTab}
-          openTasksCount={openTasksCount}
-        />
+          {/* Left Collapsible Sidebar */}
+          <Sidebar
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={handleToggleSidebar}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+            openTasksCount={openTasksCount}
+          />
 
-        {/* Main Content Area */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            pt: `${TOPBAR_HEIGHT + 24}px`,
-            pb: 6,
-            px: { xs: 2, sm: 3, md: 4 },
-            minWidth: 0,
-            transition: 'margin 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        >
-          <Container maxWidth="xl" disableGutters>
-            {activeTab === 'request' && (
-              <RequestSoftwareView
-                onSubmitted={() => {
-                  fetchStats();
-                  setActiveTab('tracker');
-                }}
-              />
-            )}
+          {/* Main Content Area */}
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              pt: `${TOPBAR_HEIGHT + 24}px`,
+              pb: 6,
+              px: { xs: 2, sm: 3, md: 4 },
+              minWidth: 0,
+              transition: 'margin 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <Container maxWidth="xl" disableGutters>
+              {activeTab === 'request' && (
+                <RequestSoftwareView
+                  onSubmitted={() => {
+                    fetchStats();
+                    setActiveTab('tracker');
+                  }}
+                />
+              )}
 
-            {activeTab === 'governance' && (
-              <GovernanceDashboard onTaskUpdated={fetchStats} />
-            )}
+              {activeTab === 'governance' && (
+                <GovernanceDashboard onTaskUpdated={fetchStats} />
+              )}
 
-            {activeTab === 'tracker' && (
-              <RequestTracker />
-            )}
+              {activeTab === 'tracker' && (
+                <RequestTracker />
+              )}
 
-            {activeTab === 'catalog' && (
-              <CatalogManager />
-            )}
-          </Container>
+              {activeTab === 'catalog' && (
+                <CatalogManager />
+              )}
+            </Container>
+          </Box>
         </Box>
-      </Box>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

@@ -35,8 +35,11 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
     taskId: null,
     taskName: '',
     reqNumber: '',
+    isUnlisted: false,
+    isDispositionTask: false,
     action: 'approve',
     notes: '',
+    recommendedAlternative: '',
   });
   const [acting, setActing] = useState(false);
 
@@ -77,13 +80,17 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
     : openTasks.filter(t => t.assignmentGroup.toLowerCase().includes(activeTabGroup.toLowerCase()));
 
   const handleOpenActionDialog = (task, action) => {
+    const isDisp = task.name.includes('Disposition') || task.name.includes('Security');
     setActionDialog({
       open: true,
       taskId: task.id,
       taskName: task.name,
       reqNumber: task.parentRequest.number,
+      isUnlisted: !!task.parentRequest.isUnlisted,
+      isDispositionTask: isDisp,
       action,
-      notes: action === 'approve' ? 'Approved for deployment.' : 'Rejected due to corporate policy.',
+      notes: action === 'approve' ? 'Approved for enterprise deployment and catalog enrollment.' : 'Rejected due to corporate security/architecture policy.',
+      recommendedAlternative: '',
     });
   };
 
@@ -97,11 +104,13 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
           action: actionDialog.action,
           completedBy: 'Alex Johnson (Reviewer)',
           notes: actionDialog.notes,
+          dispositionDecision: actionDialog.action === 'approve' ? 'Approved' : 'Denied',
+          recommendedAlternative: actionDialog.recommendedAlternative,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Action failed');
-      setActionDialog({ open: false, taskId: null, taskName: '', reqNumber: '', action: 'approve', notes: '' });
+      setActionDialog({ open: false, taskId: null, taskName: '', reqNumber: '', isUnlisted: false, isDispositionTask: false, action: 'approve', notes: '', recommendedAlternative: '' });
       loadData();
       if (onTaskUpdated) onTaskUpdated();
     } catch (err) {
@@ -120,7 +129,7 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
               🛡️ Governance & Approval Review Center
             </Typography>
             <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-              Review, approve, or reject pending Catalog Tasks (Manager Approvals, SAM License Entitlements, Cybersecurity Reviews).
+              Review, approve, or reject pending Catalog Tasks (Manager Approvals, SAM License Entitlements, Cybersecurity & Unlisted Software Reviews).
             </Typography>
           </Box>
 
@@ -194,12 +203,15 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 1.5 }}>
                       <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
                           <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563eb', fontSize: '0.8rem' }}>
                             {task.number}
                           </Typography>
                           <Chip label={task.state} size="small" color="primary" sx={{ height: 20, fontSize: '0.675rem' }} />
                           <Chip label={task.assignmentGroup} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.675rem' }} />
+                          {req.isUnlisted && (
+                            <Chip label="Unlisted Title Intake" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700 }} />
+                          )}
                         </Box>
                         <Typography variant="h4" sx={{ fontWeight: 700, color: '#0f172a' }}>
                           {task.name} — {req.titleName} {req.version}
@@ -230,17 +242,21 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
 
                     <Paper variant="outlined" sx={{ p: 1.5, backgroundColor: '#f8fafc', borderRadius: 1.5, mb: 1.5 }}>
                       <Grid container spacing={2}>
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={12} sm={3}>
                           <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Parent Request</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.number}</Typography>
                         </Grid>
-                        <Grid item xs={12} sm={4}>
-                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Requester & Dept</Typography>
+                        <Grid item xs={12} sm={3}>
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Submitted By</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.requestedBy || req.requestedFor}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={3}>
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Requested For (Beneficiary)</Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.requestedFor} ({req.department})</Typography>
                         </Grid>
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={12} sm={3}>
                           <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Target Host</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.targetDevice}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.targetDevice || 'Workstation'}</Typography>
                         </Grid>
                       </Grid>
                     </Paper>
@@ -270,15 +286,40 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
           <DialogContentText sx={{ mb: 2 }}>
             You are about to {actionDialog.action === 'approve' ? 'approve' : 'reject'} task <strong>{actionDialog.taskName}</strong> for request <strong>{actionDialog.reqNumber}</strong>.
           </DialogContentText>
+
+          {(actionDialog.isDispositionTask || actionDialog.isUnlisted) && actionDialog.action === 'approve' && (
+            <Alert severity="success" sx={{ mb: 2, fontSize: '0.8rem' }}>
+              <strong>Authoritative Catalog Enrollment:</strong> Approving this unlisted/unvetted software request will automatically register it in the Authoritative SQLite Catalog as an <strong>Approved</strong> software model for all enterprise users.
+            </Alert>
+          )}
+
+          {(actionDialog.isDispositionTask || actionDialog.isUnlisted) && actionDialog.action === 'reject' && (
+            <Alert severity="warning" sx={{ mb: 2, fontSize: '0.8rem' }}>
+              <strong>Denial Policy Recording:</strong> Rejecting this request will register this software title & version into the Authoritative Catalog as <strong>Denied / Prohibited</strong> with your denial reason.
+            </Alert>
+          )}
+
           <TextField
             autoFocus
             fullWidth
             multiline
             rows={3}
-            label="Reviewer Comments & Audit Notes"
+            label="Reviewer Comments & Audit Notes *"
             value={actionDialog.notes}
             onChange={e => setActionDialog({ ...actionDialog, notes: e.target.value })}
+            sx={{ mb: actionDialog.action === 'reject' ? 2 : 0 }}
           />
+
+          {actionDialog.action === 'reject' && (
+            <TextField
+              fullWidth
+              size="small"
+              label="Recommended Approved Alternative Software (Optional)"
+              placeholder="e.g. Visual Studio Code, 1Password v8, etc."
+              value={actionDialog.recommendedAlternative}
+              onChange={e => setActionDialog({ ...actionDialog, recommendedAlternative: e.target.value })}
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setActionDialog({ ...actionDialog, open: false })} color="secondary">

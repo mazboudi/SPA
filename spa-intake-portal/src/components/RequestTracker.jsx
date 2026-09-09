@@ -196,11 +196,19 @@ export default function RequestTracker() {
               {/* Header */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box>
-                  <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563eb', fontSize: '0.85rem' }}>
-                    {selectedReq.number}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563eb', fontSize: '0.85rem' }}>
+                      {selectedReq.number}
+                    </Typography>
+                    {selectedReq.isUnlisted && (
+                      <Chip label="Unlisted Software Intake" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700 }} />
+                    )}
+                  </Box>
                   <Typography variant="h3" sx={{ fontWeight: 700, color: '#0f172a' }}>
                     {selectedReq.titleName} {selectedReq.version}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    Publisher: {selectedReq.publisher} • Category: {selectedReq.category || 'General'}
                   </Typography>
                 </Box>
                 <Chip
@@ -252,8 +260,14 @@ export default function RequestTracker() {
               <Paper variant="outlined" sx={{ p: 2, mb: 3, backgroundColor: '#ffffff', borderRadius: 2 }}>
                 <Grid container spacing={2}>
                   <Grid item xs={6} sm={4}>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>Requester</Typography>
+                    <Typography variant="caption" sx={{ color: '#64748b' }}>Submitted By (Requester)</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.requestedBy || selectedReq.requestedFor}</Typography>
+                    <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.7rem' }}>{selectedReq.requesterEmail || 'SSO User'}</Typography>
+                  </Grid>
+                  <Grid item xs={6} sm={4}>
+                    <Typography variant="caption" sx={{ color: '#64748b' }}>Beneficiary (Requested For)</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.requestedFor}</Typography>
+                    <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.7rem' }}>{selectedReq.beneficiaryEmail || selectedReq.department}</Typography>
                   </Grid>
                   <Grid item xs={6} sm={4}>
                     <Typography variant="caption" sx={{ color: '#64748b' }}>Department</Typography>
@@ -261,19 +275,17 @@ export default function RequestTracker() {
                   </Grid>
                   <Grid item xs={6} sm={4}>
                     <Typography variant="caption" sx={{ color: '#64748b' }}>Target Host</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.targetDevice}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.targetDevice || 'Workstation'}</Typography>
                   </Grid>
                   <Grid item xs={6} sm={4}>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>Platform</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.platform.toUpperCase()}</Typography>
+                    <Typography variant="caption" sx={{ color: '#64748b' }}>Platform / Scope</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.platform.toUpperCase()} ({selectedReq.deploymentScope})</Typography>
                   </Grid>
                   <Grid item xs={6} sm={4}>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>Install Type</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.installType}</Typography>
-                  </Grid>
-                  <Grid item xs={6} sm={4}>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>Disposition</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedReq.disposition}</Typography>
+                    <Typography variant="caption" sx={{ color: '#64748b' }}>Vetting Disposition</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: selectedReq.disposition === 'Approved' ? '#16a34a' : selectedReq.disposition === 'Denied' ? '#dc2626' : '#d97706' }}>
+                      {selectedReq.disposition}
+                    </Typography>
                   </Grid>
                 </Grid>
               </Paper>
