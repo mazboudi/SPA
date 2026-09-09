@@ -3,13 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
-    "start": "node server/index.js",
+    "start": "node --experimental-sqlite server/index.js",
     "dev": "vite --port 5174",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server/index.js",
-    "dev:full": "concurrently \"npm run dev\" \"npm run server\""
+    "server": "node --experimental-sqlite server/index.js",
+    "dev:full": "concurrently --kill-others-on-fail -n server,vite -c blue,cyan \"npm run server\" \"npm run dev\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
