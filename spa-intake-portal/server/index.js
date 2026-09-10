@@ -59,28 +59,36 @@ function generateNextNumber(prefix, table, col = 'number') {
 
 // GET /api/intake/whoami — returns the Windows logged-on user from env vars
 app.get('/api/intake/whoami', (req, res) => {
-  const username   = process.env.USERNAME  || process.env.USER || '';
-  const domain     = process.env.USERDOMAIN || process.env.COMPUTERNAME || '';
-  const userprofile = process.env.USERPROFILE || '';
+  // Windows env vars set automatically by the OS / AD login:
+  //   USERNAME      = SAM account (e.g. F7NXPWL)
+  //   USERDOMAIN    = NetBIOS domain (e.g. CORP)
+  //   USERDNSDOMAIN = DNS domain (e.g. corp.company.com)
+  //   USERPROFILE   = profile path (e.g. C:\Users\F7NXPWL)
+  //   DISPLAYNAME   = full display name (set by some AD environments)
+  const username       = process.env.USERNAME      || process.env.USER        || '';
+  const domain         = process.env.USERDOMAIN    || process.env.COMPUTERNAME || '';
+  const dnsDomain      = process.env.USERDNSDOMAIN || '';
+  const userprofile    = process.env.USERPROFILE   || '';
+  const envDisplayName = process.env.DISPLAYNAME   || '';
 
-  // Derive a display name: prefer USERPROFILE last segment on Windows
-  // e.g. C:\Users\F7NXPWL → F7NXPWL
+  // SAM account: prefer USERNAME, fall back to last segment of USERPROFILE path
   let samAccount = username;
   if (!samAccount && userprofile) {
-    samAccount = userprofile.split(/[\\/]/).pop();
+    samAccount = userprofile.split(/[/\\\\]/).filter(Boolean).pop() || '';
   }
 
-  // Best-effort corporate email: username@domain.com (customize domain as needed)
-  const corpDomain = process.env.CORP_EMAIL_DOMAIN || 'company.com';
-  const email = samAccount ? `${samAccount.toLowerCase()}@${corpDomain}` : '';
+  // Display name: use DISPLAYNAME env var if set by AD, otherwise SAM account
+  const displayName = envDisplayName || samAccount;
 
-  res.json({
-    username:    samAccount,
-    domain:      domain,
-    displayName: samAccount, // callers can override/lookup full name via AD
-    email,
-    source: 'env', // 'env' = Windows process env, future: 'ad' = Active Directory
-  });
+  // Email domain: CORP_EMAIL_DOMAIN override > USERDNSDOMAIN > USERDOMAIN.com
+  let emailDomain = process.env.CORP_EMAIL_DOMAIN || '';
+  if (!emailDomain && dnsDomain) emailDomain = dnsDomain.toLowerCase();
+  if (!emailDomain && domain)    emailDomain = domain.toLowerCase() + '.com';
+  if (!emailDomain)              emailDomain = 'company.com';
+
+  const email = samAccount ? samAccount.toLowerCase() + '@' + emailDomain : '';
+
+  res.json({ username: samAccount, displayName, domain, dnsDomain, email, source: 'windows-env' });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════

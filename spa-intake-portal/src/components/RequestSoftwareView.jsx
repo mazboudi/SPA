@@ -40,7 +40,7 @@ function Section({ number, icon, title, children }) {
   );
 }
 
-export default function RequestSoftwareView({ onSubmitted }) {
+export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) {
   // Catalog state
   const [catalog, setCatalog] = useState([]);
   const [totalCount, setTotalCount] = useState(3436);
@@ -84,17 +84,25 @@ export default function RequestSoftwareView({ onSubmitted }) {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Load logged-on identity from server (Windows env vars via /api/intake/whoami)
+  // Seed requester fields from the loggedInUser prop (provided by App.jsx)
+  // Falls back to a direct whoami fetch if the prop hasn't loaded yet
   useEffect(() => {
-    fetch('/api/intake/whoami')
-      .then((r) => r.json())
-      .then((data) => {
-        setRequesterName(data.displayName || data.username || '');
-        setRequesterEmail(data.email || '');
-      })
-      .catch(() => {})
-      .finally(() => setIdentityLoading(false));
-  }, []);
+    if (loggedInUser.username || loggedInUser.displayName) {
+      setRequesterName(loggedInUser.displayName || loggedInUser.username || '');
+      setRequesterEmail(loggedInUser.email || '');
+      setIdentityLoading(false);
+    } else {
+      // fallback: direct fetch (e.g. component used standalone)
+      fetch('/api/intake/whoami')
+        .then((r) => r.json())
+        .then((data) => {
+          setRequesterName(data.displayName || data.username || '');
+          setRequesterEmail(data.email || '');
+        })
+        .catch(() => {})
+        .finally(() => setIdentityLoading(false));
+    }
+  }, [loggedInUser.username, loggedInUser.displayName, loggedInUser.email]);
 
   // Toggle on-behalf
   const handleToggleSelf = (e) => {

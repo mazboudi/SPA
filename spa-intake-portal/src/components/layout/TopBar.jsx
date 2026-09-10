@@ -1,15 +1,7 @@
 import React from 'react';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
-  Box,
-  Badge,
-  Avatar,
-  Chip,
-  Tooltip,
-  Divider,
+  AppBar, Toolbar, Typography, IconButton, Box, Badge,
+  Avatar, Chip, Tooltip, Divider, Skeleton,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
@@ -18,12 +10,24 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 
 export const TOPBAR_HEIGHT = 60;
 
+// Returns up to 2 initials from a name or SAM account
+function initials(name = '') {
+  const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length === 1 && parts[0].length >= 2) return parts[0].slice(0, 2).toUpperCase();
+  return name.slice(0, 2).toUpperCase() || '?';
+}
+
 export default function TopBar({
   sidebarOpen,
   onToggleSidebar,
   currentSectionTitle,
   openTasksCount = 0,
+  loggedInUser = {},
 }) {
+  const { displayName, username, email, domain } = loggedInUser;
+  const name    = displayName || username || '';
+  const loading = !name;
   return (
     <AppBar
       position="fixed"
@@ -140,8 +144,7 @@ export default function TopBar({
 
           <Divider orientation="vertical" flexItem sx={{ height: 24, my: 'auto', borderColor: '#e2e8f0' }} />
 
-          {/* Logged in User Profile */}
-          <Box
+            <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -156,35 +159,31 @@ export default function TopBar({
               overlap="circular"
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               variant="dot"
-              sx={{
-                '& .MuiBadge-badge': {
-                  backgroundColor: '#22c55e',
-                  color: '#22c55e',
-                  boxShadow: '0 0 0 2px #ffffff',
-                },
-              }}
+              sx={{ '& .MuiBadge-badge': { backgroundColor: '#22c55e', color: '#22c55e', boxShadow: '0 0 0 2px #ffffff' } }}
             >
-              <Avatar
-                sx={{
-                  width: 28,
-                  height: 28,
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  bgcolor: '#2563eb',
-                  color: '#ffffff',
-                }}
-              >
-                AJ
-              </Avatar>
+              {loading
+                ? <Skeleton variant="circular" width={28} height={28} />
+                : <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', fontWeight: 700, bgcolor: '#2563eb', color: '#ffffff' }}>
+                    {initials(name)}
+                  </Avatar>
+              }
             </Badge>
 
             <Box sx={{ pr: 0.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a', lineHeight: 1.1 }}>
-                Alex Johnson
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.675rem', display: 'block', lineHeight: 1 }}>
-                Lead EUC Packager
-              </Typography>
+              {loading
+                ? <Skeleton width={90} height={14} />
+                : <Tooltip title={email || ''} arrow>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a', lineHeight: 1.1 }}>
+                      {name}
+                    </Typography>
+                  </Tooltip>
+              }
+              {loading
+                ? <Skeleton width={70} height={11} sx={{ mt: 0.25 }} />
+                : <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.675rem', display: 'block', lineHeight: 1 }}>
+                    {domain ? `${domain}` : 'Windows User'}
+                  </Typography>
+              }
             </Box>
           </Box>
         </Box>

@@ -62,6 +62,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('request'); // 'request' | 'governance' | 'tracker' | 'catalog'
   const [openTasksCount, setOpenTasksCount] = useState(0);
 
+  // Fetch Windows logged-on identity once at app level and share via props
+  const [loggedInUser, setLoggedInUser] = useState({ username: '', displayName: '', email: '', domain: '' });
+  useEffect(() => {
+    fetch('/api/intake/whoami')
+      .then((r) => r.json())
+      .then((data) => setLoggedInUser(data))
+      .catch(() => {});
+  }, []);
+
   const fetchStats = () => {
     fetch('/api/intake/requests')
       .then(res => res.json())
@@ -98,6 +107,7 @@ export default function App() {
             onToggleSidebar={handleToggleSidebar}
             currentSectionTitle={SECTION_TITLES[activeTab] || 'Dashboard'}
             openTasksCount={openTasksCount}
+            loggedInUser={loggedInUser}
           />
 
           {/* Left Collapsible Sidebar */}
@@ -124,6 +134,7 @@ export default function App() {
             <Container maxWidth="xl" disableGutters>
               {activeTab === 'request' && (
                 <RequestSoftwareView
+                  loggedInUser={loggedInUser}
                   onSubmitted={() => {
                     fetchStats();
                     setActiveTab('tracker');
