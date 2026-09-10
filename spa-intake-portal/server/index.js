@@ -54,6 +54,36 @@ function generateNextNumber(prefix, table, col = 'number') {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// 0. Identity / Logged-on User API (Windows security context via env vars)
+// ═════════════════════════════════════════════════════════════════════════════
+
+// GET /api/intake/whoami — returns the Windows logged-on user from env vars
+app.get('/api/intake/whoami', (req, res) => {
+  const username   = process.env.USERNAME  || process.env.USER || '';
+  const domain     = process.env.USERDOMAIN || process.env.COMPUTERNAME || '';
+  const userprofile = process.env.USERPROFILE || '';
+
+  // Derive a display name: prefer USERPROFILE last segment on Windows
+  // e.g. C:\Users\F7NXPWL → F7NXPWL
+  let samAccount = username;
+  if (!samAccount && userprofile) {
+    samAccount = userprofile.split(/[\\/]/).pop();
+  }
+
+  // Best-effort corporate email: username@domain.com (customize domain as needed)
+  const corpDomain = process.env.CORP_EMAIL_DOMAIN || 'company.com';
+  const email = samAccount ? `${samAccount.toLowerCase()}@${corpDomain}` : '';
+
+  res.json({
+    username:    samAccount,
+    domain:      domain,
+    displayName: samAccount, // callers can override/lookup full name via AD
+    email,
+    source: 'env', // 'env' = Windows process env, future: 'ad' = Active Directory
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // 1. Authoritative Software Catalog API (SQLite Powered)
 // ═════════════════════════════════════════════════════════════════════════════
 
