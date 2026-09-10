@@ -378,7 +378,7 @@ export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) 
                         return `${option.displayName || ''} (${option.publisher || ''})`;
                       }}
                       value={selectedModel}
-                      onInputChange={(_, v) => setSearchInput(v)}
+                      onInputChange={(_, v, reason) => { if (reason === 'input') setSearchInput(v); }}
                       onChange={(_, newValue) => {
                         if (newValue?.id) { setSelectedTitleId(newValue.id); }
                         else { setSelectedTitleId(''); setSelectedVersion(''); }

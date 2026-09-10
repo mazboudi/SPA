@@ -20,6 +20,7 @@ import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import QueueIcon from '@mui/icons-material/Queue';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LaunchOutlinedIcon from '@mui/icons-material/LaunchOutlined';
 
 export const DRAWER_WIDTH = 240;
 export const DRAWER_COLLAPSED_WIDTH = 58;
@@ -40,8 +41,26 @@ const MAC_STAGES = [
   { stepId: 'review',        icon: <RateReviewIcon sx={{ fontSize: 18 }} />, label: 'Review & Export' },
 ];
 
+// ── Shared item style helpers ──────────────────────────────────────────────
+const itemSx = (selected, disabled) => ({
+  py: 0.75,
+  borderRadius: 1.5,
+  mb: 0.25,
+  opacity: disabled ? 0.4 : 1,
+  pointerEvents: disabled ? 'none' : undefined,
+  backgroundColor: selected ? '#1a1a1a' : 'transparent',
+  borderLeft: selected ? '3px solid #f97316' : '3px solid transparent',
+  '&:hover': { backgroundColor: '#1a1a1a' },
+  '&.Mui-selected': { backgroundColor: '#1a1a1a' },
+  '&.Mui-selected:hover': { backgroundColor: '#222222' },
+});
+
 // ── NavSection wrapper ─────────────────────────────────────────────────────
-function NavSection({ icon, label, selected, onClick, onExpand, children, chip, open: openProp, sidebarOpen, disabled, activeColor = 'primary.main' }) {
+function NavSection({
+  icon, label, selected, onClick, onExpand,
+  children, chip, open: openProp, sidebarOpen, disabled,
+  activeColor = '#f97316',
+}) {
   const [open, setOpen] = useState(openProp ?? false);
   const hasChildren = Boolean(children);
 
@@ -55,12 +74,8 @@ function NavSection({ icon, label, selected, onClick, onExpand, children, chip, 
   const handleClick = () => {
     if (disabled) return;
     if (hasChildren) {
-      if (!sidebarOpen && onExpand) {
-        onExpand();
-        setOpen(true);
-      } else {
-        setOpen(o => !o);
-      }
+      if (!sidebarOpen && onExpand) { onExpand(); setOpen(true); }
+      else setOpen(o => !o);
     }
     if (onClick) onClick();
   };
@@ -77,9 +92,9 @@ function NavSection({ icon, label, selected, onClick, onExpand, children, chip, 
             selected={selected && !hasChildren}
             onClick={handleClick}
             disabled={disabled}
-            sx={{ py: 0.75, opacity: disabled ? 0.45 : 1, pointerEvents: disabled ? 'none' : undefined }}
+            sx={itemSx(selected && !hasChildren, disabled)}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: selected ? activeColor : 'text.secondary' }}>
+            <ListItemIcon sx={{ minWidth: 0, mr: sidebarOpen ? 1.5 : 'auto', justifyContent: 'center', color: selected ? activeColor : '#6b7280' }}>
               {icon}
             </ListItemIcon>
             {sidebarOpen && (
@@ -90,16 +105,19 @@ function NavSection({ icon, label, selected, onClick, onExpand, children, chip, 
                     primary: {
                       style: {
                         fontSize: '0.82rem',
-                        fontWeight: selected ? 600 : 400,
+                        fontWeight: selected ? 700 : 500,
+                        color: selected ? '#f9fafb' : '#9ca3af',
                       },
                     },
                   }}
-                  sx={{ '& .MuiListItemText-primary': { color: selected ? activeColor : 'text.primary' } }}
                 />
-                {chip && <Chip label={chip} size="small" sx={{ height: 18, fontSize: '0.65rem', mr: 0.5 }} />}
-                {hasChildren && (open ? <ExpandLessIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> : <ExpandMoreIcon sx={{ fontSize: 16, color: 'text.disabled' }} />)}
+                {chip && <Chip label={chip} size="small" sx={{ height: 18, fontSize: '0.65rem', mr: 0.5, bgcolor: '#1f1f1f', color: '#9ca3af' }} />}
+                {hasChildren && (open
+                  ? <ExpandLessIcon sx={{ fontSize: 15, color: '#4b5563' }} />
+                  : <ExpandMoreIcon sx={{ fontSize: 15, color: '#4b5563' }} />
+                )}
                 {disabled && sidebarOpen && (
-                  <Typography variant="caption" sx={{ fontSize: '0.62rem', color: 'text.disabled', ml: 0.5, whiteSpace: 'nowrap' }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.62rem', color: '#4b5563', ml: 0.5, whiteSpace: 'nowrap' }}>
                     select platform
                   </Typography>
                 )}
@@ -119,28 +137,19 @@ function NavSection({ icon, label, selected, onClick, onExpand, children, chip, 
   );
 }
 
-// ── Stage sub-item ───────────────────────────────────────────────────────────────────
-function StageItem({ icon, label, active, completed, hasError, onClick, sidebarOpen, activeColor = 'primary.main' }) {
-  // Determine icon and colour:
-  // - active step: uses activeColor
-  // - completed + valid: success green ✓
-  // - completed + invalid (has required fields missing): error red ✗
-  // - future step: muted, uses icon
+// ── Stage sub-item ─────────────────────────────────────────────────────────
+function StageItem({ icon, label, active, completed, hasError, onClick, sidebarOpen, activeColor = '#f97316' }) {
   const iconColor = active
     ? activeColor
-    : hasError
-      ? 'error.main'
-      : completed
-        ? 'success.main'
-        : 'text.disabled';
+    : hasError   ? '#ef4444'
+    : completed  ? '#22c55e'
+    :              '#4b5563';
 
   const textColor = active
     ? activeColor
-    : hasError
-      ? 'error.main'
-      : completed
-        ? 'success.main'
-        : 'text.secondary';
+    : hasError   ? '#ef4444'
+    : completed  ? '#22c55e'
+    :              '#6b7280';
 
   const statusIcon = hasError ? '✗' : (completed && !active ? '✓' : icon);
 
@@ -152,10 +161,11 @@ function StageItem({ icon, label, active, completed, hasError, onClick, sidebarO
         sx={{
           pl: sidebarOpen ? 3.5 : 1.5,
           py: 0.3,
-          borderLeft: active ? '2px solid' : '2px solid transparent',
-          borderColor: active ? 'primary.main' : 'transparent',
+          borderLeft: active ? `2px solid ${activeColor}` : '2px solid transparent',
           ml: sidebarOpen ? 0.5 : 0,
           borderRadius: '0 6px 6px 0',
+          '&:hover': { backgroundColor: '#1a1a1a' },
+          '&.Mui-selected': { backgroundColor: '#1a1a1a' },
         }}
       >
         <ListItemIcon sx={{ minWidth: 30, color: iconColor }}>
@@ -166,13 +176,9 @@ function StageItem({ icon, label, active, completed, hasError, onClick, sidebarO
             primary={label}
             slotProps={{
               primary: {
-                style: {
-                  fontSize: '0.78rem',
-                  fontWeight: active ? 600 : 400,
-                },
+                style: { fontSize: '0.78rem', fontWeight: active ? 600 : 400, color: textColor },
               },
             }}
-            sx={{ '& .MuiListItemText-primary': { color: textColor } }}
           />
         )}
       </ListItemButton>
@@ -184,12 +190,12 @@ function StageItem({ icon, label, active, completed, hasError, onClick, sidebarO
 export default function Sidebar({
   open: sidebarOpen,
   platform,
-  activeView,          // 'home' | 'package' | 'edit' | 'settings'
-  activeStepId,        // current wizard step ID
-  steps,               // wizard steps array from useWizardState
-  currentStep,         // index
-  stepValidation,      // { [stepId]: boolean } — true = valid, false = has errors
-  onGoToStep,          // (idx) => void
+  activeView,
+  activeStepId,
+  steps,
+  currentStep,
+  stepValidation,
+  onGoToStep,
   onQueueOpen,
   onNewBlank,
   onNewFromQueue,
@@ -197,12 +203,11 @@ export default function Sidebar({
   onEditPackages,
   onClonePackages,
   onSettings,
-  packageSource,       // 'blank' | 'queue' | 'import' | 'edit' | 'clone'
+  packageSource,
   onExpand,
 }) {
   const stages = platform === 'macos' ? MAC_STAGES : WIN_STAGES;
 
-  // Map stepId → index in wizard.steps
   const stepIdxMap = {};
   (steps || []).forEach((s, i) => { stepIdxMap[s.id] = i; });
 
@@ -214,26 +219,42 @@ export default function Sidebar({
       sx={{
         width: sidebarOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED_WIDTH,
         flexShrink: 0,
-        transition: 'width 0.2s ease',
+        transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         '& .MuiDrawer-paper': {
           width: sidebarOpen ? DRAWER_WIDTH : DRAWER_COLLAPSED_WIDTH,
-          transition: 'width 0.2s ease',
+          transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           overflowX: 'hidden',
-          top: '56px',
-          height: 'calc(100% - 56px)',
+          top: '60px',
+          height: 'calc(100% - 60px)',
+          backgroundColor: '#0f0f0f',
+          borderRight: '1px solid #1f1f1f',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
       {/* Platform label */}
       {sidebarOpen && platform && (
-        <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-          <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+        <Box sx={{ px: 2.5, pt: 2, pb: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, fontSize: '0.65rem' }}
+          >
             {platform === 'windows' ? '⊞ Windows' : ' Mac'}
           </Typography>
         </Box>
       )}
 
-      <List sx={{ pt: sidebarOpen && platform ? 0 : 1 }}>
+      {!sidebarOpen && !platform && <Box sx={{ pt: 1.5 }} />}
+      {sidebarOpen && !platform && (
+        <Box sx={{ px: 2.5, pt: 2, pb: 0.5 }}>
+          <Typography variant="caption" sx={{ color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, fontSize: '0.65rem' }}>
+            Navigation
+          </Typography>
+        </Box>
+      )}
+
+      <List sx={{ pt: 0.5, px: 0.75, flexGrow: 1 }}>
 
         {/* ── Manage Queue ── */}
         <NavSection
@@ -245,7 +266,7 @@ export default function Sidebar({
           onExpand={onExpand}
         />
 
-        <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
+        <Divider sx={{ my: 0.5, borderColor: '#1f1f1f' }} />
 
         {/* ── New Title ── */}
         <NavSection
@@ -261,7 +282,6 @@ export default function Sidebar({
             icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
             label="Blank"
             active={packageSource === 'blank'}
-            activeColor="#facc15"
             onClick={onNewBlank}
             sidebarOpen={sidebarOpen}
           />
@@ -269,7 +289,6 @@ export default function Sidebar({
             icon={<QueueIcon sx={{ fontSize: 16 }} />}
             label="From Queue"
             active={packageSource === 'queue'}
-            activeColor="#facc15"
             onClick={onNewFromQueue}
             sidebarOpen={sidebarOpen}
           />
@@ -278,21 +297,19 @@ export default function Sidebar({
               icon={<SyncAltIcon sx={{ fontSize: 16 }} />}
               label="Intune Import"
               active={packageSource === 'import'}
-              activeColor="#facc15"
               onClick={onRefactor}
               sidebarOpen={sidebarOpen}
             />
           )}
         </NavSection>
 
-        <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
+        <Divider sx={{ my: 0.5, borderColor: '#1f1f1f' }} />
 
         {/* ── Edit Title ── */}
         <NavSection
           icon={<EditIcon sx={{ fontSize: 18 }} />}
           label="Edit Title"
           selected={activeView === 'edit' || packageSource === 'edit'}
-          activeColor="#facc15"
           onClick={onEditPackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
@@ -304,19 +321,21 @@ export default function Sidebar({
           icon={<ContentCopyIcon sx={{ fontSize: 18 }} />}
           label="Clone Title"
           selected={activeView === 'clone' || packageSource === 'clone'}
-          activeColor="#facc15"
           onClick={onClonePackages}
           disabled={!platform}
           sidebarOpen={sidebarOpen}
           onExpand={onExpand}
         />
 
-        {/* ── Stage navigation — appears below all menu items when a package is active ── */}
+        {/* ── Stage navigation ── */}
         {inPackage && (
           <>
-            <Divider sx={{ my: 0.5, borderColor: 'divider' }} />
+            <Divider sx={{ my: 0.5, borderColor: '#1f1f1f' }} />
             {sidebarOpen && (
-              <Typography variant="caption" sx={{ px: 2, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', pt: 1, pb: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{ px: 2, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, fontSize: '0.65rem', display: 'block', pt: 1, pb: 0.5 }}
+              >
                 Stages
               </Typography>
             )}
@@ -324,8 +343,6 @@ export default function Sidebar({
               const stageIdx = stepIdxMap[stage.stepId];
               const isActive = stage.stepId === activeStepId;
               const isCompleted = stageIdx !== undefined && stageIdx < currentStep;
-              // Show error indicator for visited (completed) steps that still have
-              // missing required fields — so user knows they need to go back and fix.
               const isValid = stepValidation ? stepValidation[stage.stepId] !== false : true;
               const hasError = isCompleted && !isValid;
               return (
@@ -343,20 +360,38 @@ export default function Sidebar({
             })}
           </>
         )}
-
       </List>
 
+      {/* ── Bottom: Intake Portal + Settings ──────────────────────── */}
+      <Box>
+        <Divider sx={{ borderColor: '#1f1f1f', mb: 1 }} />
+        <List sx={{ px: 0.75, pb: 1.5 }}>
+          <Tooltip title={!sidebarOpen ? 'Open SPA Intake Portal' : ''} placement="right" arrow>
+            <ListItemButton
+              onClick={() => window.open('http://localhost:5174', '_blank')}
+              sx={{
+                minHeight: 40,
+                px: sidebarOpen ? 1.5 : 0,
+                justifyContent: sidebarOpen ? 'initial' : 'center',
+                borderRadius: 1.5,
+                mb: 0.5,
+                backgroundColor: '#1a1a1a',
+                border: '1px solid #2d2d2d',
+                '&:hover': { backgroundColor: '#222222', borderColor: '#f97316' },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: sidebarOpen ? 1.5 : 'auto', color: '#f97316' }}>
+                <LaunchOutlinedIcon sx={{ fontSize: 18 }} />
+              </ListItemIcon>
+              {sidebarOpen && (
+                <ListItemText
+                  primary="Intake Portal ↗"
+                  slotProps={{ primary: { style: { fontSize: '0.8rem', fontWeight: 600, color: '#f97316' } } }}
+                />
+              )}
+            </ListItemButton>
+          </Tooltip>
 
-      {/* Settings & Intake Portal pinned to bottom */}
-      <Box sx={{ mt: 'auto', borderTop: '1px solid', borderColor: 'divider' }}>
-        <List>
-          <NavSection
-            icon={<span style={{ fontSize: 16 }}>📋</span>}
-            label="Intake Portal ↗"
-            onClick={() => window.open('http://localhost:5174', '_blank')}
-            sidebarOpen={sidebarOpen}
-            onExpand={onExpand}
-          />
           <NavSection
             icon={<SettingsIcon sx={{ fontSize: 18 }} />}
             label="Settings"

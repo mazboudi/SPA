@@ -7,10 +7,10 @@ import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import logo from '../../assets/Logo.png';
 
 export const TOPBAR_HEIGHT = 60;
 
-// Returns up to 2 initials from a name or SAM account
 function initials(name = '') {
   const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -28,6 +28,7 @@ export default function TopBar({
   const { displayName, username, email, domain } = loggedInUser;
   const name    = displayName || username || '';
   const loading = !name;
+
   return (
     <AppBar
       position="fixed"
@@ -35,9 +36,9 @@ export default function TopBar({
       sx={{
         height: TOPBAR_HEIGHT,
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        color: '#0f172a',
+        backgroundColor: '#000000',
+        borderBottom: '1px solid #1a1a1a',
+        color: '#ffffff',
       }}
     >
       <Toolbar
@@ -45,143 +46,176 @@ export default function TopBar({
         disableGutters
         sx={{
           height: TOPBAR_HEIGHT,
-          px: 2,
+          px: 0,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
         }}
       >
-        {/* Left: Sidebar Toggle + Brand Title + Breadcrumb */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {/* ── Left: Logo block ───────────────────────────────────────── */}
+        <Box
+          sx={{
+            width: sidebarOpen ? 240 : 68,
+            flexShrink: 0,
+            transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: sidebarOpen ? 'flex-start' : 'center',
+            px: sidebarOpen ? 2 : 0,
+            gap: 1.5,
+            borderRight: '1px solid #1f1f1f',
+            height: '100%',
+            bgcolor: '#000000',
+          }}
+        >
+          {/* Logo — displayed directly, orange on black */}
+          <Box
+            component="img"
+            src={logo}
+            alt="Fiserv"
+            sx={{
+              height: 28,
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+          {/* Divider + app name — only when expanded */}
+          {sidebarOpen && (
+            <>
+              <Box sx={{ width: '1px', height: 24, bgcolor: '#333333' }} />
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#9ca3af',
+                  fontWeight: 600,
+                  fontSize: '0.68rem',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                SPA Portal
+              </Typography>
+            </>
+          )}
+        </Box>
+
+        {/* ── Center: Hamburger + breadcrumb ────────────────────────── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, flexGrow: 1, minWidth: 0 }}>
           <IconButton
             edge="start"
-            color="inherit"
             aria-label="toggle sidebar"
             onClick={onToggleSidebar}
             sx={{
-              p: 1,
-              borderRadius: 2,
-              color: '#475569',
-              '&:hover': { backgroundColor: '#f1f5f9', color: '#0f172a' },
+              p: 0.75,
+              borderRadius: 1.5,
+              color: '#9ca3af',
+              '&:hover': { backgroundColor: '#1f1f1f', color: '#ffffff' },
             }}
           >
             {sidebarOpen ? <MenuOpenIcon fontSize="small" /> : <MenuIcon fontSize="small" />}
           </IconButton>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Box
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: '#6b7280', fontSize: '0.82rem', flexShrink: 0 }}>
+              Software Request Hub
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#374151', fontSize: '0.82rem', flexShrink: 0 }}>/</Typography>
+            <Typography
+              variant="body2"
               sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.1rem',
-                boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)',
+                fontWeight: 700,
+                color: '#f97316',   // Fiserv orange
+                fontSize: '0.82rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              📋
-            </Box>
-
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  Software Request Hub
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 500 }}>
-                  /
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#2563eb', fontWeight: 600 }}>
-                  {currentSectionTitle}
-                </Typography>
-              </Box>
-              <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.7rem', display: 'block', lineHeight: 1 }}>
-                Authoritative Software Lifecycle & Governance
-              </Typography>
-            </Box>
+              {currentSectionTitle}
+            </Typography>
           </Box>
         </Box>
 
-        {/* Right: Live Connection + Task Counter + User Profile */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {/* Live Status Pill */}
-          <Tooltip title="Connected to Standalone Intake REST Service on port 3002" arrow>
+        {/* ── Right: Status + Tasks + User ─────────────────────────── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, pr: 2, flexShrink: 0 }}>
+          {/* API Status */}
+          <Tooltip title="Connected to Intake REST API on port 3002" arrow>
             <Chip
-              icon={<CheckCircleRoundedIcon sx={{ fontSize: '14px !important', color: '#16a34a !important' }} />}
-              label="Intake API Active :3002"
+              icon={<CheckCircleRoundedIcon sx={{ fontSize: '13px !important', color: '#16a34a !important' }} />}
+              label="API Active"
               size="small"
               sx={{
-                backgroundColor: '#f0fdf4',
-                color: '#15803d',
-                border: '1px solid #bbf7d0',
+                backgroundColor: '#052e16',
+                color: '#4ade80',
+                border: '1px solid #166534',
                 fontWeight: 600,
-                fontSize: '0.725rem',
-                height: 28,
+                fontSize: '0.7rem',
+                height: 26,
               }}
             />
           </Tooltip>
 
-          {/* Pending Tasks Notification Badge */}
+          {/* Pending tasks badge */}
           <Tooltip title={`${openTasksCount} governance tasks requiring action`} arrow>
             <IconButton
               size="small"
               sx={{
-                p: 1,
-                borderRadius: 2,
-                color: openTasksCount > 0 ? '#2563eb' : '#64748b',
-                backgroundColor: openTasksCount > 0 ? '#eff6ff' : 'transparent',
-                '&:hover': { backgroundColor: '#e0e7ff' },
+                p: 0.75,
+                borderRadius: 1.5,
+                color: openTasksCount > 0 ? '#f97316' : '#6b7280',
+                backgroundColor: openTasksCount > 0 ? '#1c1007' : 'transparent',
+                '&:hover': { backgroundColor: '#1f1f1f' },
               }}
             >
-              <Badge badgeContent={openTasksCount} color="primary" max={99}>
+              <Badge badgeContent={openTasksCount} color="warning" max={99}>
                 <AssignmentTurnedInIcon fontSize="small" />
               </Badge>
             </IconButton>
           </Tooltip>
 
-          <Divider orientation="vertical" flexItem sx={{ height: 24, my: 'auto', borderColor: '#e2e8f0' }} />
+          <Box sx={{ width: '1px', height: 24, bgcolor: '#2d2d2d' }} />
 
-            <Box
+          {/* User profile */}
+          <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.25,
-              p: '4px 8px 4px 4px',
-              borderRadius: 2,
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              gap: 1,
+              px: 1,
+              py: 0.5,
+              borderRadius: 1.5,
+              border: '1px solid #2d2d2d',
+              '&:hover': { borderColor: '#4b5563', bgcolor: '#111111', cursor: 'default' },
             }}
           >
             <Badge
               overlap="circular"
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               variant="dot"
-              sx={{ '& .MuiBadge-badge': { backgroundColor: '#22c55e', color: '#22c55e', boxShadow: '0 0 0 2px #ffffff' } }}
+              sx={{ '& .MuiBadge-badge': { backgroundColor: '#22c55e', color: '#22c55e', boxShadow: '0 0 0 2px #000000' } }}
             >
               {loading
-                ? <Skeleton variant="circular" width={28} height={28} />
-                : <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', fontWeight: 700, bgcolor: '#2563eb', color: '#ffffff' }}>
+                ? <Skeleton variant="circular" width={28} height={28} sx={{ bgcolor: '#374151' }} />
+                : <Avatar sx={{ width: 28, height: 28, fontSize: '0.72rem', fontWeight: 700, bgcolor: '#f97316', color: '#ffffff' }}>
                     {initials(name)}
                   </Avatar>
               }
             </Badge>
 
-            <Box sx={{ pr: 0.5 }}>
+            <Box>
               {loading
-                ? <Skeleton width={90} height={14} />
-                : <Tooltip title={email || ''} arrow>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a', lineHeight: 1.1 }}>
-                      {name}
+                ? <Skeleton width={80} height={13} sx={{ bgcolor: '#374151' }} />
+                : <Tooltip title={email || 'Windows User'} arrow placement="bottom-end">
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem', color: '#f3f4f6', lineHeight: 1.15, cursor: 'default' }}>
+                      {name || 'Windows User'}
                     </Typography>
                   </Tooltip>
               }
               {loading
-                ? <Skeleton width={70} height={11} sx={{ mt: 0.25 }} />
-                : <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.675rem', display: 'block', lineHeight: 1 }}>
-                    {domain ? `${domain}` : 'Windows User'}
+                ? <Skeleton width={55} height={11} sx={{ bgcolor: '#374151', mt: 0.25 }} />
+                : <Typography variant="caption" sx={{ color: '#6b7280', fontSize: '0.65rem', display: 'block', lineHeight: 1 }}>
+                    {domain || 'Signed In'}
                   </Typography>
               }
             </Box>

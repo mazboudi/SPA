@@ -42,15 +42,22 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // Helper for generating sequential numbers
+// ── Per-table in-memory counters (initialized from DB max on first use) ───
+// This guarantees uniqueness even when multiple numbers are generated in a
+// single request before any inserts have been committed to disk.
+const _counters = new Map();
 function generateNextNumber(prefix, table, col = 'number') {
-  const row = db.prepare(`SELECT ${col} FROM ${table} ORDER BY rowid DESC LIMIT 1`).get();
-  let maxNum = 10000;
-  if (row && row[col]) {
-    const m = row[col].match(/\d+/);
-    if (m) maxNum = parseInt(m[0], 10);
+  const key = `${table}:${prefix}`;
+  if (!_counters.has(key)) {
+    // Seed from the highest number already in the database
+    const row = db.prepare(
+      `SELECT MAX(CAST(SUBSTR(${col}, LENGTH(?) + 1) AS INTEGER)) AS n FROM ${table} WHERE ${col} LIKE ?`
+    ).get(prefix, `${prefix}%`);
+    _counters.set(key, (row && row.n) ? row.n : 10000);
   }
-  const nextNum = maxNum + 1;
-  return `${prefix}${String(nextNum).padStart(7, '0')}`;
+  const next = _counters.get(key) + 1;
+  _counters.set(key, next);
+  return `${prefix}${String(next).padStart(7, '0')}`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -254,83 +261,74 @@ app.post('/api/intake/requests', async (req, res) => {
     let initialState = 'In Review';
     const tasks = [];
 
-    // Task 1: Manager Approval (Always created for valid intake)
-    const task1Number = generateNextNumber('SCTASK', 'catalog_tasks');
-    tasks.push({
-      id: 'TASK_' + task1Number,
-      requestId: reqId,
-      number: task1Number,
-      name: 'Manager Approval',
-      assignmentGroup: 'Management',
-      state: 'Open',
-      notes: `Validate business need for ${requestedFor} (${department}). Submitted by ${requestedBy || requestedFor}.`,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Up-Front Vetting Branching Rules
-    if (evaluatedDisposition === 'Approved') {
-      if (titleModel && titleModel.licenseRequired === 'Yes') {
-        const t2Num = generateNextNumber('SCTASK', 'catalog_tasks');
-        tasks.push({
-          id: 'TASK_' + t2Num,
-          requestId: reqId,
-          number: t2Num,
-          name: 'SAM License Review',
-          assignmentGroup: 'Software Asset Management',
-          state: 'Pending',
-          notes: 'Confirm license entitlement and allocation quota.',
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-
-      const tPkgNum = generateNextNumber('SCTASK', 'catalog_tasks');
+    // ── Helper to push a task ───────────────────────────────────────────────
+    const addTask = (name, group, notes, state = 'Pending') => {
+      const num = generateNextNumber('SCTASK', 'catalog_tasks');
       tasks.push({
-        id: 'TASK_' + tPkgNum,
-        requestId: reqId,
-        number: tPkgNum,
-        name: 'Packaging Review & Execution',
-        assignmentGroup: 'EUC Software Packaging Team',
-        state: 'Pending',
-        notes: `Build and test ${platform.toUpperCase()} package via SPA Workbench.`,
-        createdAt: now,
-        updatedAt: now,
+        id: 'TASK_' + num, requestId: reqId, number: num,
+        name, assignmentGroup: group, state, notes, createdAt: now, updatedAt: now,
       });
-    } else if (evaluatedDisposition === 'Review Required' || isUnlisted) {
-      initialStage = 'governance_review';
-      const tGovNum = generateNextNumber('SCTASK', 'catalog_tasks');
-      tasks.push({
-        id: 'TASK_' + tGovNum,
-        requestId: reqId,
-        number: tGovNum,
-        name: 'Software Disposition & Security Review',
-        assignmentGroup: 'Cybersecurity',
-        state: 'Pending',
-        notes: isUnlisted
-          ? `Perform comprehensive architecture, security, and licensing vetting for UNLISTED software title "${titleName}" v${version}. Enrolls into Authoritative Catalog upon decision.`
-          : `Review unvetted version ${version} against cybersecurity and data governance standards.`,
-        createdAt: now,
-        updatedAt: now,
-      });
+    };
 
-      const tPkgNum = generateNextNumber('SCTASK', 'catalog_tasks');
-      tasks.push({
-        id: 'TASK_' + tPkgNum,
-        requestId: reqId,
-        number: tPkgNum,
-        name: 'Packaging Review & Execution',
-        assignmentGroup: 'EUC Software Packaging Team',
-        state: 'Pending',
-        notes: `Build and test package upon governance approval.`,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } else if (evaluatedDisposition === 'Denied') {
+    if (evaluatedDisposition === 'Denied') {
+      // ── DENIED: single closed manager task, no further steps ─────────────
       initialStage = 'closed_denied';
       initialState = 'Closed Denied';
-      tasks[0].state = 'Closed Incomplete';
-      tasks[0].notes = `Automatic Block: Version ${version} is marked DENIED (${(versionEntry && versionEntry.dispositionReason) || 'Corporate Policy'}).`;
+      addTask(
+        'Manager Approval', 'Management',
+        `Automatic Block: Version ${version} is marked DENIED (${(versionEntry && versionEntry.dispositionReason) || 'Corporate Policy'}).`,
+        'Closed Incomplete'
+      );
+
+    } else if (evaluatedDisposition === 'Approved') {
+      // ── APPROVED path: Manager → Risk → Licensing (if required) → Packaging
+      addTask(
+        'Manager Approval', 'Management',
+        `Validate business need for ${requestedFor} (${department}). Submitted by ${requestedBy || requestedFor}.`,
+        'Open'
+      );
+      addTask(
+        'Risk Review', 'Enterprise Risk',
+        `Assess operational and third-party risk for ${titleName} v${version} in the ${department} environment.`
+      );
+      if (titleModel && titleModel.licenseRequired === 'Yes') {
+        addTask(
+          'Licensing Review', 'Software Asset Management',
+          `Confirm license entitlement, seat availability, and cost allocation for ${titleName}.`
+        );
+      }
+      addTask(
+        'Packaging Review & Execution', 'EUC Software Packaging Team',
+        `Build and validate ${platform.toUpperCase()} package via SPA Workbench. Deploy to ${deploymentScope} scope.`
+      );
+
+    } else {
+      // ── REVIEW REQUIRED / UNLISTED: full governance chain ────────────────
+      // Manager Approval → Risk → Licensing → Cybersecurity → Packaging
+      initialStage = 'governance_review';
+      addTask(
+        'Manager Approval', 'Management',
+        `Validate business need for ${requestedFor} (${department}). Submitted by ${requestedBy || requestedFor}.`,
+        'Open'
+      );
+      addTask(
+        'Risk Review', 'Enterprise Risk',
+        `Assess operational, third-party, and data-classification risk for ${isUnlisted ? 'UNLISTED' : 'unvetted'} title "${titleName}" v${version}.`
+      );
+      addTask(
+        'Licensing Review', 'Software Asset Management',
+        `Review license model, open-source obligations, and cost implications for "${titleName}".`
+      );
+      addTask(
+        'Cybersecurity Review', 'Cybersecurity',
+        isUnlisted
+          ? `Comprehensive security, architecture, and supply-chain vetting for UNLISTED title "${titleName}" v${version}. Approve enrollment into Authoritative Catalog upon clearance.`
+          : `Review unvetted version ${version} against vulnerability databases, data governance, and AppSec standards.`
+      );
+      addTask(
+        'Packaging Review & Execution', 'EUC Software Packaging Team',
+        `Build and validate package upon full governance approval. Platform: ${platform.toUpperCase()}.`
+      );
     }
 
     const newRequest = {

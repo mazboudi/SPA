@@ -129,7 +129,7 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
               🛡️ Governance & Approval Review Center
             </Typography>
             <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
-              Review, approve, or reject pending Catalog Tasks (Manager Approvals, SAM License Entitlements, Cybersecurity & Unlisted Software Reviews).
+              Review, approve, or reject pending Catalog Tasks across the governance chain: Manager Approval → Risk → Licensing → Cybersecurity → Packaging.
             </Typography>
           </Box>
 
@@ -155,10 +155,11 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
             sx={{ minHeight: 44 }}
           >
             <Tab label={`All Tasks (${openTasks.length})`} value="all" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="Management Approvals" value="Management" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="SAM License Reviews" value="Software Asset Management" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="Cybersecurity / AppSec" value="Cybersecurity" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="Packaging Reviews" value="Packaging" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
+            <Tab label="Manager Approvals" value="Management" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
+            <Tab label="Risk Review" value="Enterprise Risk" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
+            <Tab label="Licensing Review" value="Software Asset Management" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
+            <Tab label="Cybersecurity" value="Cybersecurity" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
+            <Tab label="Packaging" value="Packaging" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
           </Tabs>
         </Box>
 

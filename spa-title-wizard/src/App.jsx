@@ -3,7 +3,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Alert } from '@mui/material';
 
 
-import TopBar, { } from './components/layout/TopBar';
+import TopBar, { TOPBAR_HEIGHT } from './components/layout/TopBar';
 import Sidebar, { DRAWER_WIDTH, DRAWER_COLLAPSED_WIDTH } from './components/layout/Sidebar';
 import PlatformSelector from './components/layout/PlatformSelector';
 import PlatformLandingPage from './components/ui/PlatformLandingPage';
@@ -573,9 +573,9 @@ export default function App() {
         component="main"
         sx={{
           ml: `${sidebarWidth}px`,
-          mt: '56px',
+          mt: `${TOPBAR_HEIGHT}px`,
           transition: 'margin-left 0.2s ease',
-          minHeight: 'calc(100vh - 56px)',
+          minHeight: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
           display: 'flex',
           flexDirection: 'column',
         }}

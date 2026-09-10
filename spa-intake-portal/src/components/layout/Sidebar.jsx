@@ -1,24 +1,13 @@
 import React from 'react';
 import {
-  Drawer,
-  Box,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Typography,
-  Tooltip,
-  Chip,
-  IconButton,
+  Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText,
+  Divider, Typography, Tooltip, Chip,
 } from '@mui/material';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import LaunchOutlinedIcon from '@mui/icons-material/LaunchOutlined';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 export const SIDEBAR_WIDTH = 240;
 export const SIDEBAR_COLLAPSED_WIDTH = 68;
@@ -71,16 +60,16 @@ export default function Sidebar({
           width: sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH,
           transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           overflowX: 'hidden',
-          top: 60, // below TopBar
+          top: 60,
           height: 'calc(100% - 60px)',
-          backgroundColor: '#ffffff',
-          borderRight: '1px solid #e2e8f0',
+          backgroundColor: '#0f0f0f',
+          borderRight: '1px solid #1f1f1f',
           display: 'flex',
           flexDirection: 'column',
         },
       }}
     >
-      {/* Navigation Group Header */}
+      {/* Section label */}
       {sidebarOpen && (
         <Box sx={{ px: 2.5, pt: 2, pb: 0.5 }}>
           <Typography
@@ -89,19 +78,20 @@ export default function Sidebar({
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              color: '#94a3b8',
-              fontSize: '0.675rem',
+              color: '#4b5563',
+              fontSize: '0.65rem',
             }}
           >
-            Intake Navigation
+            Navigation
           </Typography>
         </Box>
       )}
 
-      {/* Navigation Items */}
-      <List sx={{ pt: sidebarOpen ? 0.5 : 1.5, px: 0.5 }}>
+      {/* Nav items */}
+      <List sx={{ pt: sidebarOpen ? 0.5 : 2, px: 0.75, flexGrow: 1 }}>
         {NAV_ITEMS.map((item) => {
           const isSelected = activeTab === item.id;
+
           const button = (
             <ListItemButton
               key={item.id}
@@ -109,11 +99,17 @@ export default function Sidebar({
               onClick={() => onSelectTab(item.id)}
               sx={{
                 minHeight: 44,
-                px: sidebarOpen ? 1.5 : 2,
+                px: sidebarOpen ? 1.5 : 0,
                 py: 1,
                 justifyContent: sidebarOpen ? 'initial' : 'center',
-                borderRadius: 2,
-                mb: 0.5,
+                borderRadius: 1.5,
+                mb: 0.25,
+                backgroundColor: isSelected ? '#1a1a1a' : 'transparent',
+                '&:hover': { backgroundColor: '#1a1a1a' },
+                '&.Mui-selected': { backgroundColor: '#1a1a1a' },
+                '&.Mui-selected:hover': { backgroundColor: '#222222' },
+                // Fiserv orange left accent bar on selected
+                borderLeft: isSelected ? '3px solid #f97316' : '3px solid transparent',
               }}
             >
               <ListItemIcon
@@ -121,7 +117,7 @@ export default function Sidebar({
                   minWidth: 0,
                   mr: sidebarOpen ? 1.5 : 'auto',
                   justifyContent: 'center',
-                  color: isSelected ? '#2563eb' : '#64748b',
+                  color: isSelected ? '#f97316' : '#6b7280',
                 }}
               >
                 {item.icon}
@@ -134,12 +130,12 @@ export default function Sidebar({
                     secondary={item.subtitle}
                     primaryTypographyProps={{
                       fontSize: '0.84rem',
-                      fontWeight: isSelected ? 600 : 500,
-                      color: isSelected ? '#2563eb' : '#1e293b',
+                      fontWeight: isSelected ? 700 : 500,
+                      color: isSelected ? '#f9fafb' : '#9ca3af',
                     }}
                     secondaryTypographyProps={{
-                      fontSize: '0.7rem',
-                      color: '#94a3b8',
+                      fontSize: '0.68rem',
+                      color: '#4b5563',
                       lineHeight: 1.1,
                     }}
                   />
@@ -147,13 +143,13 @@ export default function Sidebar({
                     <Chip
                       label={openTasksCount}
                       size="small"
-                      color="primary"
                       sx={{
                         height: 20,
-                        fontSize: '0.7rem',
+                        fontSize: '0.68rem',
                         fontWeight: 700,
-                        backgroundColor: isSelected ? '#2563eb' : '#eff6ff',
-                        color: isSelected ? '#ffffff' : '#2563eb',
+                        bgcolor: isSelected ? '#f97316' : '#1c1007',
+                        color: isSelected ? '#ffffff' : '#f97316',
+                        border: '1px solid #f97316',
                       }}
                     />
                   )}
@@ -166,7 +162,7 @@ export default function Sidebar({
             return (
               <Tooltip
                 key={item.id}
-                title={`${item.label} ${item.showBadge && openTasksCount > 0 ? `(${openTasksCount})` : ''}`}
+                title={`${item.label}${item.showBadge && openTasksCount > 0 ? ` (${openTasksCount})` : ''}`}
                 placement="right"
                 arrow
               >
@@ -178,61 +174,35 @@ export default function Sidebar({
         })}
       </List>
 
-      <Box sx={{ mt: 'auto' }}>
-        <Divider sx={{ borderColor: '#f1f5f9', mb: 1 }} />
-
-        {/* Workbench Quick-Link */}
-        <List sx={{ px: 0.5, pb: 1 }}>
+      {/* Bottom: workbench link */}
+      <Box>
+        <Divider sx={{ borderColor: '#1f1f1f', mb: 1 }} />
+        <List sx={{ px: 0.75, pb: 1.5 }}>
           <Tooltip title={!sidebarOpen ? 'Open SPA Packaging Workbench' : ''} placement="right" arrow>
             <ListItemButton
               onClick={() => window.open('http://localhost:5173', '_blank')}
               sx={{
                 minHeight: 40,
-                px: sidebarOpen ? 1.5 : 2,
-                borderRadius: 2,
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                mb: 0.5,
-                '&:hover': {
-                  backgroundColor: '#eff6ff',
-                  borderColor: '#bfdbfe',
-                },
+                px: sidebarOpen ? 1.5 : 0,
+                justifyContent: sidebarOpen ? 'initial' : 'center',
+                borderRadius: 1.5,
+                backgroundColor: '#1a1a1a',
+                border: '1px solid #2d2d2d',
+                '&:hover': { backgroundColor: '#222222', borderColor: '#f97316' },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 0, mr: sidebarOpen ? 1.5 : 'auto', color: '#2563eb' }}>
+              <ListItemIcon sx={{ minWidth: 0, mr: sidebarOpen ? 1.5 : 'auto', color: '#f97316' }}>
                 <LaunchOutlinedIcon sx={{ fontSize: 18 }} />
               </ListItemIcon>
               {sidebarOpen && (
                 <ListItemText
                   primary="SPA Workbench ↗"
-                  primaryTypographyProps={{
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: '#2563eb',
-                  }}
+                  primaryTypographyProps={{ fontSize: '0.8rem', fontWeight: 600, color: '#f97316' }}
                 />
               )}
             </ListItemButton>
           </Tooltip>
         </List>
-
-        {/* Bottom Collapse Button */}
-        <Box sx={{ p: 1, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: sidebarOpen ? 'flex-end' : 'center' }}>
-          <IconButton
-            size="small"
-            onClick={onToggleSidebar}
-            sx={{
-              color: '#64748b',
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              p: 0.75,
-              borderRadius: 2,
-              '&:hover': { backgroundColor: '#f1f5f9' },
-            }}
-          >
-            {sidebarOpen ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
-          </IconButton>
-        </Box>
       </Box>
     </Drawer>
   );
