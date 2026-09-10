@@ -677,7 +677,9 @@ app.get('*', (req, res, next) => {
 });
 
 // ── Start Server ────────────────────────────────────────────────────────────
-if (process.argv[1] && process.argv[1].endsWith('server/index.js')) {
+// Normalize path separators for cross-platform compatibility (Windows uses backslashes)
+const entryScript = process.argv[1] ? process.argv[1].replace(/\\/g, '/') : '';
+if (entryScript.endsWith('server/index.js')) {
   app.listen(PORT, () => {
     console.log(`\n🚀 Standalone Software Request & Intake API running on http://localhost:${PORT}`);
     console.log(`   Database: SQLite (server/data/intake.db) [${getCatalogCount()} Software Models]`);
