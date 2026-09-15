@@ -1,24 +1,117 @@
-I made it so that the show_welcome action card now generates two different code patterns based on phase:
-
-Pre-Install / Post-Install — unchanged splatted pattern:
-
-powershell
-$saiwParams = @{
-    CloseProcessesCountdown = 60
-}
-if ($adtSession.AppProcessesToClose.Count -gt 0)
-{
-    $saiwParams.Add('CloseProcesses', $adtSession.AppProcessesToClose)
-}
-Show-ADTInstallationWelcome @saiwParams
+Team,
 
 
-Pre-Uninstall / Uninstall / Post-Uninstall — official PSADT template pattern (no ambiguity):
+Thank you for the work that has gone into the Software Delivery Automation initiative to date. We have reviewed the current direction with the broader EUC leadership and engineering teams and wanted to provide consolidated feedback.
 
-powershell
-## If there are processes to close, show Welcome Message.
-if ($adtSession.AppProcessesToClose.Count -gt 0)
-{
-    Show-ADTInstallationWelcome -CloseProcesses $adtSession.AppProcessesToClose -CloseProcessesCountdown 60
-}
-2:24 PM
+ 
+
+We remain supportive of modernization and automation where it delivers measurable business value. However, we continue to have concerns that the current solution does not yet demonstrate how it addresses the primary operational challenges we are trying to solve.
+
+ 
+
+1. The primary opportunity remains the software request and intake experience
+
+
+From an EUC perspective, our largest challenge today is not software packaging itself, but the software request and intake process.
+
+Today, users navigate multiple forms, portals, and manual workflows to request software. They are often required to provide information that already exists elsewhere, submit supporting documentation separately, or request software that is already packaged and available through the Intune Company Portal. In addition, requests are not consistently validated against approved and denied software catalogs, which can lead to duplicate requests, unnecessary effort, and additional cycle time.
+
+ 
+
+As a result, we believe the greatest opportunity for improvement lies in simplifying and modernizing the request experience and overall intake process. While we understand that intake-related capabilities are part of the roadmap, we have not yet seen an end-to-end demonstration that shows how the future-state experience will materially improve these challenges.
+
+ 
+
+This remains the area where we believe the project can deliver the most meaningful business value.
+
+ 
+
+2. The ServiceNow integration workstream requires further demonstration
+
+
+We understand there has been significant effort around ServiceNow integration, catalog management, and governance workflows. However, EUC has not yet seen a complete demonstration of the intended end-state experience or the operational benefits these integrations are expected to provide.
+
+ 
+
+Because catalog integration is central to reducing duplicate requests, improving user guidance, and streamlining governance, we would like to see a walkthrough that demonstrates:
+
+Validation against approved and denied software catalogs.
+The user experience when software is already packaged and available.
+The user experience when requested software is denied and alternatives exist.
+The workflow for requesting net-new software.
+The manual steps that will be removed from the current EUC and HCL processes.
+
+Seeing the end-to-end workflow will help us better understand how these capabilities improve the current process and where measurable efficiencies will be gained.
+
+
+3. We have questions regarding the long-term supportability and operational model of the packaging factory
+
+
+While automation within the packaging process may provide value, we have concerns regarding the long-term supportability, sustainability, and operational complexity of the proposed packaging factory.
+
+ 
+
+Our current understanding is that the solution contains a significant amount of customization. As we evaluate the long-term operating model, we would like a clearer understanding of:
+
+The support model following implementation.
+Knowledge transfer and documentation plans.
+Ongoing maintenance requirements.
+Ownership responsibilities after project transition.
+How future enhancements and troubleshooting will be performed.
+
+Separately, packaging execution itself is not currently the primary bottleneck in our process. The larger constraints we experience today are typically related to:
+
+Intake quality and completeness.
+Obtaining installers and source files.
+Governance and approval activities.
+Testing and validation coordination.
+
+Because of this, we would like to better understand how the packaging factory contributes to overall process improvements and how it addresses the areas that drive the majority of our current cycle time.
+
+
+4. The target-state operating model and business value need to be better defined
+
+
+One of the key questions that remains is what the future-state operating model looks like and what work is actually being eliminated.
+
+ 
+
+Our understanding today is that HCL would still be required for significant portions of the packaging and deployment process. If that understanding is correct, we would like to understand:
+
+What activities are being automated or removed.
+Which teams will perform less work as a result.
+What reduction in cycle time is expected.
+What operational efficiencies are anticipated.
+What support structure will exist after transition.
+ 
+
+These are important inputs in helping us evaluate the overall business value of the solution and its impact on day-to-day operations.
+
+ 
+
+Summary
+
+ 
+
+To be clear, our concern is not with automation itself. We support investments that simplify processes, reduce operational effort, improve the user experience, and deliver measurable outcomes.
+
+ 
+
+At this stage, however, we have not yet seen a clear demonstration that the proposed solution:
+
+ 
+
+Simplifies the end-user software request experience.
+Integrates approved and denied software catalogs into the request workflow.
+Reduces duplicate or unnecessary requests.
+Removes manual effort from EUC and HCL processes.
+Reduces overall cycle time.
+Delivers a sustainable and supportable operating model.
+Produces measurable business outcomes beyond technical automation.
+We would welcome a detailed walkthrough of the intended end-state design and operating model so that the team can better understand how these objectives will be achieved.
+
+Thank you, and we look forward to continuing the discussion.
+
+This version sends a very clear message, but it reads as executive feedback and due diligence rather than an indictment of their work, which will make it much harder for Alldyn to dismiss or become defensive about.
+
+ 
