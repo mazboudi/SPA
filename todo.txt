@@ -115,3 +115,85 @@ Thank you, and we look forward to continuing the discussion.
 This version sends a very clear message, but it reads as executive feedback and due diligence rather than an indictment of their work, which will make it much harder for Alldyn to dismiss or become defensive about.
 
  
+
+ SPA Framework/Workbench Benefits (Windows) 
+
+The Software Package Automation (SPA) framework and the front-end packager “Workbench” standardizes, organizes, simplifies, and accelerates the creation of Win32 apps in Microsoft Intune. The Workbench brings back some of the functionality lost when moving from Microsoft Configuration Manager (aka SCCM) to Microsoft Intune, like the ability to clone existing app packages while the SPA framework automates tedious processes such as building a .intunewin file and uploading it to Intune. The latest version of the PowerShell App Deployment Toolkit (PSADT) is fully integrated into the Workbench. PSADT deployment templates are automatically generated. The Workbench’s PSADT Visual Action Builder allows packagers to construct deployment scripts for simple applications in minutes while providing functionality to construct extremely complicated deployment scripts where necessary. The Workbench utilizes GitLab to store all information about app packages. A single GitLab project can be used to store successive versions of Intune app packages. Packagers can easily create new GitLab projects or commit changes to existing ones using the Workbench. A project need not have all the necessary information to create an Intune app. Simply committing changes acts as a save button, allowing packagers to pick up where they left off. Using Intune by itself to build Win32 apps is an extremely rigid process. Every required field must be filled out and the .intunewin file uploaded before the Win32 app can be created. Not so with the Workbench. Projects can be created with minimal data to begin with, allowing packagers to gradually develop all the necessary pieces of the Intune Win32 app package in the Workbench. Once all those necessary pieces are in place, the Workbench can create a new Intune app or update an existing with one click. Intune by itself is akin to a no-frills sports car with a manual transmission. Intune + Workbench (and underlying SPA framework) is akin to a self-driving luxury sedan with all the optional features. 
+
+Standardization Improvements 
+
+The Workbench can import existing Intune app metadata and associated PSADT deployment script, making it easy to bring existing apps into the SPA paradigm. Older versions of PSADT scripts are automatically converted to the latest standard (currently v4.1.8). 
+
+When no existing Intune app/PSADT script exists, the Workbench automatically generates new “scaffolding” and guides the packager through every step of the app creation process. Packagers are unable to utilize old versions of PSADT templates. 
+
+Although the use of PSADT is mandated for Intune Win32 apps at Fiserv, the Workbench forces the packager to use the latest approved version with EUC-approved default configurations, branding, etc. 
+
+Organizational Improvements 
+
+The use of GitLab to store project information allows packagers to better organize different versions or revisions of the same application. For example, a single GitLab project (seamlessly accessed from the Workbench) can store app package data for version 1.0, 1.1, 1.2, etc. Perhaps there are multiple test/development packages for version 1.0. They can be stored in the same project as version 1.0 rev1, rev2, rev3, etc. 
+
+Collaboration is simplified since all app package information is stored in GitLab. One packager can start work on a specific version of an app package in the Workbench and commit changes. Another packager can then open the same version for editing. There is no question as to what the first packager may have done. It’s all visible through the Workbench. No one needs to ask where the latest PSADT deployment script is on the file share or go searching for it. Except for installation files/binaries, everything is stored in GitLab. The location of installation files and associated support files is stored in the GitLab project as well. 
+
+Simplification of Intune Packaging Workflow 
+
+The Workbench steps packagers through each phase of the packaging workflow in a deliberate fashion for net new app packages.  
+
+Select New Title and enter GitLab project information 
+
+Provide location of installation files. 
+
+Add any additional actions/custom code (if necessary) to the automatically generated PSADT scaffolding via the Visual Action Builder. 
+
+Supply Intune metadata via a UI that closely resembles Intune’s own Win32 app creation UI. 
+
+Commit changes to GitLab only, build PSADT template and download artifacts for testing, or publish to Intune (and optionally assign to test groups). 
+
+If a GitLab project already exists for a specific version of an Intune app package, the process follows a similar path. If a packager wishes to make edits to an existing version: 
+
+Select Edit Title and choose the desired version from the project selection screen. Verify GitLab project information. 
+
+Verify (or update) location of installation files. 
+
+Make changes to PSADT deployment script via Visual Action builder if necessary. 
+
+Make changes to Intune metadata if necessary. 
+
+Commit changes to GitLab only, build PSADT template and download artifacts for testing, or publish to Intune (and optionally assign to test groups). When publishing to Intune in this scenario, the existing Intune app associated with the specific project version is automatically deleted and recreated. 
+
+If the packager wants to create a new version of an existing application: 
+
+Select Clone Title and choose the desired version from the project selection screen. Supply only new project version if creating within the same GitLab project or rename project to generate entirely new GitLab project. 
+
+Provide location of installation files. 
+
+Make changes to PSADT deployment script via Visual Action builder where necessary. 
+
+Make changes to Intune metadata where necessary. 
+
+Commit changes to GitLab only, build PSADT template and download artifacts for testing, or publish to Intune (and optionally assign to test groups). When publishing to Intune in this scenario, a new app is created in Intune. 
+
+ 
+
+Acceleration/automation of Intune App Creation  
+
+Generation of the PSADT deployment template for testing is an automated process. The packager simply selects the “Build PSADT” option and waits for the process to complete. The build artifacts used for testing become available to download on the same screen once the process is completed. 
+
+Publishing an app from the Workbench (once all the necessary information has been supplied) is completely automated. The .intunewin file is always generated automatically. Packagers are no longer required to follow the manual process outlined in Prepare Win32 App Content for Upload. 
+
+Microsoft Configuration Manager allowed packagers to clone an existing app package. Intune does not have this functionality, but the Workbench does. One of the most common packaging exercises is creating a new version of an app that has already been packaged. This is a tedious process in Intune. A packager would need to do the following to create a new version of an existing Intune app: 
+
+Find the location of the PSADT template used in the previous app version. This template (basically a folder with a bunch of scripts, config files, and installation files) is not connected to the Intune app in any way. Usually a packager will reference the location in the Intune app’s notes section. 
+
+Delete the contents of the Files folder within the PSADT template (possibly the SupportFiles folder too) and replace with the new version’s installer file(s). 
+
+Edit the PSADT deployment script to account for the new version as necessary. If the deployment template is outdated, conversion to the latest PSADT template is not straightforward or user friendly. As such, packagers most likely avoid this whenever possible and continue to use outdated PSADT deployment templates. 
+
+Manually generate a new .intunewin file from the PSADT deployment template. 
+
+Open Intune in two different browser windows. Open the existing Win32 app to be “cloned” in one window and initiate the process to create a new Win32 app in the other. Upload the .intunewin file to start the creation process and then begin to copy and paste all the information/settings from the existing app into the new app, changing relevant sections to reflect the new app version being created. 
+
+To edit an existing app’s underlying PSADT deployment script (or any part of the PSADT template such as a config file in the Files folder), a packager would need to manually rebuild the .intunewin file and upload to the existing Intune app. 
+
+In comparison to the lengthy, tedious processes required to “clone” an existing app or edit an existing app’s PSADT template, the Workbench has simple Edit Title and Clone Title options as described in the Simplification of Intune Packaging Workflow section. 
+
+Importing an existing Intune app’s metadata and associated PSADT deployment script into the Workbench to create a new project is also a very quick and painless process. Eventually this Intune/PSADT import option won’t be necessary, but it saves an enormous amount of time for any packager wanting to convert legacy PSADT folder templates to current version standards. The conversion capability of the Workbench is far superior to PSADT’s conversion utilities and much easier to use. It’s unlikely packagers even convert old PSADT 3.x templates to the latest version (4.1.8) because of the tedious, time-consuming work involved. The Workbench’s conversion capabilities have been tested on the most complicated PSADT deployment scripts. It offers extremely fast and robust conversion capability. 
