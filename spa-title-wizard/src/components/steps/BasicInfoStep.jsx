@@ -128,68 +128,43 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
         <p>Define the application identity. These values are used across all generated files.</p>
       </div>
 
-      {/* NEW mode — existing project found: offer Load & Edit vs Proceed */}
-      {existingProject && !duplicateLoadDismissed && state.wizardMode === 'new' && !isFromQueue && (
-        <div className="duplicate-alert duplicate-choice-card animate-in">
+      {/* NEW / CLONE mode — duplicate package ID: hard block, no checkbox escape */}
+      {existingProject && (state.wizardMode === 'new' || state.wizardMode === 'clone') && !isFromQueue && (
+        <div className="duplicate-alert animate-in" style={{ borderColor: '#ef4444', background: 'rgba(239,68,68,0.06)' }}>
           <div className="duplicate-alert__header">
-            <span className="duplicate-alert__icon">⚠️</span>
+            <span className="duplicate-alert__icon">⛔</span>
             <div className="duplicate-alert__title-group">
-              <h3 className="duplicate-alert__title">Project Already Exists in GitLab</h3>
+              <h3 className="duplicate-alert__title" style={{ color: '#ef4444' }}>Package ID Already Exists</h3>
               <p className="duplicate-alert__subtitle">
-                A repository with the Package ID <code>{state.packageId}</code> already exists. How would you like to proceed?
-              </p>
-            </div>
-          </div>
-          <div className="duplicate-alert__body" style={{ paddingLeft: 0, marginTop: 'var(--space-md)' }}>
-            <div className="duplicate-alert__meta" style={{ marginBottom: 'var(--space-lg)' }}>
-              <span><strong>Path:</strong> <code>{existingProject.path_with_namespace}</code></span>
-              <span><strong>GitLab URL:</strong> <a href={existingProject.web_url} target="_blank" rel="noreferrer" className="duplicate-alert__link">{existingProject.web_url}</a></span>
-              {existingProject.tags && existingProject.tags.length > 0 && (
-                <span><strong>Latest Version:</strong> <code className="duplicate-alert__version">{existingProject.tags[0].name}</code></span>
-              )}
-            </div>
-            <div className="duplicate-choices-grid">
-              {/* Option A — Load & Edit */}
-              <div className={`duplicate-choice-box ${!state.duplicateAcknowledge ? 'duplicate-choice-box--active' : ''}`}>
-                <div className="duplicate-choice-box__badge">Option A (Recommended)</div>
-                <h4>✏️ Load &amp; Edit Existing Configuration</h4>
-                <p>Discard current changes, pull the configuration from GitLab, and edit it. This maintains project history.</p>
-                {onLoadExistingProject && (
-                  <button
-                    type="button"
-                    className="btn btn-primary duplicate-alert__btn"
-                    onClick={() => {
-                      setDuplicateLoadDismissed(true);
-                      onLoadExistingProject(existingProject.path_with_namespace);
-                    }}
-                    style={{ marginTop: 'auto' }}
-                  >
-                    ✏️ Load Existing Project
-                  </button>
+                A project with ID <code>{state.packageId}</code> already exists at{' '}
+                <a href={existingProject.web_url} target="_blank" rel="noreferrer" className="duplicate-alert__link">
+                  {existingProject.path_with_namespace}
+                </a>.
+                {existingProject.tags?.length > 0 && (
+                  <> Latest version: <code className="duplicate-alert__version">{existingProject.tags[0].name}</code>.</>
                 )}
-              </div>
-              {/* Option B — Proceed */}
-              <div className={`duplicate-choice-box ${state.duplicateAcknowledge ? 'duplicate-choice-box--active' : ''}`}>
-                <div className="duplicate-choice-box__badge duplicate-choice-box__badge--caution">Option B (Proceed)</div>
-                <h4>🔄 Proceed as New</h4>
-                <p>Continue creating a new project. Publishing will overwrite or update scripts on the existing repository's main branch.</p>
-                <label className="duplicate-ack-label" style={{ marginTop: 'auto', display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  <input
-                    type="checkbox"
-                    checked={state.duplicateAcknowledge || false}
-                    onChange={e => updateField('duplicateAcknowledge', e.target.checked)}
-                    style={{ marginTop: '3px' }}
-                  />
-                  <span>I acknowledge that publishing will update/overwrite the existing repository in GitLab.</span>
-                </label>
-              </div>
-            </div>
-            {!state.duplicateAcknowledge && (
-              <p className="duplicate-alert__msg" style={{ marginTop: 'var(--space-md)', color: '#ef4444', fontWeight: '500', fontSize: '0.8rem' }}>
-                ⚠️ Please select Option A (Load Existing) or check the acknowledgment checkbox in Option B to proceed.
               </p>
-            )}
+              <p className="duplicate-alert__subtitle" style={{ marginTop: '6px' }}>
+                Change the <strong>Display Name</strong> to generate a unique Package ID before proceeding,
+                or load the existing project to edit it.
+              </p>
+            </div>
           </div>
+          {onLoadExistingProject && (
+            <div style={{ marginTop: 'var(--space-md)' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: '0.82rem' }}
+                onClick={() => {
+                  setDuplicateLoadDismissed(true);
+                  onLoadExistingProject(existingProject.path_with_namespace);
+                }}
+              >
+                ✏️ Load Existing Project instead
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -223,7 +198,8 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
             <strong>New Version of <em>{state.displayName}</em></strong>
             <p>
               Display Name and Package ID are <strong>locked</strong>.
-              Enter the new version number below — the pipeline will push to the existing project.
+              Enter the new version below — use the vendor version string, optionally followed by a build or revision suffix
+              (e.g. <code>134.0.6998.89</code> or <code>134.0.6998.89.1</code>).
             </p>
             {(() => {
               if (!state.version) return null;
@@ -234,7 +210,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
               return isDup ? (
                 <p className="import-banner__stale-warning">
                   ⛔ <strong>Version already exists:</strong> <code>{vTag}</code> is already a published tag on this project.
-                  Enter a different version number to proceed.
+                  Use a different vendor version or append a build/revision suffix (e.g. <code>{state.version}.1</code>).
                 </p>
               ) : null;
             })()}
@@ -273,8 +249,9 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
               <div className="duplicate-alert__title-group">
                 <h3 className="duplicate-alert__title">Version Already Released</h3>
                 <p className="duplicate-alert__subtitle">
-                  Version <code>{state.version}</code> ({versionTag}) has already been published to GitLab for package <code>{state.packageId}</code>.
-                  You may be creating a duplicate release. You can still proceed — update the version if needed.
+                  Version <code>{versionTag}</code> has already been published to GitLab for package <code>{state.packageId}</code>.
+                  Update the version — use the vendor version string plus an optional build or revision suffix
+                  (e.g. <code>{state.version}.1</code>) to create a distinct release.
                 </p>
               </div>
             </div>
@@ -354,12 +331,16 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           label="Version"
           required
           id="version"
-          hint={isEditMode ? 'Version is locked in edit mode.' : "Vendor version string, e.g. '134.0.6998.89'"}
+          hint={
+            isEditMode       ? 'Version is locked in edit mode.' :
+            isNewVersionMode ? 'Enter the vendor version string, optionally followed by a build or revision suffix (e.g. 134.0.6998.89 or 134.0.6998.89.1).' :
+            'Vendor version string + optional build/revision suffix — e.g. 134.0.6998.89 or 134.0.6998.89.1'
+          }
         >
           <input
             id="version"
             type="text"
-            placeholder="e.g. 134.0"
+            placeholder="e.g. 134.0.6998.89 or 134.0.6998.89.1"
             value={state.version}
             onChange={e => updateField('version', e.target.value)}
             disabled={isEditMode}

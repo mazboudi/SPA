@@ -624,12 +624,13 @@ export default function useWizardState() {
         if (!hasRequired) return false;
         if (validatePackageId(state.packageId) !== null) return false;
 
-        // ── New Title clone: package ID must not already exist in GitLab ──
-        if (state.wizardMode === 'clone') {
-          if (state.existingProject) return false; // hard block — user must change display name
+        // ── 'new' and 'clone': package ID must not already exist in GitLab ──
+        // Hard block — user must change Display Name to get a unique ID, or use "Load Existing".
+        if (state.wizardMode === 'new' || state.wizardMode === 'clone') {
+          if (state.existingProject) return false;
         }
 
-        // ── New Version clone: version must be set and not duplicate an existing tag ──
+        // ── 'clone_version': version must not duplicate an existing tag ──
         if (state.wizardMode === 'clone_version') {
           if (!state.version.trim()) return false;
           const vTag = `v${state.version.replace(/^v/i, '')}`;
@@ -638,9 +639,6 @@ export default function useWizardState() {
           );
           if (isDupVersion) return false;
         }
-
-        // Legacy 'new' mode: duplicate acknowledgment gate
-        if (state.wizardMode === 'new' && state.existingProject && !state.duplicateAcknowledge) return false;
 
         return true;
       }
