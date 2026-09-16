@@ -60,7 +60,7 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [state.packageId, state.gitLabGroup, isEditMode]);
+  }, [state.packageId, state.gitLabGroup, isEditMode, isNewVersionMode]);
 
 
   return (

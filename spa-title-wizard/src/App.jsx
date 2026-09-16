@@ -697,6 +697,8 @@ export default function App() {
                   <button
                     className="btn btn-primary"
                     onClick={wizard.nextStep}
+                    disabled={!wizard.canProceed}
+                    title={!wizard.canProceed ? 'Complete all required fields to continue' : undefined}
                   >
                     Next →
                   </button>
