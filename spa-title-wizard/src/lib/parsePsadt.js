@@ -1191,7 +1191,7 @@ function extractBlockActions(block, { rewriteVars = true } = {}) {
   for (let lineIdx = 0; lineIdx < joinedLines.length; lineIdx++) {
     const lineObj = joinedLines[lineIdx];
     const line = lineObj.text;
-    const t = line.trim();
+    let t = line.trim();
 
     // Skip empty lines at the very beginning of parsing to avoid leading raw blocks
     if (!t && customBuffer.length === 0) {

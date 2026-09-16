@@ -229,9 +229,14 @@ export default function App() {
     setView(VIEW.CLONE);
   });
 
-  // Clone project selected from picker: load full config, then clear identity/installer fields
-  const handleCloneSelect = (files, projectMeta) => withUnsavedWorkGuard(() => {
-    wizard.importProjectForClone(files, projectMeta);
+  // Clone project selected from picker — intent is 'new_title' | 'new_version'
+  const handleCloneSelect = (files, projectMeta, intent) => withUnsavedWorkGuard(() => {
+    if (intent === 'new_version') {
+      wizard.importForNewVersion(files, projectMeta);
+    } else {
+      // 'new_title' or fallback
+      wizard.importForNewTitle(files, projectMeta);
+    }
     clearEdits();
     wizard.goToStep(0);
     setView(VIEW.PACKAGE);

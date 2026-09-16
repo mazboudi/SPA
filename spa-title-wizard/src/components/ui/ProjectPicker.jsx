@@ -2,18 +2,27 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import './ProjectPicker.css';
 
 /**
- * ProjectPicker — modal to browse and select an existing SPA project
- * from GitLab for editing or cloning in the workbench.
+ * ProjectPicker — browse and select an existing SPA project for editing or cloning.
+ *
+ * In clone mode, after the user picks a version an intent overlay appears:
+ *   🆕 New Title  — clone config as a brand-new app (user enters new display name)
+ *   🔢 New Version — bump version of the same app (display name locked)
+ *
+ * onSelect is called with (files, enrichedMeta, intent) where intent is
+ *   'new_title' | 'new_version' | undefined (edit mode).
  *
  * @param {{ onSelect: Function, onClose: Function, groupPath?: string, mode?: 'edit'|'clone' }} props
  */
 export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'edit' }) {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState('');
+  const [projects, setProjects]             = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState(null);
+  const [search, setSearch]                 = useState('');
   const [loadingProject, setLoadingProject] = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
+
+  // Clone-mode: store chosen project+ref while waiting for intent selection
+  const [pendingLoad, setPendingLoad]       = useState(null); // { project, ref }
   const searchRef = useRef(null);
 
   // ── Load project list ───────────────────────────────────────────────────
@@ -37,8 +46,8 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
   }, [groupPath]);
 
   useEffect(() => {
-    if (!loading && searchRef.current) searchRef.current.focus();
-  }, [loading]);
+    if (!loading && !pendingLoad && searchRef.current) searchRef.current.focus();
+  }, [loading, pendingLoad]);
 
   // ── Filtered list ─────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -51,9 +60,10 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
     );
   }, [projects, search]);
 
-  // ── Select a project version ──────────────────────────────────────────
-  const handleLoad = async (project, ref) => {
+  // ── Fetch files and call onSelect ─────────────────────────────────────
+  const handleLoad = async (project, ref, intent) => {
     setLoadingProject(project.id);
+    setPendingLoad(null);
     try {
       const res = await fetch(`/api/projects/${project.id}/clone`, {
         method: 'POST',
@@ -62,9 +72,8 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      // Enrich projectMeta with tags (for staleness detection) from the list we already have
       const enrichedMeta = { ...data.projectMeta, tags: project.tags || [], localPath: data.localPath };
-      onSelect(data.files, enrichedMeta);
+      onSelect(data.files, enrichedMeta, intent);
     } catch (err) {
       alert(`Failed to load project: ${err.message}`);
     } finally {
@@ -72,17 +81,23 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
     }
   };
 
-  // ── Toggle version list ───────────────────────────────────────────────
-  const handleItemClick = (project) => {
-    if (project.tags && project.tags.length > 0) {
-      // Has versions — expand to show picker
-      setExpandedProject(expandedProject === project.id ? null : project.id);
+  // ── In clone mode show intent overlay; in edit mode load directly ─────
+  const initiateLoad = (project, ref) => {
+    if (mode === 'clone') {
+      setPendingLoad({ project, ref });
     } else {
-      // No tags — load from default branch directly
-      handleLoad(project, null);
+      handleLoad(project, ref, undefined);
     }
   };
 
+  // ── Toggle version list ───────────────────────────────────────────────
+  const handleItemClick = (project) => {
+    if (project.tags && project.tags.length > 0) {
+      setExpandedProject(expandedProject === project.id ? null : project.id);
+    } else {
+      initiateLoad(project, null);
+    }
+  };
 
   const formatDate = (iso) => {
     if (!iso) return '';
@@ -95,6 +110,74 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
 
   const isClone = mode === 'clone';
 
+  // ── Clone intent overlay ──────────────────────────────────────────────
+  if (pendingLoad) {
+    const { project, ref } = pendingLoad;
+    const latestTag = project.tags?.[0]?.name;
+    const sourceLabel = ref ? `v${ref}` : `latest (${project.default_branch})`;
+
+    return (
+      <div className="pp-page">
+        <div className="pp-header">
+          <div>
+            <h2 className="pp-title">📋 What would you like to do?</h2>
+            <p className="pp-subtitle">
+              Source: <strong>{project.name}</strong> — {sourceLabel}
+            </p>
+          </div>
+          <button className="pp-close" onClick={() => setPendingLoad(null)} title="Back">
+            ← Back
+          </button>
+        </div>
+
+        <div className="pp-intent-grid">
+          {/* New Title */}
+          <button
+            className="pp-intent-card"
+            onClick={() => handleLoad(project, ref, 'new_title')}
+            disabled={!!loadingProject}
+          >
+            <div className="pp-intent-card__icon">🆕</div>
+            <div className="pp-intent-card__body">
+              <div className="pp-intent-card__title">New Title</div>
+              <div className="pp-intent-card__desc">
+                Clone this config as a brand-new application.
+                You'll enter a new display name and all required fields before proceeding.
+              </div>
+              <div className="pp-intent-card__note">
+                Creates a <strong>new GitLab project</strong>
+              </div>
+            </div>
+            {loadingProject && <span className="pp-intent-card__spinner">⏳</span>}
+          </button>
+
+          {/* New Version */}
+          <button
+            className="pp-intent-card"
+            onClick={() => handleLoad(project, ref, 'new_version')}
+            disabled={!!loadingProject}
+          >
+            <div className="pp-intent-card__icon">🔢</div>
+            <div className="pp-intent-card__body">
+              <div className="pp-intent-card__title">New Version</div>
+              <div className="pp-intent-card__desc">
+                Bump the version of <strong>{project.name}</strong>.
+                The display name and package ID are locked — just enter the new version number.
+              </div>
+              <div className="pp-intent-card__note">
+                {latestTag
+                  ? <>Current: <code>{latestTag}</code> — pushes to the <strong>same project</strong></>
+                  : <>Pushes to the <strong>same project</strong></>}
+              </div>
+            </div>
+            {loadingProject && <span className="pp-intent-card__spinner">⏳</span>}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal project list ───────────────────────────────────────────────
   return (
     <div className="pp-page">
       <div className="pp-header">
@@ -104,7 +187,7 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
           </h2>
           <p className="pp-subtitle">
             {isClone
-              ? 'Select a source title — all config is copied except Title ID, version, and installer details'
+              ? 'Select a source title and version to clone from'
               : 'Select a title from GitLab to load into the workbench'}
           </p>
         </div>
@@ -182,7 +265,7 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
                 </div>
                 <button
                   className="pp-version-btn pp-version-btn--latest"
-                  onClick={() => handleLoad(project, null)}
+                  onClick={() => initiateLoad(project, null)}
                   disabled={!!loadingProject}
                 >
                   <span className="pp-version-btn__name">
@@ -196,7 +279,7 @@ export default function ProjectPicker({ onSelect, onClose, groupPath, mode = 'ed
                   <button
                     key={tag.name}
                     className="pp-version-btn"
-                    onClick={() => handleLoad(project, tag.name)}
+                    onClick={() => initiateLoad(project, tag.name)}
                     disabled={!!loadingProject}
                   >
                     <span className="pp-version-btn__name">

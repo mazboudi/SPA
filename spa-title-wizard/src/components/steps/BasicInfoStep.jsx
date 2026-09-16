@@ -13,24 +13,27 @@ function toKebabCase(str) {
 }
 
 export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadExistingProject }) {
-  const isEditMode = state.wizardMode === 'edit';
-  const isCloneMode = state.wizardMode === 'clone';
-  const isFromQueue = !!state._fromQueue;
+  const isEditMode       = state.wizardMode === 'edit';
+  const isCloneMode      = state.wizardMode === 'clone';        // New Title intent
+  const isNewVersionMode = state.wizardMode === 'clone_version'; // New Version intent
+  const isAnyClone       = isCloneMode || isNewVersionMode;
+  const isFromQueue      = !!state._fromQueue;
 
   const [checkingProject, setCheckingProject] = useState(false);
   const [existingProject, setExistingProject] = useState(null);
   // Set to true once the user clicks "Load & Edit" so the card vanishes immediately
   const [duplicateLoadDismissed, setDuplicateLoadDismissed] = useState(false);
 
-  // Check if current Package ID exists in GitLab (debounced)
+  // Check if current Package ID exists in GitLab (debounced).
+  // Skipped in edit, refactor, and clone_version modes (package ID is already known/locked).
   useEffect(() => {
     if (!state.packageId || !state.gitLabGroup) {
       setExistingProject(null);
       updateField('existingProject', null);
       return;
     }
-    // In edit mode we already know this project exists — skip the check.
-    if (isEditMode) return;
+    // In edit or new-version mode the project is already known — skip the check.
+    if (isEditMode || isNewVersionMode) return;
 
     const timer = setTimeout(async () => {
       setCheckingProject(true);
@@ -212,29 +215,49 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
         </div>
       )}
 
-      {/* CLONE mode — derived Package ID already exists: lighter warning */}
-      {existingProject && isCloneMode && (
-        <div className="duplicate-alert duplicate-alert--clone animate-in">
+      {/* CLONE VERSION mode — banner, locked fields, version duplicate check */}
+      {isNewVersionMode && (
+        <div className="import-banner import-banner--edit animate-in">
+          <div className="import-banner__icon">🔢</div>
+          <div className="import-banner__body">
+            <strong>New Version of <em>{state.displayName}</em></strong>
+            <p>
+              Display Name and Package ID are <strong>locked</strong>.
+              Enter the new version number below — the pipeline will push to the existing project.
+            </p>
+            {(() => {
+              if (!state.version) return null;
+              const vTag = `v${state.version.replace(/^v/i, '')}`;
+              const isDup = (state._cloneSourceTags || []).some(
+                t => t.name === vTag || t.name === state.version
+              );
+              return isDup ? (
+                <p className="import-banner__stale-warning">
+                  ⛔ <strong>Version already exists:</strong> <code>{vTag}</code> is already a published tag on this project.
+                  Enter a different version number to proceed.
+                </p>
+              ) : null;
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* CLONE (New Title) mode — blocking duplicate package-ID error */}
+      {isCloneMode && existingProject && (
+        <div className="duplicate-alert animate-in" style={{ borderColor: '#ef4444', background: 'rgba(239,68,68,0.06)' }}>
           <div className="duplicate-alert__header">
-            <span className="duplicate-alert__icon">⚠️</span>
+            <span className="duplicate-alert__icon">⛔</span>
             <div className="duplicate-alert__title-group">
-              <h3 className="duplicate-alert__title">Package ID Already Exists</h3>
+              <h3 className="duplicate-alert__title" style={{ color: '#ef4444' }}>Package ID Already Exists</h3>
               <p className="duplicate-alert__subtitle">
-                A GitLab project with the ID <code>{state.packageId}</code> already exists at{' '}
-                <a href={existingProject.web_url} target="_blank" rel="noreferrer" className="duplicate-alert__link">{existingProject.path_with_namespace}</a>.
-                This clone will create a <strong>new, separate project</strong> when published — choose a different Display Name if that's not intended.
+                A project with ID <code>{state.packageId}</code> already exists at{' '}
+                <a href={existingProject.web_url} target="_blank" rel="noreferrer" className="duplicate-alert__link">
+                  {existingProject.path_with_namespace}
+                </a>.
+                Change the <strong>Display Name</strong> to generate a unique Package ID before proceeding.
               </p>
             </div>
           </div>
-          <label className="duplicate-ack-label" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 'var(--space-md)' }}>
-            <input
-              type="checkbox"
-              checked={state.duplicateAcknowledge || false}
-              onChange={e => updateField('duplicateAcknowledge', e.target.checked)}
-              style={{ marginTop: '3px' }}
-            />
-            <span>I understand — continue with this Package ID for the cloned project.</span>
-          </label>
         </div>
       )}
 
@@ -262,16 +285,26 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
 
 
       <div className="form-grid">
-        <FormField label="Display Name" required id="displayName" hint={isEditMode ? 'Display Name is locked in edit mode.' : "Human-readable name, e.g. 'Google Chrome'"}>
+        <FormField
+          label="Display Name"
+          required
+          id="displayName"
+          hint={
+            isEditMode       ? 'Display Name is locked in edit mode.' :
+            isNewVersionMode ? 'Display Name is locked — you are creating a new version of this title.' :
+            isCloneMode      ? 'Enter a new display name for this title. Package ID is auto-derived.' :
+            undefined
+          }
+        >
           <input
             id="displayName"
             type="text"
             placeholder="e.g. Google Chrome"
             value={state.displayName}
             onChange={e => updateField('displayName', e.target.value)}
-            autoFocus={!isEditMode}
-            disabled={isEditMode}
-            className={isEditMode ? 'input-disabled' : ''}
+            autoFocus={!isEditMode && !isNewVersionMode}
+            disabled={isEditMode || isNewVersionMode}
+            className={(isEditMode || isNewVersionMode) ? 'input-disabled' : ''}
           />
         </FormField>
 
@@ -282,11 +315,12 @@ export default function BasicInfoStep({ state, updateField, CATEGORIES, onLoadEx
           required
           id="packageId"
           hint={
-            isEditMode ? 'Package ID is locked in edit mode.' :
-              isCloneMode ? 'Auto-derived from Display Name — edit Display Name to change.' :
-                isFromQueue ? 'Package ID is derived from Display Name.' :
-                  checkingProject ? '🔍 Checking GitLab…' :
-                    'Auto-derived from Display Name — not directly editable.'
+            isEditMode       ? 'Package ID is locked in edit mode.' :
+            isNewVersionMode ? 'Package ID is locked — same project, new version.' :
+            isCloneMode      ? 'Auto-derived from Display Name — must be unique.' :
+            isFromQueue      ? 'Package ID is derived from Display Name.' :
+            checkingProject  ? '🔍 Checking GitLab…' :
+            'Auto-derived from Display Name — not directly editable.'
           }
           style={{ gridColumn: 'span 2', marginTop: 'var(--space-md)' }}
         >

@@ -4,8 +4,11 @@ import parsePsadtBlocks from '../lib/parsePsadtBlocks';
 import { deriveState } from './deriveState';
 
 const INITIAL_STATE = {
-  // Wizard mode: 'new', 'refactor', or 'edit'
+  // Wizard mode: 'new' | 'refactor' | 'edit' | 'clone' | 'clone_version'
   wizardMode: 'new',
+  // Clone-specific
+  cloneIntent: null,          // 'new_title' | 'new_version' — set during clone picker
+  _cloneSourceTags: [],       // Tags from the source project, used for version duplicate check
   psadtVersion: '',         // 'v3' or 'v4' when refactoring
   psadtScriptVersion: '',   // e.g. '3.8.3' or '4.1.7'
   psadtFileName: '',        // original uploaded filename
@@ -620,11 +623,25 @@ export default function useWizardState() {
         const hasRequired = !!(state.displayName.trim() && state.version.trim() && state.category && state.platform);
         if (!hasRequired) return false;
         if (validatePackageId(state.packageId) !== null) return false;
-        // Duplicate acknowledgment is only required for 'new' and 'clone' modes.
-        // In 'refactor' mode, finding the existing project is expected — no gate.
-        // In 'edit' mode, the project is known — no gate.
-        const needsAck = state.wizardMode === 'new' || state.wizardMode === 'clone';
-        if (needsAck && state.existingProject && !state.duplicateAcknowledge) return false;
+
+        // ── New Title clone: package ID must not already exist in GitLab ──
+        if (state.wizardMode === 'clone') {
+          if (state.existingProject) return false; // hard block — user must change display name
+        }
+
+        // ── New Version clone: version must be set and not duplicate an existing tag ──
+        if (state.wizardMode === 'clone_version') {
+          if (!state.version.trim()) return false;
+          const vTag = `v${state.version.replace(/^v/i, '')}`;
+          const isDupVersion = (state._cloneSourceTags || []).some(
+            t => t.name === vTag || t.name === state.version
+          );
+          if (isDupVersion) return false;
+        }
+
+        // Legacy 'new' mode: duplicate acknowledgment gate
+        if (state.wizardMode === 'new' && state.existingProject && !state.duplicateAcknowledge) return false;
+
         return true;
       }
 
@@ -1192,29 +1209,19 @@ export default function useWizardState() {
   }, [markClean]);
 
   /**
-   * Clone an existing project: load all its config exactly like an edit,
-   * but clear the fields that must be unique / re-entered for a new title:
-   *   - packageId (slug) — must be unique
-   *   - version — must be set fresh
-   *   - installer source path + file (runner-specific, not carried over)
-   *   - MSI metadata (tied to the specific binary)
-   *   - all publish/session artifacts
-   * Everything else (detection rules, lifecycle/PSADT actions, Intune config,
-   * requirements, dependencies) is preserved as a starting point.
+   * Clone — NEW TITLE intent:
+   * Load all config from source, then clear identity + installer fields.
+   * User must provide a new Display Name (which re-derives packageId).
+   * The duplicate-package-id check in isStepValid blocks Next until the ID is unique.
    */
-  const importProjectForClone = useCallback((files, projectMeta) => {
-    // Reuse the full edit import to populate all fields from the source project
+  const importForNewTitle = useCallback((files, projectMeta) => {
     importProjectForEdit(files, projectMeta);
-
-    // After import completes (next tick), clear clone-specific fields
     setTimeout(() => {
       setState(prev => ({
         ...prev,
-        // Identity — packageId is derived from the copied displayName so it
-        // appears immediately. The user changes Display Name to make it unique,
-        // which will re-derive packageId automatically.
-        packageId:            toKebabCase(prev.displayName || ''),
-        // Version — must be set explicitly for the new title
+        // Clear identity — user must enter a new display name
+        displayName:          '',
+        packageId:            '',
         version:              '',
         // Installer source — runner path is specific to the source title
         installerSourceDir:   '',
@@ -1229,18 +1236,66 @@ export default function useWizardState() {
         msiUpgradeCode:       '',
         msiFileName:          '',
         exeSourceFilename:    '',
-        // Reset exe silent args? No — keep them as they likely apply to same app family
-        // Mode: treat as a new package, not an update to the source
-        wizardMode:           'new',
-        // Clear the source project's edit metadata so publish creates a new project
+        // Mode
+        wizardMode:           'clone',
+        cloneIntent:          'new_title',
+        // Clear source project edit metadata
         _editProjectId:       null,
         _editProjectPath:     null,
         _editProjectUrl:      null,
         _editLoadedRef:       null,
         _editProjectTags:     [],
-        // Clear Intune app link — clone is a NEW title; must not delete the source app on first publish
+        _cloneSourceTags:     [],
+        existingProject:      null,
+        duplicateAcknowledge: false,
+        // Clear Intune app link — this is a brand-new title
         syncIntuneAppId:      '',
-        // Clear session artifacts
+        _lastPublishResult:   null,
+        _pipelineLocked:      false,
+        _psadtActiveTab:      null,
+      }));
+    }, 0);
+  }, [importProjectForEdit]);
+
+  /**
+   * Clone — NEW VERSION intent:
+   * Load all config from source; keep displayName + packageId locked.
+   * User only enters a new version. The version duplicate check in isStepValid
+   * blocks Next if the version tag already exists on the source project.
+   */
+  const importForNewVersion = useCallback((files, projectMeta) => {
+    importProjectForEdit(files, projectMeta);
+    setTimeout(() => {
+      const sourceTags = (projectMeta && projectMeta.tags) ? projectMeta.tags : [];
+      setState(prev => ({
+        ...prev,
+        // Keep displayName + packageId — they are locked in this mode
+        // Clear version — user must enter the new version number
+        version:              '',
+        // Installer source — runner path is specific to the source
+        installerSourceDir:   '',
+        installerSourceFile:  '',
+        installerSubfolder:   '',
+        supportFilesSource:   '',
+        // MSI metadata — tied to the specific binary
+        msiProductCode:       '',
+        msiProductVersion:    '',
+        msiProductName:       '',
+        msiManufacturer:      '',
+        msiUpgradeCode:       '',
+        msiFileName:          '',
+        exeSourceFilename:    '',
+        // Mode
+        wizardMode:           'clone_version',
+        cloneIntent:          'new_version',
+        // Preserve source project path so publish pushes to the SAME project
+        // (same as edit mode — new branch/tag only)
+        _editLoadedRef:       null,   // clear so banner doesn't show stale ref
+        _cloneSourceTags:     sourceTags,
+        duplicateAcknowledge: false,
+        existingProject:      null,
+        // Clear Intune app link — new version will need its own publish cycle
+        syncIntuneAppId:      '',
         _lastPublishResult:   null,
         _pipelineLocked:      false,
         _psadtActiveTab:      null,
@@ -1266,7 +1321,8 @@ export default function useWizardState() {
     importIntuneExport,
     initBlankPsadt,
     importProjectForEdit,
-    importProjectForClone,
+    importForNewTitle,
+    importForNewVersion,
     nextStep,
     prevStep,
     goToStep,
