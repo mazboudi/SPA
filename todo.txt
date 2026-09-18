@@ -1,3 +1,16 @@
 #NIST API
 APIKEY=193AB9A0-0264-47CD-84C9-A22707636662
 https://services.nvd.nist.gov/rest/json/cves/2.0
+
+o	Must not be associated with vulnerability with a NVD CVSS v3.x security score of >=7.0.
+o	Must not have trending ≥ medium scored vulnerabilities over a span of 30-60 days.
+o	Must not be server software. Server software is server software even if compatible and vendor supported on a workstation.
+o	Must be in vendor support.
+o	Must not be trial or evaluation software.
+o	There mustn't be an existing approved alternative.
+o	Install path must be C:\Program Files, C:\Program Files (x86) or an existing actively managed location approved by EUC.
+o	Must have Security Architecture SVP approval if there is an externally hosted cloud element.
+o	There mustn't be a disallowed prerequisite.
+o	Must have all AI integration documented, reviewed by AI Governance Team (Keith Edwards) and socialized with Cyber Risk.
+o	Must have approval from Legal if the software is designated as “Freeware”, not to be confused with Shareware or Open Source.
+o	Browser extensions must have evidence of support, no critical permission flags, and no tracking or data collection mechanisms.
