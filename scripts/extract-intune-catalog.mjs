@@ -30,6 +30,9 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, statSync, mkdirSy
 import { join, resolve, basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Allow self-signed / corporate proxy TLS inspection certificates (matches spa-title-wizard server)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..');
@@ -61,6 +64,7 @@ Options:
   --tenant <id>                 Override Azure Tenant ID
   --client-id <id>              Override Azure Client ID
   --client-secret <secret>      Override Azure Client Secret
+  --token <token>               Use direct Bearer access token
   --help                        Show this help text
 `);
   process.exit(0);
@@ -68,32 +72,46 @@ Options:
 
 const sourceMode = getArg('--source', 'auto'); // 'auto', 'graph', 'local'
 const localExportDir = resolve(REPO_ROOT, getArg('--dir', 'RefactorApps/IntuneExport'));
-const envFilePath = resolve(REPO_ROOT, getArg('--env', 'spa-title-wizard/server/.env'));
 const outputJsonPath = resolve(REPO_ROOT, getArg('--out', 'intune-catalog-extracted.json'));
 const outputCsvPath = resolve(REPO_ROOT, getArg('--csv', 'intune-catalog-extracted.csv'));
 const limitArg = getArg('--limit') ? parseInt(getArg('--limit'), 10) : null;
 const shouldMatchDb = hasFlag('--match-db');
 
-// ── Read Environment Variables ───────────────────────────────────────────────
-function loadEnv(filePath) {
+// ── Read Environment Variables (Multi-path Discovery) ───────────────────────
+function loadEnv() {
   const env = { ...process.env };
-  if (existsSync(filePath)) {
-    const content = readFileSync(filePath, 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx > 0) {
-        const k = trimmed.slice(0, eqIdx).trim();
-        const v = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
-        if (!env[k]) env[k] = v;
-      }
+  const candidatePaths = [
+    getArg('--env'),
+    resolve(REPO_ROOT, 'spa-title-wizard/server/.env'),
+    resolve(REPO_ROOT, '.env'),
+    resolve(process.cwd(), 'server/.env'),
+    resolve(process.cwd(), '.env'),
+  ].filter(Boolean);
+
+  let loadedFrom = null;
+  for (const p of candidatePaths) {
+    if (existsSync(p)) {
+      try {
+        const content = readFileSync(p, 'utf8');
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            const k = trimmed.slice(0, eqIdx).trim();
+            const v = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+            if (!env[k] || env[k].includes('xxxx')) env[k] = v;
+          }
+        }
+        loadedFrom = p;
+        break;
+      } catch (_) {}
     }
   }
-  return env;
+  return { env, loadedFrom };
 }
 
-const envConfig = loadEnv(envFilePath);
+const { env: envConfig, loadedFrom: envLoadedPath } = loadEnv();
 const AZURE_TENANT_ID = getArg('--tenant') || envConfig.AZURE_TENANT_ID || '';
 const AZURE_CLIENT_ID = getArg('--client-id') || envConfig.AZURE_CLIENT_ID || '';
 const AZURE_CLIENT_SECRET = getArg('--client-secret') || envConfig.AZURE_CLIENT_SECRET || '';
@@ -259,9 +277,14 @@ async function extractFromGraphApi() {
   let token = DIRECT_TOKEN;
 
   if (!token) {
+    const mask = (s) => (s && s.length > 8 ? `${s.slice(0, 4)}...${s.slice(-4)}` : '***');
     console.log('🌐 Connecting to Microsoft Graph API (Intune beta endpoint)...');
-    console.log(`   Tenant ID:  ${AZURE_TENANT_ID}`);
-    console.log(`   Client ID:  ${AZURE_CLIENT_ID}`);
+    console.log(`   Tenant ID:      ${mask(AZURE_TENANT_ID)}`);
+    console.log(`   Client ID:      ${mask(AZURE_CLIENT_ID)}`);
+    console.log(`   Client Secret:  [configured, length ${AZURE_CLIENT_SECRET.length}]`);
+    if (envLoadedPath) {
+      console.log(`   Config Source:  ${envLoadedPath}`);
+    }
 
     // Token acquisition
     const tokenUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`;
@@ -272,7 +295,14 @@ async function extractFromGraphApi() {
       scope: 'https://graph.microsoft.com/.default',
     });
 
-    const tokenRes = await fetch(tokenUrl, { method: 'POST', body });
+    let tokenRes;
+    try {
+      tokenRes = await fetch(tokenUrl, { method: 'POST', body });
+    } catch (netErr) {
+      let cause = netErr.cause ? (netErr.cause.message || netErr.cause.code || netErr.cause) : netErr.message;
+      throw new Error(`Connection to login.microsoftonline.com failed: ${cause}\n   💡 Tip: Check corporate proxy / VPN settings if traffic is intercepted.`);
+    }
+
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       throw new Error(`Graph token authentication failed (HTTP ${tokenRes.status}): ${errText}`);
@@ -295,7 +325,14 @@ async function extractFromGraphApi() {
 
   while (url) {
     process.stdout.write(`   📥 Fetching Graph mobileApps page ${page}... `);
-    const r = await fetch(url, { headers });
+    let r;
+    try {
+      r = await fetch(url, { headers });
+    } catch (netErr) {
+      let cause = netErr.cause ? (netErr.cause.message || netErr.cause.code || netErr.cause) : netErr.message;
+      throw new Error(`Connection to graph.microsoft.com failed: ${cause}`);
+    }
+
     if (!r.ok) {
       const errText = await r.text();
       throw new Error(`Graph mobileApps query failed (HTTP ${r.status}): ${errText}`);
