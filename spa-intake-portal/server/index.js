@@ -7,6 +7,11 @@ import {
   searchCatalog,
   getTitleById,
   getCatalogCount,
+  getCatalogCategories,
+  updateTitle,
+  deleteTitle,
+  updateVersion,
+  deleteVersion,
   getRequests,
   getRequestById,
   insertRequest,
@@ -105,12 +110,22 @@ app.get('/api/intake/whoami', (req, res) => {
 // GET /api/intake/catalog — search and list software titles & versions
 app.get('/api/intake/catalog', (req, res) => {
   try {
-    const { search, limit } = req.query;
+    const { search, limit, category, platform, disposition } = req.query;
     const maxResults = limit ? parseInt(limit, 10) : 500;
-    const titles = searchCatalog(search || '', maxResults);
+    const titles = searchCatalog(search || '', maxResults, { category, platform, disposition });
     const totalCount = getCatalogCount();
 
     res.json({ titles, count: titles.length, totalInDatabase: totalCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/intake/catalog/categories — get distinct software categories
+app.get('/api/intake/catalog/categories', (req, res) => {
+  try {
+    const categories = getCatalogCategories();
+    res.json({ categories });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -130,7 +145,7 @@ app.get('/api/intake/catalog/titles/:id', (req, res) => {
 // POST /api/intake/catalog/titles — register new software model
 app.post('/api/intake/catalog/titles', (req, res) => {
   try {
-    const { displayName, publisher, category, subcategory, supportedPlatforms, licenseRequired, description } = req.body;
+    const { displayName, publisher, category, subcategory, supportedPlatforms, licenseRequired, isSaaSOrInternetFacing, dataClassification, howToObtain, defaultInstallerType, description } = req.body;
     if (!displayName || !publisher) {
       return res.status(400).json({ error: 'displayName and publisher are required' });
     }
@@ -141,9 +156,9 @@ app.post('/api/intake/catalog/titles', (req, res) => {
     db.prepare(`
       INSERT INTO software_titles (
         id, displayName, publisher, category, subcategory, supportedPlatforms,
-        licenseRequired, isSaaSOrInternetFacing, dataClassification, defaultInstallerType,
-        description, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        licenseRequired, isSaaSOrInternetFacing, dataClassification, howToObtain,
+        classification, defaultInstallerType, description, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       displayName,
@@ -152,9 +167,11 @@ app.post('/api/intake/catalog/titles', (req, res) => {
       subcategory || '',
       JSON.stringify(supportedPlatforms || ['windows']),
       licenseRequired || 'No',
-      0,
-      'Internal',
-      JSON.stringify({ windows: 'msi', macos: 'pkg' }),
+      isSaaSOrInternetFacing ? 1 : 0,
+      dataClassification || 'Internal',
+      howToObtain || 'Intune',
+      'Commercial',
+      JSON.stringify(defaultInstallerType || { windows: 'msi', macos: 'pkg' }),
       description || `Software title for ${displayName}`,
       now,
       now
@@ -167,6 +184,32 @@ app.post('/api/intake/catalog/titles', (req, res) => {
   }
 });
 
+// PUT /api/intake/catalog/titles/:id — update software model metadata
+app.put('/api/intake/catalog/titles/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = updateTitle(id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Software title not found' });
+    res.json({ message: 'Software title updated', title: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/intake/catalog/titles/:id — remove software model
+app.delete('/api/intake/catalog/titles/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = deleteTitle(id);
+    if (!result.deleted) {
+      return res.status(400).json({ error: result.reason, activeRequestCount: result.activeRequestCount });
+    }
+    res.json({ message: 'Software title deleted successfully', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/intake/catalog/titles/:id/versions — add version record
 app.post('/api/intake/catalog/titles/:id/versions', (req, res) => {
   try {
@@ -174,7 +217,7 @@ app.post('/api/intake/catalog/titles/:id/versions', (req, res) => {
     const title = getTitleById(id);
     if (!title) return res.status(404).json({ error: 'Software title not found' });
 
-    const { version, disposition, dispositionReason, packagingStatus, packageRef, installerSource } = req.body;
+    const { version, disposition, dispositionReason, alternative, packagingStatus, packageRef, installerSource } = req.body;
     if (!version || !disposition) {
       return res.status(400).json({ error: 'version and disposition are required' });
     }
@@ -184,15 +227,16 @@ app.post('/api/intake/catalog/titles/:id/versions', (req, res) => {
 
     db.prepare(`
       INSERT INTO software_versions (
-        id, titleId, version, disposition, dispositionReason, packagingStatus,
+        id, titleId, version, disposition, dispositionReason, alternative, packagingStatus,
         packageRef, installerSource, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       verId,
       id,
       version,
       disposition,
       dispositionReason || '',
+      alternative || null,
       packagingStatus || 'Not Packaged',
       packageRef ? JSON.stringify(packageRef) : null,
       installerSource ? JSON.stringify(installerSource) : null,
@@ -202,6 +246,30 @@ app.post('/api/intake/catalog/titles/:id/versions', (req, res) => {
 
     const updated = getTitleById(id);
     res.status(201).json({ message: 'Version record added', title: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/intake/catalog/titles/:id/versions/:verId — update version record
+app.put('/api/intake/catalog/titles/:id/versions/:verId', (req, res) => {
+  try {
+    const { id, verId } = req.params;
+    const updated = updateVersion(id, verId, req.body);
+    if (!updated) return res.status(404).json({ error: 'Version record or title not found' });
+    res.json({ message: 'Version record updated', title: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/intake/catalog/titles/:id/versions/:verId — delete version record
+app.delete('/api/intake/catalog/titles/:id/versions/:verId', (req, res) => {
+  try {
+    const { id, verId } = req.params;
+    const result = deleteVersion(id, verId);
+    if (!result.deleted) return res.status(404).json({ error: result.reason });
+    res.json({ message: 'Version record deleted', title: result.title });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

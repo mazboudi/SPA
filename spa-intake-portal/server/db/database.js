@@ -117,30 +117,46 @@ export function initSchema() {
 
 // ── 2. Helper Queries ─────────────────────────────────────────────────────────
 
-// Search Software Titles
-export function searchCatalog(query = '', limit = 100) {
-  let stmt;
-  let rows;
-  if (!query || query.trim() === '') {
-    stmt = db.prepare(`SELECT * FROM software_titles ORDER BY displayName ASC LIMIT ?`);
-    rows = stmt.all(limit);
-  } else {
-    stmt = db.prepare(`
-      SELECT * FROM software_titles 
-      WHERE displayName LIKE ? OR publisher LIKE ? OR category LIKE ?
-      ORDER BY 
-        CASE 
-          WHEN displayName LIKE ? THEN 1
-          WHEN displayName LIKE ? THEN 2
-          ELSE 3
-        END,
-        displayName ASC 
-      LIMIT ?
-    `);
-    const qWild = `%${query}%`;
-    const qPrefix = `${query}%`;
-    rows = stmt.all(qWild, qWild, qWild, qPrefix, qWild, limit);
+// Search Software Titles with optional filters
+export function searchCatalog(query = '', limit = 100, filters = {}) {
+  let conditions = [];
+  let params = [];
+
+  if (query && query.trim() !== '') {
+    conditions.push('(displayName LIKE ? OR publisher LIKE ? OR category LIKE ?)');
+    const qWild = `%${query.trim()}%`;
+    params.push(qWild, qWild, qWild);
   }
+
+  if (filters.category && filters.category !== 'all') {
+    conditions.push('category = ?');
+    params.push(filters.category);
+  }
+
+  if (filters.platform && filters.platform !== 'all') {
+    conditions.push('supportedPlatforms LIKE ?');
+    params.push(`%"${filters.platform}"%`);
+  }
+
+  if (filters.disposition && filters.disposition !== 'all') {
+    conditions.push('id IN (SELECT titleId FROM software_versions WHERE disposition = ?)');
+    params.push(filters.disposition);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  let orderBy = 'ORDER BY displayName ASC';
+
+  if (query && query.trim() !== '') {
+    const qPrefix = `${query.trim()}%`;
+    params.push(qPrefix); // for CASE WHEN displayName LIKE ?
+    orderBy = `ORDER BY CASE WHEN displayName LIKE ? THEN 1 ELSE 2 END, displayName ASC`;
+  }
+
+  const sql = `SELECT * FROM software_titles ${whereClause} ${orderBy} LIMIT ?`;
+  params.push(limit);
+
+  const stmt = db.prepare(sql);
+  const rows = stmt.all(...params);
 
   // Hydrate versions for each title
   const verStmt = db.prepare(`SELECT * FROM software_versions WHERE titleId = ? ORDER BY version ASC`);
@@ -157,6 +173,16 @@ export function searchCatalog(query = '', limit = 100) {
       versions,
     };
   });
+}
+
+// Get Distinct Catalog Categories
+export function getCatalogCategories() {
+  const rows = db.prepare(`
+    SELECT DISTINCT category FROM software_titles 
+    WHERE category IS NOT NULL AND category != '' 
+    ORDER BY category ASC
+  `).all();
+  return rows.map(r => r.category);
 }
 
 // Get Title by ID
@@ -178,6 +204,148 @@ export function getTitleById(id) {
     defaultInstallerType: title.defaultInstallerType ? JSON.parse(title.defaultInstallerType) : { windows: 'msi' },
     versions,
   };
+}
+
+// Update Title Model
+export function updateTitle(id, fields = {}) {
+  const existing = getTitleById(id);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const displayName = fields.displayName !== undefined ? fields.displayName : existing.displayName;
+  const publisher = fields.publisher !== undefined ? fields.publisher : existing.publisher;
+  const category = fields.category !== undefined ? fields.category : existing.category;
+  const subcategory = fields.subcategory !== undefined ? fields.subcategory : existing.subcategory;
+  const supportedPlatforms = fields.supportedPlatforms !== undefined 
+    ? (typeof fields.supportedPlatforms === 'string' ? fields.supportedPlatforms : JSON.stringify(fields.supportedPlatforms)) 
+    : JSON.stringify(existing.supportedPlatforms);
+  const licenseRequired = fields.licenseRequired !== undefined ? fields.licenseRequired : existing.licenseRequired;
+  const isSaaSOrInternetFacing = fields.isSaaSOrInternetFacing !== undefined ? (fields.isSaaSOrInternetFacing ? 1 : 0) : existing.isSaaSOrInternetFacing;
+  const dataClassification = fields.dataClassification !== undefined ? fields.dataClassification : existing.dataClassification;
+  const howToObtain = fields.howToObtain !== undefined ? fields.howToObtain : existing.howToObtain;
+  const classification = fields.classification !== undefined ? fields.classification : existing.classification;
+  const defaultInstallerType = fields.defaultInstallerType !== undefined
+    ? (typeof fields.defaultInstallerType === 'string' ? fields.defaultInstallerType : JSON.stringify(fields.defaultInstallerType))
+    : JSON.stringify(existing.defaultInstallerType);
+  const description = fields.description !== undefined ? fields.description : existing.description;
+
+  db.prepare(`
+    UPDATE software_titles SET
+      displayName = ?,
+      publisher = ?,
+      category = ?,
+      subcategory = ?,
+      supportedPlatforms = ?,
+      licenseRequired = ?,
+      isSaaSOrInternetFacing = ?,
+      dataClassification = ?,
+      howToObtain = ?,
+      classification = ?,
+      defaultInstallerType = ?,
+      description = ?,
+      updatedAt = ?
+    WHERE id = ?
+  `).run(
+    displayName,
+    publisher,
+    category,
+    subcategory,
+    supportedPlatforms,
+    licenseRequired,
+    isSaaSOrInternetFacing,
+    dataClassification,
+    howToObtain,
+    classification,
+    defaultInstallerType,
+    description,
+    now,
+    id
+  );
+
+  return getTitleById(id);
+}
+
+// Delete Title Model
+export function deleteTitle(id) {
+  const existing = getTitleById(id);
+  if (!existing) return { deleted: false, reason: 'Title not found' };
+
+  // Safety check: verify if active requests reference this titleId
+  const activeReq = db.prepare(`
+    SELECT COUNT(*) as count FROM software_requests 
+    WHERE titleId = ? AND state NOT IN ('Closed Complete', 'Closed Incomplete', 'Cancelled')
+  `).get(id);
+
+  if (activeReq && activeReq.count > 0) {
+    return {
+      deleted: false,
+      reason: `Cannot delete software model: it is referenced by ${activeReq.count} active request(s). Please complete or cancel those requests first.`,
+      activeRequestCount: activeReq.count,
+    };
+  }
+
+  // Unlink completed/archived requests to preserve historical audit trail
+  db.prepare(`UPDATE software_requests SET titleId = NULL WHERE titleId = ?`).run(id);
+
+  // Delete versions & title
+  db.prepare(`DELETE FROM software_versions WHERE titleId = ?`).run(id);
+  db.prepare(`DELETE FROM software_titles WHERE id = ?`).run(id);
+
+  return { deleted: true, id };
+}
+
+// Update Version Record
+export function updateVersion(titleId, verId, fields = {}) {
+  const existing = db.prepare(`SELECT * FROM software_versions WHERE id = ? AND titleId = ?`).get(verId, titleId);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const version = fields.version !== undefined ? fields.version : existing.version;
+  const disposition = fields.disposition !== undefined ? fields.disposition : existing.disposition;
+  const dispositionReason = fields.dispositionReason !== undefined ? fields.dispositionReason : existing.dispositionReason;
+  const alternative = fields.alternative !== undefined ? fields.alternative : existing.alternative;
+  const packagingStatus = fields.packagingStatus !== undefined ? fields.packagingStatus : existing.packagingStatus;
+  const packageRef = fields.packageRef !== undefined 
+    ? (typeof fields.packageRef === 'string' ? fields.packageRef : JSON.stringify(fields.packageRef)) 
+    : existing.packageRef;
+  const installerSource = fields.installerSource !== undefined
+    ? (typeof fields.installerSource === 'string' ? fields.installerSource : JSON.stringify(fields.installerSource))
+    : existing.installerSource;
+
+  db.prepare(`
+    UPDATE software_versions SET
+      version = ?,
+      disposition = ?,
+      dispositionReason = ?,
+      alternative = ?,
+      packagingStatus = ?,
+      packageRef = ?,
+      installerSource = ?,
+      updatedAt = ?
+    WHERE id = ? AND titleId = ?
+  `).run(
+    version,
+    disposition,
+    dispositionReason,
+    alternative,
+    packagingStatus,
+    packageRef,
+    installerSource,
+    now,
+    verId,
+    titleId
+  );
+
+  return getTitleById(titleId);
+}
+
+// Delete Version Record
+export function deleteVersion(titleId, verId) {
+  const existing = db.prepare(`SELECT * FROM software_versions WHERE id = ? AND titleId = ?`).get(verId, titleId);
+  if (!existing) return { deleted: false, reason: 'Version record not found' };
+
+  db.prepare(`DELETE FROM software_versions WHERE id = ? AND titleId = ?`).run(verId, titleId);
+  return { deleted: true, title: getTitleById(titleId) };
 }
 
 // Get Total Title Count
