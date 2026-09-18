@@ -97,13 +97,15 @@ const envConfig = loadEnv(envFilePath);
 const AZURE_TENANT_ID = getArg('--tenant') || envConfig.AZURE_TENANT_ID || '';
 const AZURE_CLIENT_ID = getArg('--client-id') || envConfig.AZURE_CLIENT_ID || '';
 const AZURE_CLIENT_SECRET = getArg('--client-secret') || envConfig.AZURE_CLIENT_SECRET || '';
+const DIRECT_TOKEN = getArg('--token') || envConfig.GRAPH_TOKEN || envConfig.AZURE_BEARER_TOKEN || process.env.GRAPH_TOKEN || '';
 
 const isGraphConfigured = Boolean(
-  AZURE_TENANT_ID &&
-  AZURE_CLIENT_ID &&
-  AZURE_CLIENT_SECRET &&
-  !AZURE_TENANT_ID.includes('xxxx') &&
-  !AZURE_CLIENT_ID.includes('xxxx')
+  DIRECT_TOKEN ||
+  (AZURE_TENANT_ID &&
+   AZURE_CLIENT_ID &&
+   AZURE_CLIENT_SECRET &&
+   !AZURE_TENANT_ID.includes('xxxx') &&
+   !AZURE_CLIENT_ID.includes('xxxx'))
 );
 
 // ── Clean & Normalization Helpers for Model Matching ─────────────────────────
@@ -254,28 +256,34 @@ function standardizeAppRecord(rawApp, extra = {}) {
 
 // ── Mode 1: Live Microsoft Graph API Extractor ────────────────────────────────
 async function extractFromGraphApi() {
-  console.log('🌐 Connecting to Microsoft Graph API (Intune beta endpoint)...');
-  console.log(`   Tenant ID:  ${AZURE_TENANT_ID}`);
-  console.log(`   Client ID:  ${AZURE_CLIENT_ID}`);
+  let token = DIRECT_TOKEN;
 
-  // Token acquisition
-  const tokenUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`;
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: AZURE_CLIENT_ID,
-    client_secret: AZURE_CLIENT_SECRET,
-    scope: 'https://graph.microsoft.com/.default',
-  });
+  if (!token) {
+    console.log('🌐 Connecting to Microsoft Graph API (Intune beta endpoint)...');
+    console.log(`   Tenant ID:  ${AZURE_TENANT_ID}`);
+    console.log(`   Client ID:  ${AZURE_CLIENT_ID}`);
 
-  const tokenRes = await fetch(tokenUrl, { method: 'POST', body });
-  if (!tokenRes.ok) {
-    const errText = await tokenRes.text();
-    throw new Error(`Graph token authentication failed (HTTP ${tokenRes.status}): ${errText}`);
+    // Token acquisition
+    const tokenUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: AZURE_CLIENT_ID,
+      client_secret: AZURE_CLIENT_SECRET,
+      scope: 'https://graph.microsoft.com/.default',
+    });
+
+    const tokenRes = await fetch(tokenUrl, { method: 'POST', body });
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      throw new Error(`Graph token authentication failed (HTTP ${tokenRes.status}): ${errText}`);
+    }
+
+    const tokenData = await tokenRes.json();
+    token = tokenData.access_token;
+    console.log(`   ✅ Azure AD token acquired (expires in ${tokenData.expires_in}s).`);
+  } else {
+    console.log('🌐 Using provided Direct Bearer Token for Microsoft Graph API...');
   }
-
-  const tokenData = await tokenRes.json();
-  const token = tokenData.access_token;
-  console.log(`   ✅ Azure AD token acquired (expires in ${tokenData.expires_in}s).`);
 
   const headers = { Authorization: `Bearer ${token}` };
   const GRAPH_BASE = 'https://graph.microsoft.com/beta';
@@ -445,17 +453,19 @@ async function main() {
 
   if (chosenSource === 'graph') {
     if (!isGraphConfigured) {
-      console.warn('⚠️  Graph API credentials not fully configured in environment.');
-      console.log('   Falling back to local directory export...');
-      extractedRecords = extractFromLocalDirectory(localExportDir);
-    } else {
-      try {
-        extractedRecords = await extractFromGraphApi();
-      } catch (err) {
-        console.error(`❌ Graph API extraction failed: ${err.message}`);
-        console.log('   Falling back to local directory export...');
-        extractedRecords = extractFromLocalDirectory(localExportDir);
-      }
+      console.error('\n❌ Microsoft Graph API credentials are not configured.');
+      console.log('   Please provide one of the following:');
+      console.log('     1. Set AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET in spa-title-wizard/server/.env');
+      console.log('     2. Pass credentials via CLI flags: --tenant <id> --client-id <id> --client-secret <secret>');
+      console.log('     3. Pass an active bearer token: --token "<jwt>" or env GRAPH_TOKEN="<jwt>"\n');
+      process.exit(1);
+    }
+
+    try {
+      extractedRecords = await extractFromGraphApi();
+    } catch (err) {
+      console.error(`\n❌ Live Graph API extraction failed: ${err.message}\n`);
+      process.exit(1);
     }
   } else {
     extractedRecords = extractFromLocalDirectory(localExportDir);
