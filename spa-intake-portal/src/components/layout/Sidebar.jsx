@@ -15,7 +15,7 @@ export const SIDEBAR_COLLAPSED_WIDTH = 68;
 const NAV_ITEMS = [
   {
     id: 'request',
-    label: 'Request Software',
+    label: 'Software Request',
     subtitle: 'Service catalog item',
     icon: <Inventory2OutlinedIcon sx={{ fontSize: 20 }} />,
   },

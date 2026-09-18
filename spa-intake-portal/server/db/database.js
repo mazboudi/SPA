@@ -49,6 +49,32 @@ export function initSchema() {
       FOREIGN KEY (titleId) REFERENCES software_titles(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS software_packages (
+      id TEXT PRIMARY KEY,
+      titleId TEXT NOT NULL,
+      intuneAppId TEXT,
+      intuneAppName TEXT,
+      version TEXT NOT NULL,
+      platform TEXT NOT NULL DEFAULT 'windows',
+      packagingStatus TEXT NOT NULL DEFAULT 'Packaged & Ready',
+      fileName TEXT,
+      setupFilePath TEXT,
+      installCommandLine TEXT,
+      uninstallCommandLine TEXT,
+      msiProductCode TEXT,
+      detectionSummary TEXT,
+      sourceSharePath TEXT,
+      sizeInBytes INTEGER,
+      isAssigned INTEGER DEFAULT 0,
+      assignedIntents TEXT, -- JSON array
+      assignedGroupIds TEXT, -- JSON array
+      notes TEXT,
+      description TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (titleId) REFERENCES software_titles(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS software_requests (
       id TEXT PRIMARY KEY,
       number TEXT UNIQUE NOT NULL,
@@ -103,22 +129,38 @@ export function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_titles_name ON software_titles(displayName);
     CREATE INDEX IF NOT EXISTS idx_titles_pub ON software_titles(publisher);
     CREATE INDEX IF NOT EXISTS idx_versions_title ON software_versions(titleId);
+    CREATE INDEX IF NOT EXISTS idx_packages_title ON software_packages(titleId);
+    CREATE INDEX IF NOT EXISTS idx_packages_intune ON software_packages(intuneAppId);
+    CREATE INDEX IF NOT EXISTS idx_packages_ver ON software_packages(version);
     CREATE INDEX IF NOT EXISTS idx_requests_stage ON software_requests(stage);
     CREATE INDEX IF NOT EXISTS idx_tasks_request ON catalog_tasks(requestId);
     CREATE INDEX IF NOT EXISTS idx_tasks_group ON catalog_tasks(assignmentGroup);
     CREATE INDEX IF NOT EXISTS idx_tasks_state ON catalog_tasks(state);
   `);
 
-  // Safe idempotent column additions
+  // Safe idempotent column additions for software_titles (governance policy rules)
+  try { db.exec(`ALTER TABLE software_titles ADD COLUMN defaultDisposition TEXT DEFAULT 'Approved';`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_titles ADD COLUMN approvalPolicy TEXT DEFAULT 'all';`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_titles ADD COLUMN approvedVersionRule TEXT DEFAULT '*';`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_titles ADD COLUMN deniedVersionRule TEXT;`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_titles ADD COLUMN policyRationale TEXT;`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_titles ADD COLUMN mandatedAlternative TEXT;`); } catch (_) {}
+
+  // Safe idempotent column additions for software_requests
   try { db.exec(`ALTER TABLE software_requests ADD COLUMN requestedBy TEXT;`); } catch (_) {}
   try { db.exec(`ALTER TABLE software_requests ADD COLUMN beneficiaryEmail TEXT;`); } catch (_) {}
   try { db.exec(`ALTER TABLE software_requests ADD COLUMN isUnlisted INTEGER DEFAULT 0;`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_requests ADD COLUMN licenseRequired TEXT DEFAULT 'No';`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_requests ADD COLUMN isNewVersion INTEGER DEFAULT 0;`); } catch (_) {}
+
+  // Safe idempotent column additions for software_packages
+  try { db.exec(`ALTER TABLE software_packages ADD COLUMN intuneAppName TEXT;`); } catch (_) {}
 }
 
 // ── 2. Helper Queries ─────────────────────────────────────────────────────────
 
-// Search Software Titles with optional filters
-export function searchCatalog(query = '', limit = 100, filters = {}) {
+// Search Software Titles with optional filters & pagination
+export function searchCatalog(query = '', limit = 250, filters = {}, offset = 0) {
   let conditions = [];
   let params = [];
 
@@ -139,40 +181,105 @@ export function searchCatalog(query = '', limit = 100, filters = {}) {
   }
 
   if (filters.disposition && filters.disposition !== 'all') {
-    conditions.push('id IN (SELECT titleId FROM software_versions WHERE disposition = ?)');
+    conditions.push('defaultDisposition = ?');
     params.push(filters.disposition);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Calculate total matching records before pagination
+  const countSql = `SELECT COUNT(*) as count FROM software_titles ${whereClause}`;
+  const totalMatching = db.prepare(countSql).get(...params).count;
+
   let orderBy = 'ORDER BY displayName ASC';
+  let queryParams = [...params];
 
   if (query && query.trim() !== '') {
     const qPrefix = `${query.trim()}%`;
-    params.push(qPrefix); // for CASE WHEN displayName LIKE ?
+    queryParams.push(qPrefix); // for CASE WHEN displayName LIKE ?
     orderBy = `ORDER BY CASE WHEN displayName LIKE ? THEN 1 ELSE 2 END, displayName ASC`;
   }
 
-  const sql = `SELECT * FROM software_titles ${whereClause} ${orderBy} LIMIT ?`;
-  params.push(limit);
+  let limitClause = '';
+  if (limit && limit !== 'all' && Number(limit) > 0) {
+    limitClause = `LIMIT ? OFFSET ?`;
+    queryParams.push(Number(limit), Number(offset) || 0);
+  }
 
+  const sql = `SELECT * FROM software_titles ${whereClause} ${orderBy} ${limitClause}`;
   const stmt = db.prepare(sql);
-  const rows = stmt.all(...params);
+  const rows = stmt.all(...queryParams);
 
-  // Hydrate versions for each title
+  // Hydrate packages and versions for each title
   const verStmt = db.prepare(`SELECT * FROM software_versions WHERE titleId = ? ORDER BY version ASC`);
-  return rows.map(r => {
-    const versions = verStmt.all(r.id).map(v => ({
+  const pkgStmt = db.prepare(`SELECT * FROM software_packages WHERE titleId = ? ORDER BY version ASC`);
+
+  const results = rows.map(r => {
+    const packages = pkgStmt.all(r.id).map(p => ({
+      ...p,
+      assignedIntents: p.assignedIntents ? JSON.parse(p.assignedIntents) : [],
+      assignedGroupIds: p.assignedGroupIds ? JSON.parse(p.assignedGroupIds) : [],
+    }));
+
+    let versions = verStmt.all(r.id).map(v => ({
       ...v,
       packageRef: v.packageRef ? JSON.parse(v.packageRef) : null,
       installerSource: v.installerSource ? JSON.parse(v.installerSource) : null,
     }));
+
+    // If no legacy software_versions, synthesize from packages
+    if (versions.length === 0 && packages.length > 0) {
+      versions = packages.map(p => ({
+        id: p.id,
+        titleId: p.titleId,
+        version: p.version,
+        disposition: r.defaultDisposition || 'Approved',
+        dispositionReason: r.policyRationale || '',
+        alternative: r.mandatedAlternative || null,
+        packagingStatus: p.packagingStatus,
+        packageRef: p.intuneAppId ? { windows: p.intuneAppId } : null,
+        installerSource: p.sourceSharePath ? { windows: p.sourceSharePath } : null,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      }));
+    }
+
     return {
       ...r,
+      defaultDisposition: r.defaultDisposition || 'Approved',
+      approvalPolicy: r.approvalPolicy || 'all',
+      approvedVersionRule: r.approvedVersionRule || '*',
+      deniedVersionRule: r.deniedVersionRule || null,
+      policyRationale: r.policyRationale || '',
+      mandatedAlternative: r.mandatedAlternative || null,
       supportedPlatforms: r.supportedPlatforms ? JSON.parse(r.supportedPlatforms) : ['windows'],
       defaultInstallerType: r.defaultInstallerType ? JSON.parse(r.defaultInstallerType) : { windows: 'msi' },
+      packages,
       versions,
     };
   });
+
+  results.totalMatching = totalMatching;
+  return results;
+}
+
+// Get High-Level Catalog Stats
+export function getCatalogStats() {
+  const totalTitles = db.prepare('SELECT COUNT(*) as count FROM software_titles').get().count;
+  const approved = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE defaultDisposition = 'Approved'").get().count;
+  const denied = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE defaultDisposition = 'Denied'").get().count;
+  const review = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE defaultDisposition = 'Review Required'").get().count;
+  const packages = db.prepare('SELECT COUNT(*) as count FROM software_packages').get().count;
+  const assigned = db.prepare('SELECT COUNT(*) as count FROM software_packages WHERE isAssigned = 1').get().count;
+
+  return {
+    totalTitles,
+    approvedTitles: approved,
+    deniedTitles: denied,
+    reviewRequiredTitles: review,
+    totalPackages: packages,
+    assignedPackages: assigned,
+  };
 }
 
 // Get Distinct Catalog Categories
@@ -191,17 +298,47 @@ export function getTitleById(id) {
   const title = stmt.get(id);
   if (!title) return null;
 
+  const pkgStmt = db.prepare(`SELECT * FROM software_packages WHERE titleId = ? ORDER BY version ASC`);
+  const packages = pkgStmt.all(id).map(p => ({
+    ...p,
+    assignedIntents: p.assignedIntents ? JSON.parse(p.assignedIntents) : [],
+    assignedGroupIds: p.assignedGroupIds ? JSON.parse(p.assignedGroupIds) : [],
+  }));
+
   const verStmt = db.prepare(`SELECT * FROM software_versions WHERE titleId = ? ORDER BY version ASC`);
-  const versions = verStmt.all(id).map(v => ({
+  let versions = verStmt.all(id).map(v => ({
     ...v,
     packageRef: v.packageRef ? JSON.parse(v.packageRef) : null,
     installerSource: v.installerSource ? JSON.parse(v.installerSource) : null,
   }));
 
+  if (versions.length === 0 && packages.length > 0) {
+    versions = packages.map(p => ({
+      id: p.id,
+      titleId: p.titleId,
+      version: p.version,
+      disposition: title.defaultDisposition || 'Approved',
+      dispositionReason: title.policyRationale || '',
+      alternative: title.mandatedAlternative || null,
+      packagingStatus: p.packagingStatus,
+      packageRef: p.intuneAppId ? { windows: p.intuneAppId } : null,
+      installerSource: p.sourceSharePath ? { windows: p.sourceSharePath } : null,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    }));
+  }
+
   return {
     ...title,
+    defaultDisposition: title.defaultDisposition || 'Approved',
+    approvalPolicy: title.approvalPolicy || 'all',
+    approvedVersionRule: title.approvedVersionRule || '*',
+    deniedVersionRule: title.deniedVersionRule || null,
+    policyRationale: title.policyRationale || '',
+    mandatedAlternative: title.mandatedAlternative || null,
     supportedPlatforms: title.supportedPlatforms ? JSON.parse(title.supportedPlatforms) : ['windows'],
     defaultInstallerType: title.defaultInstallerType ? JSON.parse(title.defaultInstallerType) : { windows: 'msi' },
+    packages,
     versions,
   };
 }
@@ -229,6 +366,14 @@ export function updateTitle(id, fields = {}) {
     : JSON.stringify(existing.defaultInstallerType);
   const description = fields.description !== undefined ? fields.description : existing.description;
 
+  // Governance policy rules
+  const defaultDisposition = fields.defaultDisposition !== undefined ? fields.defaultDisposition : existing.defaultDisposition;
+  const approvalPolicy = fields.approvalPolicy !== undefined ? fields.approvalPolicy : existing.approvalPolicy;
+  const approvedVersionRule = fields.approvedVersionRule !== undefined ? fields.approvedVersionRule : existing.approvedVersionRule;
+  const deniedVersionRule = fields.deniedVersionRule !== undefined ? fields.deniedVersionRule : existing.deniedVersionRule;
+  const policyRationale = fields.policyRationale !== undefined ? fields.policyRationale : existing.policyRationale;
+  const mandatedAlternative = fields.mandatedAlternative !== undefined ? fields.mandatedAlternative : existing.mandatedAlternative;
+
   db.prepare(`
     UPDATE software_titles SET
       displayName = ?,
@@ -243,6 +388,12 @@ export function updateTitle(id, fields = {}) {
       classification = ?,
       defaultInstallerType = ?,
       description = ?,
+      defaultDisposition = ?,
+      approvalPolicy = ?,
+      approvedVersionRule = ?,
+      deniedVersionRule = ?,
+      policyRationale = ?,
+      mandatedAlternative = ?,
       updatedAt = ?
     WHERE id = ?
   `).run(
@@ -258,6 +409,12 @@ export function updateTitle(id, fields = {}) {
     classification,
     defaultInstallerType,
     description,
+    defaultDisposition,
+    approvalPolicy,
+    approvedVersionRule,
+    deniedVersionRule,
+    policyRationale,
+    mandatedAlternative,
     now,
     id
   );
@@ -287,7 +444,8 @@ export function deleteTitle(id) {
   // Unlink completed/archived requests to preserve historical audit trail
   db.prepare(`UPDATE software_requests SET titleId = NULL WHERE titleId = ?`).run(id);
 
-  // Delete versions & title
+  // Delete packages, versions & title
+  db.prepare(`DELETE FROM software_packages WHERE titleId = ?`).run(id);
   db.prepare(`DELETE FROM software_versions WHERE titleId = ?`).run(id);
   db.prepare(`DELETE FROM software_titles WHERE id = ?`).run(id);
 
@@ -348,6 +506,160 @@ export function deleteVersion(titleId, verId) {
   return { deleted: true, title: getTitleById(titleId) };
 }
 
+// ── Package CRUD Operations ──────────────────────────────────────────────────
+export function getPackagesByTitleId(titleId) {
+  const rows = db.prepare(`SELECT * FROM software_packages WHERE titleId = ? ORDER BY version ASC`).all(titleId);
+  return rows.map(p => ({
+    ...p,
+    assignedIntents: p.assignedIntents ? JSON.parse(p.assignedIntents) : [],
+    assignedGroupIds: p.assignedGroupIds ? JSON.parse(p.assignedGroupIds) : [],
+  }));
+}
+
+export function getPackageById(id) {
+  const row = db.prepare(`SELECT * FROM software_packages WHERE id = ?`).get(id);
+  if (!row) return null;
+  return {
+    ...row,
+    assignedIntents: row.assignedIntents ? JSON.parse(row.assignedIntents) : [],
+    assignedGroupIds: row.assignedGroupIds ? JSON.parse(row.assignedGroupIds) : [],
+  };
+}
+
+export function insertPackage(pkg) {
+  const id = pkg.id || ('pkg_' + Buffer.from(`${pkg.titleId}::${pkg.version}::${Date.now()}`).toString('hex').slice(0, 16));
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO software_packages (
+      id, titleId, intuneAppId, intuneAppName, version, platform, packagingStatus,
+      fileName, setupFilePath, installCommandLine, uninstallCommandLine,
+      msiProductCode, detectionSummary, sourceSharePath, sizeInBytes,
+      isAssigned, assignedIntents, assignedGroupIds, notes, description,
+      createdAt, updatedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    pkg.titleId,
+    pkg.intuneAppId || null,
+    pkg.intuneAppName || null,
+    pkg.version,
+    pkg.platform || 'windows',
+    pkg.packagingStatus || 'Packaged & Ready',
+    pkg.fileName || null,
+    pkg.setupFilePath || null,
+    pkg.installCommandLine || null,
+    pkg.uninstallCommandLine || null,
+    pkg.msiProductCode || null,
+    pkg.detectionSummary || null,
+    pkg.sourceSharePath || null,
+    pkg.sizeInBytes ?? null,
+    pkg.isAssigned ? 1 : 0,
+    typeof pkg.assignedIntents === 'string' ? pkg.assignedIntents : JSON.stringify(pkg.assignedIntents || []),
+    typeof pkg.assignedGroupIds === 'string' ? pkg.assignedGroupIds : JSON.stringify(pkg.assignedGroupIds || []),
+    pkg.notes || null,
+    pkg.description || null,
+    pkg.createdAt || now,
+    pkg.updatedAt || now
+  );
+  return getPackageById(id);
+}
+
+export function updatePackage(id, fields = {}) {
+  const existing = getPackageById(id);
+  if (!existing) return null;
+  const now = new Date().toISOString();
+
+  const intuneAppName = fields.intuneAppName !== undefined ? fields.intuneAppName : existing.intuneAppName;
+  const version = fields.version !== undefined ? fields.version : existing.version;
+  const platform = fields.platform !== undefined ? fields.platform : existing.platform;
+  const packagingStatus = fields.packagingStatus !== undefined ? fields.packagingStatus : existing.packagingStatus;
+  const fileName = fields.fileName !== undefined ? fields.fileName : existing.fileName;
+  const setupFilePath = fields.setupFilePath !== undefined ? fields.setupFilePath : existing.setupFilePath;
+  const installCommandLine = fields.installCommandLine !== undefined ? fields.installCommandLine : existing.installCommandLine;
+  const uninstallCommandLine = fields.uninstallCommandLine !== undefined ? fields.uninstallCommandLine : existing.uninstallCommandLine;
+  const msiProductCode = fields.msiProductCode !== undefined ? fields.msiProductCode : existing.msiProductCode;
+  const detectionSummary = fields.detectionSummary !== undefined ? fields.detectionSummary : existing.detectionSummary;
+  const sourceSharePath = fields.sourceSharePath !== undefined ? fields.sourceSharePath : existing.sourceSharePath;
+  const sizeInBytes = fields.sizeInBytes !== undefined ? fields.sizeInBytes : existing.sizeInBytes;
+  const isAssigned = fields.isAssigned !== undefined ? (fields.isAssigned ? 1 : 0) : existing.isAssigned;
+  const assignedIntents = fields.assignedIntents !== undefined
+    ? (typeof fields.assignedIntents === 'string' ? fields.assignedIntents : JSON.stringify(fields.assignedIntents))
+    : JSON.stringify(existing.assignedIntents);
+  const assignedGroupIds = fields.assignedGroupIds !== undefined
+    ? (typeof fields.assignedGroupIds === 'string' ? fields.assignedGroupIds : JSON.stringify(fields.assignedGroupIds))
+    : JSON.stringify(existing.assignedGroupIds);
+  const notes = fields.notes !== undefined ? fields.notes : existing.notes;
+  const description = fields.description !== undefined ? fields.description : existing.description;
+
+  db.prepare(`
+    UPDATE software_packages SET
+      intuneAppName = ?,
+      version = ?,
+      platform = ?,
+      packagingStatus = ?,
+      fileName = ?,
+      setupFilePath = ?,
+      installCommandLine = ?,
+      uninstallCommandLine = ?,
+      msiProductCode = ?,
+      detectionSummary = ?,
+      sourceSharePath = ?,
+      sizeInBytes = ?,
+      isAssigned = ?,
+      assignedIntents = ?,
+      assignedGroupIds = ?,
+      notes = ?,
+      description = ?,
+      updatedAt = ?
+    WHERE id = ?
+  `).run(
+    intuneAppName,
+    version,
+    platform,
+    packagingStatus,
+    fileName,
+    setupFilePath,
+    installCommandLine,
+    uninstallCommandLine,
+    msiProductCode,
+    detectionSummary,
+    sourceSharePath,
+    sizeInBytes,
+    isAssigned,
+    assignedIntents,
+    assignedGroupIds,
+    notes,
+    description,
+    now,
+    id
+  );
+
+  return getPackageById(id);
+}
+
+export function deletePackage(id) {
+  const existing = getPackageById(id);
+  if (!existing) return { deleted: false, reason: 'Package not found' };
+  db.prepare(`DELETE FROM software_packages WHERE id = ?`).run(id);
+  return { deleted: true, id, titleId: existing.titleId };
+}
+
+// Clear all requests & tasks (clean slate reset)
+export function clearAllRequests() {
+  db.prepare(`DELETE FROM catalog_tasks`).run();
+  db.prepare(`DELETE FROM software_requests`).run();
+  return { success: true };
+}
+
+// Delete single request and its child tasks
+export function deleteRequest(id) {
+  const existing = getRequestById(id);
+  if (!existing) return { deleted: false, reason: 'Request not found' };
+  db.prepare(`DELETE FROM catalog_tasks WHERE requestId = ?`).run(existing.id);
+  db.prepare(`DELETE FROM software_requests WHERE id = ?`).run(existing.id);
+  return { deleted: true, id: existing.id, number: existing.number };
+}
+
 // Get Total Title Count
 export function getCatalogCount() {
   const row = db.prepare(`SELECT COUNT(*) as count FROM software_titles`).get();
@@ -395,43 +707,53 @@ export function insertRequest(reqObj, tasksArray = []) {
       id, number, shortDescription, titleId, titleName, publisher, version,
       platform, category, installerType, installerSource, requestedBy, requestedFor,
       requesterEmail, beneficiaryEmail, department, targetDevice, installType, deploymentScope,
-      businessJustification, disposition, stage, state, priority, isUnlisted, submittedAt, updatedAt, packagingArtifacts
+      businessJustification, disposition, stage, state, priority, isUnlisted,
+      licenseRequired, isNewVersion, submittedAt, updatedAt, packagingArtifacts
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?
     )
   `);
+
+  const now = new Date().toISOString();
+  const requestedFor = reqObj.requestedFor || reqObj.requestedBy || 'Requester';
+  const requestedBy = reqObj.requestedBy || requestedFor;
+  const submittedAt = reqObj.submittedAt || now;
+  const updatedAt = reqObj.updatedAt || now;
 
   insertReqStmt.run(
     reqObj.id,
     reqObj.number,
-    reqObj.shortDescription,
+    reqObj.shortDescription || `Software Request: ${reqObj.titleName || ''}`,
     reqObj.titleId || null,
-    reqObj.titleName,
-    reqObj.publisher,
-    reqObj.version,
-    reqObj.platform,
+    reqObj.titleName || 'Software Title',
+    reqObj.publisher || 'Publisher',
+    reqObj.version || '1.0.0',
+    reqObj.platform || 'windows',
     reqObj.category || null,
     reqObj.installerType || null,
     reqObj.installerSource || null,
-    reqObj.requestedBy || reqObj.requestedFor,
-    reqObj.requestedFor,
+    requestedBy,
+    requestedFor,
     reqObj.requesterEmail || null,
     reqObj.beneficiaryEmail || reqObj.requesterEmail || null,
-    reqObj.department,
+    reqObj.department || 'General',
     reqObj.targetDevice || null,
-    reqObj.installType,
-    reqObj.deploymentScope,
-    reqObj.businessJustification,
-    reqObj.disposition,
-    reqObj.stage,
-    reqObj.state,
+    reqObj.installType || 'New Install',
+    reqObj.deploymentScope || 'Individual',
+    reqObj.businessJustification || 'Business need',
+    reqObj.disposition || 'Review Required',
+    reqObj.stage || 'governance_review',
+    reqObj.state || 'In Review',
     reqObj.priority || 'Medium',
     reqObj.isUnlisted ? 1 : 0,
-    reqObj.submittedAt,
-    reqObj.updatedAt,
+    reqObj.licenseRequired || 'No',
+    reqObj.isNewVersion ? 1 : 0,
+    submittedAt,
+    updatedAt,
     reqObj.packagingArtifacts ? JSON.stringify(reqObj.packagingArtifacts) : null
   );
 
@@ -453,8 +775,8 @@ export function insertRequest(reqObj, tasksArray = []) {
       t.completedBy || null,
       t.completedAt || null,
       t.notes || null,
-      t.createdAt || reqObj.submittedAt,
-      t.updatedAt || reqObj.updatedAt
+      t.createdAt || reqObj.submittedAt || now,
+      t.updatedAt || reqObj.updatedAt || now
     );
   });
 

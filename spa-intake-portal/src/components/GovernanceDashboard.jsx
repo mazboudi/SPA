@@ -155,11 +155,9 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
             sx={{ minHeight: 44 }}
           >
             <Tab label={`All Tasks (${openTasks.length})`} value="all" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="Manager Approvals" value="Management" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
             <Tab label="Risk Review" value="Enterprise Risk" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
             <Tab label="Licensing Review" value="Software Asset Management" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="Cybersecurity" value="Cybersecurity" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
-            <Tab label="Packaging" value="Packaging" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
+            <Tab label="Packaging Execution" value="Packaging" sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }} />
           </Tabs>
         </Box>
 
@@ -211,7 +209,16 @@ export default function GovernanceDashboard({ onTaskUpdated }) {
                           <Chip label={task.state} size="small" color="primary" sx={{ height: 20, fontSize: '0.675rem' }} />
                           <Chip label={task.assignmentGroup} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.675rem' }} />
                           {req.isUnlisted && (
-                            <Chip label="Unlisted Title Intake" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700 }} />
+                            <Chip label="Net New Unlisted" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700 }} />
+                          )}
+                          {req.isNewVersion && (
+                            <Chip label="New Version Request" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#dbeafe', color: '#1e40af', fontWeight: 700 }} />
+                          )}
+                          {(req.installType === 'Exception' || req.disposition === 'Denied') && (
+                            <Chip label="Prohibited Exception" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} />
+                          )}
+                          {req.licenseRequired === 'Yes' && (
+                            <Chip label="Commercial License (SAM)" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#f3e8ff', color: '#6b21a8', fontWeight: 700 }} />
                           )}
                         </Box>
                         <Typography variant="h4" sx={{ fontWeight: 700, color: '#0f172a' }}>

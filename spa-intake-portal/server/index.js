@@ -7,14 +7,21 @@ import {
   searchCatalog,
   getTitleById,
   getCatalogCount,
+  getCatalogStats,
   getCatalogCategories,
   updateTitle,
   deleteTitle,
   updateVersion,
   deleteVersion,
+  getPackagesByTitleId,
+  getPackageById,
+  insertPackage,
+  updatePackage,
+  deletePackage,
   getRequests,
   getRequestById,
   insertRequest,
+  deleteRequest,
   updateRequestFields,
   getTaskById,
   updateTaskRecord,
@@ -107,15 +114,38 @@ app.get('/api/intake/whoami', (req, res) => {
 // 1. Authoritative Software Catalog API (SQLite Powered)
 // ═════════════════════════════════════════════════════════════════════════════
 
-// GET /api/intake/catalog — search and list software titles & versions
+// GET /api/intake/catalog — search and list software titles & versions with pagination
 app.get('/api/intake/catalog', (req, res) => {
   try {
-    const { search, limit, category, platform, disposition } = req.query;
-    const maxResults = limit ? parseInt(limit, 10) : 500;
-    const titles = searchCatalog(search || '', maxResults, { category, platform, disposition });
-    const totalCount = getCatalogCount();
+    const { search, limit, page, category, platform, disposition } = req.query;
+    const pageNum = page ? Math.max(1, parseInt(page, 10)) : 1;
+    const pageSize = limit === 'all' ? 'all' : (limit ? parseInt(limit, 10) : 250);
+    const offset = pageSize === 'all' ? 0 : (pageNum - 1) * pageSize;
 
-    res.json({ titles, count: titles.length, totalInDatabase: totalCount });
+    const titles = searchCatalog(search || '', pageSize, { category, platform, disposition }, offset);
+    const totalCount = getCatalogCount();
+    const totalMatching = titles.totalMatching ?? titles.length;
+    const totalPages = pageSize === 'all' || pageSize <= 0 ? 1 : Math.ceil(totalMatching / pageSize);
+
+    res.json({
+      titles,
+      count: titles.length,
+      totalMatching,
+      totalInDatabase: totalCount,
+      page: pageNum,
+      pageSize: pageSize === 'all' ? totalMatching : pageSize,
+      totalPages,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/intake/catalog/stats — get authoritative catalog metrics
+app.get('/api/intake/catalog/stats', (req, res) => {
+  try {
+    const stats = getCatalogStats();
+    res.json({ stats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -275,6 +305,79 @@ app.delete('/api/intake/catalog/titles/:id/versions/:verId', (req, res) => {
   }
 });
 
+// GET /api/intake/catalog/titles/:id/packages — get all packaged releases
+app.get('/api/intake/catalog/titles/:id/packages', (req, res) => {
+  try {
+    const { id } = req.params;
+    const title = getTitleById(id);
+    if (!title) return res.status(404).json({ error: 'Software title not found' });
+    const packages = getPackagesByTitleId(id);
+    res.json({ packages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/intake/catalog/titles/:id/packages — register new packaged release
+app.post('/api/intake/catalog/titles/:id/packages', (req, res) => {
+  try {
+    const { id } = req.params;
+    const title = getTitleById(id);
+    if (!title) return res.status(404).json({ error: 'Software title not found' });
+
+    const { version, platform, packagingStatus, intuneAppId, installCommandLine, uninstallCommandLine, msiProductCode, detectionSummary, sourceSharePath, fileName, setupFilePath, notes, description } = req.body;
+    if (!version) return res.status(400).json({ error: 'Version is required' });
+
+    const newPkg = insertPackage({
+      titleId: id,
+      version: version.trim(),
+      platform: platform || 'windows',
+      packagingStatus: packagingStatus || 'Packaged & Ready',
+      intuneAppId: intuneAppId?.trim() || null,
+      installCommandLine: installCommandLine?.trim() || null,
+      uninstallCommandLine: uninstallCommandLine?.trim() || null,
+      msiProductCode: msiProductCode?.trim() || null,
+      detectionSummary: detectionSummary?.trim() || null,
+      sourceSharePath: sourceSharePath?.trim() || null,
+      fileName: fileName?.trim() || null,
+      setupFilePath: setupFilePath?.trim() || null,
+      notes: notes?.trim() || null,
+      description: description?.trim() || null,
+    });
+
+    const updatedTitle = getTitleById(id);
+    res.status(201).json({ message: 'Package registered', package: newPkg, title: updatedTitle });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/intake/catalog/titles/:id/packages/:packageId — update package details
+app.put('/api/intake/catalog/titles/:id/packages/:packageId', (req, res) => {
+  try {
+    const { id, packageId } = req.params;
+    const updated = updatePackage(packageId, req.body);
+    if (!updated) return res.status(404).json({ error: 'Package not found' });
+    const updatedTitle = getTitleById(id);
+    res.json({ message: 'Package updated', package: updated, title: updatedTitle });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/intake/catalog/titles/:id/packages/:packageId — delete package
+app.delete('/api/intake/catalog/titles/:id/packages/:packageId', (req, res) => {
+  try {
+    const { id, packageId } = req.params;
+    const result = deletePackage(packageId);
+    if (!result.deleted) return res.status(404).json({ error: result.reason });
+    const updatedTitle = getTitleById(id);
+    res.json({ message: 'Package deleted', title: updatedTitle });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 // 2. Software Request Intake & State Machine API
 // ═════════════════════════════════════════════════════════════════════════════
@@ -302,6 +405,8 @@ app.post('/api/intake/requests', async (req, res) => {
       businessJustification,
       priority,
       isUnlisted,
+      isNewVersion,
+      licenseRequired: licenseRequiredInput,
     } = req.body;
 
     if (!titleName || !version || !requestedFor || !businessJustification) {
@@ -312,24 +417,65 @@ app.post('/api/intake/requests', async (req, res) => {
 
     const titleModel = titleId ? getTitleById(titleId) : null;
     let versionEntry = null;
-    let evaluatedDisposition = isUnlisted || !titleModel ? 'Review Required' : 'Review Required';
+    let evaluatedDisposition = 'Approved';
 
     if (titleModel && !isUnlisted) {
       versionEntry = (titleModel.versions || []).find(v => v.version === version);
       if (versionEntry) {
-        evaluatedDisposition = versionEntry.disposition;
+        evaluatedDisposition = versionEntry.disposition || titleModel.defaultDisposition || 'Approved';
+      } else {
+        // Unvetted new version request for existing model
+        evaluatedDisposition = 'Review Required';
       }
+    } else {
+      evaluatedDisposition = 'Review Required';
     }
 
+    // Determine license requirement
+    const requiresLicense = isUnlisted
+      ? (licenseRequiredInput === 'Yes')
+      : (titleModel?.licenseRequired === 'Yes');
+
+    // ── USE CASE 1: Approved & Already Packaged and Available in Intune ──────
+    const existingPackage = (titleModel?.packages || []).find(p =>
+      p.version === version &&
+      (p.packagingStatus === 'Packaged & Ready' || p.intuneAppId)
+    );
+
+    const isAlreadyAvailable =
+      !isUnlisted &&
+      !isNewVersion &&
+      evaluatedDisposition === 'Approved' &&
+      Boolean(existingPackage);
+
+    if (isAlreadyAvailable) {
+      // Refer user directly to Intune Company Portal; bypass/delete request
+      const appDisplayName = existingPackage.intuneAppName || titleModel.displayName;
+      return res.status(200).json({
+        instantAvailable: true,
+        deleted: true,
+        intuneAppName: appDisplayName,
+        version: existingPackage.version,
+        intuneAppId: existingPackage.intuneAppId,
+        message: `Software "${appDisplayName}" (v${version}) is already approved, packaged, and available in Microsoft Intune Company Portal for instant self-service installation. No approval request is required.`,
+        instructions: [
+          'Open the Windows Start Menu and launch "Company Portal".',
+          `Search for "${appDisplayName}".`,
+          'Click "Install" to begin immediate deployment to your workstation.',
+        ],
+      });
+    }
+
+    // Prepare Request Record
     const now = new Date().toISOString();
     const reqNumber = generateNextNumber('RITM', 'software_requests');
     const reqId = 'REQ_' + reqNumber;
 
-    let initialStage = 'manager_approval';
+    let initialStage = 'governance_review';
     let initialState = 'In Review';
+    let requestInstallType = installType || 'New Install';
     const tasks = [];
 
-    // ── Helper to push a task ───────────────────────────────────────────────
     const addTask = (name, group, notes, state = 'Pending') => {
       const num = generateNextNumber('SCTASK', 'catalog_tasks');
       tasks.push({
@@ -338,64 +484,99 @@ app.post('/api/intake/requests', async (req, res) => {
       });
     };
 
-    if (evaluatedDisposition === 'Denied') {
-      // ── DENIED: single closed manager task, no further steps ─────────────
-      initialStage = 'closed_denied';
-      initialState = 'Closed Denied';
-      addTask(
-        'Manager Approval', 'Management',
-        `Automatic Block: Version ${version} is marked DENIED (${(versionEntry && versionEntry.dispositionReason) || 'Corporate Policy'}).`,
-        'Closed Incomplete'
-      );
+    // ── USE CASE 3: Denied Software Title / Version (Exception Request) ─────
+    if (evaluatedDisposition === 'Denied' || titleModel?.defaultDisposition === 'Denied') {
+      requestInstallType = 'Exception';
+      evaluatedDisposition = 'Denied';
 
-    } else if (evaluatedDisposition === 'Approved') {
-      // ── APPROVED path: Manager → Risk → Licensing (if required) → Packaging
-      addTask(
-        'Manager Approval', 'Management',
-        `Validate business need for ${requestedFor} (${department}). Submitted by ${requestedBy || requestedFor}.`,
-        'Open'
-      );
       addTask(
         'Risk Review', 'Enterprise Risk',
-        `Assess operational and third-party risk for ${titleName} v${version} in the ${department} environment.`
+        `EXCEPTION REQUEST: Assess architectural waiver and operational risk acceptance for prohibited software "${titleName}" v${version}. Business Justification: ${businessJustification}`,
+        'Open'
       );
-      if (titleModel && titleModel.licenseRequired === 'Yes') {
+
+      if (requiresLicense) {
         addTask(
           'Licensing Review', 'Software Asset Management',
-          `Confirm license entitlement, seat availability, and cost allocation for ${titleName}.`
+          `Confirm software license model, seat availability, and SAM compliance for exception request of "${titleName}".`,
+          'Pending'
         );
       }
+
       addTask(
         'Packaging Review & Execution', 'EUC Software Packaging Team',
-        `Build and validate ${platform.toUpperCase()} package via SPA Workbench. Deploy to ${deploymentScope} scope.`
+        `Build and validate package via SPA Workbench upon exception and governance clearance. Scope: ${deploymentScope}.`,
+        'Pending'
       );
 
-    } else {
-      // ── REVIEW REQUIRED / UNLISTED: full governance chain ────────────────
-      // Manager Approval → Risk → Licensing → Cybersecurity → Packaging
-      initialStage = 'governance_review';
-      addTask(
-        'Manager Approval', 'Management',
-        `Validate business need for ${requestedFor} (${department}). Submitted by ${requestedBy || requestedFor}.`,
-        'Open'
-      );
+    // ── USE CASE 2: Approved Title, but User Requests a NEW Version ─────────
+    } else if (titleModel && (isNewVersion || !versionEntry)) {
+      evaluatedDisposition = 'Review Required';
+
       addTask(
         'Risk Review', 'Enterprise Risk',
-        `Assess operational, third-party, and data-classification risk for ${isUnlisted ? 'UNLISTED' : 'unvetted'} title "${titleName}" v${version}.`
+        `New version intake for approved title "${titleName}": Assess operational, security, and compatibility risk of v${version}.`,
+        'Open'
       );
-      addTask(
-        'Licensing Review', 'Software Asset Management',
-        `Review license model, open-source obligations, and cost implications for "${titleName}".`
-      );
-      addTask(
-        'Cybersecurity Review', 'Cybersecurity',
-        isUnlisted
-          ? `Comprehensive security, architecture, and supply-chain vetting for UNLISTED title "${titleName}" v${version}. Approve enrollment into Authoritative Catalog upon clearance.`
-          : `Review unvetted version ${version} against vulnerability databases, data governance, and AppSec standards.`
-      );
+
+      if (requiresLicense) {
+        addTask(
+          'Licensing Review', 'Software Asset Management',
+          `Confirm software license entitlement and seat availability for new version "${titleName}" v${version}.`,
+          'Pending'
+        );
+      }
+
       addTask(
         'Packaging Review & Execution', 'EUC Software Packaging Team',
-        `Build and validate package upon full governance approval. Platform: ${platform.toUpperCase()}.`
+        `Package and publish ${platform.toUpperCase()} release via SPA Workbench upon risk and licensing clearance. Scope: ${deploymentScope}.`,
+        'Pending'
+      );
+
+    // ── USE CASE 4: Net New Title / Version (Unlisted Software) ─────────────
+    } else if (isUnlisted) {
+      evaluatedDisposition = 'Review Required';
+
+      addTask(
+        'Risk Review', 'Enterprise Risk',
+        `Net new software intake: Assess third-party, architecture, and cybersecurity risk for unlisted title "${titleName}" v${version}. Category: ${category || 'General'}.`,
+        'Open'
+      );
+
+      if (requiresLicense) {
+        addTask(
+          'Licensing Review', 'Software Asset Management',
+          `Commercial software licensing review: Verify vendor license terms, cost allocation, and SAM compliance for "${titleName}".`,
+          'Pending'
+        );
+      }
+
+      addTask(
+        'Packaging Review & Execution', 'EUC Software Packaging Team',
+        `Build and validate package upon full governance approval. Platform: ${platform.toUpperCase()}. Scope: ${deploymentScope}.`,
+        'Pending'
+      );
+
+    // ── Standard Unpackaged Approved Title ─────────────────────────────────
+    } else {
+      addTask(
+        'Risk Review', 'Enterprise Risk',
+        `Operational risk validation for ${titleName} v${version} deployment in ${department} environment.`,
+        'Open'
+      );
+
+      if (requiresLicense) {
+        addTask(
+          'Licensing Review', 'Software Asset Management',
+          `Validate license entitlement and seat allocation for ${titleName}.`,
+          'Pending'
+        );
+      }
+
+      addTask(
+        'Packaging Review & Execution', 'EUC Software Packaging Team',
+        `Package and publish ${platform.toUpperCase()} release via SPA Workbench.`,
+        'Pending'
       );
     }
 
@@ -409,7 +590,7 @@ app.post('/api/intake/requests', async (req, res) => {
       version,
       platform: platform || 'windows',
       category: category || (titleModel ? titleModel.category : 'General Application'),
-      installerType: installerType || (titleModel ? (titleModel.defaultInstallerType[platform] || 'msi') : 'msi'),
+      installerType: installerType || (titleModel ? (titleModel.defaultInstallerType?.[platform] || 'msi') : 'msi'),
       installerSource: installerSource || '',
       requestedBy: requestedBy || requestedFor,
       requestedFor,
@@ -417,7 +598,7 @@ app.post('/api/intake/requests', async (req, res) => {
       beneficiaryEmail: beneficiaryEmail || requesterEmail || `${requestedFor.toLowerCase().replace(/\s+/g, '.')}@fiserv.com`,
       department: department || 'General',
       targetDevice: targetDevice || 'Workstation',
-      installType: installType || 'New Install',
+      installType: requestInstallType,
       deploymentScope: deploymentScope || 'Individual',
       businessJustification,
       disposition: evaluatedDisposition,
@@ -425,6 +606,8 @@ app.post('/api/intake/requests', async (req, res) => {
       state: initialState,
       priority: priority || 'Medium',
       isUnlisted: isUnlisted ? true : false,
+      licenseRequired: requiresLicense ? 'Yes' : 'No',
+      isNewVersion: isNewVersion ? true : false,
       submittedAt: now,
       updatedAt: now,
       packagingArtifacts: null,
@@ -466,6 +649,17 @@ app.get('/api/intake/requests/:id', (req, res) => {
   }
 });
 
+// DELETE /api/intake/requests/:id — delete a request
+app.delete('/api/intake/requests/:id', (req, res) => {
+  try {
+    const result = deleteRequest(req.params.id);
+    if (!result.deleted) return res.status(404).json({ error: result.reason });
+    res.json({ message: `Request ${result.number || result.id} deleted successfully`, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PATCH /api/intake/tasks/:taskId — approve or complete a task
 app.patch('/api/intake/tasks/:taskId', async (req, res) => {
   try {
@@ -481,9 +675,6 @@ app.patch('/api/intake/tasks/:taskId', async (req, res) => {
     const now = new Date().toISOString();
     const reviewerName = completedBy || 'Reviewer';
 
-    // Check if task is Cybersecurity / Disposition Review
-    const isDispositionTask = task.name.includes('Disposition') || task.name.includes('Security');
-
     if (action === 'reject' || dispositionDecision === 'Denied') {
       updateTaskRecord(task.id, {
         state: 'Closed Incomplete',
@@ -492,20 +683,32 @@ app.patch('/api/intake/tasks/:taskId', async (req, res) => {
         notes: notes || 'Rejected by reviewer.',
       });
 
-      // If this was a disposition review for unlisted/unvetted software, enroll as Denied in catalog
-      if (isDispositionTask || parentReq.isUnlisted) {
+      // Mark any remaining open or pending tasks on this request as Closed Incomplete
+      (parentReq.tasks || []).forEach(t => {
+        if (t.id !== task.id && (t.state === 'Open' || t.state === 'Pending')) {
+          updateTaskRecord(t.id, {
+            state: 'Closed Incomplete',
+            completedBy: reviewerName,
+            completedAt: now,
+            notes: `Automatically closed due to rejection of ${task.name}.`,
+          });
+        }
+      });
+
+      // If this was an unlisted title or new version, enroll/update as Denied in catalog
+      if (parentReq.isUnlisted || parentReq.isNewVersion) {
         upsertCatalogTitleAndVersion(
           {
             displayName: parentReq.titleName,
             publisher: parentReq.publisher || 'Unknown Publisher',
             category: parentReq.category || 'Enterprise Application',
             supportedPlatforms: [parentReq.platform || 'windows'],
-            licenseRequired: 'No',
+            licenseRequired: parentReq.licenseRequired || 'No',
           },
           {
             version: parentReq.version,
             disposition: 'Denied',
-            dispositionReason: notes || 'Prohibited by corporate cybersecurity & architecture evaluation.',
+            dispositionReason: notes || `Rejected during ${task.name}.`,
             alternative: recommendedAlternative || null,
             packagingStatus: 'Prohibited',
           }
@@ -518,7 +721,7 @@ app.patch('/api/intake/tasks/:taskId', async (req, res) => {
         disposition: 'Denied',
       });
       notifyTaskAction(task, updatedReq, 'reject', reviewerName, notes).catch(() => {});
-      return res.json({ message: 'Task rejected and recorded in catalog as Denied', request: updatedReq });
+      return res.json({ message: 'Task rejected and request closed as Denied', request: updatedReq });
     }
 
     // Mark task complete (Approved)
@@ -533,56 +736,59 @@ app.patch('/api/intake/tasks/:taskId', async (req, res) => {
     let nextState = parentReq.state;
     let nextDisposition = parentReq.disposition;
 
-    // If Cybersecurity approved unlisted or unvetted software, enroll into Authoritative Catalog
-    if (isDispositionTask || parentReq.isUnlisted) {
-      const enrolledTitle = upsertCatalogTitleAndVersion(
-        {
-          displayName: parentReq.titleName,
-          publisher: parentReq.publisher || 'General Vendor',
-          category: parentReq.category || 'Enterprise Application',
-          supportedPlatforms: [parentReq.platform || 'windows'],
-          licenseRequired: 'No',
-        },
-        {
-          version: parentReq.version,
-          disposition: 'Approved',
-          dispositionReason: notes || 'Approved during Cybersecurity & Architecture evaluation.',
-          alternative: null,
-          packagingStatus: 'Approved - Pending Packaging',
-        }
-      );
-      nextDisposition = 'Approved';
-      if (!parentReq.titleId && enrolledTitle) {
-        db.prepare(`UPDATE software_requests SET titleId = ? WHERE id = ?`).run(enrolledTitle.id, parentReq.id);
+    // Check sibling tasks on the parent request
+    const freshReq = getRequestById(parentReq.id);
+    const riskTask = (freshReq.tasks || []).find(t => t.name.includes('Risk'));
+    const licenseTask = (freshReq.tasks || []).find(t => t.name.includes('Licens'));
+    const pkgTask = (freshReq.tasks || []).find(t => t.name.includes('Packaging'));
+
+    if (task.name.includes('Risk')) {
+      if (licenseTask && licenseTask.state === 'Pending') {
+        // Unlock Licensing Review
+        updateTaskRecord(licenseTask.id, { state: 'Open' });
+        nextStage = 'governance_review';
       }
     }
 
-    if (task.name === 'Manager Approval') {
-      const govTask = parentReq.tasks.find(t => t.name.includes('Disposition') && t.state === 'Pending');
-      if (govTask) {
-        updateTaskRecord(govTask.id, { state: 'Open' });
-        nextStage = 'governance_review';
-      } else {
-        const samTask = parentReq.tasks.find(t => t.name === 'SAM License Review' && t.state === 'Pending');
-        if (samTask) {
-          updateTaskRecord(samTask.id, { state: 'Open' });
-          nextStage = 'license_review';
-        } else {
-          const pkgTask = parentReq.tasks.find(t => t.name.includes('Packaging') && t.state === 'Pending');
-          if (pkgTask) {
-            updateTaskRecord(pkgTask.id, { state: 'Open' });
-            nextStage = 'packaging';
-            nextState = 'In Packaging';
+    // Check if ALL governance reviews (Risk + Licensing) are completed
+    const isRiskDone = !riskTask || riskTask.state === 'Closed Complete';
+    const isLicenseDone = !licenseTask || licenseTask.state === 'Closed Complete';
+
+    if (isRiskDone && isLicenseDone) {
+      if (pkgTask && pkgTask.state === 'Pending') {
+        updateTaskRecord(pkgTask.id, { state: 'Open' });
+      }
+      nextStage = 'packaging';
+      nextState = 'In Packaging';
+      nextDisposition = 'Approved';
+
+      // If unlisted or new version, enroll/update into Authoritative Catalog as Approved
+      if (parentReq.isUnlisted || parentReq.isNewVersion) {
+        const enrolledTitle = upsertCatalogTitleAndVersion(
+          {
+            displayName: parentReq.titleName,
+            publisher: parentReq.publisher || 'General Vendor',
+            category: parentReq.category || 'Enterprise Application',
+            supportedPlatforms: [parentReq.platform || 'windows'],
+            licenseRequired: parentReq.licenseRequired || 'No',
+          },
+          {
+            version: parentReq.version,
+            disposition: 'Approved',
+            dispositionReason: notes || 'Approved through Enterprise Risk & Licensing Governance clearance.',
+            alternative: null,
+            packagingStatus: 'Approved - Pending Packaging',
           }
+        );
+        if (!parentReq.titleId && enrolledTitle) {
+          db.prepare(`UPDATE software_requests SET titleId = ? WHERE id = ?`).run(enrolledTitle.id, parentReq.id);
         }
       }
-    } else if (task.name === 'SAM License Review' || isDispositionTask) {
-      const pkgTask = parentReq.tasks.find(t => t.name.includes('Packaging') && t.state === 'Pending');
-      if (pkgTask) {
-        updateTaskRecord(pkgTask.id, { state: 'Open' });
-        nextStage = 'packaging';
-        nextState = 'In Packaging';
-      }
+    }
+
+    if (task.name.includes('Packaging')) {
+      nextStage = 'completed';
+      nextState = 'Closed Complete';
     }
 
     const updatedReq = updateRequestFields(parentReq.id, {
@@ -592,7 +798,7 @@ app.patch('/api/intake/tasks/:taskId', async (req, res) => {
     });
 
     notifyTaskAction(task, updatedReq, 'approve', reviewerName, notes).catch(() => {});
-    res.json({ message: 'Task approved and catalog updated', request: updatedReq });
+    res.json({ message: 'Task approved and workflow advanced', request: updatedReq });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

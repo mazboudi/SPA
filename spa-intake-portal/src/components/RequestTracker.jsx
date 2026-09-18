@@ -28,21 +28,20 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 
 const STAGE_STEPS = [
   { id: 'submitted', label: 'Submitted' },
-  { id: 'manager_approval', label: 'Manager Approval' },
-  { id: 'license_review', label: 'SAM Review' },
-  { id: 'packaging', label: 'Packaging' },
+  { id: 'governance_review', label: 'Risk & Licensing Governance' },
+  { id: 'packaging', label: 'Packaging Execution' },
   { id: 'completed', label: 'Closed Complete' },
 ];
 
 function getActiveStepIndex(stage, state) {
-  if (state === 'Closed Complete') return 4;
+  if (state === 'Closed Complete') return 3;
   if (state === 'Closed Denied') return 1;
   switch (stage) {
-    case 'manager_approval': return 1;
     case 'governance_review':
-    case 'license_review': return 2;
-    case 'packaging': return 3;
-    case 'completed': return 4;
+    case 'license_review':
+    case 'manager_approval': return 1;
+    case 'packaging': return 2;
+    case 'completed': return 3;
     default: return 0;
   }
 }
@@ -201,7 +200,16 @@ export default function RequestTracker() {
                       {selectedReq.number}
                     </Typography>
                     {selectedReq.isUnlisted && (
-                      <Chip label="Unlisted Software Intake" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700 }} />
+                      <Chip label="Net New Unlisted" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fef3c7', color: '#92400e', fontWeight: 700 }} />
+                    )}
+                    {selectedReq.isNewVersion && (
+                      <Chip label="New Version Request" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#dbeafe', color: '#1e40af', fontWeight: 700 }} />
+                    )}
+                    {(selectedReq.installType === 'Exception' || selectedReq.disposition === 'Denied') && (
+                      <Chip label="Prohibited Exception" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 700 }} />
+                    )}
+                    {selectedReq.licenseRequired === 'Yes' && (
+                      <Chip label="Commercial License (SAM)" size="small" sx={{ height: 20, fontSize: '0.675rem', bgcolor: '#f3e8ff', color: '#6b21a8', fontWeight: 700 }} />
                     )}
                   </Box>
                   <Typography variant="h3" sx={{ fontWeight: 700, color: '#0f172a' }}>

@@ -12,7 +12,7 @@ import RequestTracker from './components/RequestTracker';
 import CatalogManager from './components/CatalogManager';
 
 const SECTION_TITLES = {
-  request: 'Request Software',
+  request: 'Software Request',
   governance: 'Governance Review Center',
   tracker: 'Request Tracker (RITMs)',
   catalog: 'Authoritative Software Catalog',
