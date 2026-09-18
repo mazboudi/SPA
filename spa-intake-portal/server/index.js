@@ -25,6 +25,7 @@ import {
   updateRequestFields,
   getTaskById,
   updateTaskRecord,
+  updateTaskRiskEvaluation,
   getSetting,
   setSetting,
   upsertCatalogTitleAndVersion,
@@ -35,6 +36,7 @@ import {
   notifyPackagingComplete,
   sendTeamsCard,
 } from './lib/teamsNotifier.js';
+import { evaluateNistRisk } from './services/nistService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -499,7 +501,7 @@ app.post('/api/intake/requests', async (req, res) => {
         addTask(
           'Licensing Review', 'Software Asset Management',
           `Confirm software license model, seat availability, and SAM compliance for exception request of "${titleName}".`,
-          'Pending'
+          'Open'
         );
       }
 
@@ -523,7 +525,7 @@ app.post('/api/intake/requests', async (req, res) => {
         addTask(
           'Licensing Review', 'Software Asset Management',
           `Confirm software license entitlement and seat availability for new version "${titleName}" v${version}.`,
-          'Pending'
+          'Open'
         );
       }
 
@@ -547,7 +549,7 @@ app.post('/api/intake/requests', async (req, res) => {
         addTask(
           'Licensing Review', 'Software Asset Management',
           `Commercial software licensing review: Verify vendor license terms, cost allocation, and SAM compliance for "${titleName}".`,
-          'Pending'
+          'Open'
         );
       }
 
@@ -557,27 +559,54 @@ app.post('/api/intake/requests', async (req, res) => {
         'Pending'
       );
 
-    // ── Standard Unpackaged Approved Title ─────────────────────────────────
+    // ── Standard Approved Title (existing model and version) ────────────────
     } else {
-      addTask(
-        'Risk Review', 'Enterprise Risk',
-        `Operational risk validation for ${titleName} v${version} deployment in ${department} environment.`,
-        'Open'
-      );
-
-      if (requiresLicense) {
+      if (evaluatedDisposition === 'Approved' && requiresLicense && existingPackage) {
+        // Already approved and packaged in Intune, only commercial license assignment required
         addTask(
           'Licensing Review', 'Software Asset Management',
-          `Validate license entitlement and seat allocation for ${titleName}.`,
+          `Commercial license assignment & seat allocation for approved title "${titleName}" v${version}.`,
+          'Open'
+        );
+      } else {
+        addTask(
+          'Risk Review', 'Enterprise Risk',
+          `Operational risk validation for ${titleName} v${version} deployment in ${department} environment.`,
+          'Open'
+        );
+
+        if (requiresLicense) {
+          addTask(
+            'Licensing Review', 'Software Asset Management',
+            `Validate license entitlement and seat allocation for ${titleName}.`,
+            'Open'
+          );
+        }
+
+        addTask(
+          'Packaging Review & Execution', 'EUC Software Packaging Team',
+          `Package and publish ${platform.toUpperCase()} release via SPA Workbench.`,
           'Pending'
         );
       }
+    }
 
-      addTask(
-        'Packaging Review & Execution', 'EUC Software Packaging Team',
-        `Package and publish ${platform.toUpperCase()} release via SPA Workbench.`,
-        'Pending'
-      );
+    let nistRiskScore = 0;
+    let nistRiskLevel = 'CLEAN';
+    let nistSummary = null;
+
+    try {
+      const nistEval = await evaluateNistRisk(titleName, version, false);
+      nistRiskScore = nistEval.riskScore || 0;
+      nistRiskLevel = nistEval.riskLevel || 'CLEAN';
+      nistSummary = JSON.stringify({
+        maxCvss: nistEval.maxCvss,
+        trendingCount: nistEval.trendingCount,
+        totalCves: nistEval.totalCves,
+        violations: nistEval.violations || [],
+      });
+    } catch (nistErr) {
+      console.warn('NIST pre-evaluation skipped:', nistErr.message);
     }
 
     const newRequest = {
@@ -608,6 +637,9 @@ app.post('/api/intake/requests', async (req, res) => {
       isUnlisted: isUnlisted ? true : false,
       licenseRequired: requiresLicense ? 'Yes' : 'No',
       isNewVersion: isNewVersion ? true : false,
+      nistRiskScore,
+      nistRiskLevel,
+      nistSummary,
       submittedAt: now,
       updatedAt: now,
       packagingArtifacts: null,
@@ -615,12 +647,27 @@ app.post('/api/intake/requests', async (req, res) => {
 
     const createdRecord = insertRequest(newRequest, tasks);
 
+    // If NIST summary is available, attach to initial Risk Review task
+    if (nistSummary) {
+      const riskTask = (createdRecord.tasks || []).find(t => t.name.includes('Risk'));
+      if (riskTask) {
+        updateTaskRiskEvaluation(riskTask.id, JSON.parse(nistSummary));
+      }
+    }
+
     // Asynchronously notify Microsoft Teams
     notifyNewRequest(createdRecord).catch(err => console.error('Teams notify error:', err));
 
+    const hasRiskTask = tasks.some(t => t.name.includes('Risk'));
+    const hasLicenseTask = tasks.some(t => t.name.includes('Licens'));
+    const targetQueue = hasRiskTask ? 'Enterprise Risk' : 'Software Asset Management';
+
     res.status(201).json({
-      message: 'Software request submitted successfully',
+      message: `Software request submitted successfully and moved to ${targetQueue} Review Queue`,
       request: createdRecord,
+      initialQueue: targetQueue,
+      hasRiskTask,
+      hasLicenseTask,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -660,17 +707,37 @@ app.delete('/api/intake/requests/:id', (req, res) => {
   }
 });
 
+// GET /api/intake/security/nist-risk — evaluate NIST NVD 2.0 vulnerability metrics & risk score
+app.get('/api/intake/security/nist-risk', async (req, res) => {
+  try {
+    const { title, version, refresh } = req.query;
+    if (!title) {
+      return res.status(400).json({ error: 'Title parameter is required' });
+    }
+    const forceRefresh = refresh === 'true' || refresh === '1';
+    const riskData = await evaluateNistRisk(title, version || '', forceRefresh);
+    res.json({ risk: riskData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PATCH /api/intake/tasks/:taskId — approve or complete a task
 app.patch('/api/intake/tasks/:taskId', async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { action, completedBy, notes, dispositionDecision, recommendedAlternative } = req.body;
+    const { action, completedBy, notes, dispositionDecision, recommendedAlternative, riskEvaluation } = req.body;
 
     const task = getTaskById(taskId);
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
     const parentReq = getRequestById(task.requestId);
     if (!parentReq) return res.status(404).json({ error: 'Parent request not found' });
+
+    // Store checklist / risk evaluation if provided
+    if (riskEvaluation) {
+      updateTaskRiskEvaluation(task.id, riskEvaluation);
+    }
 
     const now = new Date().toISOString();
     const reviewerName = completedBy || 'Reviewer';
@@ -755,12 +822,18 @@ app.patch('/api/intake/tasks/:taskId', async (req, res) => {
     const isLicenseDone = !licenseTask || licenseTask.state === 'Closed Complete';
 
     if (isRiskDone && isLicenseDone) {
-      if (pkgTask && pkgTask.state === 'Pending') {
-        updateTaskRecord(pkgTask.id, { state: 'Open' });
+      if (pkgTask) {
+        if (pkgTask.state === 'Pending') {
+          updateTaskRecord(pkgTask.id, { state: 'Open' });
+        }
+        nextStage = 'packaging';
+        nextState = 'In Packaging';
+        nextDisposition = 'Approved';
+      } else {
+        nextStage = 'completed';
+        nextState = 'Closed Complete';
+        nextDisposition = 'Approved';
       }
-      nextStage = 'packaging';
-      nextState = 'In Packaging';
-      nextDisposition = 'Approved';
 
       // If unlisted or new version, enroll/update into Authoritative Catalog as Approved
       if (parentReq.isUnlisted || parentReq.isNewVersion) {

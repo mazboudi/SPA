@@ -26,16 +26,6 @@
     "updatedAt": "2026-08-25T14:15:10.859Z",
     "tasks": [
       {
-        "id": "TASK0010001",
-        "number": "SCTASK0010001",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "completedBy": "Sarah Miller (Manager)",
-        "completedAt": "2026-08-20T10:00:00.000Z",
-        "notes": "Approved for engineering workstation."
-      },
-      {
         "id": "TASK0010002",
         "number": "SCTASK0010002",
         "name": "SAM License Review",
@@ -91,16 +81,6 @@
     "submittedAt": "2026-08-22T11:00:00.000Z",
     "updatedAt": "2026-08-22T14:30:00.000Z",
     "tasks": [
-      {
-        "id": "TASK0020001",
-        "number": "SCTASK0020001",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "completedBy": "Robert Taylor (Manager)",
-        "completedAt": "2026-08-22T14:00:00.000Z",
-        "notes": "Approved for API testing."
-      },
       {
         "id": "TASK0020002",
         "number": "SCTASK0020002",
@@ -194,16 +174,6 @@
     "updatedAt": "2026-08-25T14:14:40.680Z",
     "tasks": [
       {
-        "id": "TASK0040001",
-        "number": "SCTASK0040001",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "completedBy": "Jessica Alba (Manager)",
-        "completedAt": "2026-08-24T08:00:00.000Z",
-        "notes": "Approved for design team."
-      },
-      {
         "id": "TASK0040002",
         "number": "SCTASK0040002",
         "name": "SAM License Review",
@@ -254,16 +224,6 @@
     "updatedAt": "2026-08-24T20:44:01.860Z",
     "tasks": [
       {
-        "id": "TASK0040004",
-        "number": "SCTASK0040004",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-24T20:44:01.860Z"
-      },
-      {
         "id": "TASK0040006",
         "number": "SCTASK0040006",
         "name": "Packaging Review & Execution",
@@ -310,16 +270,6 @@
     "submittedAt": "2026-08-24T21:18:11.912Z",
     "updatedAt": "2026-08-24T21:18:11.914Z",
     "tasks": [
-      {
-        "id": "TASK0040007",
-        "number": "SCTASK0040007",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-24T21:18:11.913Z"
-      },
       {
         "id": "TASK0040009",
         "number": "SCTASK0040009",
@@ -368,16 +318,6 @@
     "updatedAt": "2026-08-24T21:18:22.679Z",
     "tasks": [
       {
-        "id": "TASK0040010",
-        "number": "SCTASK0040010",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-24T21:18:22.678Z"
-      },
-      {
         "id": "TASK0040012",
         "number": "SCTASK0040012",
         "name": "Packaging Review & Execution",
@@ -425,16 +365,6 @@
     "updatedAt": "2026-08-25T14:12:46.777Z",
     "tasks": [
       {
-        "id": "TASK0040013",
-        "number": "SCTASK0040013",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved",
-        "completedBy": "Governance Reviewer",
-        "completedAt": "2026-08-24T21:50:25.110Z"
-      },
-      {
         "id": "TASK0040015",
         "number": "SCTASK0040015",
         "name": "Packaging Review & Execution",
@@ -472,16 +402,6 @@
     "submittedAt": "2026-08-25T15:04:56.729Z",
     "updatedAt": "2026-08-25T15:04:56.731Z",
     "tasks": [
-      {
-        "id": "TASK0040016",
-        "number": "SCTASK0040016",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-25T15:04:56.730Z"
-      },
       {
         "id": "TASK0040018",
         "number": "SCTASK0040018",
@@ -530,16 +450,6 @@
     "updatedAt": "2026-08-25T15:40:07.512Z",
     "tasks": [
       {
-        "id": "TASK0040019",
-        "number": "SCTASK0040019",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-25T15:40:07.512Z"
-      },
-      {
         "id": "TASK0040021",
         "number": "SCTASK0040021",
         "name": "Packaging Review & Execution",
@@ -587,16 +497,6 @@
     "updatedAt": "2026-08-25T15:46:39.385Z",
     "tasks": [
       {
-        "id": "TASK0040022",
-        "number": "SCTASK0040022",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-25T15:46:39.385Z"
-      },
-      {
         "id": "TASK0040024",
         "number": "SCTASK0040024",
         "name": "Packaging Review & Execution",
@@ -643,16 +543,6 @@
     "submittedAt": "2026-08-25T15:54:44.342Z",
     "updatedAt": "2026-08-25T15:54:44.343Z",
     "tasks": [
-      {
-        "id": "TASK0040025",
-        "number": "SCTASK0040025",
-        "name": "Manager Approval",
-        "assignmentGroup": "Management",
-        "state": "Closed Complete",
-        "notes": "Approved for developer workstation.",
-        "completedBy": "Dev Lead (Manager)",
-        "completedAt": "2026-08-25T15:54:44.343Z"
-      },
       {
         "id": "TASK0040027",
         "number": "SCTASK0040027",

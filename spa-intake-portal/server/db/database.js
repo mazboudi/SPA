@@ -136,6 +136,21 @@ export function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_tasks_request ON catalog_tasks(requestId);
     CREATE INDEX IF NOT EXISTS idx_tasks_group ON catalog_tasks(assignmentGroup);
     CREATE INDEX IF NOT EXISTS idx_tasks_state ON catalog_tasks(state);
+    CREATE TABLE IF NOT EXISTS nist_risk_cache (
+      id TEXT PRIMARY KEY,
+      titleName TEXT NOT NULL,
+      version TEXT,
+      riskScore REAL,
+      riskLevel TEXT,
+      maxCvss REAL,
+      trendingCount INTEGER DEFAULT 0,
+      totalCves INTEGER DEFAULT 0,
+      cvesJson TEXT,
+      violationsJson TEXT,
+      fetchedAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_nist_cache_title ON nist_risk_cache(titleName);
   `);
 
   // Safe idempotent column additions for software_titles (governance policy rules)
@@ -152,6 +167,12 @@ export function initSchema() {
   try { db.exec(`ALTER TABLE software_requests ADD COLUMN isUnlisted INTEGER DEFAULT 0;`); } catch (_) {}
   try { db.exec(`ALTER TABLE software_requests ADD COLUMN licenseRequired TEXT DEFAULT 'No';`); } catch (_) {}
   try { db.exec(`ALTER TABLE software_requests ADD COLUMN isNewVersion INTEGER DEFAULT 0;`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_requests ADD COLUMN nistRiskScore REAL;`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_requests ADD COLUMN nistRiskLevel TEXT;`); } catch (_) {}
+  try { db.exec(`ALTER TABLE software_requests ADD COLUMN nistSummary TEXT;`); } catch (_) {}
+
+  // Safe idempotent column additions for catalog_tasks
+  try { db.exec(`ALTER TABLE catalog_tasks ADD COLUMN riskEvaluation TEXT;`); } catch (_) {}
 
   // Safe idempotent column additions for software_packages
   try { db.exec(`ALTER TABLE software_packages ADD COLUMN intuneAppName TEXT;`); } catch (_) {}
@@ -936,6 +957,89 @@ export function upsertCatalogTitleAndVersion(titleData, versionData) {
   }
 
   return getTitleById(titleId);
+}
+
+// ── 4. NIST Risk Cache Helpers ───────────────────────────────────────────────
+export function getCachedNistRisk(titleName, version = '') {
+  if (!titleName) return null;
+  const cleanTitle = titleName.trim().toLowerCase();
+  const row = db.prepare(`
+    SELECT * FROM nist_risk_cache 
+    WHERE LOWER(titleName) = ?
+    ORDER BY fetchedAt DESC 
+    LIMIT 1
+  `).get(cleanTitle);
+
+  if (!row) return null;
+
+  // Check TTL (24 hours = 86,400,000 ms)
+  const ageMs = Date.now() - new Date(row.fetchedAt).getTime();
+  if (ageMs > 24 * 60 * 60 * 1000) {
+    return null; // Stale cache
+  }
+
+  return {
+    ...row,
+    cves: row.cvesJson ? JSON.parse(row.cvesJson) : [],
+    violations: row.violationsJson ? JSON.parse(row.violationsJson) : [],
+    isCached: true,
+  };
+}
+
+export function saveNistRisk(evalObj) {
+  const { titleName, version, riskScore, riskLevel, maxCvss, trendingCount, totalCves, cves, violations } = evalObj;
+  const id = 'nist_' + Buffer.from(`${titleName}::${version || ''}`).toString('hex').slice(0, 16);
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO nist_risk_cache (
+      id, titleName, version, riskScore, riskLevel, maxCvss, trendingCount, totalCves, cvesJson, violationsJson, fetchedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      riskScore = excluded.riskScore,
+      riskLevel = excluded.riskLevel,
+      maxCvss = excluded.maxCvss,
+      trendingCount = excluded.trendingCount,
+      totalCves = excluded.totalCves,
+      cvesJson = excluded.cvesJson,
+      violationsJson = excluded.violationsJson,
+      fetchedAt = excluded.fetchedAt
+  `).run(
+    id,
+    titleName.trim(),
+    version || '',
+    riskScore ?? 0,
+    riskLevel || 'LOW',
+    maxCvss ?? 0,
+    trendingCount ?? 0,
+    totalCves ?? 0,
+    JSON.stringify(cves || []),
+    JSON.stringify(violations || []),
+    now
+  );
+
+  return getCachedNistRisk(titleName, version);
+}
+
+export function clearNistCache(titleName) {
+  if (!titleName) {
+    db.prepare(`DELETE FROM nist_risk_cache`).run();
+  } else {
+    db.prepare(`DELETE FROM nist_risk_cache WHERE LOWER(titleName) = ?`).run(titleName.trim().toLowerCase());
+  }
+}
+
+export function updateTaskRiskEvaluation(taskId, evalData = {}) {
+  const task = getTaskById(taskId);
+  if (!task) return null;
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE catalog_tasks SET
+      riskEvaluation = ?,
+      updatedAt = ?
+    WHERE id = ?
+  `).run(JSON.stringify(evalData), now, taskId);
+  return getTaskById(taskId);
 }
 
 // Initialize tables immediately on module load

@@ -60,6 +60,7 @@ class ErrorBoundary extends React.Component {
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('request'); // 'request' | 'governance' | 'tracker' | 'catalog'
+  const [governanceQueue, setGovernanceQueue] = useState('all');
   const [openTasksCount, setOpenTasksCount] = useState(0);
 
   // Fetch Windows logged-on identity once at app level and share via props
@@ -94,6 +95,12 @@ export default function App() {
 
   const handleToggleSidebar = () => {
     setSidebarOpen(prev => !prev);
+  };
+
+  const handleNavigate = (tab, queue = null) => {
+    fetchStats();
+    if (queue) setGovernanceQueue(queue);
+    setActiveTab(tab);
   };
 
   return (
@@ -135,15 +142,20 @@ export default function App() {
               {activeTab === 'request' && (
                 <RequestSoftwareView
                   loggedInUser={loggedInUser}
-                  onSubmitted={() => {
+                  onNavigate={handleNavigate}
+                  onSubmitted={(req, queue) => {
                     fetchStats();
-                    setActiveTab('tracker');
+                    if (queue) setGovernanceQueue(queue);
                   }}
                 />
               )}
 
               {activeTab === 'governance' && (
-                <GovernanceDashboard onTaskUpdated={fetchStats} />
+                <GovernanceDashboard
+                  onTaskUpdated={fetchStats}
+                  initialQueue={governanceQueue}
+                  onQueueChange={setGovernanceQueue}
+                />
               )}
 
               {activeTab === 'tracker' && (

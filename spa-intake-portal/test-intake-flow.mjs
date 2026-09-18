@@ -80,23 +80,23 @@ async function runTests() {
     console.log(`   ✅ Request Created: ${testReq.number} (${testReq.shortDescription})`);
     console.log(`   ✅ Initial Stage: "${testReq.stage}", State: "${testReq.state}", Tasks Generated: ${testReq.tasks.length}`);
 
-    // Test 5: Approve Manager Task
-    console.log('\n5️⃣ Approving Manager Task for ' + testReq.number + '...');
-    const mgrTask = testReq.tasks.find(t => t.name === 'Manager Approval');
-    if (!mgrTask) throw new Error('Manager Approval task not found');
+    // Test 5: Approve Risk Governance Task
+    console.log('\n5️⃣ Approving Risk Governance Task for ' + testReq.number + '...');
+    const riskTask = testReq.tasks.find(t => t.name.includes('Risk'));
+    if (!riskTask) throw new Error('Risk Review task not found');
 
-    const approveRes = await fetch(`http://localhost:3002/api/intake/tasks/${mgrTask.id}`, {
+    const approveRes = await fetch(`http://localhost:3002/api/intake/tasks/${riskTask.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'approve',
-        completedBy: 'Manager Bot',
-        notes: 'Automated test approval.',
+        completedBy: 'Alex Johnson (Enterprise Risk Officer)',
+        notes: 'Automated test approval against NIST NVD 2.0.',
       }),
     });
     const approveData = await approveRes.json();
     if (!approveRes.ok) throw new Error(approveData.error || 'Task approval failed');
-    console.log(`   ✅ Manager Task Approved. Request stage advanced to: "${approveData.request.stage}"`);
+    console.log(`   ✅ Risk Governance Task Approved. Request stage advanced to: "${approveData.request.stage}"`);
 
     // Test 6: Verify Request Appears in Packaging Queue for Workbench
     console.log('\n6️⃣ Querying Packaging Queue for Workbench (GET /api/intake/queue)...');

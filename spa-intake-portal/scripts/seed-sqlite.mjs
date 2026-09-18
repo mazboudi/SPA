@@ -300,7 +300,7 @@ function seedInitialRequests() {
       submittedAt: '2026-08-20T09:30:00.000Z',
       updatedAt: '2026-08-25T14:15:10.859Z',
       tasks: [
-        { id: 'TASK0010001', number: 'SCTASK0010001', name: 'Manager Approval', assignmentGroup: 'Management', state: 'Closed Complete', completedBy: 'Sarah Miller (Manager)', notes: 'Approved for developer workstation.' },
+        { id: 'TASK0010001', number: 'SCTASK0010001', name: 'Risk Review', assignmentGroup: 'Enterprise Risk', state: 'Closed Complete', completedBy: 'Alex Johnson (Risk Officer)', notes: 'Verified compliant against NIST NVD 2.0 & corporate risk policy.' },
         { id: 'TASK0010002', number: 'SCTASK0010002', name: 'SAM License Review', assignmentGroup: 'Software Asset Management', state: 'Closed Complete', completedBy: 'David Chen (SAM)', notes: 'Enterprise license entitlement confirmed.' },
         { id: 'TASK0010003', number: 'SCTASK0010003', name: 'Packaging Review & Execution', assignmentGroup: 'EUC Software Packaging Team', state: 'Open', claimedBy: 'Packaging Engineer', notes: 'Ready for packaging in SPA Workbench.' },
       ]
@@ -311,7 +311,6 @@ function seedInitialRequests() {
       shortDescription: 'Software Request: .NET SDK (dotnet) >=9.0.100',
       titleId: 'title_dotnet',
       titleName: '.NET SDK (dotnet)',
-      publisher: 'Microsoft',
       version: '>=9.0.100',
       platform: 'windows',
       category: 'Development',
@@ -331,7 +330,7 @@ function seedInitialRequests() {
       submittedAt: '2026-08-21T10:15:00.000Z',
       updatedAt: '2026-08-21T11:45:00.000Z',
       tasks: [
-        { id: 'TASK0010004', number: 'SCTASK0010004', name: 'Manager Approval', assignmentGroup: 'Management', state: 'Closed Complete', completedBy: 'Elena Rostova (Dev Lead)', notes: 'Approved for platform engineering.' },
+        { id: 'TASK0010004', number: 'SCTASK0010004', name: 'Risk Review', assignmentGroup: 'Enterprise Risk', state: 'Closed Complete', completedBy: 'Elena Rostova (Risk Lead)', notes: 'Approved for platform engineering.' },
         { id: 'TASK0010005', number: 'SCTASK0010005', name: 'Packaging Review & Execution', assignmentGroup: 'EUC Software Packaging Team', state: 'Open', notes: 'Surfaced in SPA Packaging Workbench queue.' },
       ]
     }

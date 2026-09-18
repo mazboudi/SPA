@@ -89,13 +89,13 @@ async function run() {
   const reqObj = newReqRes.body.request;
   console.log(`   ✅ Request Created: ${reqObj.number}, Stage = "${reqObj.stage}", Tasks = ${reqObj.tasks.length}`);
 
-  // Test 5: Approve Manager Task
-  console.log(`\n5️⃣ Testing Manager Task Approval for ${reqObj.number}...`);
-  const mgrTask = reqObj.tasks.find(t => t.name === 'Manager Approval');
-  const appTaskRes = await simulateRequest('PATCH', `/api/intake/tasks/${mgrTask.id}`, {
+  // Test 5: Approve Risk Review Task
+  console.log(`\n5️⃣ Testing Risk Review Task Approval for ${reqObj.number}...`);
+  const riskTask = reqObj.tasks.find(t => t.name.includes('Risk'));
+  const appTaskRes = await simulateRequest('PATCH', `/api/intake/tasks/${riskTask.id}`, {
     action: 'approve',
-    completedBy: 'Dev Lead (Manager)',
-    notes: 'Approved for developer workstation.',
+    completedBy: 'Alex Johnson (Risk Lead)',
+    notes: 'Approved for developer workstation against NIST NVD 2.0.',
   });
   if (appTaskRes.status !== 200) throw new Error('Task approval failed');
   console.log(`   ✅ Task Approved! Request advanced to Stage = "${appTaskRes.body.request.stage}"`);

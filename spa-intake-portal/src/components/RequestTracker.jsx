@@ -39,7 +39,7 @@ function getActiveStepIndex(stage, state) {
   switch (stage) {
     case 'governance_review':
     case 'license_review':
-    case 'manager_approval': return 1;
+    case 'risk_review': return 1;
     case 'packaging': return 2;
     case 'completed': return 3;
     default: return 0;

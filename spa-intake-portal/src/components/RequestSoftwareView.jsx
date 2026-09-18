@@ -44,7 +44,7 @@ function Section({ number, icon, title, action, children }) {
   );
 }
 
-export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) {
+export default function RequestSoftwareView({ onSubmitted, onNavigate, loggedInUser = {} }) {
   // Catalog state
   const [catalog, setCatalog] = useState([]);
   const [totalCount, setTotalCount] = useState(3436);
@@ -78,6 +78,11 @@ export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) 
     instructions: [],
   });
 
+  // Submission
+  const [submitting, setSubmitting] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [successData, setSuccessData] = useState(null);
+
   // Deployment state
   const [platform, setPlatform] = useState('windows');
   const [department, setDepartment] = useState('');
@@ -96,10 +101,6 @@ export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) 
   const [requestingForSelf, setRequestingForSelf] = useState(true);
   const [onBehalfName, setOnBehalfName] = useState('');
   const [onBehalfEmail, setOnBehalfEmail] = useState('');
-
-  // Submission
-  const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState(null);
 
   // Seed requester fields from the loggedInUser prop (provided by App.jsx)
   // Falls back to a direct whoami fetch if the prop hasn't loaded yet
@@ -285,11 +286,24 @@ export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) 
         return;
       }
 
-      setSuccessMsg(`Request ${data.request.number} submitted! Stage: ${data.request.stage.toUpperCase()}`);
+      const targetQueue = data.initialQueue || 'Enterprise Risk';
+      const submittedReq = data.request;
+
+      setSuccessData({
+        number: submittedReq.number,
+        id: submittedReq.id,
+        stage: submittedReq.stage,
+        queue: targetQueue,
+        title: submittedReq.titleName,
+        version: submittedReq.version,
+        hasRiskTask: data.hasRiskTask !== undefined ? data.hasRiskTask : true,
+        hasLicenseTask: data.hasLicenseTask !== undefined ? data.hasLicenseTask : false,
+      });
+
       setSelectedTitleId(''); setSelectedVersion(''); setIsNewVersionRequested(false); setCustomVersion('');
       setUnlistedTitleName(''); setUnlistedPublisher(''); setUnlistedVersion(''); setUnlistedDownloadUrl('');
       setBusinessJustification('');
-      if (onSubmitted) onSubmitted(data.request);
+      if (onSubmitted) onSubmitted(submittedReq, targetQueue);
     } catch (err) {
       alert('Error submitting request: ' + err.message);
     } finally {
@@ -306,11 +320,104 @@ export default function RequestSoftwareView({ onSubmitted, loggedInUser = {} }) 
         />
         <Divider />
         <CardContent sx={{ p: 3 }}>
-          {successMsg && (
-            <Alert severity="success" sx={{ mb: 3 }} icon={<CheckCircleIcon fontSize="inherit" />}>
-              <AlertTitle sx={{ fontWeight: 700 }}>Submission Successful</AlertTitle>
-              {successMsg}
-            </Alert>
+          {successData && (
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                mb: 3,
+                bgcolor: '#f0fdf4',
+                borderColor: '#86efac',
+                borderWidth: '1.5px',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                  <CheckCircleIcon sx={{ color: '#16a34a', fontSize: 30, mt: 0.25 }} />
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#166534' }}>
+                      Request {successData.number} Submitted Successfully!
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#15803d', mt: 0.5 }}>
+                      Software: <strong>{successData.title} (v{successData.version})</strong> has been routed directly to governance review:{' '}
+                      {successData.hasRiskTask && successData.hasLicenseTask ? (
+                        <>Active in both <strong>Enterprise Risk Queue</strong> (NIST 2.0 vetting) and <strong>Licensing / SAM Queue</strong> in parallel.</>
+                      ) : successData.hasRiskTask ? (
+                        <>Active in <strong>Enterprise Risk Queue</strong> for NIST 2.0 vulnerability & policy vetting.</>
+                      ) : (
+                        <>Active in <strong>Licensing / SAM Queue</strong> for software entitlement and seat allocation.</>
+                      )}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {successData.hasRiskTask && (
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      startIcon={<SecurityIcon />}
+                      onClick={() => {
+                        if (onNavigate) onNavigate('governance', 'Enterprise Risk');
+                        else if (onSubmitted) onSubmitted(successData, 'Enterprise Risk');
+                      }}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Open in Risk Queue →
+                    </Button>
+                  )}
+                  {successData.hasLicenseTask && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => {
+                        if (onNavigate) onNavigate('governance', 'Software Asset Management');
+                        else if (onSubmitted) onSubmitted(successData, 'Software Asset Management');
+                      }}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Open in SAM Queue →
+                    </Button>
+                  )}
+                  {!successData.hasRiskTask && !successData.hasLicenseTask && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => {
+                        if (onNavigate) onNavigate('governance', successData.queue);
+                        else if (onSubmitted) onSubmitted(successData, successData.queue);
+                      }}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Open in {successData.queue} Queue →
+                    </Button>
+                  )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      if (onNavigate) onNavigate('tracker');
+                      else if (onSubmitted) onSubmitted(successData);
+                    }}
+                    sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#ffffff' }}
+                  >
+                    Track in RITM Tree
+                  </Button>
+                  <Button
+                    variant="text"
+                    size="small"
+                    color="inherit"
+                    onClick={() => setSuccessData(null)}
+                    sx={{ textTransform: 'none', color: '#64748b' }}
+                  >
+                    Dismiss
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
           )}
 
           <form onSubmit={handleSubmit}>
