@@ -1,0 +1,7 @@
+{
+    "requestId": "@{triggerBody()?['requestId']}",
+    "decision": "@{body('Post_adaptive_card_and_wait_for_a_response')?['submitActionId']}",
+    "approverEmail": "@{body('Post_adaptive_card_and_wait_for_a_response')?['responder']?['email']}",
+    "comments": "@{body('Post_adaptive_card_and_wait_for_a_response')?['data']?['approverComments']}",
+    "respondedAt": "@{utcNow()}"
+}
