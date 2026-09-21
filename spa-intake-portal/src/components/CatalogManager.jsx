@@ -82,14 +82,16 @@ export default function CatalogManager() {
   const [catalog, setCatalog] = useState([]);
   const [categories, setCategories] = useState([]);
   const [dbStats, setDbStats] = useState({
-    totalTitles: 4660,
-    approvedTitles: 2534,
+    totalTitles: 4661,
+    approvedTitles: 2535,
     deniedTitles: 890,
     reviewRequiredTitles: 1236,
+    licensedTitles: 1466,
+    freeTitles: 3195,
     totalPackages: 3413,
     assignedPackages: 2369,
   });
-  const [totalInDatabase, setTotalInDatabase] = useState(4660);
+  const [totalInDatabase, setTotalInDatabase] = useState(4661);
   const [totalMatching, setTotalMatching] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -105,6 +107,7 @@ export default function CatalogManager() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [selectedDisposition, setSelectedDisposition] = useState('all');
+  const [selectedLicenseRequired, setSelectedLicenseRequired] = useState('all');
 
   // Model Dialog State
   const [openModelDialog, setOpenModelDialog] = useState(false);
@@ -173,14 +176,20 @@ export default function CatalogManager() {
   // 1. Fetch Categories & DB Stats
   const loadCategoriesAndStats = () => {
     fetch('/api/intake/catalog/categories')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.categories) setCategories(data.categories);
       })
       .catch(err => console.error('Failed to load categories', err));
 
     fetch('/api/intake/catalog/stats')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.stats) {
           setDbStats(data.stats);
@@ -198,11 +207,18 @@ export default function CatalogManager() {
     if (selectedCategory !== 'all') params.set('category', selectedCategory);
     if (selectedPlatform !== 'all') params.set('platform', selectedPlatform);
     if (selectedDisposition !== 'all') params.set('disposition', selectedDisposition);
+    if (selectedLicenseRequired !== 'all') params.set('licenseRequired', selectedLicenseRequired);
     params.set('limit', pageSize === 0 ? 'all' : String(pageSize));
     params.set('page', String(page));
 
     fetch(`/api/intake/catalog?${params.toString()}`)
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          throw new Error(`API Error ${res.status}${errText ? `: ${errText.slice(0, 100)}` : ''}`);
+        }
+        return res.json();
+      })
       .then(data => {
         const titles = data.titles || [];
         setCatalog(titles);
@@ -240,7 +256,7 @@ export default function CatalogManager() {
   // Reset page to 1 when filters or pageSize change
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, selectedPlatform, selectedDisposition, pageSize]);
+  }, [searchQuery, selectedCategory, selectedPlatform, selectedDisposition, selectedLicenseRequired, pageSize]);
 
   // Reload catalog on filter or page change (debounced for search query)
   useEffect(() => {
@@ -248,7 +264,7 @@ export default function CatalogManager() {
       loadCatalog();
     }, 200);
     return () => clearTimeout(handler);
-  }, [searchQuery, selectedCategory, selectedPlatform, selectedDisposition, page, pageSize]);
+  }, [searchQuery, selectedCategory, selectedPlatform, selectedDisposition, selectedLicenseRequired, page, pageSize]);
 
   // Reset Filters
   const handleClearFilters = () => {
@@ -256,6 +272,7 @@ export default function CatalogManager() {
     setSelectedCategory('all');
     setSelectedPlatform('all');
     setSelectedDisposition('all');
+    setSelectedLicenseRequired('all');
     setPage(1);
   };
 
@@ -506,11 +523,11 @@ export default function CatalogManager() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Inventory2 sx={{ color: 'primary.main', fontSize: 32 }} />
             <Typography variant="h1" sx={{ fontSize: '1.75rem', fontWeight: 800 }}>
-              Authoritative Software Catalog
+              Software Catalog
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Manage enterprise base software models, version governance policies, and concrete Intune deployment packages.
+            Manage enterprise software catalog, licensing status, version governance policies, and Intune deployment packages.
           </Typography>
         </Box>
 
@@ -536,7 +553,7 @@ export default function CatalogManager() {
         </Stack>
       </Box>
 
-      {/* ── Authoritative Database Metrics Bar ──────────────────────────────── */}
+      {/* ── Software Catalog Metrics Bar ──────────────────────────────── */}
       <Paper
         variant="outlined"
         sx={{
@@ -589,6 +606,15 @@ export default function CatalogManager() {
           </Box>
           <Divider orientation="vertical" flexItem />
           <Box>
+            <Typography variant="caption" sx={{ color: 'secondary.dark', textTransform: 'uppercase', fontWeight: 700 }}>
+              Licensed Titles
+            </Typography>
+            <Typography variant="h3" sx={{ fontWeight: 800, color: 'secondary.main' }}>
+              {(dbStats.licensedTitles ?? 1466).toLocaleString()}
+            </Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
             <Typography variant="caption" sx={{ color: 'info.dark', textTransform: 'uppercase', fontWeight: 700 }}>
               Intune Packages In DB
             </Typography>
@@ -598,7 +624,7 @@ export default function CatalogManager() {
           </Box>
         </Stack>
 
-        {(searchQuery || selectedCategory !== 'all' || selectedPlatform !== 'all' || selectedDisposition !== 'all') && (
+        {(searchQuery || selectedCategory !== 'all' || selectedPlatform !== 'all' || selectedDisposition !== 'all' || selectedLicenseRequired !== 'all') && (
           <Button
             size="small"
             variant="text"
@@ -615,7 +641,7 @@ export default function CatalogManager() {
       {/* ── Search, Filters & Pagination Controls ────────────────────────────── */}
       <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2, backgroundColor: '#ffffff' }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3.5}>
+          <Grid item xs={12} md={3}>
             <TextField
               size="small"
               fullWidth
@@ -639,7 +665,7 @@ export default function CatalogManager() {
             />
           </Grid>
 
-          <Grid item xs={12} sm={4} md={2.5}>
+          <Grid item xs={12} sm={4} md={2}>
             <FormControl size="small" fullWidth>
               <InputLabel id="category-filter-label">Category</InputLabel>
               <Select
@@ -652,22 +678,6 @@ export default function CatalogManager() {
                 {categories.map(c => (
                   <MenuItem key={c} value={c}>{c}</MenuItem>
                 ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={6} sm={4} md={2}>
-            <FormControl size="small" fullWidth>
-              <InputLabel id="platform-filter-label">Platform</InputLabel>
-              <Select
-                labelId="platform-filter-label"
-                value={selectedPlatform}
-                label="Platform"
-                onChange={e => setSelectedPlatform(e.target.value)}
-              >
-                <MenuItem value="all">All Platforms</MenuItem>
-                <MenuItem value="windows">Windows</MenuItem>
-                <MenuItem value="macos">macOS</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -689,7 +699,39 @@ export default function CatalogManager() {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={2}>
+          <Grid item xs={6} sm={4} md={2}>
+            <FormControl size="small" fullWidth>
+              <InputLabel id="license-filter-label">License Required</InputLabel>
+              <Select
+                labelId="license-filter-label"
+                value={selectedLicenseRequired}
+                label="License Required"
+                onChange={e => setSelectedLicenseRequired(e.target.value)}
+              >
+                <MenuItem value="all">All Licenses</MenuItem>
+                <MenuItem value="Yes">License Required ({dbStats.licensedTitles?.toLocaleString() || '1,466'})</MenuItem>
+                <MenuItem value="No">No License Required ({dbStats.freeTitles?.toLocaleString() || '3,195'})</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={6} sm={4} md={1.5}>
+            <FormControl size="small" fullWidth>
+              <InputLabel id="platform-filter-label">Platform</InputLabel>
+              <Select
+                labelId="platform-filter-label"
+                value={selectedPlatform}
+                label="Platform"
+                onChange={e => setSelectedPlatform(e.target.value)}
+              >
+                <MenuItem value="all">All Platforms</MenuItem>
+                <MenuItem value="windows">Windows</MenuItem>
+                <MenuItem value="macos">macOS</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={6} sm={4} md={1.5}>
             <FormControl size="small" fullWidth>
               <InputLabel id="pagesize-label">Show Per Page</InputLabel>
               <Select
@@ -775,6 +817,8 @@ export default function CatalogManager() {
                         }}
                       >
                         <ListItemText
+                          primaryTypographyProps={{ component: 'div' }}
+                          secondaryTypographyProps={{ component: 'div' }}
                           primary={
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', pr: 1 }}>
@@ -822,6 +866,15 @@ export default function CatalogManager() {
                                     color="info"
                                     variant="outlined"
                                     sx={{ height: 18, fontSize: '0.62rem' }}
+                                  />
+                                )}
+                                {t.licenseRequired === 'Yes' && (
+                                  <Chip
+                                    label="Licensed"
+                                    size="small"
+                                    color="secondary"
+                                    variant="outlined"
+                                    sx={{ height: 18, fontSize: '0.62rem', fontWeight: 600 }}
                                   />
                                 )}
                               </Stack>
@@ -1360,7 +1413,7 @@ export default function CatalogManager() {
       {/* ── Dialog: Register or Edit Software Model ──────────────────────────── */}
       <Dialog open={openModelDialog} onClose={() => setOpenModelDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>
-          {isEditingModel ? `Edit Software Model: ${modelForm.displayName}` : 'Register New Authoritative Model'}
+          {isEditingModel ? `Edit Software Model: ${modelForm.displayName}` : 'Register New Software Model'}
         </DialogTitle>
         <form onSubmit={handleSaveModel}>
           <DialogContent dividers>

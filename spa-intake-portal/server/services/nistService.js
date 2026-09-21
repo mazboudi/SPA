@@ -93,18 +93,20 @@ async function queryNistApi(params = {}) {
 /**
  * Evaluate NIST Security Risk and 12-point criteria for a given software title
  */
-export async function evaluateNistRisk(titleName, version = '', forceRefresh = false) {
+export async function evaluateNistRisk(titleName, version = '', forceRefresh = false, customKeyword = null) {
   if (!titleName || typeof titleName !== 'string') {
     throw new Error('titleName is required for NIST risk evaluation');
   }
 
-  // Check cache first
-  if (!forceRefresh) {
+  // Check cache first (only if no custom search keyword override)
+  if (!forceRefresh && !customKeyword) {
     const cached = getCachedNistRisk(titleName, version);
     if (cached) return cached;
   }
 
-  const keyword = cleanSearchKeyword(titleName) || titleName.trim();
+  const keyword = (customKeyword && typeof customKeyword === 'string')
+    ? customKeyword.trim()
+    : (cleanSearchKeyword(titleName) || titleName.trim());
   const violations = [];
   let maxCvss = 0;
   let highestSeverity = 'CLEAN';
@@ -223,6 +225,8 @@ export async function evaluateNistRisk(titleName, version = '', forceRefresh = f
   const evalResult = {
     titleName,
     version,
+    searchKeyword: keyword,
+    isMatched: totalCves > 0,
     riskScore: maxCvss,
     riskLevel,
     maxCvss,
@@ -230,11 +234,14 @@ export async function evaluateNistRisk(titleName, version = '', forceRefresh = f
     totalCves,
     cves: topCves.slice(0, 10),
     violations,
+    nvdSearchUrl: `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${encodeURIComponent(keyword || titleName)}`,
     fetchedAt: new Date().toISOString(),
   };
 
-  // Save to SQLite cache
-  saveNistRisk(evalResult);
+  // Save to SQLite cache if standard title evaluation
+  if (!customKeyword) {
+    saveNistRisk(evalResult);
+  }
 
   return evalResult;
 }

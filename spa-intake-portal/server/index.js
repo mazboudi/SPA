@@ -119,12 +119,12 @@ app.get('/api/intake/whoami', (req, res) => {
 // GET /api/intake/catalog — search and list software titles & versions with pagination
 app.get('/api/intake/catalog', (req, res) => {
   try {
-    const { search, limit, page, category, platform, disposition } = req.query;
+    const { search, limit, page, category, platform, disposition, licenseRequired } = req.query;
     const pageNum = page ? Math.max(1, parseInt(page, 10)) : 1;
     const pageSize = limit === 'all' ? 'all' : (limit ? parseInt(limit, 10) : 250);
     const offset = pageSize === 'all' ? 0 : (pageNum - 1) * pageSize;
 
-    const titles = searchCatalog(search || '', pageSize, { category, platform, disposition }, offset);
+    const titles = searchCatalog(search || '', pageSize, { category, platform, disposition, licenseRequired }, offset);
     const totalCount = getCatalogCount();
     const totalMatching = titles.totalMatching ?? titles.length;
     const totalPages = pageSize === 'all' || pageSize <= 0 ? 1 : Math.ceil(totalMatching / pageSize);
@@ -710,12 +710,14 @@ app.delete('/api/intake/requests/:id', (req, res) => {
 // GET /api/intake/security/nist-risk — evaluate NIST NVD 2.0 vulnerability metrics & risk score
 app.get('/api/intake/security/nist-risk', async (req, res) => {
   try {
-    const { title, version, refresh } = req.query;
-    if (!title) {
-      return res.status(400).json({ error: 'Title parameter is required' });
+    const { title, query, keyword, version, refresh } = req.query;
+    const searchTerm = query || keyword || title;
+    if (!searchTerm) {
+      return res.status(400).json({ error: 'Title, query, or keyword parameter is required' });
     }
     const forceRefresh = refresh === 'true' || refresh === '1';
-    const riskData = await evaluateNistRisk(title, version || '', forceRefresh);
+    const customSearchKeyword = (query || keyword) ? searchTerm : null;
+    const riskData = await evaluateNistRisk(title || searchTerm, version || '', forceRefresh, customSearchKeyword);
     res.json({ risk: riskData });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -206,6 +206,11 @@ export function searchCatalog(query = '', limit = 250, filters = {}, offset = 0)
     params.push(filters.disposition);
   }
 
+  if (filters.licenseRequired && filters.licenseRequired !== 'all') {
+    conditions.push('licenseRequired = ?');
+    params.push(filters.licenseRequired);
+  }
+
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   // Calculate total matching records before pagination
@@ -290,6 +295,8 @@ export function getCatalogStats() {
   const approved = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE defaultDisposition = 'Approved'").get().count;
   const denied = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE defaultDisposition = 'Denied'").get().count;
   const review = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE defaultDisposition = 'Review Required'").get().count;
+  const licensed = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE licenseRequired = 'Yes'").get().count;
+  const free = db.prepare("SELECT COUNT(*) as count FROM software_titles WHERE licenseRequired = 'No'").get().count;
   const packages = db.prepare('SELECT COUNT(*) as count FROM software_packages').get().count;
   const assigned = db.prepare('SELECT COUNT(*) as count FROM software_packages WHERE isAssigned = 1').get().count;
 
@@ -298,6 +305,8 @@ export function getCatalogStats() {
     approvedTitles: approved,
     deniedTitles: denied,
     reviewRequiredTitles: review,
+    licensedTitles: licensed,
+    freeTitles: free,
     totalPackages: packages,
     assignedPackages: assigned,
   };

@@ -15,7 +15,7 @@ const SECTION_TITLES = {
   request: 'Software Request',
   governance: 'Governance Review Center',
   tracker: 'Request Tracker (RITMs)',
-  catalog: 'Authoritative Software Catalog',
+  catalog: 'Software Catalog',
 };
 
 class ErrorBoundary extends React.Component {

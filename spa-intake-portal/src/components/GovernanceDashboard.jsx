@@ -42,6 +42,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import SearchIcon from '@mui/icons-material/Search';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 // ── 12 Policy Criteria from todo.txt ─────────────────────────────────────────
 const POLICY_CRITERIA_DEFINITIONS = [
@@ -125,16 +127,20 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
   const [loading, setLoading] = useState(!preloadedSummary);
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState(null);
+  const [keywordInput, setKeywordInput] = useState(preloadedSummary?.searchKeyword || titleName);
+  const [showRefine, setShowRefine] = useState(false);
 
-  const fetchNist = (refresh = false) => {
+  const fetchNist = (refresh = false, customTerm = null) => {
     setLoading(true);
     setError(null);
-    const url = `/api/intake/security/nist-risk?title=${encodeURIComponent(titleName)}&version=${encodeURIComponent(version)}${refresh ? '&refresh=true' : ''}`;
+    const term = customTerm !== null ? customTerm : (keywordInput || titleName);
+    const url = `/api/intake/security/nist-risk?title=${encodeURIComponent(titleName)}&query=${encodeURIComponent(term)}&version=${encodeURIComponent(version)}${refresh ? '&refresh=true' : ''}`;
     fetch(url)
       .then(res => res.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
         setNistData(data.risk);
+        if (data.risk?.searchKeyword) setKeywordInput(data.risk.searchKeyword);
         setLoading(false);
       })
       .catch(err => {
@@ -154,7 +160,7 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
       <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <CircularProgress size={20} />
         <Typography variant="body2" sx={{ color: '#64748b' }}>
-          Querying live NIST NVD 2.0 vulnerability metrics for <strong>{titleName}</strong>...
+          Querying live NIST NVD 2.0 vulnerability metrics for <strong>{keywordInput || titleName}</strong>...
         </Typography>
       </Paper>
     );
@@ -163,13 +169,26 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
   if (error) {
     return (
       <Paper variant="outlined" sx={{ p: 2, bgcolor: '#fef2f2', borderColor: '#fecaca', borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
           <Typography variant="body2" sx={{ color: '#991b1b' }}>
             ⚠️ NIST NVD query: {error}
           </Typography>
-          <Button size="small" onClick={() => fetchNist(true)} sx={{ textTransform: 'none' }}>
-            Retry NIST
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" onClick={() => fetchNist(true)} sx={{ textTransform: 'none' }}>
+              Retry NIST
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              endIcon={<OpenInNewIcon sx={{ fontSize: 13 }} />}
+              href={`https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${encodeURIComponent(keywordInput || titleName)}`}
+              target="_blank"
+              rel="noreferrer"
+              sx={{ textTransform: 'none' }}
+            >
+              Search NIST.gov ↗
+            </Button>
+          </Box>
         </Box>
       </Paper>
     );
@@ -182,6 +201,8 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
   const totalCves = nistData.totalCves || 0;
   const riskLevel = nistData.riskLevel || 'CLEAN';
   const cves = nistData.cves || [];
+  const currentSearchKeyword = nistData.searchKeyword || keywordInput || titleName;
+  const nvdSiteUrl = nistData.nvdSearchUrl || `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${encodeURIComponent(currentSearchKeyword)}`;
 
   const getRiskColor = (lvl) => {
     switch (lvl) {
@@ -211,12 +232,17 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ShieldIcon sx={{ fontSize: 22, color: colors.text }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.text }}>
-            NIST NVD 2.0 Security Scorecard: {titleName}
-          </Typography>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.text }}>
+              NIST NVD 2.0 Security Scorecard: {titleName}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#64748b' }}>
+              NIST Keyword: <strong>"{currentSearchKeyword}"</strong>
+            </Typography>
+          </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Chip
             label={`NIST Risk: ${riskLevel}`}
             size="small"
@@ -231,6 +257,26 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
           <Button
             size="small"
             variant="outlined"
+            startIcon={<SearchIcon sx={{ fontSize: 14 }} />}
+            onClick={() => setShowRefine(!showRefine)}
+            sx={{ textTransform: 'none', height: 24, fontSize: '0.725rem', bgcolor: '#ffffff' }}
+          >
+            {showRefine ? 'Close Search' : 'Refine Keyword'}
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
+            href={nvdSiteUrl}
+            target="_blank"
+            rel="noreferrer"
+            sx={{ textTransform: 'none', height: 24, fontSize: '0.725rem', bgcolor: '#ffffff', color: '#1e40af' }}
+          >
+            Search NIST.gov ↗
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
             startIcon={<RefreshIcon sx={{ fontSize: 14 }} />}
             onClick={() => fetchNist(true)}
             sx={{ textTransform: 'none', height: 24, fontSize: '0.725rem', bgcolor: '#ffffff' }}
@@ -239,6 +285,79 @@ function NistRiskScoreCard({ titleName, version = '', preloadedSummary = null })
           </Button>
         </Box>
       </Box>
+
+      {/* Interactive Keyword Refinement & Custom NIST Search Toolbar */}
+      {showRefine && (
+        <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, bgcolor: '#ffffff', borderRadius: 1.5, border: '1px solid #cbd5e1' }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: '#334155', display: 'block', mb: 0.75 }}>
+            🔍 Refine NIST Keyword Search (e.g. search official vendor, product, or package name if not matched):
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
+              placeholder="e.g. Wireshark, Docker, PostgreSQL, Terraform"
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') fetchNist(true, keywordInput); }}
+              sx={{ flexGrow: 1, minWidth: 220 }}
+            />
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              startIcon={<SearchIcon />}
+              onClick={() => fetchNist(true, keywordInput)}
+              disabled={!keywordInput.trim()}
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              Re-query NIST NVD
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              endIcon={<OpenInNewIcon sx={{ fontSize: 13 }} />}
+              href={`https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${encodeURIComponent(keywordInput || titleName)}`}
+              target="_blank"
+              rel="noreferrer"
+              sx={{ textTransform: 'none' }}
+            >
+              Open on NIST.gov Site ↗
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
+      {/* What happens if NOT matched on NIST (totalCves === 0) Notice */}
+      {totalCves === 0 && (
+        <Alert severity="info" sx={{ mb: 1.5, py: 0.5, borderRadius: 1.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, width: '100%' }}>
+            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+              <strong>No CVEs Matched on NIST:</strong> Zero recorded vulnerabilities returned for keyword <em>"{currentSearchKeyword}"</em>. The title may have zero vulnerabilities, or it may be listed under an alternative vendor/product naming convention on NIST.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => setShowRefine(true)}
+                sx={{ textTransform: 'none', fontWeight: 600, p: 0, fontSize: '0.75rem' }}
+              >
+                Refine Search Keyword
+              </Button>
+              <Button
+                size="small"
+                variant="text"
+                endIcon={<OpenInNewIcon sx={{ fontSize: 11 }} />}
+                href={nvdSiteUrl}
+                target="_blank"
+                rel="noreferrer"
+                sx={{ textTransform: 'none', fontWeight: 600, p: 0, fontSize: '0.75rem', ml: 1 }}
+              >
+                Verify on NIST.gov ↗
+              </Button>
+            </Box>
+          </Box>
+        </Alert>
+      )}
 
       {/* Metric Tiles */}
       <Grid container spacing={1.5} sx={{ mb: 1 }}>
@@ -791,20 +910,43 @@ export default function GovernanceDashboard({ onTaskUpdated, initialQueue = 'all
           {/* NIST Live Telemetry Banner inside Risk Dialog */}
           {actionDialog.isRiskTask && actionDialog.nistEvaluation && (
             <Paper variant="outlined" sx={{ p: 2, mb: 2.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0f172a' }}>
-                  NIST NVD 2.0 Security Scorecard Telemetry
-                </Typography>
-                <Chip
-                  label={`Max CVSS: ${(actionDialog.nistEvaluation.maxCvss || 0).toFixed(1)} / 10.0`}
-                  size="small"
-                  color={(actionDialog.nistEvaluation.maxCvss || 0) >= 7.0 ? 'error' : 'success'}
-                  sx={{ fontWeight: 700 }}
-                />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                    NIST NVD 2.0 Security Scorecard Telemetry
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    Evaluated Keyword: <strong>"{actionDialog.nistEvaluation.searchKeyword || actionDialog.softwareTitle}"</strong>
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip
+                    label={`Max CVSS: ${(actionDialog.nistEvaluation.maxCvss || 0).toFixed(1)} / 10.0`}
+                    size="small"
+                    color={(actionDialog.nistEvaluation.maxCvss || 0) >= 7.0 ? 'error' : 'success'}
+                    sx={{ fontWeight: 700 }}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
+                    href={actionDialog.nistEvaluation.nvdSearchUrl || `https://nvd.nist.gov/vuln/search/results?form_type=Basic&results_type=overview&query=${encodeURIComponent(actionDialog.nistEvaluation.searchKeyword || actionDialog.softwareTitle)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    sx={{ textTransform: 'none', height: 24, fontSize: '0.725rem', bgcolor: '#ffffff' }}
+                  >
+                    Search NIST.gov ↗
+                  </Button>
+                </Box>
               </Box>
               <Typography variant="body2" sx={{ color: '#475569' }}>
                 Total Vulnerabilities: <strong>{actionDialog.nistEvaluation.totalCves || 0}</strong> • 30–60d Trending CVEs: <strong>{actionDialog.nistEvaluation.trendingCount || 0}</strong> • NIST Tier: <strong>{actionDialog.nistEvaluation.riskLevel}</strong>
               </Typography>
+              {actionDialog.nistEvaluation.totalCves === 0 && (
+                <Alert severity="info" sx={{ mt: 1.25, py: 0.25, borderRadius: 1.5, fontSize: '0.75rem' }}>
+                  No CVE records found on NIST for this keyword. Reviewer should verify spelling or check alternative vendor/package nomenclature on NIST.gov.
+                </Alert>
+              )}
             </Paper>
           )}
 

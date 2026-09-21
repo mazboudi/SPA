@@ -1,0 +1,17 @@
+{
+    "type": "object",
+    "properties": {
+        "requestId": {
+            "type": "string"
+        },
+        "requesterEmail": {
+            "type": "string"
+        },
+        "title": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
+        }
+    }
+}

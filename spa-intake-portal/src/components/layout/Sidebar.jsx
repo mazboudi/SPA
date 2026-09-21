@@ -35,7 +35,7 @@ const NAV_ITEMS = [
   {
     id: 'catalog',
     label: 'Software Catalog',
-    subtitle: 'Authoritative models',
+    subtitle: 'Software models',
     icon: <MenuBookOutlinedIcon sx={{ fontSize: 20 }} />,
   },
 ];

@@ -70,6 +70,7 @@ export default function RequestSoftwareView({ onSubmitted, onNavigate, loggedInU
   const [unlistedLicenseRequired, setUnlistedLicenseRequired] = useState('No');
   const [unlistedDownloadUrl, setUnlistedDownloadUrl] = useState('');
 
+
   // Company Portal referral modal (Use Case 1)
   const [companyPortalModal, setCompanyPortalModal] = useState({
     open: false,
