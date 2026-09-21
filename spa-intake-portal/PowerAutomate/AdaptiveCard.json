@@ -1,0 +1,59 @@
+{
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "type": "AdaptiveCard",
+    "version": "1.4",
+    "body": [
+        {
+            "type": "TextBlock",
+            "text": "Approval Request",
+            "weight": "Bolder",
+            "size": "Large"
+        },
+        {
+            "type": "FactSet",
+            "facts": [
+                {
+                    "title": "Request ID:",
+                    "value": "@{triggerBody()?['requestId']}"
+                },
+                {
+                    "title": "Requester:",
+                    "value": "@{triggerBody()?['requesterEmail']}"
+                },
+                {
+                    "title": "Title:",
+                    "value": "@{triggerBody()?['title']}"
+                }
+            ]
+        },
+        {
+            "type": "TextBlock",
+            "text": "@{triggerBody()?['description']}",
+            "wrap": true
+        },
+        {
+            "type": "Input.Text",
+            "id": "approverComments",
+            "placeholder": "Add optional comments here...",
+            "isMultiline": true
+        }
+    ],
+    "actions": [
+        {
+            "type": "Action.Submit",
+            "title": "Approve",
+            "style": "positive",
+            "data": {
+                "decision": "Approved"
+            }
+        },
+        {
+            "type": "Action.Submit",
+            "title": "Reject",
+            "style": "destructive",
+            "data": {
+                "decision": "Rejected"
+            }
+        }
+    ]
+}
