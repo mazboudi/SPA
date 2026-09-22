@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: spa-title-wizard
+  name: spa-workbench
   namespace: spahost-dev-app
   labels:
-    app: spa-title-wizard
-    app.kubernetes.io/name: spa-title-wizard
+    app: spa-workbench
+    app.kubernetes.io/name: spa-workbench
     app.kubernetes.io/part-of: software-delivery-automation
 spec:
   replicas: 1
@@ -16,11 +16,11 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: spa-title-wizard
+      app: spa-workbench
   template:
     metadata:
       labels:
-        app: spa-title-wizard
+        app: spa-workbench
     spec:
       serviceAccountName: spahost-dev-app-sa-admin
       imagePullSecrets:
@@ -28,8 +28,8 @@ spec:
       securityContext:
         runAsNonRoot: true
       containers:
-        - name: spa-title-wizard
-          image: fmk.nexus-dev.onefiserv.net/apm/0012867/spa-title-wizard:__IMAGE_TAG__
+        - name: spa-workbench
+          image: fmk.nexus-dev.onefiserv.net/apm/0012867/spa-workbench:__IMAGE_TAG__
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -37,24 +37,24 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: spa-title-wizard-config
+                name: spa-workbench-config
           env:
             - name: GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: spa-title-wizard-secrets
+                  name: spa-workbench-secrets
                   key: GITLAB_TOKEN
                   optional: true
             - name: AZURE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: spa-title-wizard-secrets
+                  name: spa-workbench-secrets
                   key: AZURE_CLIENT_SECRET
                   optional: true
             - name: JAMF_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: spa-title-wizard-secrets
+                  name: spa-workbench-secrets
                   key: JAMF_CLIENT_SECRET
                   optional: true
           resources:

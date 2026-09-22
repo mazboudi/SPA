@@ -1,16 +1,16 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: spa-title-wizard
+  name: spa-workbench
   namespace: spahost-dev-app
   labels:
-    app: spa-title-wizard
-    app.kubernetes.io/name: spa-title-wizard
+    app: spa-workbench
+    app.kubernetes.io/name: spa-workbench
     app.kubernetes.io/part-of: software-delivery-automation
 spec:
   to:
     kind: Service
-    name: spa-title-wizard
+    name: spa-workbench
     weight: 100
   port:
     targetPort: http

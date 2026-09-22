@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: spa-title-wizard-config
+  name: spa-workbench-config
   namespace: spahost-dev-app
   labels:
-    app: spa-title-wizard
-    app.kubernetes.io/name: spa-title-wizard
+    app: spa-workbench
+    app.kubernetes.io/name: spa-workbench
     app.kubernetes.io/part-of: software-delivery-automation
 data:
   NODE_ENV: "production"
