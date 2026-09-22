@@ -9,28 +9,29 @@ Using Kubernetes executor with image docker:24 ...
 Using attach strategy to execute scripts...
 Preparing environment
 00:13
-Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gdwzh5fz to be running, status is Pending
-Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gdwzh5fz to be running, status is Pending
+Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gtjcyxus to be running, status is Pending
+Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gtjcyxus to be running, status is Pending
 	ContainersNotReady: "containers with unready status: [build helper svc-0]"
 	ContainersNotReady: "containers with unready status: [build helper svc-0]"
-Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gdwzh5fz to be running, status is Pending
+Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gtjcyxus to be running, status is Pending
 	ContainersNotReady: "containers with unready status: [build helper svc-0]"
 	ContainersNotReady: "containers with unready status: [build helper svc-0]"
-Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gdwzh5fz to be running, status is Pending
+Waiting for pod gitlab-prod/runner-rsnpxjr-project-102749-concurrent-0-gtjcyxus to be running, status is Pending
 	ContainersNotReady: "containers with unready status: [build helper svc-0]"
 	ContainersNotReady: "containers with unready status: [build helper svc-0]"
-Running on runner-rsnpxjr-project-102749-concurrent-0-gdwzh5fz via gitlab-runner-generic-20-16-3-3-78f4c4f794-8phvn...
+Running on runner-rsnpxjr-project-102749-concurrent-0-gtjcyxus via gitlab-runner-generic-20-16-3-3-78f4c4f794-8phvn...
 Getting source from Git repository
 00:01
 Fetching changes with git depth set to 20...
 Initialized empty Git repository in /builds/na/corp/technology-services/software-delivery-automation/spa-frameworks/spa-workbench/.git/
 Created fresh repository.
-Checking out f549883a as detached HEAD (ref is main)...
+Checking out 3a2be421 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Executing "step_script" stage of the job script
 00:00
-$ echo "$NEXUS_PASSWORD" | docker login -u wvc-ap0012867-cinx-d --password-stdin https://fmk.nexus-ci.onefiserv.net
-Error: Cannot perform an interactive login from a non TTY device
+$ NEXUS_PASS="${NEXUS_PASSWORD}" # collapsed multi-line command
+time="2026-09-22T21:37:09Z" level=info msg="Error logging in to endpoint, trying next endpoint" error="Get \"https://fmk.nexus-ci.onefiserv.netapm/v2/\": dial tcp: lookup fmk.nexus-ci.onefiserv.netapm on 172.20.0.10:53: no such host"
+Get "https://fmk.nexus-ci.onefiserv.netapm/v2/": dial tcp: lookup fmk.nexus-ci.onefiserv.netapm on 172.20.0.10:53: no such host
 Cleaning up project directory and file based variables
 00:01
 ERROR: Job failed: command terminated with exit code 1
