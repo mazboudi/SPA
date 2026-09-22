@@ -34,12 +34,8 @@ build_and_push:
     DOCKER_HOST: "tcp://docker:2375"
   before_script:
     - |
-      NEXUS_PASS="${NEXUS_PASSWORD}"
-      if [ -z "$NEXUS_PASS" ]; then
-        echo "NEXUS_PASSWORD not set in GitLab CI variables; using fallback credential."
-        NEXUS_PASS="8smhJMB@.aqit4HZ4#Jl3CZ\$Z1CVsTT"
-      fi
-      printf "%s" "$NEXUS_PASS" | docker login -u "${NEXUS_USER:-wvc-ap0012867-cinx-d}" --password-stdin https://fmk.nexus-ci.onefiserv.net
+      NEXUS_PASS="${NEXUS_PASSWORD:-8smhJMB@.aqit4HZ4#Jl3CZ\$Z1CVsTT}"
+      printf "%s" "$NEXUS_PASS" | docker login -u "${NEXUS_USER:-wvc-ap0012867-cinx-d}" --password-stdin fmk.nexus-ci.onefiserv.net
   script:
     - BUILD_DIR="."
     - if [ -d "spa-title-wizard" ]; then BUILD_DIR="spa-title-wizard"; fi
