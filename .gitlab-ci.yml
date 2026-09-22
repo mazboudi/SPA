@@ -27,19 +27,22 @@ test:
 # ── Stage 2: Container Build & Push to Nexus ──────────────────────────────────
 build_and_push:
   stage: build-and-push
-  image: docker:24-dind
+  image: docker:24
   services:
     - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: "tcp://docker:2375"
   before_script:
     - echo "$NEXUS_PASSWORD" | docker login -u wvc-ap0012867-cinx-d --password-stdin https://fmk.nexus-ci.onefiserv.net
   script:
-    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest spa-title-wizard/
-    - docker push $IMAGE_NAME:$IMAGE_TAG
-    - docker push $IMAGE_NAME:latest
+    - docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "$IMAGE_NAME:latest" spa-title-wizard/
+    - docker push "$IMAGE_NAME:$IMAGE_TAG"
+    - docker push "$IMAGE_NAME:latest"
     - echo "=========================================================="
-    - echo "SUCCESS: Image published to Nexus!"
-    - echo "Registry: https://fmk.nexus-dev.onefiserv.net/apm/0012867/spa-title-wizard"
-    - echo "Tag for Harness CD deployment: $IMAGE_TAG"
+    - echo "SUCCESS - Image published to Nexus!"
+    - echo "Registry - https://fmk.nexus-dev.onefiserv.net/apm/0012867/spa-title-wizard"
+    - echo "Tag for Harness CD deployment - $IMAGE_TAG"
     - echo "=========================================================="
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
