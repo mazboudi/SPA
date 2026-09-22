@@ -1,0 +1,45 @@
+# GitLab CI Pipeline for Software Delivery Automation (APM0012867)
+# Repository: https://gitlab.onefiserv.net/na/corp/technology-services/software-delivery-automation/spa-frameworks/spa-workbench
+# Target Registry: Nexus (fmk.nexus-ci.onefiserv.net)
+
+stages:
+  - test
+  - build-and-push
+
+variables:
+  DOCKER_REGISTRY_PUSH: "fmk.nexus-ci.onefiserv.net/apm/0012867"
+  IMAGE_NAME: "$DOCKER_REGISTRY_PUSH/spa-title-wizard"
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+
+# ── Stage 1: Lint & Unit Tests ────────────────────────────────────────────────
+test:
+  stage: test
+  image: node:22-alpine
+  script:
+    - cd spa-title-wizard
+    - npm ci
+    - npm run lint
+    - npm test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ── Stage 2: Container Build & Push to Nexus ──────────────────────────────────
+build_and_push:
+  stage: build-and-push
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$NEXUS_PASSWORD" | docker login -u wvc-ap0012867-cinx-d --password-stdin https://fmk.nexus-ci.onefiserv.net
+  script:
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest spa-title-wizard/
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:latest
+    - echo "=========================================================="
+    - echo "SUCCESS: Image published to Nexus!"
+    - echo "Registry: https://fmk.nexus-dev.onefiserv.net/apm/0012867/spa-title-wizard"
+    - echo "Tag for Harness CD deployment: $IMAGE_TAG"
+    - echo "=========================================================="
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

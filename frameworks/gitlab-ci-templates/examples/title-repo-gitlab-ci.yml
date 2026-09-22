@@ -1,5 +1,5 @@
 include:
-  - project: 'software-packaging/frameworks/gitlab-ci-templates'
+  - project: 'na/corp/technology-services/software-delivery-automation/spa-frameworks/gitlab-ci-templates'
     file:
       - '/templates/metadata-validate.yml'
       - '/templates/windows-build.yml'

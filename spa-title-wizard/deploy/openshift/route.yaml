@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: spa-title-wizard
+  namespace: spahost-dev-app
+  labels:
+    app: spa-title-wizard
+    app.kubernetes.io/name: spa-title-wizard
+    app.kubernetes.io/part-of: software-delivery-automation
+spec:
+  to:
+    kind: Service
+    name: spa-title-wizard
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

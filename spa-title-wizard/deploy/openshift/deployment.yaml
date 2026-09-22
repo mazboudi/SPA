@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spa-title-wizard
+  namespace: spahost-dev-app
+  labels:
+    app: spa-title-wizard
+    app.kubernetes.io/name: spa-title-wizard
+    app.kubernetes.io/part-of: software-delivery-automation
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: spa-title-wizard
+  template:
+    metadata:
+      labels:
+        app: spa-title-wizard
+    spec:
+      serviceAccountName: spahost-dev-app-sa-admin
+      imagePullSecrets:
+        - name: nexus-pull-secret
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: spa-title-wizard
+          image: fmk.nexus-dev.onefiserv.net/apm/0012867/spa-title-wizard:__IMAGE_TAG__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: spa-title-wizard-config
+          env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: spa-title-wizard-secrets
+                  key: GITLAB_TOKEN
+                  optional: true
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: spa-title-wizard-secrets
+                  key: AZURE_CLIENT_SECRET
+                  optional: true
+            - name: JAMF_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: spa-title-wizard-secrets
+                  key: JAMF_CLIENT_SECRET
+                  optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spa-title-wizard-config
+  namespace: spahost-dev-app
+  labels:
+    app: spa-title-wizard
+    app.kubernetes.io/name: spa-title-wizard
+    app.kubernetes.io/part-of: software-delivery-automation
+data:
+  NODE_ENV: "production"
+  PORT: "8080"
+  GITLAB_URL: "https://gitlab.onefiserv.net"
+  GITLAB_DEFAULT_GROUP: "na/corp/technology-services/software-delivery-automation"
+  GITLAB_WIN_GROUP: "na/corp/technology-services/software-delivery-automation/win"
+  GITLAB_MAC_GROUP: "na/corp/technology-services/software-delivery-automation/mac"
+  GITLAB_CI_TEMPLATES_PROJECT: "na/corp/technology-services/software-delivery-automation/spa-frameworks/gitlab-ci-templates"
+  AZURE_TENANT_ID: ""
+  AZURE_CLIENT_ID: ""
+  JAMF_INSTANCE_URL: ""
+  JAMF_CLIENT_ID: ""
