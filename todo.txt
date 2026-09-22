@@ -1,16 +1,265 @@
-#NIST API
-APIKEY=193AB9A0-0264-47CD-84C9-A22707636662
-https://services.nvd.nist.gov/rest/json/cves/2.0
 
-o	Must not be associated with vulnerability with a NVD CVSS v3.x security score of >=7.0.
-o	Must not have trending ≥ medium scored vulnerabilities over a span of 30-60 days.
-o	Must not be server software. Server software is server software even if compatible and vendor supported on a workstation.
-o	Must be in vendor support.
-o	Must not be trial or evaluation software.
-o	There mustn't be an existing approved alternative.
-o	Install path must be C:\Program Files, C:\Program Files (x86) or an existing actively managed location approved by EUC.
-o	Must have Security Architecture SVP approval if there is an externally hosted cloud element.
-o	There mustn't be a disallowed prerequisite.
-o	Must have all AI integration documented, reviewed by AI Governance Team (Keith Edwards) and socialized with Cyber Risk.
-o	Must have approval from Legal if the software is designated as “Freeware”, not to be confused with Shareware or Open Source.
-o	Browser extensions must have evidence of support, no critical permission flags, and no tracking or data collection mechanisms.
+Your GoldenPath Onboarding Request Form service request RITM6503552 completed successfully.  
+
+Application Details
+APM: APM0012867
+Region: NA
+Business Group Name: Corporate and Other
+Division Name: Technology Services
+Application Name: SOFTWARE DELIVERY AUTOMATION
+Application Short Name: software-delivery-automation
+Application Description: Software intake process/approval, application packaging and request automation process within Fiserv.
+
+App-specific Resources Provisioned
+GitLab: Git SCM, CI Automation
+
+
+Resource Name
+
+URL
+
+App Group
+
+https://gitlab.onefiserv.net/groups/na/corp/technology-services/software-delivery-automation
+
+Nexus Repository Manager: Secure Artifact Management
+
+
+Repo Format
+
+Client System
+
+Supporting Service Acct
+
+Op
+
+Nexus Repo URL
+
+Maven
+
+CI
+
+wvc-ap0012867-cinx-w
+
+push
+
+https://nexus-ci.onefiserv.net/repository/maven-apm0012867/
+
+CI
+
+wvc-ap0012867-cinx-d
+
+pull
+
+https://nexus-cd.onefiserv.net/repository/maven-apm0012867/
+
+CD
+
+wvc-ap0012867-cdnx-r
+
+pull
+
+https://nexus-cd.onefiserv.net/repository/maven-apm0012867/
+
+NuGet
+
+CI
+
+wvc-ap0012867-cinx-w
+
+push
+
+https://nexus-ci.onefiserv.net/repository/nuget-apm0012867/
+
+CI
+
+wvc-ap0012867-cinx-d
+
+pull
+
+https://nexus-cd.onefiserv.net/repository/nuget-apm0012867/
+
+CD
+
+wvc-ap0012867-cdnx-r
+
+pull
+
+https://nexus-cd.onefiserv.net/repository/nuget-apm0012867/
+
+NPM
+
+CI
+
+wvc-ap0012867-cinx-w
+
+push
+
+https://nexus-ci.onefiserv.net/repository/npm-apm0012867/
+
+CI
+
+wvc-ap0012867-cinx-d
+
+pull
+
+https://nexus-cd.onefiserv.net/repository/npm-apm0012867/
+
+CD
+
+wvc-ap0012867-cdnx-r
+
+pull
+
+https://nexus-cd.onefiserv.net/repository/npm-apm0012867/
+
+Docker
+
+CI
+
+wvc-ap0012867-cinx-w
+
+push
+
+https://fmk.nexus-ci.onefiserv.net/apm/0012867/
+
+CI
+
+wvc-ap0012867-cinx-d
+
+pull
+
+https://fmk-prod.nexus-ci.onefiserv.net/apm/0012867/
+
+CD
+
+wvc-ap0012867-cdnx-r
+
+pull
+
+https://fmk.nexus.onefiserv.net/apm/0012867/
+
+CD
+
+wvc-ap0012867-cdnx-r
+
+pull
+
+https://fmk.nexus-dev.onefiserv.net/apm/0012867/
+
+local
+
+none
+
+pull
+
+https://fmk.nexus-dev.onefiserv.net/apm/0012867/
+
+Harness: CD Automation
+
+
+Project Name
+
+Project URL
+
+software_delivery_automation
+
+https://harness.onefiserv.net/ng/account/fgDto6qoTT6ctfZS9eWbEw/home/orgs/Fiserv/projects/software_delivery_automation/details
+
+What You Need to Do
+IMPORTANT: Access to GoldenPath CI-CD tools and resources above will be fully enabled
+once all Active Directory (AD) IAM resources below are fully provisioned precisely as specified.
+
+Please follow SailPoint "Human User" AD User Group 'Create' Request Instructions
+to request creation of below four (4) "Human User" AD user groups supporting corresponding standard human user CI-CD
+roles.
+
+
+
+AD User Group Name
+
+Purpose / Role Description
+
+AP-NA-APM0012867-CICD-OWNERS
+
+Human User AD group for App Admins (IT App Owner & Delegates)
+
+AP-NA-APM0012867-CICD-MAINTAINERS
+
+Human User AD group for App Operators, DevOps, Prod Support Engineers
+
+AP-NA-APM0012867-CICD-DEVELOPERS
+
+Human User AD group for App Developers
+
+AP-NA-APM0012867-CICD-REPORTERS
+
+Human User AD group for App QA Analysts, New /
+Consulting Devs, BAs
+
+AP-NA-APM0012867-CINX-D
+
+Service User AD group for CI Dev Pipeline to Nexus Repo Access
+
+AP-NA-APM0012867-CINX-W
+
+Service User AD group for CI Prod Pipeline to Nexus Repo Access
+
+AP-NA-APM0012867-CDNX-R
+
+Service User AD group for CD to Nexus Repo Read-only Access
+
+IMPORTANT: Only service user accounts
+should be added as members of Service User AD groups.
+Only human user accounts should be added as members of Human User AD groups.
+
+Please follow SailPoint Service User Account 'Create' and 'Modify'
+Instructions to request (1) creation of below required service user accounts and (2) adding each respective new
+service user account as member of supporting AD user group for associated user role.
+
+
+
+Service User Account Name
+
+Supporting AD User Group (add as member)
+
+wvc-ap0012867-cinx-d
+
+AP-NA-APM0012867-CINX-D
+
+wvc-ap0012867-cinx-w
+
+AP-NA-APM0012867-CINX-W
+
+wvc-ap0012867-cdnx-r
+
+AP-NA-APM0012867-CDNX-R
+
+Please share, review with IT App Owner and App-specific user access management delegate(s) below guidance on CI-CD
+Tools user access permissions supported by each AD user group to support assigning appropriate user roles for each
+CI-CD Tools App User consistent with Fiserv least privilege standard.
+
+Managing CI-CD Tools User Access
+What You Need to Know
+Additional details and general guidance on Golden Path CI-CD Tools App onboarding and integration processes is
+available below:
+
+GoldenPath CI-CD App Onboarding, Integration
+Guide
+For general Announcements related to Golden Path CI-CD Tools, please visit and monitor GoldenPath CI-CD Announcements Channel (MS Teams).
+
+How You May Reach Us
+If any issues observed when validating and/or integrating to auto-provisioned App-specific resources, please submit
+Support Request, including RITM ID for this request, via form below:
+
+FTS Enterprise Golden Path CI-CD Onboarding Support Request
+Form
+Additional Golden Path CI-CD Tools onboarding and integration support resources are
+summarized on Golden Path Enterprise CI-CD Tools - Onboarding &
+Integration Support.
+
+ 
+
+ 
+
+Ref:MSG800845425
