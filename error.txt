@@ -1,37 +1,73 @@
-Running with gitlab-runner 16.3.3 (ed9cebb1)
-  on gitlab-runner-generic-20-16-3-3-78f4c4f794-c9c7z HgHtxpvP, system ID: r_foP1ELur0c4Q
-Resolving secrets
-00:00
-Preparing the "kubernetes" executor
-00:00
-Using Kubernetes namespace: gitlab-prod
-Using Kubernetes executor with image docker:24 ...
-Using attach strategy to execute scripts...
-Preparing environment
-00:07
-Waiting for pod gitlab-prod/runner-hghtxpvp-project-102749-concurrent-0-e1cxwun4 to be running, status is Pending
-Waiting for pod gitlab-prod/runner-hghtxpvp-project-102749-concurrent-0-e1cxwun4 to be running, status is Pending
-	ContainersNotReady: "containers with unready status: [build helper svc-0]"
-	ContainersNotReady: "containers with unready status: [build helper svc-0]"
-Running on runner-hghtxpvp-project-102749-concurrent-0-e1cxwun4 via gitlab-runner-generic-20-16-3-3-78f4c4f794-c9c7z...
-Getting source from Git repository
-00:01
-Fetching changes with git depth set to 20...
-Initialized empty Git repository in /builds/na/corp/technology-services/software-delivery-automation/spa-frameworks/spa-workbench/.git/
-Created fresh repository.
-Checking out 3f1341c5 as detached HEAD (ref is main)...
-Skipping Git submodules setup
-Executing "step_script" stage of the job script
-00:02
-$ printf "%s" "$NEXUS_CI_PASSWORD" | docker login -u "$NEXUS_CI_ID" --password-stdin fmk.nexus-ci.onefiserv.net
-WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
-Login Succeeded
-$ BUILD_DIR="."
-$ if [ -d "spa-title-wizard" ]; then BUILD_DIR="spa-title-wizard"; fi
-$ docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "$IMAGE_NAME:latest" "$BUILD_DIR"
-ERROR: Cannot connect to the Docker daemon at tcp://docker:2375. Is the docker daemon running?
-Cleaning up project directory and file based variables
-00:01
-ERROR: Job failed: command terminated with exit code 1
+variables:
+  app_version: "1.1.${CI_PIPELINE_IID}" # Auto-incremented version based on pipeline ID
+  nexus_registry: "fmk.nexus-ci.onefiserv.net/apm/0001557"
+  image_name: "${nexus_registry}/ocs_authz"
+  npm_registry: "https://nexus-cd.onefiserv.net/repository/npm-apm0001557/"
+  FMK_DIND_IMG: "fmk.nexus.onefiserv.net/fmk/ext-tools/fmk-dind:FMK-11-21-24"
+
+  # DIND settings (keep as you had them)
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2376/
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: "0"
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+stages:
+  - build
+  - release
+
+Build Application:
+  stage: build
+  image: "fmk.nexus.onefiserv.net/fmk/node/node20:FMK-26-03-04"
+  script:
+    - echo "Configuring npm registry..."
+    - npm config set registry "${npm_registry}"
+    - npm config set strict-ssl false
+
+    - echo "Installing dependencies..."
+    # Using legacy-peer-deps to avoid ERESOLVE peer dependency issues
+    - npm install --legacy-peer-deps || (echo "Failed to run npm install." && exit 1)
+
+    - echo "Building application..."
+    - npm run build || (echo "Failed to build React application." && exit 1)
+
+    - echo "Build output contents:"
+    - ls -la build || true
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - build/
+
+Build and Push Docker Image:
+  stage: release
+  image: "$FMK_DIND_IMG"
+  services:
+    - name: "$FMK_DIND_IMG"
+      alias: docker
+  tags:
+    - docker
+
+  # Make sure artifacts from build job are available before docker build
+  needs:
+    - job: Build Application
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - echo "Logging into Nexus registry..."
+    - docker logout fmk.nexus-ci.onefiserv.net || true
+    - echo "${CI_REGISTRY_PASSWORD_W}" | docker login fmk.nexus-ci.onefiserv.net --username "${CI_REGISTRY_USER_W}" --password-stdin
+
+    - echo "Building Docker image ${image_name}:${app_version} ..."
+    - docker build -t "${image_name}:${app_version}" .
+
+    - echo "Pushing Docker image..."
+    - docker push "${image_name}:${app_version}" || (echo "Docker push failed." && exit 1)
