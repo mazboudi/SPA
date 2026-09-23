@@ -1,24 +1,5 @@
-# ── Stage 1: Build Vite Frontend ─────────────────────────────────────────────
-FROM node:22-alpine AS builder
-
-WORKDIR /app
-
-# Copy dependency manifests
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy frontend source files and configuration
-COPY index.html vite.config.js eslint.config.js ./
-COPY public ./public
-COPY src ./src
-
-# Build production bundle (outputs to /app/dist)
-RUN npm run build
-
-# ── Stage 2: Production Server Runtime ───────────────────────────────────────
-FROM node:22-alpine AS runner
+# ── Production Server Runtime ───────────────────────────────────────────────
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -32,8 +13,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy backend server code and data
 COPY server ./server
 
-# Copy compiled frontend from builder stage
-COPY --from=builder /app/dist ./dist
+# Copy pre-compiled frontend bundle (built in CI Stage 1)
+COPY dist ./dist
 
 # Ensure permissions are compatible with OpenShift arbitrary non-root UIDs
 RUN chown -R 1001:0 /app && chmod -R g=u /app

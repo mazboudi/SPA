@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/windows-package.schema.json",
+  "title": "Windows Package Metadata",
+  "description": "Platform-specific packaging metadata for Windows titles. Located at windows/package.yaml in each title repo.",
+  "type": "object",
+  "required": [
+    "version",
+    "packaging_version",
+    "installer_type",
+    "install_command",
+    "uninstall_command"
+  ],
+  "properties": {
+    "package_id": {
+      "type": "string",
+      "description": "Unique kebab-case identifier matching the title's app.json package_id."
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable name including version (e.g. '7-Zip 26.00')."
+    },
+    "version": {
+      "type": "string",
+      "description": "The installer's vendor version string (e.g. '26.00', '134.0.6998.89')."
+    },
+    "vendor_version": {
+      "type": "string",
+      "description": "Alias for version. Deprecated — prefer 'version'."
+    },
+    "packaging_version": {
+      "type": ["string", "integer"],
+      "description": "Internal packaging iteration. Increment when re-packaging without a vendor version change."
+    },
+    "installer_type": {
+      "type": "string",
+      "enum": ["msi", "exe", "msix", "ps1", "script"],
+      "description": "Type of installer file."
+    },
+    "source_filename": {
+      "type": "string",
+      "description": "Filename of the installer binary inside the src/Files directory."
+    },
+    "install_command": {
+      "type": "string",
+      "description": "Silent install command line (e.g. 'msiexec.exe /i \"Files\\7z2600-x64.msi\" /qn /norestart')."
+    },
+    "uninstall_command": {
+      "type": "string",
+      "description": "Silent uninstall command line."
+    },
+    "detection_mode": {
+      "type": "string",
+      "enum": ["registry-marker", "file", "msi-product-code", "script"],
+      "description": "Legacy detection mode. Prefer detection_method + detection_rules for new titles.",
+      "default": "registry-marker"
+    },
+    "detection_method": {
+      "type": "string",
+      "enum": ["manual", "script"],
+      "description": "Detection method: 'manual' uses detection_rules array, 'script' uses a custom PowerShell script.",
+      "default": "manual"
+    },
+    "detection_rules": {
+      "type": "array",
+      "description": "Array of detection rules (MSI, file, or registry). Used when detection_method is 'manual'.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["msi", "file", "registry"],
+            "description": "The detection rule type."
+          },
+          "product_code": { "type": "string", "description": "MSI product code GUID (for msi type)." },
+          "version_operator": { "type": "string", "description": "Version comparison operator." },
+          "version": { "type": "string", "description": "Expected version string." },
+          "path": { "type": "string", "description": "File/folder path (for file type)." },
+          "file_or_folder": { "type": "string", "description": "File or folder name (for file type)." },
+          "detection_type": { "type": "string", "description": "Detection check type." },
+          "operator": { "type": "string", "description": "Comparison operator." },
+          "value": { "type": "string", "description": "Expected value for comparison." },
+          "hive": { "type": "string", "description": "Registry hive (for registry type)." },
+          "key_path": { "type": "string", "description": "Registry key path (for registry type)." },
+          "value_name": { "type": "string", "description": "Registry value name (for registry type)." },
+          "check_32bit": { "type": "boolean", "description": "Check 32-bit location on 64-bit systems.", "default": false }
+        }
+      }
+    },
+    "detection": {
+      "type": "object",
+      "description": "Legacy detection parameters (used with detection_mode). For new titles, use detection_method + detection_rules instead.",
+      "additionalProperties": true,
+      "properties": {
+        "product_code": {
+          "type": "string",
+          "description": "MSI product code GUID. Used when detection_mode is 'msi-product-code'."
+        },
+        "version_operator": {
+          "type": "string",
+          "enum": ["greaterThanOrEqual", "equal"],
+          "default": "greaterThanOrEqual",
+          "description": "Version comparison operator for MSI detection."
+        },
+        "version": {
+          "type": "string",
+          "description": "Expected version string for MSI detection."
+        },
+        "registry": {
+          "type": "object",
+          "description": "Used when detection_mode is 'registry-marker'.",
+          "required": ["hive", "key_path", "value_name"],
+          "additionalProperties": false,
+          "properties": {
+            "hive":       { "type": "string", "enum": ["HKLM", "HKCU", "HKCR"] },
+            "key_path":   { "type": "string" },
+            "value_name": { "type": "string" },
+            "operator":   { "type": "string", "enum": ["exists", "notExists", "equal", "notEqual", "greaterThanOrEqual"], "default": "exists" },
+            "value":      { "type": "string" },
+            "check32BitOn64System": { "type": "boolean", "default": false, "description": "Whether to check the 32-bit registry view on 64-bit systems." }
+          }
+        },
+        "file": {
+          "type": "object",
+          "description": "Used when detection_mode is 'file'.",
+          "required": ["path", "file_or_folder"],
+          "additionalProperties": false,
+          "properties": {
+            "path":               { "type": "string" },
+            "file_or_folder":     { "type": "string" },
+            "operator":           { "type": "string", "enum": ["exists", "notExists", "equal", "greaterThanOrEqual", "greaterThan", "lessThan", "lessThanOrEqual"], "default": "exists" },
+            "version":            { "type": "string" },
+            "sizeInMB":           { "type": "number", "description": "File size in MB for sizeInMB detection type." },
+            "dateTimeValue":      { "type": "string", "format": "date-time", "description": "ISO 8601 date for modifiedDate detection type." },
+            "detection_type":     { "type": "string", "enum": ["exists", "doesNotExist", "version", "sizeInMB", "lastModifiedDate", "createdDate", "modifiedDate"], "default": "exists", "description": "What aspect of the file/folder to check. Valid Graph API values: exists, doesNotExist, version, sizeInMB, lastModifiedDate, createdDate. 'modifiedDate' is accepted as an alias for lastModifiedDate." },
+            "check32BitOn64System": { "type": "boolean", "default": false }
+          }
+        },
+        "run_as_32bit": { "type": "boolean", "description": "Run detection script as 32-bit process.", "default": false },
+        "enforce_signature_check": { "type": "boolean", "description": "Enforce script signature check.", "default": false }
+      }
+    },
+    "max_install_time": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1440,
+      "default": 60,
+      "description": "Maximum time in minutes the install is allowed to run before Intune marks it as failed."
+    },
+    "restart_behavior": {
+      "type": "string",
+      "enum": ["basedOnReturnCode", "allow", "suppress", "force"],
+      "description": "Device restart behavior after install."
+    },
+    "install_experience": {
+      "type": "string",
+      "enum": ["system", "user"],
+      "description": "Install execution context."
+    },
+    "use_service_ui": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the install/uninstall commands are wrapped with ServiceUI.exe so PSADT UI dialogs are visible to the logged-in user during a SYSTEM-context Intune deployment. Requires install_experience: system and DeployMode: Interactive in the PSADT script."
+    },
+    "intune": {
+      "type": "object",
+      "description": "Optional Intune-specific overrides. Primary Intune metadata lives in windows/intune/app.json.",
+      "additionalProperties": true,
+      "properties": {
+        "display_name":                   { "type": "string" },
+        "description":                    { "type": "string" },
+        "restart_behavior":               { "type": "string", "enum": ["basedOnReturnCode", "allow", "suppress", "force"] },
+        "install_experience":             { "type": "string", "enum": ["system", "user"] },
+        "max_run_time_in_minutes":        { "type": "integer", "minimum": 5, "maximum": 1440 },
+        "allowed_to_reinstall":           { "type": "boolean" },
+        "uninstall_previous_version_of_app": { "type": "boolean" }
+      }
+    },
+    "return_codes": {
+      "type": "array",
+      "description": "Custom return code mappings. Each entry specifies a code and its interpretation.",
+      "items": {
+        "type": "object",
+        "required": ["returnCode", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "returnCode": { "type": "integer", "description": "Process exit code." },
+          "type": {
+            "type": "string",
+            "enum": ["success", "softReboot", "hardReboot", "retry", "failed"],
+            "description": "How Intune should interpret this exit code."
+          }
+        }
+      }
+    },
+    "close_apps": {
+      "type": "string",
+      "description": "Comma-separated list of process names to close before install/uninstall (e.g. 'chrome,msedge')."
+    },
+    "supersedes": {
+      "type": "object",
+      "description": "Supersedence configuration for replacing a prior Intune app.",
+      "additionalProperties": false,
+      "properties": {
+        "app_id": {
+          "type": "string",
+          "description": "Intune App ID of the title this supersedes."
+        },
+        "uninstall_previous": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to uninstall the previous version before installing this one."
+        }
+      }
+    },
+    "installer_subfolder": {
+      "type": "string",
+      "description": "Optional relative path within Files\\ to the installer (e.g. 'Bin' or 'x64\\\\Setup'). Omit when the installer sits directly in Files\\."
+    },
+    "msi_information": {
+      "type": "object",
+      "description": "MSI-specific metadata extracted from the installer. Only present for MSI packages.",
+      "additionalProperties": false,
+      "properties": {
+        "product_code":    { "type": "string", "description": "MSI ProductCode GUID." },
+        "product_version": { "type": "string", "description": "MSI ProductVersion." },
+        "product_name":    { "type": "string", "description": "MSI ProductName." },
+        "upgrade_code":    { "type": "string", "description": "MSI UpgradeCode GUID." },
+        "manufacturer":    { "type": "string", "description": "MSI Manufacturer." }
+      }
+    }
+  },
+  "additionalProperties": false
+}

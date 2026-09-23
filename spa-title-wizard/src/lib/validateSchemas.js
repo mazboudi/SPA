@@ -10,12 +10,12 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
 // Import schemas statically (Vite resolves these at build time)
-import appSchema from '../../../schemas/packaging-standards/schemas/app.schema.json';
-import intuneAppSchema from '../../../schemas/packaging-standards/schemas/intune-app.schema.json';
-import intuneAssignmentsSchema from '../../../schemas/packaging-standards/schemas/intune-assignments.schema.json';
-import intuneRequirementsSchema from '../../../schemas/packaging-standards/schemas/intune-requirements.schema.json';
-import intuneDependenciesSchema from '../../../schemas/packaging-standards/schemas/intune-dependencies.schema.json';
-import intuneSupersedenceSchema from '../../../schemas/packaging-standards/schemas/intune-supersedence.schema.json';
+import appSchema from '../schemas/app.schema.json';
+import intuneAppSchema from '../schemas/intune-app.schema.json';
+import intuneAssignmentsSchema from '../schemas/intune-assignments.schema.json';
+import intuneRequirementsSchema from '../schemas/intune-requirements.schema.json';
+import intuneDependenciesSchema from '../schemas/intune-dependencies.schema.json';
+import intuneSupersedenceSchema from '../schemas/intune-supersedence.schema.json';
 
 // Map of generated file paths → their schema
 const SCHEMA_MAP = {

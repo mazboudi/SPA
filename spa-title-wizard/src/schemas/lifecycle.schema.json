@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PSADT Lifecycle Configuration",
+  "description": "Declarative lifecycle configuration for PSAppDeployToolkit v4 scripts. Read at pipeline build time to generate Invoke-AppDeployToolkit.ps1.",
+  "type": "object",
+  "properties": {
+    "repair_mode": {
+      "type": "string",
+      "enum": ["mirror", "custom"],
+      "default": "mirror",
+      "description": "If 'mirror', repair reuses install logic. If 'custom', uses separate repair phase definitions."
+    },
+    "pre_install": { "$ref": "#/definitions/welcomePhase" },
+    "install":     { "$ref": "#/definitions/actionPhase" },
+    "post_install": { "$ref": "#/definitions/actionPhase" },
+    "pre_uninstall": { "$ref": "#/definitions/welcomePhase" },
+    "uninstall":    { "$ref": "#/definitions/actionPhase" },
+    "post_uninstall": { "$ref": "#/definitions/actionPhase" },
+    "pre_repair":   { "$ref": "#/definitions/welcomePhase" },
+    "repair":       { "$ref": "#/definitions/actionPhase" },
+    "post_repair":  { "$ref": "#/definitions/actionPhase" }
+  },
+  "additionalProperties": false,
+
+  "definitions": {
+    "welcomePhase": {
+      "type": "object",
+      "description": "Phase that can include welcome/close-apps behavior plus custom actions.",
+      "properties": {
+        "close_apps":       { "type": "string", "description": "Comma-separated process names to close." },
+        "check_disk_space": { "type": "boolean", "default": false },
+        "allow_defer":      { "type": "integer", "minimum": 0, "description": "Number of user deferrals allowed." },
+        "show_progress":    { "type": "boolean", "default": false },
+        "actions":          { "type": "array", "items": { "$ref": "#/definitions/action" } }
+      },
+      "additionalProperties": false
+    },
+    "actionPhase": {
+      "type": "object",
+      "description": "Phase containing a list of typed actions.",
+      "properties": {
+        "actions": { "type": "array", "items": { "$ref": "#/definitions/action" } }
+      },
+      "additionalProperties": false
+    },
+    "action": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "msi_install", "exe_install", "msi_uninstall", "exe_uninstall",
+            "folder_copy", "folder_remove",
+            "registry_marker", "remove_registry_marker",
+            "set_registry_key", "remove_registry_key",
+            "set_env_variable", "remove_env_variable",
+            "show_completion", "custom_script"
+          ]
+        },
+        "file_path":     { "type": "string", "description": "Installer/executable filename (relative to Files/)." },
+        "arguments":     { "type": "string", "description": "Command-line arguments." },
+        "app_name":      { "type": "string", "description": "Application display name (for MSI uninstall lookup)." },
+        "product_code":  { "type": "string", "description": "MSI ProductCode GUID (for MSI uninstall)." },
+        "source":        { "type": "string", "description": "Source path for folder copy (relative to Files/)." },
+        "destination":   { "type": "string", "description": "Destination path for folder copy." },
+        "path":          { "type": "string", "description": "Path for folder/registry/script operations." },
+        "name":          { "type": "string", "description": "Registry value name or env variable name." },
+        "value":         { "type": "string", "description": "Registry value or env variable value." },
+        "reg_type":      { "type": "string", "enum": ["String", "DWord", "QWord", "ExpandString", "MultiString", "Binary"], "default": "String" },
+        "script_path":   { "type": "string", "description": "Path to custom PowerShell script (relative to src/scripts/)." }
+      },
+      "additionalProperties": false
+    }
+  }
+}

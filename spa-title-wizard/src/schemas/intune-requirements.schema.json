@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packaging-standards/schemas/intune-requirements.schema.json",
+  "title": "Intune Hardware Requirements",
+  "description": "Hardware and OS requirements for Intune Win32 apps. Located at windows/intune/requirements.json.",
+  "type": "object",
+  "required": [
+    "minimumSupportedWindowsRelease",
+    "applicableArchitectures"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "minimumSupportedWindowsRelease": {
+      "type": "string",
+      "description": "Minimum required Windows 10/11 release version."
+    },
+    "applicableArchitectures": {
+      "type": "string",
+      "description": "Allowed CPU architecture(s), comma-separated (e.g. 'x64' or 'x86,x64,arm64')."
+    },
+    "minimumFreeDiskSpaceInMB": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum required free disk space in MB."
+    },
+    "minimumMemoryInMB": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum required memory in MB."
+    },
+    "minimumNumberOfProcessors": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum number of CPU cores."
+    },
+    "minimumCpuSpeedInMHz": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Minimum CPU speed in MHz."
+    },
+    "customRequirementRules": {
+      "type": "array",
+      "description": "Custom file or registry requirement rules that must pass before installation.",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

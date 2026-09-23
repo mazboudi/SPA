@@ -1,7 +1,8 @@
 const fs = require('fs');
+const path = require('path');
 
-const csvPath = '/Users/wissammazboudi/Development/SPA/spa-title-wizard/src/config/psadt_v3_to_v41_command_parameter_mapping.csv';
-const jsonPath = '/Users/wissammazboudi/Development/SPA/spa-title-wizard/src/config/v3ToV4.json';
+const csvPath = path.join(__dirname, 'src/config/psadt_v3_to_v41_command_parameter_mapping.csv');
+const jsonPath = path.join(__dirname, 'src/config/v3ToV4.json');
 
 const csvContent = fs.readFileSync(csvPath, 'utf8').split('\n');
 const jsonContent = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));

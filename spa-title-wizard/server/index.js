@@ -31,7 +31,7 @@ app.use(express.json({ limit: '10mb' }));
 // ── Config ──────────────────────────────────────────────────────────────────
 const GITLAB_URL = process.env.GITLAB_URL || 'https://gitlab.onefiserv.net';
 const GITLAB_TOKEN = process.env.GITLAB_TOKEN || '';
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 8080;
 const GITLAB_DEFAULT_GROUP = process.env.GITLAB_DEFAULT_GROUP || 'euc/software-package-automation';
 // Platform-specific GitLab groups (fall back to legacy GITLAB_DEFAULT_GROUP for testing)
 const GITLAB_WIN_GROUP = process.env.GITLAB_WIN_GROUP || GITLAB_DEFAULT_GROUP;
@@ -2479,6 +2479,16 @@ app.get('/api/appstore/search', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── Serve Static Assets & SPA Routing in Production ─────────────────────────
+const distPath = join(__dirname, '..', 'dist');
+if (existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(join(distPath, 'index.html'));
+  });
+}
 
 // ── Start ───────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
