@@ -82,7 +82,7 @@ Build and Push Docker Image:
     - docker push "${image_name}:${app_version}" || (echo "Docker push failed." && exit 1)
     - docker push "${image_name}:latest" || true
 
-    - echo "=========================================================="
-    - echo "SUCCESS: Image published to Nexus!"
-    - echo "Tag for Harness CD deployment: ${app_version}"
-    - echo "=========================================================="
+    - 'echo "=========================================================="'
+    - 'echo "SUCCESS - Image published to Nexus!"'
+    - 'echo "Tag for Harness CD deployment - ${app_version}"'
+    - 'echo "=========================================================="'
