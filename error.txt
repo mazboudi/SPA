@@ -8,24 +8,22 @@ Using Kubernetes namespace: gitlab-prod
 Using Kubernetes executor with image fmk.nexus.onefiserv.net/fmk/ext-tools/fmk-dind:FMK-11-21-24 ...
 Using attach strategy to execute scripts...
 Preparing environment
-00:04
-Waiting for pod gitlab-prod/runner-hadkmpur-project-102749-concurrent-0-9rtz9feb to be running, status is Pending
-Running on runner-hadkmpur-project-102749-concurrent-0-9rtz9feb via gitlab-runner-docker-16-3-3-5c4cd879dd-zdtkv...
+00:03
+Waiting for pod gitlab-prod/runner-hadkmpur-project-102749-concurrent-0-xxxkt7ux to be running, status is Pending
+Running on runner-hadkmpur-project-102749-concurrent-0-xxxkt7ux via gitlab-runner-docker-16-3-3-5c4cd879dd-zdtkv...
 Getting source from Git repository
-00:01
+00:03
 Fetching changes with git depth set to 20...
 Initialized empty Git repository in /builds/na/corp/technology-services/software-delivery-automation/spa-frameworks/spa-workbench/.git/
 Created fresh repository.
-Checking out 9413bdfe as detached HEAD (ref is main)...
+Checking out 4b3de0b2 as detached HEAD (ref is main)...
 Skipping Git submodules setup
 Downloading artifacts
-00:01
-Downloading artifacts for Build Application (36423151)...
-Downloading artifacts from coordinator... ok        host=gitlab.onefiserv.net id=36423151 responseStatus=200 OK token=glcbt-64
-Executing "step_script" stage of the job script
 00:02
-$ BUILD_DIR="."
-$ if [ -d "spa-title-wizard" ]; then BUILD_DIR="spa-title-wizard"; fi
+Downloading artifacts for Build Application (36424758)...
+Downloading artifacts from coordinator... ok        host=gitlab.onefiserv.net id=36424758 responseStatus=200 OK token=glcbt-64
+Executing "step_script" stage of the job script
+00:22
 $ echo "Logging into Nexus registry..."
 Logging into Nexus registry...
 $ docker logout fmk.nexus-ci.onefiserv.net || true
@@ -36,19 +34,221 @@ Configure a credential helper to remove this warning. See
 https://docs.docker.com/engine/reference/commandline/login/#credentials-store
 Login Succeeded
 $ echo "Building Docker image ${image_name}:${app_version} ..."
-Building Docker image fmk.nexus-ci.onefiserv.net/apm/0012867/spa-workbench:9413bdfe ...
-$ docker build -t "${image_name}:${app_version}" -t "${image_name}:latest" "$BUILD_DIR"
+Building Docker image fmk.nexus-ci.onefiserv.net/apm/0012867/spa-workbench:4b3de0b2 ...
+$ docker build -t "${image_name}:${app_version}" -t "${image_name}:latest" .
 #0 building with "default" instance using docker driver
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 2.30kB done
+#1 transferring dockerfile: 1.48kB done
 #1 DONE 0.1s
-Dockerfile:1
+#2 [internal] load metadata for docker.io/library/node:22-alpine
+#2 DONE 1.6s
+#3 [internal] load .dockerignore
+#3 transferring context: 185B done
+#3 DONE 0.0s
+#4 [internal] load build context
+#4 transferring context: 1.51MB 0.0s done
+#4 DONE 0.0s
+#5 [builder 1/8] FROM docker.io/library/node:22-alpine@sha256:b6f26b36c8ff49624cfdac716b8ea1138d606df02586a77d364bb5536a634f85
+#5 resolve docker.io/library/node:22-alpine@sha256:b6f26b36c8ff49624cfdac716b8ea1138d606df02586a77d364bb5536a634f85 0.0s done
+#5 sha256:e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5 0B / 3.85MB 0.1s
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 0B / 55.68MB 0.1s
+#5 sha256:ec179e2ee07230312183920d42bf49c2ef18644e3d7186ffa92b02dd2e26a835 0B / 1.26MB 0.1s
+#5 sha256:b6f26b36c8ff49624cfdac716b8ea1138d606df02586a77d364bb5536a634f85 6.41kB / 6.41kB done
+#5 sha256:b64da1de5a51067ab8e75f0bc8dbd0905d8894baa22261f439a4572f41291e50 1.72kB / 1.72kB done
+#5 sha256:d8123cc242555fddfbc6735537cc6c78c3e33807fcf82b585c840e8cd36353d9 6.57kB / 6.57kB done
+#5 sha256:e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5 1.05MB / 3.85MB 0.4s
+#5 extracting sha256:e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5
+#5 sha256:e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5 3.85MB / 3.85MB 0.4s done
+#5 extracting sha256:e2de96513ba9eb53b431787ec8a65cdde380ac4772a3e4c4b714dcfde2a102b5 0.1s done
+#5 sha256:65213f1a3de84db18197276d9be6a34fad98eec70604aeaa6821556d932c2676 444B / 444B 0.6s done
+#5 sha256:ec179e2ee07230312183920d42bf49c2ef18644e3d7186ffa92b02dd2e26a835 1.26MB / 1.26MB 0.6s done
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 11.53MB / 55.68MB 0.9s
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 24.12MB / 55.68MB 1.1s
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 30.41MB / 55.68MB 1.2s
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 38.80MB / 55.68MB 1.4s
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 47.19MB / 55.68MB 1.6s
+#5 sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 55.68MB / 55.68MB 1.8s done
+#5 extracting sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 0.1s
+#5 extracting sha256:1a3a899a8294dd12f21fb3f36579c74b05013aacbcf71d6db947dda5e1c59d06 1.3s done
+#5 extracting sha256:ec179e2ee07230312183920d42bf49c2ef18644e3d7186ffa92b02dd2e26a835 0.0s done
+#5 extracting sha256:65213f1a3de84db18197276d9be6a34fad98eec70604aeaa6821556d932c2676 done
+#5 DONE 3.3s
+#6 [builder 2/8] WORKDIR /app
+#6 DONE 0.3s
+#7 [builder 3/8] COPY package*.json ./
+#7 DONE 0.0s
+#8 [runner 4/7] RUN npm ci --omit=dev && npm cache clean --force
+#8 8.328 
+#8 8.328 added 195 packages, and audited 196 packages in 8s
+#8 8.328 
+#8 8.328 33 packages are looking for funding
+#8 8.328   run `npm fund` for details
+#8 8.347 
+#8 8.347 7 vulnerabilities (1 low, 4 moderate, 2 high)
+#8 8.347 
+#8 8.347 To address all issues, run:
+#8 8.347   npm audit fix
+#8 8.347 
+#8 8.347 Run `npm audit` for details.
+#8 8.348 npm notice
+#8 8.348 npm notice New major version of npm available! 10.9.8 -> 12.1.0
+#8 8.348 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#8 8.348 npm notice To update run: npm install -g npm@12.1.0
+#8 8.348 npm notice
+#8 8.533 npm warn using --force Recommended protections disabled.
+#8 ...
+#9 [builder 4/8] RUN npm ci
+#9 10.14 
+#9 10.14 added 329 packages, and audited 330 packages in 9s
+#9 10.14 
+#9 10.14 69 packages are looking for funding
+#9 10.14   run `npm fund` for details
+#9 10.15 
+#9 10.15 9 vulnerabilities (1 low, 4 moderate, 4 high)
+#9 10.15 
+#9 10.15 To address all issues, run:
+#9 10.15   npm audit fix
+#9 10.15 
+#9 10.15 Run `npm audit` for details.
+#9 10.15 npm notice
+#9 10.15 npm notice New major version of npm available! 10.9.8 -> 12.1.0
+#9 10.15 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+#9 10.15 npm notice To update run: npm install -g npm@12.1.0
+#9 10.15 npm notice
+#9 ...
+#8 [runner 4/7] RUN npm ci --omit=dev && npm cache clean --force
+#8 DONE 13.8s
+#9 [builder 4/8] RUN npm ci
+#9 DONE 13.9s
+#10 [builder 5/8] COPY index.html vite.config.js eslint.config.js ./
+#10 ...
+#11 [runner 5/7] COPY server ./server
+#11 DONE 0.3s
+#10 [builder 5/8] COPY index.html vite.config.js eslint.config.js ./
+#10 DONE 0.4s
+#12 [builder 6/8] COPY public ./public
+#12 DONE 0.1s
+#13 [builder 7/8] COPY src ./src
+#13 DONE 0.0s
+#14 [builder 8/8] RUN npm run build
+#14 0.493 
+#14 0.493 > spa-workbench@0.0.0 build
+#14 0.493 > vite build
+#14 0.493 
+#14 0.807 vite v8.1.5 building client environment for production...
+transforming...✓ 1000 modules transformed.
+#14 0.950 ✗ Build failed in 142ms
+#14 0.951 error during build:
+#14 0.951 Build failed with 6 errors:
+#14 0.951 
+#14 0.951 [UNRESOLVED_IMPORT] Could not resolve '../../schemas/packaging-standards/schemas/app.schema.json' in src/lib/validateSchemas.js
+#14 0.951     ╭─[ src/lib/validateSchemas.js:11:23 ]
+#14 0.951     │
+#14 0.951  11 │ import appSchema from "../../schemas/packaging-standards/schemas/app.schema.json";
+#14 0.951     │                       ─────────────────────────────┬─────────────────────────────  
+#14 0.951     │                                                    ╰─────────────────────────────── Module not found.
+#14 0.951     │ 
+#14 0.951     │ Help: 'src/lib/validateSchemas.js' is imported by the following path:
+#14 0.951     │         - src/lib/validateSchemas.js
+#14 0.951     │         - src/components/steps/ReviewStep.jsx
+#14 0.951     │         - src/App.jsx
+#14 0.951     │         - src/main.jsx
+#14 0.951     │         - index.html
+#14 0.951 ────╯
+#14 0.951 
+#14 0.951 [UNRESOLVED_IMPORT] Could not resolve '../../schemas/packaging-standards/schemas/intune-app.schema.json' in src/lib/validateSchemas.js
+#14 0.951     ╭─[ src/lib/validateSchemas.js:12:29 ]
+#14 0.951     │
+#14 0.951  12 │ import intuneAppSchema from "../../schemas/packaging-standards/schemas/intune-app.schema.json";
+#14 0.951     │                             ─────────────────────────────────┬────────────────────────────────  
+#14 0.951     │                                                              ╰────────────────────────────────── Module not found.
+#14 0.951     │ 
+#14 0.951     │ Help: 'src/lib/validateSchemas.js' is imported by the following path:
+#14 0.951     │         - src/lib/validateSchemas.js
+#14 0.951     │         - src/components/steps/ReviewStep.jsx
+#14 0.951     │         - src/App.jsx
+#14 0.951     │         - src/main.jsx
+#14 0.951     │         - index.html
+#14 0.951 ────╯
+#14 0.951 
+#14 0.951 [UNRESOLVED_IMPORT] Could not resolve '../../schemas/packaging-standards/schemas/intune-assignments.schema.json' in src/lib/validateSchemas.js
+#14 0.951     ╭─[ src/lib/validateSchemas.js:13:37 ]
+#14 0.951     │
+#14 0.951  13 │ import intuneAssignmentsSchema from "../../schemas/packaging-standards/schemas/intune-assignments.schema.json";
+#14 0.951     │                                     ─────────────────────────────────────┬────────────────────────────────────  
+#14 0.951     │                                                                          ╰────────────────────────────────────── Module not found.
+#14 0.951     │ 
+#14 0.951     │ Help: 'src/lib/validateSchemas.js' is imported by the following path:
+#14 0.951     │         - src/lib/validateSchemas.js
+#14 0.951     │         - src/components/steps/ReviewStep.jsx
+#14 0.951     │         - src/App.jsx
+#14 0.951     │         - src/main.jsx
+#14 0.951     │         - index.html
+#14 0.951 ────╯
+#14 0.951 
+#14 0.951 [UNRESOLVED_IMPORT] Could not resolve '../../schemas/packaging-standards/schemas/intune-requirements.schema.json' in src/lib/validateSchemas.js
+#14 0.951     ╭─[ src/lib/validateSchemas.js:14:38 ]
+#14 0.951     │
+#14 0.951  14 │ import intuneRequirementsSchema from "../../schemas/packaging-standards/schemas/intune-requirements.schema.json";
+#14 0.951     │                                      ─────────────────────────────────────┬─────────────────────────────────────  
+#14 0.951     │                                                                           ╰─────────────────────────────────────── Module not found.
+#14 0.951     │ 
+#14 0.951     │ Help: 'src/lib/validateSchemas.js' is imported by the following path:
+#14 0.951     │         - src/lib/validateSchemas.js
+#14 0.951     │         - src/components/steps/ReviewStep.jsx
+#14 0.951     │         - src/App.jsx
+#14 0.951     │         - src/main.jsx
+#14 0.951     │         - index.html
+#14 0.951 ────╯
+#14 0.951 
+#14 0.951 [UNRESOLVED_IMPORT] Could not resolve '../../schemas/packaging-standards/schemas/intune-dependencies.schema.json' in src/lib/validateSchemas.js
+#14 0.951     ╭─[ src/lib/validateSchemas.js:15:38 ]
+#14 0.951     │
+#14 0.951  15 │ import intuneDependenciesSchema from "../../schemas/packaging-standards/schemas/intune-dependencies.schema.json";
+#14 0.951     │                                      ─────────────────────────────────────┬─────────────────────────────────────  
+#14 0.951     │                                                                           ╰─────────────────────────────────────── Module not found.
+#14 0.951     │ 
+#14 0.951     │ Help: 'src/lib/validateSchemas.js' is imported by the following path:
+#14 0.951     │         - src/lib/validateSchemas.js
+#14 0.951     │         - src/components/steps/ReviewStep.jsx
+#14 0.951     │         - src/App.jsx
+#14 0.951     │         - src/main.jsx
+#14 0.951     │         - index.html
+#14 0.951 ────╯
+#14 0.951 
+#14 0.951 ...
+#14 0.951     at aggregateBindingErrorsIntoJsError (file:///app/node_modules/rolldown/dist/shared/error-BHRSI0R7.mjs:48:18)
+#14 0.951     at unwrapBindingResult (file:///app/node_modules/rolldown/dist/shared/error-BHRSI0R7.mjs:18:128)
+#14 0.951     at #build (file:///app/node_modules/rolldown/dist/shared/rolldown-build-CtPvmZgJ.mjs:3276:34)
+#14 0.951     at async buildEnvironment (file:///app/node_modules/vite/dist/node/chunks/node.js:33061:66)
+#14 0.951     at async Object.build (file:///app/node_modules/vite/dist/node/chunks/node.js:33483:19)
+#14 0.951     at async Object.buildApp (file:///app/node_modules/vite/dist/node/chunks/node.js:33480:153)
+#14 0.951     at async CAC.<anonymous> (file:///app/node_modules/vite/dist/node/cli.js:776:3) {
+#14 0.951   errors: [Getter/Setter]
+#14 0.951 }
+#14 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+------
+ > [builder 8/8] RUN npm run build:
+0.951 ...
+0.951     at aggregateBindingErrorsIntoJsError (file:///app/node_modules/rolldown/dist/shared/error-BHRSI0R7.mjs:48:18)
+0.951     at unwrapBindingResult (file:///app/node_modules/rolldown/dist/shared/error-BHRSI0R7.mjs:18:128)
+0.951     at #build (file:///app/node_modules/rolldown/dist/shared/rolldown-build-CtPvmZgJ.mjs:3276:34)
+0.951     at async buildEnvironment (file:///app/node_modules/vite/dist/node/chunks/node.js:33061:66)
+0.951     at async Object.build (file:///app/node_modules/vite/dist/node/chunks/node.js:33483:19)
+0.951     at async Object.buildApp (file:///app/node_modules/vite/dist/node/chunks/node.js:33480:153)
+0.951     at async CAC.<anonymous> (file:///app/node_modules/vite/dist/node/cli.js:776:3) {
+0.951   errors: [Getter/Setter]
+0.951 }
+------
+Dockerfile:18
 --------------------
-   1 | >>> <<<<<<< HEAD
-   2 |     # ── Stage 1: Build Vite Frontend ─────────────────────────────────────────────
-   3 |     FROM node:22-alpine AS builder
+  16 |     
+  17 |     # Build production bundle (outputs to /app/dist)
+  18 | >>> RUN npm run build
+  19 |     
+  20 |     # ── Stage 2: Production Server Runtime ───────────────────────────────────────
 --------------------
-ERROR: failed to solve: dockerfile parse error on line 1: unknown instruction: <<<<<<<
+ERROR: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
 Cleaning up project directory and file based variables
-00:00
+00:01
 ERROR: Job failed: command terminated with exit code 1
