@@ -1,3 +1,37 @@
-Service Account for pushing into Nexus is
-wvc-ap0012867-cinx-w
-67sD5wJR^lK8O@U#tYLj9pD6tqlYZXow
+Running with gitlab-runner 16.3.3 (ed9cebb1)
+  on gitlab-runner-generic-20-16-3-3-78f4c4f794-c9c7z HgHtxpvP, system ID: r_foP1ELur0c4Q
+Resolving secrets
+00:00
+Preparing the "kubernetes" executor
+00:00
+Using Kubernetes namespace: gitlab-prod
+Using Kubernetes executor with image docker:24 ...
+Using attach strategy to execute scripts...
+Preparing environment
+00:07
+Waiting for pod gitlab-prod/runner-hghtxpvp-project-102749-concurrent-0-e1cxwun4 to be running, status is Pending
+Waiting for pod gitlab-prod/runner-hghtxpvp-project-102749-concurrent-0-e1cxwun4 to be running, status is Pending
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+	ContainersNotReady: "containers with unready status: [build helper svc-0]"
+Running on runner-hghtxpvp-project-102749-concurrent-0-e1cxwun4 via gitlab-runner-generic-20-16-3-3-78f4c4f794-c9c7z...
+Getting source from Git repository
+00:01
+Fetching changes with git depth set to 20...
+Initialized empty Git repository in /builds/na/corp/technology-services/software-delivery-automation/spa-frameworks/spa-workbench/.git/
+Created fresh repository.
+Checking out 3f1341c5 as detached HEAD (ref is main)...
+Skipping Git submodules setup
+Executing "step_script" stage of the job script
+00:02
+$ printf "%s" "$NEXUS_CI_PASSWORD" | docker login -u "$NEXUS_CI_ID" --password-stdin fmk.nexus-ci.onefiserv.net
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+Login Succeeded
+$ BUILD_DIR="."
+$ if [ -d "spa-title-wizard" ]; then BUILD_DIR="spa-title-wizard"; fi
+$ docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "$IMAGE_NAME:latest" "$BUILD_DIR"
+ERROR: Cannot connect to the Docker daemon at tcp://docker:2375. Is the docker daemon running?
+Cleaning up project directory and file based variables
+00:01
+ERROR: Job failed: command terminated with exit code 1
