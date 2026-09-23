@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy dependency manifests
 COPY package*.json ./
 
-# Install dependencies (including devDependencies required for Vite build)
+# Install dependencies
 RUN npm ci
 
 # Copy frontend source files and configuration
@@ -23,7 +23,7 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \
-    PORT=8080
+  PORT=8080
 
 # Copy package manifests and install only production dependencies
 COPY package*.json ./

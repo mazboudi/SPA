@@ -32,7 +32,6 @@ Build Application:
   stage: build
   image: "fmk.nexus.onefiserv.net/fmk/node/node20:FMK-26-03-04"
   script:
-    - if [ -d "spa-title-wizard" ]; then cd spa-title-wizard; fi
     - echo "Configuring npm registry..."
     - npm config set registry "${npm_registry}"
     - npm config set strict-ssl false
@@ -50,7 +49,6 @@ Build Application:
     expire_in: 1 week
     paths:
       - dist/
-      - spa-title-wizard/dist/
 
 # ── Stage 2: Build and Push Docker Image ───────────────────────────────────────
 Build and Push Docker Image:
@@ -68,15 +66,12 @@ Build and Push Docker Image:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   script:
-    - BUILD_DIR="."
-    - if [ -d "spa-title-wizard" ]; then BUILD_DIR="spa-title-wizard"; fi
-
     - echo "Logging into Nexus registry..."
     - docker logout fmk.nexus-ci.onefiserv.net || true
     - echo "${NEXUS_CI_PASSWORD}" | docker login fmk.nexus-ci.onefiserv.net --username "${NEXUS_CI_ID}" --password-stdin
 
     - echo "Building Docker image ${image_name}:${app_version} ..."
-    - docker build -t "${image_name}:${app_version}" -t "${image_name}:latest" "$BUILD_DIR"
+    - docker build -t "${image_name}:${app_version}" -t "${image_name}:latest" .
 
     - echo "Pushing Docker image..."
     - docker push "${image_name}:${app_version}" || (echo "Docker push failed." && exit 1)
