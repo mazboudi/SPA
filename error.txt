@@ -1,10 +1,8 @@
-[ServiceNow] Requesting OAuth access token with Client ID: 35bf5251370e471caf6bc98fcebee569...
+[vite]   ➜  Network: use --host to expose
+[server] 🔐 [ServiceNow] Requesting OAuth access token with Client ID: a797a7ad1e414196bbcdf6b6c18d4f8d...
 [server] ✅ [ServiceNow] Obtained OAuth access token (Expires in 1799s)
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
