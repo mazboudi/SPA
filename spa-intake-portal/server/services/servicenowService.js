@@ -32,26 +32,34 @@ export class ServiceNowService {
     } else {
       this.baseUrl = `https://${host}.service-now.com/api/now/table`;
     }
+  }
 
-    this.authHeader = this.user && this.pass 
-      ? 'Basic ' + Buffer.from(`${this.user}:${this.pass}`).toString('base64')
-      : '';
+  getAuthHeader() {
+    const user = (this.user || process.env.SNOW_USER || '').trim();
+    const pass = (this.pass || process.env.SNOW_PASS || '').trim();
+    return (user && pass) ? 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64') : '';
   }
 
   isConfigured() {
-    return Boolean(this.instance && this.user && this.pass);
+    const user = (this.user || process.env.SNOW_USER || '').trim();
+    const pass = (this.pass || process.env.SNOW_PASS || '').trim();
+    const inst = (this.instance || process.env.SNOW_URL || process.env.SNOW_INSTANCE || '').trim();
+    return Boolean(inst && user && pass);
   }
 
   async testConnection() {
     if (!this.isConfigured()) {
-      return { ok: false, error: 'ServiceNow credentials (SNOW_INSTANCE, SNOW_USER, SNOW_PASS) are not fully configured.' };
+      return { ok: false, error: 'ServiceNow credentials (SNOW_URL, SNOW_USER, SNOW_PASS) are not fully configured.' };
     }
 
     try {
       const url = `${this.baseUrl}/${this.tables.title}?sysparm_limit=1`;
+      const auth = this.getAuthHeader();
+      console.log(`🔑 [ServiceNow] Sending request to ${url} as user: "${this.user}" (Auth header present: ${Boolean(auth)})`);
+
       const res = await fetch(url, {
         headers: {
-          'Authorization': this.authHeader,
+          'Authorization': auth,
           'Accept': 'application/json',
         },
       });
@@ -90,7 +98,7 @@ export class ServiceNowService {
 
     const url = `${this.baseUrl}/${this.tables.title}?sysparm_limit=${limit}${query ? `&sysparm_query=${query}` : ''}`;
     const res = await fetch(url, {
-      headers: { 'Authorization': this.authHeader, 'Accept': 'application/json' },
+      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
     });
 
     if (!res.ok) throw new Error(`Failed to fetch titles from ServiceNow: HTTP ${res.status}`);
@@ -104,7 +112,7 @@ export class ServiceNowService {
 
     const url = `${this.baseUrl}/${this.tables.version}?sysparm_query=u_software_title=${titleSysId}`;
     const res = await fetch(url, {
-      headers: { 'Authorization': this.authHeader, 'Accept': 'application/json' },
+      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
     });
 
     if (!res.ok) throw new Error(`Failed to fetch versions from ServiceNow: HTTP ${res.status}`);
@@ -135,7 +143,7 @@ export class ServiceNowService {
     const res = await fetch(`${this.baseUrl}/${this.tables.request}`, {
       method: 'POST',
       headers: {
-        'Authorization': this.authHeader,
+        'Authorization': this.getAuthHeader(),
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -158,7 +166,7 @@ export class ServiceNowService {
     // Fetch requests
     const reqUrl = `${this.baseUrl}/${this.tables.request}?sysparm_limit=${limit}&sysparm_query=ORDERBYDESCsys_created_on`;
     const res = await fetch(reqUrl, {
-      headers: { 'Authorization': this.authHeader, 'Accept': 'application/json' },
+      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
     });
 
     if (!res.ok) throw new Error(`Failed to fetch requests from ServiceNow: HTTP ${res.status}`);
@@ -168,7 +176,7 @@ export class ServiceNowService {
     // Fetch active tasks for these requests
     const tasksUrl = `${this.baseUrl}/${this.tables.task}?sysparm_limit=250`;
     const taskRes = await fetch(tasksUrl, {
-      headers: { 'Authorization': this.authHeader, 'Accept': 'application/json' },
+      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
     });
 
     let tasks = [];
