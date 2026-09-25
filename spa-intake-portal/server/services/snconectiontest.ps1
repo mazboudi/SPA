@@ -3,7 +3,7 @@
 
 # 1. Credentials
 $user = "spa_api_user"
-$pass = "s4zH).G?S{or_oWh@u^wK)zFGT<L52%?JRQmkMW{"
+$pass = "C)c(*K8yxWNQ1s*J@#mDz}HCPpplCKaW?j7k^<Q["
 
 # 2. Build auth header
 $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass)))
