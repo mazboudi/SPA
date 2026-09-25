@@ -13,6 +13,7 @@ export class ServiceNowService {
     
     this.clientId = (config.clientId || process.env.SNOW_CLIENT_ID || '').trim();
     this.clientSecret = (config.clientSecret || process.env.SNOW_CLIENT_SECRET || '').trim();
+    this.apiKey = (config.apiKey || process.env.SNOW_API_KEY || '').trim();
     this.accessToken = null;
     this.tokenExpiresAt = 0;
 
@@ -60,12 +61,16 @@ export class ServiceNowService {
       cleanSecret = parts[2];
     }
 
-    const body = new URLSearchParams({
+    const tokenParams = {
       grant_type: 'client_credentials',
       client_id: this.clientId,
       client_secret: cleanSecret,
-      scope: 'useraccount',
-    });
+    };
+    if (process.env.SNOW_OAUTH_SCOPE) {
+      tokenParams.scope = process.env.SNOW_OAUTH_SCOPE;
+    }
+
+    const body = new URLSearchParams(tokenParams);
 
     const res = await fetch(this.tokenUrl, {
       method: 'POST',
@@ -94,21 +99,44 @@ export class ServiceNowService {
     return this.accessToken;
   }
 
-  async getAuthHeader() {
-    // 1. Prefer OAuth 2.0 Bearer token
+  async getHeaders(extraHeaders = {}) {
+    const headers = {
+      'Accept': 'application/json',
+      ...extraHeaders,
+    };
+
+    // 1. API Key (if provided)
+    if (this.apiKey) {
+      headers['x-snc-api-key'] = this.apiKey;
+      return headers;
+    }
+
+    // 2. OAuth 2.0 Bearer token
     if (this.clientId && this.clientSecret) {
       try {
         const token = await this.getAccessToken();
-        if (token) return `${this.tokenType || 'Bearer'} ${token}`;
+        if (token) {
+          headers['Authorization'] = `${this.tokenType || 'Bearer'} ${token}`;
+          return headers;
+        }
       } catch (err) {
         console.warn(`⚠️ [ServiceNow] OAuth token retrieval failed: ${err.message}. Checking Basic Auth...`);
       }
     }
 
-    // 2. Fallback to Basic Auth
+    // 3. Fallback to Basic Auth
     const user = (this.user || process.env.SNOW_USER || '').trim();
     const pass = (this.pass || process.env.SNOW_PASS || '').trim();
-    return (user && pass) ? 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64') : '';
+    if (user && pass) {
+      headers['Authorization'] = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+    }
+
+    return headers;
+  }
+
+  async getAuthHeader() {
+    const headers = await this.getHeaders();
+    return headers['Authorization'] || (this.apiKey ? `Bearer ${this.apiKey}` : '');
   }
 
   isConfigured() {
@@ -116,26 +144,23 @@ export class ServiceNowService {
     const pass = (this.pass || process.env.SNOW_PASS || '').trim();
     const cId = (this.clientId || process.env.SNOW_CLIENT_ID || '').trim();
     const cSec = (this.clientSecret || process.env.SNOW_CLIENT_SECRET || '').trim();
+    const aKey = (this.apiKey || process.env.SNOW_API_KEY || '').trim();
     const inst = (this.instance || process.env.SNOW_URL || process.env.SNOW_INSTANCE || '').trim();
-    return Boolean(inst && ((cId && cSec) || (user && pass)));
+    return Boolean(inst && (aKey || (cId && cSec) || (user && pass)));
   }
 
   async testConnection() {
     if (!this.isConfigured()) {
-      return { ok: false, error: 'ServiceNow credentials (SNOW_URL, and either OAuth CLIENT_ID/SECRET or USER/PASS) are not configured.' };
+      return { ok: false, error: 'ServiceNow credentials (SNOW_URL, and either SNOW_API_KEY, OAuth CLIENT_ID/SECRET, or USER/PASS) are not configured.' };
     }
 
     try {
       const url = `${this.baseUrl}/${this.tables.title}?sysparm_limit=1`;
-      const auth = await this.getAuthHeader();
-      console.log(`🔑 [ServiceNow] Connecting to ${url} (Auth Type: ${auth.startsWith('Bearer') ? 'OAuth 2.0' : 'Basic Auth'})`);
+      const headers = await this.getHeaders();
+      const authType = headers['x-snc-api-key'] ? 'API Key (x-snc-api-key)' : headers['Authorization'] ? (headers['Authorization'].startsWith('Bearer') ? 'OAuth 2.0' : 'Basic Auth') : 'None';
+      console.log(`🔑 [ServiceNow] Connecting to ${url} (Auth Type: ${authType})`);
 
-      const res = await fetch(url, {
-        headers: {
-          'Authorization': auth,
-          'Accept': 'application/json',
-        },
-      });
+      const res = await fetch(url, { headers });
 
       if (!res.ok) {
         const text = await res.text();
@@ -169,11 +194,9 @@ export class ServiceNowService {
       query = `u_display_nameLIKE${encodeURIComponent(searchTerm)}^ORu_publisherLIKE${encodeURIComponent(searchTerm)}`;
     }
 
-    const auth = await this.getAuthHeader();
+    const headers = await this.getHeaders();
     const url = `${this.baseUrl}/${this.tables.title}?sysparm_limit=${limit}${query ? `&sysparm_query=${query}` : ''}`;
-    const res = await fetch(url, {
-      headers: { 'Authorization': auth, 'Accept': 'application/json' },
-    });
+    const res = await fetch(url, { headers });
 
     if (!res.ok) {
       const errText = await res.text();
@@ -187,11 +210,9 @@ export class ServiceNowService {
   async getVersionsForTitle(titleSysId) {
     if (!this.isConfigured()) return [];
 
-    const auth = await this.getAuthHeader();
+    const headers = await this.getHeaders();
     const url = `${this.baseUrl}/${this.tables.version}?sysparm_query=u_software_title=${titleSysId}`;
-    const res = await fetch(url, {
-      headers: { 'Authorization': auth, 'Accept': 'application/json' },
-    });
+    const res = await fetch(url, { headers });
 
     if (!res.ok) {
       const errText = await res.text();
@@ -221,14 +242,10 @@ export class ServiceNowService {
       priority: reqData.priority === 'High' ? '2' : reqData.priority === 'Critical' ? '1' : '3',
     };
 
-    const auth = await this.getAuthHeader();
+    const headers = await this.getHeaders({ 'Content-Type': 'application/json' });
     const res = await fetch(`${this.baseUrl}/${this.tables.request}`, {
       method: 'POST',
-      headers: {
-        'Authorization': auth,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -245,12 +262,10 @@ export class ServiceNowService {
   async getRequests(limit = 100) {
     if (!this.isConfigured()) return [];
 
-    const auth = await this.getAuthHeader();
+    const headers = await this.getHeaders();
     // Fetch requests
     const reqUrl = `${this.baseUrl}/${this.tables.request}?sysparm_limit=${limit}&sysparm_query=ORDERBYDESCsys_created_on`;
-    const res = await fetch(reqUrl, {
-      headers: { 'Authorization': auth, 'Accept': 'application/json' },
-    });
+    const res = await fetch(reqUrl, { headers });
 
     if (!res.ok) {
       const errText = await res.text();
@@ -261,9 +276,7 @@ export class ServiceNowService {
 
     // Fetch active tasks for these requests
     const tasksUrl = `${this.baseUrl}/${this.tables.task}?sysparm_limit=250`;
-    const taskRes = await fetch(tasksUrl, {
-      headers: { 'Authorization': auth, 'Accept': 'application/json' },
-    });
+    const taskRes = await fetch(tasksUrl, { headers });
 
     let tasks = [];
     if (taskRes.ok) {
