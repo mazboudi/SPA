@@ -1,6 +1,10 @@
 // spa-intake-portal/server/services/servicenowService.js
 // Handles communication with ServiceNow Table API for Option B (Headless ServiceNow)
 
+if (process.env.SNOW_IGNORE_SSL === 'true' || process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 export class ServiceNowService {
   constructor(config = {}) {
     this.instance = config.instance || process.env.SNOW_URL || process.env.SNOW_INSTANCE || '';
@@ -60,7 +64,18 @@ export class ServiceNowService {
       const data = await res.json();
       return { ok: true, status: 200, count: data.result ? data.result.length : 0 };
     } catch (err) {
-      return { ok: false, error: err.message };
+      const causeDetails = err.cause ? (err.cause.code || err.cause.message || String(err.cause)) : null;
+      console.error(`❌ [ServiceNow] Connection error: ${err.message}`, causeDetails ? `(Cause: ${causeDetails})` : '');
+      return { 
+        ok: false, 
+        error: err.message, 
+        cause: causeDetails,
+        hint: (causeDetails && causeDetails.includes('CERT')) 
+          ? 'Corporate SSL certificate verification failed. Try adding SNOW_IGNORE_SSL=true in your .env file.'
+          : (causeDetails && causeDetails.includes('ENOTFOUND'))
+          ? 'DNS cannot resolve hostname. Ensure you are connected to the corporate VPN.'
+          : undefined
+      };
     }
   }
 
