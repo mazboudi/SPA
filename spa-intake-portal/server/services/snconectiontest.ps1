@@ -1,4 +1,4 @@
-$pair = "spaapiuser5621!"
+$pair = "C)c(*K8yxWNQ1s*J@#mDz}HCPpplCKaW?j7k^<Q["
 $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
 $base64 = [System.Convert]::ToBase64String($bytes)
 $headers = @{
