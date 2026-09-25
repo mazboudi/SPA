@@ -3,7 +3,7 @@
 
 export class ServiceNowService {
   constructor(config = {}) {
-    this.instance = config.instance || process.env.SNOW_INSTANCE || '';
+    this.instance = config.instance || process.env.SNOW_URL || process.env.SNOW_INSTANCE || '';
     this.user = config.user || process.env.SNOW_USER || '';
     this.pass = config.pass || process.env.SNOW_PASS || '';
     
@@ -15,7 +15,20 @@ export class ServiceNowService {
       task: config.taskTable || process.env.SNOW_TASK_TABLE || 'x_fise2_software_0_spa_intake_task',
     };
 
-    this.baseUrl = this.instance ? `https://${this.instance}.service-now.com/api/now/table` : '';
+    // Support full custom domain/URL (e.g. https://fiservdevservicepoint.fiservapp.com)
+    // as well as standard ServiceNow subdomains (e.g. dev12345)
+    let host = this.instance.trim();
+    if (!host) {
+      this.baseUrl = '';
+    } else if (host.startsWith('http://') || host.startsWith('https://')) {
+      host = host.replace(/\/+$/, '');
+      this.baseUrl = `${host}/api/now/table`;
+    } else if (host.includes('.')) {
+      this.baseUrl = `https://${host}/api/now/table`;
+    } else {
+      this.baseUrl = `https://${host}.service-now.com/api/now/table`;
+    }
+
     this.authHeader = this.user && this.pass 
       ? 'Basic ' + Buffer.from(`${this.user}:${this.pass}`).toString('base64')
       : '';

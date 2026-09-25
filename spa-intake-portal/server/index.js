@@ -144,7 +144,7 @@ app.get('/api/intake/backend-status', async (req, res) => {
     configuredSource: configuredMode,
     serviceNow: {
       configured: isSnowConfigured,
-      instance: snowService.instance ? `${snowService.instance}.service-now.com` : 'Not configured',
+      endpoint: snowService.baseUrl || 'Not configured',
       tables: snowService.tables,
       connection: snowConnection,
     },
