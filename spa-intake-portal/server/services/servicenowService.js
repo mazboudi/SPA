@@ -168,7 +168,10 @@ export class ServiceNowService {
       headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
-    if (!res.ok) throw new Error(`Failed to fetch titles from ServiceNow: HTTP ${res.status}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to fetch titles from ServiceNow: HTTP ${res.status} - ${errText}`);
+    }
     const data = await res.json();
     return data.result || [];
   }
@@ -183,7 +186,10 @@ export class ServiceNowService {
       headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
-    if (!res.ok) throw new Error(`Failed to fetch versions from ServiceNow: HTTP ${res.status}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to fetch versions from ServiceNow: HTTP ${res.status} - ${errText}`);
+    }
     const data = await res.json();
     return data.result || [];
   }
@@ -239,7 +245,10 @@ export class ServiceNowService {
       headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
-    if (!res.ok) throw new Error(`Failed to fetch requests from ServiceNow: HTTP ${res.status}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to fetch requests from ServiceNow: HTTP ${res.status} - ${errText}`);
+    }
     const reqData = await res.json();
     const requests = reqData.result || [];
 
