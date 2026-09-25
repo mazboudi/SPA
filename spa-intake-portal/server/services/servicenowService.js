@@ -81,6 +81,11 @@ export class ServiceNowService {
     }
 
     const data = await res.json();
+    if (!res.ok || data.error || !data.access_token) {
+      const errMsg = data.error_description || data.error || `HTTP ${res.status}`;
+      throw new Error(`OAuth token request failed: ${errMsg}`);
+    }
+
     this.accessToken = data.access_token;
     this.tokenType = data.token_type || 'Bearer';
     this.tokenExpiresAt = Date.now() + ((data.expires_in || 1800) * 1000);
