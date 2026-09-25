@@ -9,7 +9,9 @@ Write-Host "1. Requesting OAuth token from ServiceNow..." -ForegroundColor Cyan
 try {
     $tokenRes = Invoke-RestMethod -Uri "https://fiservdevservicepoint.fiservapps.com/oauth_token.do" -Method Post -Body $body -SkipCertificateCheck
     if ($tokenRes.access_token) {
-        Write-Host "   ✅ SUCCESS! Token received: $($tokenRes.access_token.Substring(0, 15))... (Type: $($tokenRes.token_type), Scope: $($tokenRes.scope))" -ForegroundColor Green
+        Write-Host "   ✅ Token received successfully!" -ForegroundColor Green
+        Write-Host "   Raw Token Payload:" -ForegroundColor Yellow
+        Write-Host ($tokenRes | ConvertTo-Json -Depth 4) -ForegroundColor Gray
     } else {
         Write-Host "   ❌ FAILED to get token! Response: $($tokenRes | ConvertTo-Json -Compress)" -ForegroundColor Red
         exit 1
