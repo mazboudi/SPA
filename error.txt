@@ -1,27 +1,10 @@
-# Eg. User name="admin", Password="admin" for this code sample.
-$user = "admin"
-$pass = "admin"
-
-# Build auth header
-$base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass)))
-
-# Set proper headers
-$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-$headers.Add('Authorization',('Basic {0}' -f $base64AuthInfo))
-$headers.Add('Accept','application/json')
-
-
-# Specify endpoint uri
-$uri = "https://fiservdevservicepoint.fiservapps.com/api/now/table/x_fise2_software_0_spa_intake_software_title?sysparm_limit=1"
-
-# Specify HTTP method
-$method = "get"
-
-
-
-
-# Send HTTP request
-$response = Invoke-RestMethod -Headers $headers -Method $method -Uri $uri 
-
-# Print response
-$response.RawContent
+[ServiceNow] Requesting OAuth access token with Client ID: 35bf5251370e471caf6bc98fcebee569...
+[server] ✅ [ServiceNow] Obtained OAuth access token (Expires in 1799s)
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
+[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401
