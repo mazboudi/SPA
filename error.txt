@@ -1,3 +1,27 @@
-PS C:\Users\F7NXPWL\EUC\SPA> curl -s http://localhost:3002/api/intake/backend-status
-{"activeSource":"servicenow","configuredSource":"servicenow","serviceNow":{"configured":true,"endpoint":"https://fiservdevservicepoint.fiservapps.com/api/now/table","tables":{"title":"x_fise2_software_0_spa_intake_software_title","version":"x_fise2_software_0_software_version","request":"x_fise2_software_0_spa_intake_request","task":"x_fise2_software_0_spa_intake_task"},"connection":{"ok":false,"status":401,"error":"ServiceNow responded with HTTP 401: {\"error\":{\"message\":\"User is not authenticated\",\"detail\":\"Required to provide Auth information\"},\"status\":\"failure\"}"}},"sqlite":{"available":true,"totalTitles":4661}}
-PS C:\Users\F7NXPWL\EUC\SPA> 
+# Eg. User name="admin", Password="admin" for this code sample.
+$user = "admin"
+$pass = "admin"
+
+# Build auth header
+$base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass)))
+
+# Set proper headers
+$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+$headers.Add('Authorization',('Basic {0}' -f $base64AuthInfo))
+$headers.Add('Accept','application/json')
+
+
+# Specify endpoint uri
+$uri = "https://fiservdevservicepoint.fiservapps.com/api/now/table/x_fise2_software_0_spa_intake_software_title?sysparm_limit=1"
+
+# Specify HTTP method
+$method = "get"
+
+
+
+
+# Send HTTP request
+$response = Invoke-RestMethod -Headers $headers -Method $method -Uri $uri 
+
+# Print response
+$response.RawContent
