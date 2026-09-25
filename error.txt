@@ -1,8 +1,18 @@
-[vite]   ➜  Network: use --host to expose
-[server] 🔐 [ServiceNow] Requesting OAuth access token with Client ID: a797a7ad1e414196bbcdf6b6c18d4f8d...
-[server] ✅ [ServiceNow] Obtained OAuth access token (Expires in 1799s)
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
-[server] ⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite: Failed to fetch requests from ServiceNow: HTTP 401 - {"error":{"message":"User is not authenticated","detail":"Required to provide Auth information"},"status":"failure"}
+ Requesting OAuth token from ServiceNow...
+Invoke-RestMethod: C:\Users\F7NXPWL\EUC\SPA\spa-intake-portal\server\services\snconectiontest.ps1:9:13
+Line |
+   9 |  $tokenRes = Invoke-RestMethod -Uri "https://fiservdevservicepoint.fis …
+     |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     |  {   "error_description": "access_denied",   "error": "server_error" }
+   Token received! Type: , Scope: 
+2. Calling Table API with Bearer token...
+   FAILED with: Response status code does not indicate success: 401 (Unauthorized).                 
+   Details: 
+{
+  "error": {
+    "message": "User is not authenticated",
+    "detail": "Required to provide Auth information"
+  },
+  "status": "failure"
+}
+PS C:\Users\F7NXPWL\EUC\SPA> 
