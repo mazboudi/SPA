@@ -1,30 +1,29 @@
-# Bypass SSL certificate validation if on corporate proxy
-[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+# 1. Request the OAuth Token
+$body = @{
+    grant_type    = "client_credentials"
+    client_id     = "a797a7ad1e414196bbcdf6b6c18d4f8d"
+    client_secret = "{Ew*pg]!|$869xCr.}+?lvRFEEZv0fOp"
+}
 
-# 1. Credentials
-$user = "spa_api_user"
-$pass = "C)c(*K8yxWNQ1s*J@#mDz}HCPpplCKaW?j7k^<Q["
+Write-Host "1. Requesting OAuth token from ServiceNow..." -ForegroundColor Cyan
+$tokenRes = Invoke-RestMethod -Uri "https://fiservdevservicepoint.fiservapps.com/oauth_token.do" -Method Post -Body $body -SkipCertificateCheck
+Write-Host "   Token received! Type: $($tokenRes.token_type), Scope: $($tokenRes.scope)" -ForegroundColor Green
 
-# 2. Build auth header
-$base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $user, $pass)))
+# 2. Call the Table API using the Bearer Token
+$headers = @{
+    "Authorization" = "Bearer $($tokenRes.access_token)"
+    "Accept"        = "application/json"
+}
 
-# 3. Set headers
-$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-$headers.Add('Authorization', ('Basic {0}' -f $base64AuthInfo))
-$headers.Add('Accept', 'application/json')
-
-# 4. Specify endpoint uri
-$uri = "https://fiservdevservicepoint.fiservapps.com/api/now/table/x_fise2_software_0_spa_intake_software_title?sysparm_limit=1"
-
-# 5. Send request
+Write-Host "2. Calling Table API with Bearer token..." -ForegroundColor Cyan
 try {
-    $response = Invoke-RestMethod -Headers $headers -Method Get -Uri $uri
-    Write-Host " SUCCESS! HTTP 200 Received:" -ForegroundColor Green
-    $response.result | Format-Table u_display_name, u_publisher, u_default_disposition
+    $tableRes = Invoke-RestMethod -Uri "https://fiservdevservicepoint.fiservapps.com/api/now/table/x_fise2_software_0_spa_intake_software_title?sysparm_limit=1" -Headers $headers -SkipCertificateCheck
+    Write-Host "   SUCCESS! Record retrieved:" -ForegroundColor Green
+    $tableRes.result | Format-Table u_display_name, u_publisher, u_default_disposition
 }
 catch {
-    Write-Host " FAILED with status code: $($_.Exception.Response.StatusCode.value__)" -ForegroundColor Red
-    $streamReader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-    $errBody = $streamReader.ReadToEnd()
-    Write-Host "Error Body: $errBody" -ForegroundColor Yellow
+    Write-Host "   FAILED with: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.ErrorDetails) {
+        Write-Host "   Details: $($_.ErrorDetails.Message)" -ForegroundColor Yellow
+    }
 }

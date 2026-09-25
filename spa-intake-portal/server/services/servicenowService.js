@@ -82,8 +82,9 @@ export class ServiceNowService {
 
     const data = await res.json();
     this.accessToken = data.access_token;
+    this.tokenType = data.token_type || 'Bearer';
     this.tokenExpiresAt = Date.now() + ((data.expires_in || 1800) * 1000);
-    console.log(`✅ [ServiceNow] Obtained OAuth access token (Expires in ${data.expires_in}s)`);
+    console.log(`✅ [ServiceNow] Obtained OAuth token (Type: ${this.tokenType}, Scope: ${data.scope || 'none'}, Expires in: ${data.expires_in}s)`);
     return this.accessToken;
   }
 
@@ -92,7 +93,7 @@ export class ServiceNowService {
     if (this.clientId && this.clientSecret) {
       try {
         const token = await this.getAccessToken();
-        if (token) return `Bearer ${token}`;
+        if (token) return `${this.tokenType || 'Bearer'} ${token}`;
       } catch (err) {
         console.warn(`⚠️ [ServiceNow] OAuth token retrieval failed: ${err.message}. Checking Basic Auth...`);
       }
