@@ -1,18 +1,22 @@
- Requesting OAuth token from ServiceNow...
-Invoke-RestMethod: C:\Users\F7NXPWL\EUC\SPA\spa-intake-portal\server\services\snconectiontest.ps1:9:13
-Line |
-   9 |  $tokenRes = Invoke-RestMethod -Uri "https://fiservdevservicepoint.fis …
-     |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     |  {   "error_description": "access_denied",   "error": "server_error" }
-   Token received! Type: , Scope: 
-2. Calling Table API with Bearer token...
-   FAILED with: Response status code does not indicate success: 401 (Unauthorized).                 
-   Details: 
+PS C:\Users\F7NXPWL\EUC\SPA> . 'C:\Users\F7NXPWL\EUC\SPA\spa-intake-portal\server\services\snconectiontest.ps1'
+1. Requesting OAuth token from ServiceNow...
+   ✅ Token received successfully!
+   Raw Token Payload:
 {
-  "error": {
-    "message": "User is not authenticated",
-    "detail": "Required to provide Auth information"
-  },
-  "status": "failure"
+  "access_token": "XZx_7pOtZ4_ASsyvQ0mxwXBmWgX0KeMVh6CJsq5pMyFgWLHwfx-XthhRcxZU5o857oMyfnE2__YyfdOl851TWA",
+  "scope": "a2aauthscope",
+  "token_type": "Bearer",
+  "expires_in": 1799
 }
-PS C:\Users\F7NXPWL\EUC\SPA> 
+
+--- Diagnostic Tests ---
+
+Test 2A: Header 'Authorization: Bearer <token>'...
+   ❌ Test 2A Failed: Response status code does not indicate success: 401 (Unauthorized).           
+
+Test 2B: URL Query Parameter '?oauth_token=<token>'...
+   ❌ Test 2B Failed: Response status code does not indicate success: 401 (Unauthorized).           
+
+Test 2C: Checking standard 'sys_user' table with Bearer token...
+   ❌ Test 2C Failed: Response status code does not indicate success: 401 (Unauthorized).           
+PS C:\Users\F7NXPWL\EUC\SPA> . 'C:\Users\F7NXPWL\EUC\SPA\spa-intake-portal\server\services\snconectiontest.ps1'
