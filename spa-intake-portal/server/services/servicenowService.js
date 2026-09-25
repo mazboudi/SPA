@@ -11,6 +11,11 @@ export class ServiceNowService {
     this.user = config.user || process.env.SNOW_USER || '';
     this.pass = config.pass || process.env.SNOW_PASS || '';
     
+    this.clientId = (config.clientId || process.env.SNOW_CLIENT_ID || '').trim();
+    this.clientSecret = (config.clientSecret || process.env.SNOW_CLIENT_SECRET || '').trim();
+    this.accessToken = null;
+    this.tokenExpiresAt = 0;
+
     // Table names with defaults matching scoped app
     this.tables = {
       title: config.titleTable || process.env.SNOW_TITLE_TABLE || 'x_fise2_software_0_spa_intake_software_title',
@@ -19,22 +24,81 @@ export class ServiceNowService {
       task: config.taskTable || process.env.SNOW_TASK_TABLE || 'x_fise2_software_0_spa_intake_task',
     };
 
-    // Support full custom domain/URL (e.g. https://fiservdevservicepoint.fiservapp.com)
-    // as well as standard ServiceNow subdomains (e.g. dev12345)
     let host = this.instance.trim();
     if (!host) {
       this.baseUrl = '';
+      this.tokenUrl = '';
     } else if (host.startsWith('http://') || host.startsWith('https://')) {
       host = host.replace(/\/+$/, '');
       this.baseUrl = `${host}/api/now/table`;
+      this.tokenUrl = `${host}/oauth_token.do`;
     } else if (host.includes('.')) {
       this.baseUrl = `https://${host}/api/now/table`;
+      this.tokenUrl = `https://${host}/oauth_token.do`;
     } else {
       this.baseUrl = `https://${host}.service-now.com/api/now/table`;
+      this.tokenUrl = `https://${host}.service-now.com/oauth_token.do`;
     }
   }
 
-  getAuthHeader() {
+  async getAccessToken() {
+    if (this.accessToken && Date.now() < this.tokenExpiresAt - 60000) {
+      return this.accessToken;
+    }
+
+    if (!this.clientId || !this.clientSecret) {
+      return null;
+    }
+
+    console.log(`🔐 [ServiceNow] Requesting OAuth access token with Client ID: ${this.clientId}...`);
+
+    // Clean secret in case it has prefix/suffix
+    let cleanSecret = this.clientSecret;
+    // If copied with sys_id prefix (e.g., "56122fdc...  1  <secret>"), extract the actual secret
+    const parts = cleanSecret.split(/\s+/).filter(Boolean);
+    if (parts.length >= 3 && parts[1] === '1') {
+      cleanSecret = parts[2];
+    }
+
+    const body = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: this.clientId,
+      client_secret: cleanSecret,
+    });
+
+    const res = await fetch(this.tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+      },
+      body: body.toString(),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`OAuth token request failed (HTTP ${res.status}): ${errText}`);
+    }
+
+    const data = await res.json();
+    this.accessToken = data.access_token;
+    this.tokenExpiresAt = Date.now() + ((data.expires_in || 1800) * 1000);
+    console.log(`✅ [ServiceNow] Obtained OAuth access token (Expires in ${data.expires_in}s)`);
+    return this.accessToken;
+  }
+
+  async getAuthHeader() {
+    // 1. Prefer OAuth 2.0 Bearer token
+    if (this.clientId && this.clientSecret) {
+      try {
+        const token = await this.getAccessToken();
+        if (token) return `Bearer ${token}`;
+      } catch (err) {
+        console.warn(`⚠️ [ServiceNow] OAuth token retrieval failed: ${err.message}. Checking Basic Auth...`);
+      }
+    }
+
+    // 2. Fallback to Basic Auth
     const user = (this.user || process.env.SNOW_USER || '').trim();
     const pass = (this.pass || process.env.SNOW_PASS || '').trim();
     return (user && pass) ? 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64') : '';
@@ -43,19 +107,21 @@ export class ServiceNowService {
   isConfigured() {
     const user = (this.user || process.env.SNOW_USER || '').trim();
     const pass = (this.pass || process.env.SNOW_PASS || '').trim();
+    const cId = (this.clientId || process.env.SNOW_CLIENT_ID || '').trim();
+    const cSec = (this.clientSecret || process.env.SNOW_CLIENT_SECRET || '').trim();
     const inst = (this.instance || process.env.SNOW_URL || process.env.SNOW_INSTANCE || '').trim();
-    return Boolean(inst && user && pass);
+    return Boolean(inst && ((cId && cSec) || (user && pass)));
   }
 
   async testConnection() {
     if (!this.isConfigured()) {
-      return { ok: false, error: 'ServiceNow credentials (SNOW_URL, SNOW_USER, SNOW_PASS) are not fully configured.' };
+      return { ok: false, error: 'ServiceNow credentials (SNOW_URL, and either OAuth CLIENT_ID/SECRET or USER/PASS) are not configured.' };
     }
 
     try {
       const url = `${this.baseUrl}/${this.tables.title}?sysparm_limit=1`;
-      const auth = this.getAuthHeader();
-      console.log(`🔑 [ServiceNow] Sending request to ${url} as user: "${this.user}" (Auth header present: ${Boolean(auth)})`);
+      const auth = await this.getAuthHeader();
+      console.log(`🔑 [ServiceNow] Connecting to ${url} (Auth Type: ${auth.startsWith('Bearer') ? 'OAuth 2.0' : 'Basic Auth'})`);
 
       const res = await fetch(url, {
         headers: {
@@ -96,9 +162,10 @@ export class ServiceNowService {
       query = `u_display_nameLIKE${encodeURIComponent(searchTerm)}^ORu_publisherLIKE${encodeURIComponent(searchTerm)}`;
     }
 
+    const auth = await this.getAuthHeader();
     const url = `${this.baseUrl}/${this.tables.title}?sysparm_limit=${limit}${query ? `&sysparm_query=${query}` : ''}`;
     const res = await fetch(url, {
-      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
+      headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
     if (!res.ok) throw new Error(`Failed to fetch titles from ServiceNow: HTTP ${res.status}`);
@@ -110,9 +177,10 @@ export class ServiceNowService {
   async getVersionsForTitle(titleSysId) {
     if (!this.isConfigured()) return [];
 
+    const auth = await this.getAuthHeader();
     const url = `${this.baseUrl}/${this.tables.version}?sysparm_query=u_software_title=${titleSysId}`;
     const res = await fetch(url, {
-      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
+      headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
     if (!res.ok) throw new Error(`Failed to fetch versions from ServiceNow: HTTP ${res.status}`);
@@ -140,10 +208,11 @@ export class ServiceNowService {
       priority: reqData.priority === 'High' ? '2' : reqData.priority === 'Critical' ? '1' : '3',
     };
 
+    const auth = await this.getAuthHeader();
     const res = await fetch(`${this.baseUrl}/${this.tables.request}`, {
       method: 'POST',
       headers: {
-        'Authorization': this.getAuthHeader(),
+        'Authorization': auth,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -163,10 +232,11 @@ export class ServiceNowService {
   async getRequests(limit = 100) {
     if (!this.isConfigured()) return [];
 
+    const auth = await this.getAuthHeader();
     // Fetch requests
     const reqUrl = `${this.baseUrl}/${this.tables.request}?sysparm_limit=${limit}&sysparm_query=ORDERBYDESCsys_created_on`;
     const res = await fetch(reqUrl, {
-      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
+      headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
     if (!res.ok) throw new Error(`Failed to fetch requests from ServiceNow: HTTP ${res.status}`);
@@ -176,7 +246,7 @@ export class ServiceNowService {
     // Fetch active tasks for these requests
     const tasksUrl = `${this.baseUrl}/${this.tables.task}?sysparm_limit=250`;
     const taskRes = await fetch(tasksUrl, {
-      headers: { 'Authorization': this.getAuthHeader(), 'Accept': 'application/json' },
+      headers: { 'Authorization': auth, 'Accept': 'application/json' },
     });
 
     let tasks = [];
