@@ -64,6 +64,7 @@ export class ServiceNowService {
       grant_type: 'client_credentials',
       client_id: this.clientId,
       client_secret: cleanSecret,
+      scope: 'useraccount',
     });
 
     const res = await fetch(this.tokenUrl, {
