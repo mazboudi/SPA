@@ -37,9 +37,25 @@ import {
   sendTeamsCard,
 } from './lib/teamsNotifier.js';
 import { evaluateNistRisk } from './services/nistService.js';
+import { ServiceNowService } from './services/servicenowService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load .env configuration if present
+const envPath = join(__dirname, '..', '.env');
+if (existsSync(envPath)) {
+  try {
+    if (process.loadEnvFile) {
+      process.loadEnvFile(envPath);
+    }
+  } catch (e) {
+    console.warn('Could not load .env file:', e.message);
+  }
+}
+
+const snowService = new ServiceNowService();
+console.log(`🔌 Backend Data Source Mode: ${process.env.BACKEND_DATA_SOURCE || 'sqlite'} (ServiceNow Configured: ${snowService.isConfigured() ? 'YES' : 'NO'})`);
 
 const PORT = process.env.PORT || 3002;
 const app = express();
@@ -110,6 +126,33 @@ app.get('/api/intake/whoami', (req, res) => {
   const email = samAccount ? samAccount.toLowerCase() + '@' + emailDomain : '';
 
   res.json({ username: samAccount, displayName, domain, dnsDomain, email, source: 'windows-env' });
+});
+
+// GET /api/intake/backend-status — returns active data source (ServiceNow vs SQLite)
+app.get('/api/intake/backend-status', async (req, res) => {
+  const configuredMode = process.env.BACKEND_DATA_SOURCE || 'sqlite';
+  const isSnowConfigured = snowService.isConfigured();
+  const activeSource = (configuredMode === 'servicenow' && isSnowConfigured) ? 'servicenow' : 'sqlite';
+
+  let snowConnection = null;
+  if (isSnowConfigured) {
+    snowConnection = await snowService.testConnection();
+  }
+
+  res.json({
+    activeSource,
+    configuredSource: configuredMode,
+    serviceNow: {
+      configured: isSnowConfigured,
+      instance: snowService.instance ? `${snowService.instance}.service-now.com` : 'Not configured',
+      tables: snowService.tables,
+      connection: snowConnection,
+    },
+    sqlite: {
+      available: true,
+      totalTitles: getCatalogCount(),
+    },
+  });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -470,7 +513,34 @@ app.post('/api/intake/requests', async (req, res) => {
 
     // Prepare Request Record
     const now = new Date().toISOString();
-    const reqNumber = generateNextNumber('RITM', 'software_requests');
+    
+    // Check if ServiceNow backend is active
+    const useSnow = (process.env.BACKEND_DATA_SOURCE === 'servicenow' && snowService.isConfigured());
+    let snowRecord = null;
+
+    if (useSnow) {
+      try {
+        snowRecord = await snowService.createRequest({
+          titleId,
+          titleName,
+          version,
+          platform,
+          requesterEmail,
+          beneficiaryEmail,
+          department,
+          targetDevice,
+          installType: requestInstallType,
+          deploymentScope,
+          businessJustification,
+          priority,
+        });
+        console.log(`✅ [ServiceNow] Request created: ${snowRecord.number} (${snowRecord.sys_id})`);
+      } catch (snowErr) {
+        console.warn('⚠️ [ServiceNow] Failed to create in ServiceNow, falling back to SQLite:', snowErr.message);
+      }
+    }
+
+    const reqNumber = snowRecord?.number || generateNextNumber('RITM', 'software_requests');
     const reqId = 'REQ_' + reqNumber;
 
     let initialStage = 'governance_review';
@@ -663,23 +733,37 @@ app.post('/api/intake/requests', async (req, res) => {
     const targetQueue = hasRiskTask ? 'Enterprise Risk' : 'Software Asset Management';
 
     res.status(201).json({
-      message: `Software request submitted successfully and moved to ${targetQueue} Review Queue`,
+      message: snowRecord
+        ? `Software request submitted to ServiceNow (${snowRecord.number}) and initiated Governance Flow`
+        : `Software request submitted successfully and moved to ${targetQueue} Review Queue`,
       request: createdRecord,
       initialQueue: targetQueue,
       hasRiskTask,
       hasLicenseTask,
+      serviceNow: snowRecord ? { number: snowRecord.number, sys_id: snowRecord.sys_id } : null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/intake/requests — list all requests
-app.get('/api/intake/requests', (req, res) => {
+// GET /api/intake/requests — list all requests (with ServiceNow support)
+app.get('/api/intake/requests', async (req, res) => {
   try {
     const { state } = req.query;
+    const useSnow = (process.env.BACKEND_DATA_SOURCE === 'servicenow' && snowService.isConfigured());
+
+    if (useSnow) {
+      try {
+        const snowRequests = await snowService.getRequests();
+        return res.json({ requests: snowRequests, count: snowRequests.length, source: 'servicenow' });
+      } catch (snowErr) {
+        console.warn('⚠️ [ServiceNow] Could not fetch requests from ServiceNow, falling back to SQLite:', snowErr.message);
+      }
+    }
+
     const requests = getRequests(state);
-    res.json({ requests, count: requests.length });
+    res.json({ requests, count: requests.length, source: 'sqlite' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
